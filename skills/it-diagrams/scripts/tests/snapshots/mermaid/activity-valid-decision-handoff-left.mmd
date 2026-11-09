@@ -1,0 +1,45 @@
+---
+title: "Invoice download"
+---
+swimlane-beta TB
+  %% id: client
+  subgraph n1["Client"]
+    %% id: ask
+    n4["Request an invoice PDF"]
+    %% id: save
+    n8["Save the PDF"]
+    %% id: start
+    n9@{ shape: sm-circ }
+    %% id: end
+    n11@{ shape: fr-circ }
+  end
+  %% id: api
+  subgraph n2["Billing API"]
+    %% id: missing
+    n6["Return 'invoice not found'"]
+    %% id: stream
+    n7["Send the PDF to the client"]
+    %% id: found
+    n10{"File found?"}
+  end
+  %% id: store
+  subgraph n3["Invoice store"]
+    %% id: lookup
+    n5["Find the invoice file by number and version"]
+  end
+  %% id: f1
+  n9 --> n4
+  %% id: f2
+  n4 --> n5
+  %% id: f3
+  n5 --> n10
+  %% id: f4
+  n10 -->|"no"| n6
+  %% id: f5
+  n6 --> n11
+  %% id: f6
+  n10 -->|"yes"| n7
+  %% id: f7
+  n7 --> n8
+  %% id: f8
+  n8 --> n11

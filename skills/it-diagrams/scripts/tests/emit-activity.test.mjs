@@ -278,6 +278,56 @@ describe('activity kind', () => {
       void sizesOf;
     });
 
+    describe('issue 38: a decision branch that hands off to a lane on the left sits left of its sibling', () => {
+      const { segmentsOf, crossings } = helpers();
+      const swap = (arr, a, b) => { const i = arr.findIndex((x) => x.id === a); const j = arr.findIndex((x) => x.id === b); const out = arr.slice(); [out[i], out[j]] = [out[j], out[i]]; return out; };
+      const cx = (L, id) => L.nodes.get(id).x + L.nodes.get(id).width / 2;
+
+      it('the branch whose next step is in the left lane takes the left column, whatever the declaration order; the other goes straight down its own column', async () => {
+        const base = loadFixture('activity', 'valid-decision-handoff-left');
+        const variants = {
+          base,
+          'siblings swapped in actions': { ...base, actions: swap(base.actions, 'missing', 'stream') },
+          'yes and no flows swapped': { ...base, flows: swap(base.flows, 'f4', 'f6') },
+          'the no-branch ends at its own final node in the decision lane': { ...base, controls: [...base.controls, { id: 'end-missing', kind: 'final', lane: 'api' }], flows: base.flows.map((f) => (f.id === 'f5' ? { ...f, to: 'end-missing' } : f)) },
+        };
+        for (const [name, ir] of Object.entries(variants)) {
+          const { L, segments } = segmentsOf(ir);
+          expect(crossings(segments), name).toBe(0);
+          expect(L.warnings.filter((w) => w.message.startsWith('layout:')), name).toEqual([]);
+          expect(cx(L, 'stream'), name).toBeLessThan(cx(L, 'missing'));
+        }
+        // The long flow of the right sibling runs down its own column and turns only above its target.
+        const { L } = segmentsOf(base);
+        expect(L.edges.get('f5').points.map((p) => p.x)).toEqual([cx(L, 'missing'), cx(L, 'end')]);
+        const r = await emit(base, 'drawio');
+        expect(r.ok).toBe(true);
+        expect(r.warnings.filter((w) => String(w.message).startsWith('layout:'))).toEqual([]);
+      });
+
+      it('mirrored lanes put the hand-off branch on the right', () => {
+        const base = loadFixture('activity', 'valid-decision-handoff-left');
+        const { L, segments } = segmentsOf({ ...base, lanes: [...base.lanes].reverse() });
+        expect(crossings(segments)).toBe(0);
+        expect(cx(L, 'stream')).toBeGreaterThan(cx(L, 'missing'));
+      });
+
+      it('a long flow to another lane does not pull its node aside, so a free column stays free', () => {
+        // Here the sync branch has a long flow to the worker lane on the right; it keeps the
+        // declaration order and its own column, and nothing crosses.
+        const { L, segments } = segmentsOf(loadFixture('activity', 'valid-sync-async'));
+        expect(crossings(segments)).toBe(0);
+        expect(cx(L, 'a-queue')).toBeLessThan(cx(L, 'a-call'));
+        expect(L.edges.get('f-call').points).toHaveLength(2);
+      });
+
+      it('names the declaration order of row-mates in the hint of a crossing between lanes', () => {
+        const { L } = segmentsOf(loadFixture('activity', 'valid-fork-join'));
+        const w = L.warnings.find((x) => x.message.includes('cross'));
+        expect(w.hint).toMatch(/order in `actions` and `controls`/);
+      });
+    });
+
     describe('issue 37: a merge fed by side trunks sits on their side of the sibling branch', () => {
       const { segmentsOf, crossings } = helpers();
       const swap = (arr, a, b) => { const i = arr.findIndex((x) => x.id === a); const j = arr.findIndex((x) => x.id === b); const out = arr.slice(); [out[i], out[j]] = [out[j], out[i]]; return out; };

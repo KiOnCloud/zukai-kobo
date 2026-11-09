@@ -68,9 +68,10 @@ has `<target id>:title`. Hand-copied cells (generated ids) get the translation o
 cell with the same source text; every labelled text still untouched is listed once with
 the places it occurs, except labels without letters and texts named in the map's `$keep`
 list. Boxes are not resized: a label that wraps to more lines than its box holds, has an
-unbreakable word wider than its box, or overflows a non-wrapping box (CJK characters count
-1.75 Latin widths) is one `layout:` warning per cell across pages, and keys that matched
-nothing are listed. Compressed
+unbreakable word wider than its box, overflows a non-wrapping box, or no longer fits inside
+a decision's rhombus (measured at the wrap width its label spacing leaves) (CJK characters
+count 1.75 Latin widths) is one `layout:` warning per cell across pages, and keys that
+matched nothing are listed. Compressed
 input is accepted; the output is always uncompressed. The whole protocol, including the
 business-audience variant, is in `variants.md`.
 
@@ -110,7 +111,7 @@ moving shapes by hand, so the IR stays the source of truth.
 
 | IR element | draw.io shape |
 |---|---|
-| flowchart `process` / `terminal` / `decision` / `io` / `subroutine` / `note` | rectangle / rounded rectangle / rhombus / parallelogram / process (double bar) / note |
+| flowchart `process` / `terminal` / `decision` / `io` / `subroutine` / `note` | rectangle / rounded rectangle / rhombus sized so the question stays inside its slanted edges / parallelogram / process (double bar) / note |
 | flowchart `group`, architecture `boundary`, composite `state` | `swimlane` container; children are positioned relative to it |
 | state `initial` / `final` | UML start and end state circles |
 | self-transition or self-edge (`from` = `to`) | a loop out of the right side of the shape (30 px) and back in, with the label right of the loop; the layout reserves that room next to the shape, inside composites too |
@@ -126,8 +127,8 @@ moving shapes by hand, so the IR stays the source of truth.
 | sequence note | note shape on the row after the message it follows |
 | sequence activation | starts at a sync call and ends at the return to the caller; a return inside one branch of an `alt` or `par` keeps the activation open to the last message of that participant in the block |
 | sequence message label | white background, so a lifeline it spans does not cut the text |
-| activity lane | full-height coloured `swimlane` column (lanes side by side in IR order, header and body tints from a fixed palette); rows follow the flow order, nodes of a lane sit in its column, flows are routed through the row gaps and lane gutters on separate tracks per target, ordered so branches do not cross, and flows into one node merge into a trunk; a merge fed by long flows down a lane gutter sits on that gutter's side of its row-mates; a long edge runs straight down its own column when that column is free, else along the lane edge that no cross-lane flow cuts; a crossing that lanes force is reported as a `layout:` warning |
-| activity control `initial` / `final` / `decision` / `merge` / `fork` / `join` | UML start and end circles / rhombus with the question / small rhombus / thin filled bars (horizontal for `TB`, vertical for `LR`) |
+| activity lane | full-height coloured `swimlane` column (lanes side by side in IR order, header and body tints from a fixed palette); rows follow the flow order, nodes of a lane sit in its column, flows are routed through the row gaps and lane gutters on separate tracks per target, ordered so branches do not cross, and flows into one node merge into a trunk; a merge fed by long flows down a lane gutter sits on that gutter's side of its row-mates, and a node whose next step is in another lane sits on that lane's side of them; a long edge runs straight down its own column when that column is free, else along the lane edge that no cross-lane flow cuts; a crossing that lanes force is reported as a `layout:` warning |
+| activity control `initial` / `final` / `decision` / `merge` / `fork` / `join` | UML start and end circles / rhombus with the question, sized so it stays inside the slanted edges / small rhombus / thin filled bars (horizontal for `TB`, vertical for `LR`) |
 | edge label | child cell of the edge (`edgeLabel`, not connectable), so it moves with the edge |
 | node or action with `ref` | subroutine shape; in a bundle the label's second line is the target title and the cell is a `UserObject` with `link="data:page/id,<page id>"`, draw.io's page link |
 
@@ -143,6 +144,13 @@ across re-runs.
   tune it there if Japanese or very long labels wrap badly. Labels wrap inside the shape
   (`whiteSpace=wrap`), and the height grows by one line height per wrapped line at the
   clamped width, so a long label gets a taller box instead of spilling onto its arrows.
+- Decision size: a rhombus is narrower than its box everywhere but the centre line, so its
+  question is measured against the inscribed rectangle (a block `a` x `b` fits a `w` x `h`
+  rhombus when `a/w + b/h <= 1`). The question is wrapped as draw.io wraps it in the plain
+  box; when the rhombus that holds that block would be wider than 340 px, the question wraps
+  narrower in steps (220, 190, 160, 130, 100 px) until the rhombus fits the cap, and a
+  question on several lines gets `spacingLeft` / `spacingRight` so draw.io wraps it at the
+  block's width. The minimum stays 140 x 80 (`measureDecision`, same file).
 - ELK options: layered algorithm, direction from the IR, orthogonal edge routing,
   `hierarchyHandling=INCLUDE_CHILDREN` for edges that cross containers, root-relative
   edge coordinates. Node spacing 40, layer spacing 60 (60 and 80 for ER and class).

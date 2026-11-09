@@ -38,6 +38,26 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
     expect(out.warnings[0].message).toMatch(/^layout: .*wraps to/);
   });
 
+  it('issue 39: measures a decision with label spacing at its wrap width, so a question that no longer fits the diamond is reported', async () => {
+    const r = await emit(loadFixture('activity', 'valid-long-decision'), 'drawio', { diagramId: 'upload' });
+    // Two lines of up to 206 px fit the 336 x 80 diamond; a third does not, nor does one line wider than the diamond at its height.
+    const same = relabelDrawio(r.output, { ok: 'Type is PDF or PNG and size is under the limit?' });
+    expect(same.warnings).toEqual([]);
+    const third = relabelDrawio(r.output, { ok: 'Type is PDF or PNG and the size is under the configured limit?' });
+    expect(third.warnings).toHaveLength(1);
+    expect(third.warnings[0].message).toMatch(/wraps to 3 lines in a 336x80 diamond that holds 2/);
+    const plain = await emit(loadFixture('activity', 'valid-two-lanes'), 'drawio', { diagramId: 'returns' });
+    const oneLine = relabelDrawio(plain.output, { eligible: 'All items stocked?' });
+    expect(oneLine.warnings).toHaveLength(1);
+    expect(oneLine.warnings[0].message).toMatch(/needs about 126 px in a 140x80 diamond that holds 113 px on one line/);
+    const twoLines = relabelDrawio(plain.output, { eligible: 'Are all the items in stock?' });
+    expect(twoLines.warnings[0].message).toMatch(/wraps to 2 lines in a 140x80 diamond that holds 0 at that width/);
+    const longer = relabelDrawio(r.output, { ok: 'Is the file a PDF or a PNG, and is its size under the limit configured for the tenant and the folder?' });
+    expect(longer.warnings).toHaveLength(1);
+    expect(longer.warnings[0].path).toBe('upload:ok');
+    expect(longer.warnings[0].message).toMatch(/wraps to \d+ lines/);
+  });
+
   it('keeps stereotypes on sequence heads and bold titles in a bundle, and addresses one page with a prefix', async () => {
     const r = await bundle([{ id: 'login', ir: loadFixture('sequence', 'valid') }, { id: 'returns', ir: loadFixture('activity', 'valid-two-lanes') }], 'drawio', { title: 'Feature' });
     const out = relabelDrawio(r.output, { 'login:title': 'Đăng nhập', 'auth': 'Dịch vụ xác thực', 'returns:approve': 'Duyệt' });

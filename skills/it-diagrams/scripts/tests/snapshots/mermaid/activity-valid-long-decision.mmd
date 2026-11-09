@@ -1,0 +1,34 @@
+---
+title: "Upload check"
+---
+swimlane-beta TB
+  %% id: client
+  subgraph n1["Client"]
+    %% id: send
+    n3["Send a file"]
+    %% id: start
+    n6@{ shape: sm-circ }
+    %% id: end
+    n8@{ shape: fr-circ }
+  end
+  %% id: api
+  subgraph n2["Upload API"]
+    %% id: reject
+    n4["Reject the upload"]
+    %% id: store
+    n5["Store the file"]
+    %% id: ok
+    n7{"Type is PDF or PNG and size is under the configured limit?"}
+  end
+  %% id: f1
+  n6 --> n3
+  %% id: f2
+  n3 --> n7
+  %% id: f3
+  n7 -->|"no"| n4
+  %% id: f4
+  n7 -->|"yes"| n5
+  %% id: f5
+  n4 --> n8
+  %% id: f6
+  n5 --> n8

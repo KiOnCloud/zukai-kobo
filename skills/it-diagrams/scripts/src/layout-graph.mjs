@@ -30,6 +30,91 @@ export function measureNode(label, { extraRows = 0, minWidth = 120, maxWidth = 2
   return { width, height };
 }
 
+/**
+ * Greedy word wrap at a width in px, as a browser does: lines break at spaces and between
+ * East Asian characters, never inside a word, so a word wider than the line stands alone;
+ * explicit line breaks are kept. Returns the line count and the widest line in px.
+ */
+export function wrapText(label, width) {
+  let lines = 0;
+  let widest = 0;
+  for (const para of String(label).split(/\r\n?|\n/)) {
+    const tokens = []; // a word or one wide character: its width, and whether a space precedes it
+    let word = '';
+    let space = false;
+    const flush = () => {
+      if (word === '') return;
+      tokens.push({ px: CHAR_WIDTH * displayLength(word), space });
+      word = '';
+      space = false;
+    };
+    for (const ch of para) {
+      if (/\s/.test(ch)) { flush(); space = true; }
+      else if (displayLength(ch) > 1) { flush(); tokens.push({ px: CHAR_WIDTH * displayLength(ch), space }); space = false; }
+      else word += ch;
+    }
+    flush();
+    let line = 0;
+    for (const t of tokens) {
+      const gap = line > 0 && t.space ? CHAR_WIDTH : 0;
+      if (line > 0 && line + gap + t.px > width) { widest = Math.max(widest, line); lines++; line = t.px; }
+      else line += gap + t.px;
+    }
+    widest = Math.max(widest, line);
+    lines++;
+  }
+  return { lines, widest };
+}
+
+const DECISION_MIN_WIDTH = 140;
+const DECISION_MIN_HEIGHT = 80;
+/** A decision wider than this wraps its question narrower before the rhombus grows further. */
+const DECISION_MAX_WIDTH = 340;
+/** Wrap widths tried in turn, in px, when the question is too long for one or two full lines. */
+const DECISION_WRAP_STEPS = [220, 190, 160, 130, 100];
+/** One line of draw.io's 12 px font. */
+const TEXT_LINE = 15;
+
+/**
+ * The smallest rhombus that holds a text block of `a` by `b` px, at least the decision
+ * minimum: a block fits when a/w + b/h <= 1, its corners on the slanted edges when equal.
+ * The candidates are twice the block, the minimum height with the width that then fits,
+ * and the minimum width with the height that then fits; the smallest area wins.
+ */
+function rhombusFor(a, b) {
+  const even = (n) => Math.ceil(n / 2) * 2;
+  const options = [{ width: Math.max(DECISION_MIN_WIDTH, even(2 * a)), height: Math.max(DECISION_MIN_HEIGHT, even(2 * b)) }];
+  if (b < DECISION_MIN_HEIGHT) options.push({ width: Math.max(DECISION_MIN_WIDTH, even(a / (1 - b / DECISION_MIN_HEIGHT))), height: DECISION_MIN_HEIGHT });
+  if (a < DECISION_MIN_WIDTH) options.push({ width: DECISION_MIN_WIDTH, height: Math.max(DECISION_MIN_HEIGHT, even(b / (1 - a / DECISION_MIN_WIDTH))) });
+  return options.sort((p, q) => p.width * p.height - q.width * q.height || p.height - q.height)[0];
+}
+
+/**
+ * Size of a decision rhombus and the label spacing that keeps its question inside the
+ * slanted edges. draw.io wraps a label at the box's width, but the rhombus is narrower than
+ * its box everywhere but the centre line, so a long question wrapped to the box spills out
+ * on both sides. The question is first wrapped as draw.io wraps it in the plain box of
+ * `measureNode`; when the rhombus that holds that block would be wider than
+ * DECISION_MAX_WIDTH, it is wrapped narrower, step by step, until the rhombus fits the cap
+ * (else the narrowest step stands). A question on several lines gets `spacingLeft` and
+ * `spacingRight` so draw.io wraps it at the block's width instead of the box's.
+ * @returns {{width:number, height:number, spacing:number}} spacing in px per side, 0 for none
+ */
+export function measureDecision(label) {
+  const base = measureNode(label, { minWidth: DECISION_MIN_WIDTH, baseHeight: DECISION_MIN_HEIGHT });
+  const natural = base.width - 4; // draw.io's default 2 px spacing on each side
+  let pick;
+  for (const wrapAt of [natural, ...DECISION_WRAP_STEPS.filter((w) => w < natural)]) {
+    const block = wrapText(label, wrapAt);
+    const box = rhombusFor(block.widest, block.lines * TEXT_LINE);
+    if (!pick || box.width < pick.box.width) pick = { block, box };
+    if (box.width <= DECISION_MAX_WIDTH) break;
+  }
+  const { block, box } = pick;
+  const spacing = block.lines > 1 ? Math.max(0, Math.floor((box.width - block.widest) / 2) - 2) : 0;
+  return { width: box.width, height: box.height, spacing };
+}
+
 export function measureLabel(text) {
   const lines = String(text).split(/\r\n?|\n/);
   const longest = longestLine(text);

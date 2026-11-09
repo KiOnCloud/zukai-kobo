@@ -38,7 +38,7 @@
           <mxGeometry x="158.5" y="70" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="corporate-login:has-token" value="Token and office?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="corporate-login:api">
-          <mxGeometry x="58" y="560" width="143" height="80" as="geometry"/>
+          <mxGeometry x="55.5" y="560" width="148" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="corporate-login:one-entity" value="Only one entity?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="corporate-login:web">
           <mxGeometry x="107" y="966" width="140" height="80" as="geometry"/>

@@ -128,7 +128,8 @@ export function relabelDrawio(xml, map) {
       const parts = { ...c.parts, main: c.newText ?? c.parts.main, ref: c.newRef ?? c.parts.ref };
       const value = joinLabel(parts);
       if (c.newText !== undefined && c.geometry && !c.selfClosing && c.geometry.width !== undefined && c.geometry.relative !== '1') {
-        const problem = checkFit(c.parts.main, c.newText, Number(c.geometry.width), Number(c.geometry.height), /whiteSpace=wrap/.test(c.style));
+        const spacing = ['spacingLeft', 'spacingRight'].reduce((sum, key) => sum + Number(c.style.match(new RegExp(`${key}=(\\d+)`))?.[1] ?? 0), 0);
+        const problem = checkFit(c.parts.main, c.newText, Number(c.geometry.width), Number(c.geometry.height), /whiteSpace=wrap/.test(c.style), { spacing, rhombus: /^rhombus;/.test(c.style) });
         if (problem) {
           if (!fitProblems.has(c.attrs.id)) fitProblems.set(c.attrs.id, { problem, pages: [] });
           fitProblems.get(c.attrs.id).pages.unshift(p.pageId);
@@ -199,18 +200,35 @@ const WIDE_CHAR = /[\u1100-\u115F\u2E80-\u303E\u3041-\u33FF\u3400-\u4DBF\u4E00-\
 const unbreakable = (word) => (WIDE_CHAR.test(word) ? Math.max(2, ...word.split(WIDE_CHAR).map(displayLength)) : displayLength(word));
 const widestWord = (text) => Math.max(...text.split(/\s+/).map(unbreakable), 0) * CHAR;
 
-/** draw.io wraps text inside the shape minus its 2 px spacing; a line of the 12 px font takes about 15 px. */
+/**
+ * draw.io wraps text inside the shape minus its 2 px spacing (and minus any `spacingLeft` /
+ * `spacingRight`, which the caller takes off the width); a line of the 12 px font takes
+ * about 15 px.
+ */
 const TEXT_INSET = 8;
 const LINE = 15;
 
 /**
  * Fit check for a wrapping box: the new text fits when its wrapped lines fit the height, or
  * when it needs no more lines than the old text took (the box was sized for that). A
- * non-wrapping box must be at least as wide as the longest line. Returns the problem or
- * undefined.
+ * non-wrapping box must be at least as wide as the longest line. A rhombus (decision) holds
+ * a text block only inside its inscribed rectangle: a block a x b fits a w x h diamond when
+ * a/w + b/h <= 1, so the check uses that inequality, with the same grace for a text that
+ * fits no worse than the old one. Returns the problem or undefined.
  */
-function checkFit(oldText, newText, width, height, wraps) {
-  const usable = Math.max(width - TEXT_INSET, 1);
+function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus = false } = {}) {
+  const usable = Math.max(width - spacing - TEXT_INSET, 1);
+  if (wraps && rhombus) {
+    const block = (text) => {
+      const lines = wrappedLines(text, usable);
+      const widest = Math.min(usable, Math.ceil(Math.max(...text.split('\n').map(displayLength), 1) * CHAR));
+      return { lines, widest, fill: widest / width + (lines * LINE) / height };
+    };
+    const now = block(newText);
+    if (now.fill <= 1 || now.fill <= block(oldText).fill) return undefined;
+    if (now.lines === 1) return `the new label needs about ${now.widest} px in a ${width}x${height} diamond that holds ${Math.floor(width * (1 - LINE / height))} px on one line`;
+    return `the new label wraps to ${now.lines} lines in a ${width}x${height} diamond that holds ${Math.floor((height * (1 - usable / width)) / LINE)} at that width`;
+  }
   if (wraps) {
     if (widestWord(newText) > usable && widestWord(oldText) <= usable) return `a word of the new label is wider than the box (${width}x${height})`;
     const lines = wrappedLines(newText, usable);

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emit } from '../src/pipeline.mjs';
 import { emitDrawio, slugify } from '../src/emit-drawio.mjs';
 import { xmlAttr, htmlLabel, vertex } from '../src/drawio-xml.mjs';
-import { measureNode, wrappedLines } from '../src/layout-graph.mjs';
+import { measureNode, measureDecision, wrapText, wrappedLines } from '../src/layout-graph.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
 import { loadFixture, validFixtures } from './helpers.mjs';
 
@@ -27,6 +27,67 @@ describe('drawio-xml', () => {
     expect(heights[0]).toBe(40);
     expect(wrappedLines('a\nb', 260)).toBe(2);
     expect(measureNode('short').height).toBe(40);
+  });
+
+  describe('issue 39: a decision label stays inside the rhombus', () => {
+    // A text block a x b fits a w x h rhombus when a/w + b/h <= 1; a line is 15 px.
+    const fits = (label, { width, height, spacing }) => {
+      const { lines, widest } = wrapText(label, width - 4 - 2 * spacing);
+      return widest / width + (lines * 15) / height <= 1 + 1e-9;
+    };
+
+    it('wraps words like a browser: at spaces, between CJK characters, never inside a word', () => {
+      expect(wrapText('Type is PDF or PNG and size is under the configured limit?', 160)).toEqual({ lines: 3, widest: 154 });
+      expect(wrapText('a\nb', 300)).toEqual({ lines: 2, widest: 7 });
+      expect(wrapText('Supercalifragilistic?', 50)).toEqual({ lines: 1, widest: 147 });
+      expect(wrapText('在庫はありますか？', 60).lines).toBe(3);
+    });
+
+    it('keeps the plain size for a short question and grows only as far as the inscribed rectangle needs', () => {
+      expect(measureDecision('File found?')).toEqual({ width: 140, height: 80, spacing: 0 });
+      expect(measureDecision('Sync or async?')).toEqual({ width: 140, height: 80, spacing: 0 });
+      // 20 characters are 140 px: too wide for the 114 px the 140 x 80 rhombus has at the line's height.
+      const wide = measureDecision('Amount over 500 EUR?');
+      expect(wide.height).toBe(80);
+      expect(wide.width).toBeGreaterThan(140);
+      expect(wide.width).toBeLessThanOrEqual(180);
+      expect(fits('Amount over 500 EUR?', wide)).toBe(true);
+    });
+
+    it('wraps a long question narrower, with spacing so draw.io wraps inside the diamond, and the block fits', () => {
+      const label = 'Type is PDF or PNG and size is under the configured limit?';
+      const d = measureDecision(label);
+      expect(d.width).toBeLessThanOrEqual(340);
+      expect(d.spacing).toBeGreaterThan(0);
+      expect(fits(label, d)).toBe(true);
+      // The plain box would have wrapped it at 256 px into two lines of up to 252 px, far past the slanted edges.
+      expect(fits(label, { ...measureNode(label, { minWidth: 140, baseHeight: 80 }), spacing: 0 })).toBe(false);
+      for (const q of ['Is the configured retention period of the tenant exceeded for this document?', 'Supercalifragilisticexpialidocious?', '在庫はありますか？それとも入荷待ちですか？']) {
+        const m = measureDecision(q);
+        expect(fits(q, m), q).toBe(true);
+        expect(m.width, q).toBeLessThanOrEqual(420);
+      }
+      // An unbreakable word cannot wrap, so the diamond grows around it rather than letting it spill.
+      expect(fits('x'.repeat(100), measureDecision('x'.repeat(100)))).toBe(true);
+    });
+
+    it('emits the rhombus with the spacing in its style, in activity and flowchart diagrams alike', async () => {
+      const r = await emit(loadFixture('activity', 'valid-long-decision'), 'drawio');
+      expect(r.ok).toBe(true);
+      expect(r.warnings).toEqual([]);
+      const ok = checkDrawioStructure(r.output).cells.find((c) => c.id === 'upload-check:ok');
+      expect(ok.style).toMatch(/^rhombus;whiteSpace=wrap;html=1;spacingLeft=(\d+);spacingRight=\1;$/);
+      const { width, height } = cellBounds(ok);
+      const spacing = Number(ok.style.match(/spacingLeft=(\d+)/)[1]);
+      expect({ width, height, spacing }).toEqual(measureDecision('Type is PDF or PNG and size is under the configured limit?'));
+      const fc = loadFixture('flowchart', 'valid');
+      const long = { ...fc, nodes: fc.nodes.map((n) => (n.shape === 'decision' ? { ...n, label: 'Is the configured retention period of the tenant exceeded for this document?' } : n)) };
+      const f = await emit(long, 'drawio');
+      expect(f.ok).toBe(true);
+      const cell = checkDrawioStructure(f.output).cells.find((c) => (c.style ?? '').startsWith('rhombus') && c.style.includes('spacingLeft='));
+      expect(cell).toBeDefined();
+      expect(cellBounds(cell).width).toBe(measureDecision('Is the configured retention period of the tenant exceeded for this document?').width);
+    });
   });
 
   it('measures nodes with the clamp rule', () => {

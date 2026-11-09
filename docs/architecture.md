@@ -53,7 +53,9 @@ diagram itself is rendered locally. draw.io desktop, when installed, renders off
 renderers are not bundled and not required; the step reports why it was skipped. All size
 heuristics share `text-metrics.mjs`, which counts CJK and full-width characters as 1.75
 Latin widths (7 px each), the ratio Chromium renders at draw.io's 12 px font; a test checks
-it against a browser measurement when Playwright is present.
+it against a browser measurement when Playwright is present. A decision's rhombus is sized
+against its inscribed rectangle rather than its box, wrapping a long question narrower and
+adding label spacing so draw.io wraps inside the diamond (see the draw.io target reference).
 
 ## Distribution
 
@@ -77,6 +79,9 @@ straight from that lane; a long flow that arrives down a gutter counts at the la
 when nothing arrives straight or when every straight arrival is a decision's branch, and
 otherwise only decides which side of its row-mates the node takes, so a merge fed by side
 trunks sits on their side of the sibling branch and the trunks reach it without crossing.
+A flow that leaves straight for another lane decides the same way, so a decision's branch
+that hands off to the lane on the left sits left of its sibling and its run cuts no sibling
+column; a long flow says nothing, since it takes its own column when that is free.
 Nodes sharing a row are packed and slid together so one of them sits exactly where it
 wants, and the lane is then sized from its content, so chains run straight, a fan-out stays
 centred on its decision and an early exit keeps its own column. Each row gap and each gutter

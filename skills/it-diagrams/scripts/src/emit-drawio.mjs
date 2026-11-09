@@ -1,5 +1,5 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
-import { layoutGraph, measureNode, measureLabel } from './layout-graph.mjs';
+import { layoutGraph, measureNode, measureDecision, measureLabel } from './layout-graph.mjs';
 import { layoutSequence } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
 import { longestLine } from './text-metrics.mjs';
@@ -186,6 +186,9 @@ const ACTOR_GLYPH = { width: 30, height: 40, gap: 10 };
  * shape is drawn centred in that box at its own width.
  */
 const SELF_LOOP_OUT = 30;
+/** A decision's rhombus style, with the label spacing that wraps a long question inside the diamond. */
+const decisionStyle = (size) => (size.spacing > 0 ? `${STYLE.decision}spacingLeft=${size.spacing};spacingRight=${size.spacing};` : STYLE.decision);
+
 const selfLoopLabelWidth = (label) => Math.ceil(longestLine(label) * 5.6) + 4;
 const selfLoopExtra = (label) => SELF_LOOP_OUT + (label ? selfLoopLabelWidth(label) + 12 : 0) + 10;
 const drawBox = (n, box) => (n.drawWidth === undefined ? box : { ...box, x: box.x + (box.width - n.drawWidth) / 2, width: n.drawWidth });
@@ -339,9 +342,9 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   const nodes = ir.nodes.map((n, i) => {
     const shape = n.ref ? 'subroutine' : (n.shape ?? 'process');
     const { label, link } = refLabel(n.label, n.ref, refs, `/nodes/${i}/ref`, warnings);
-    const size = shape === 'decision' ? measureNode(label, { minWidth: 140, baseHeight: 80 }) : measureNode(label);
+    const size = shape === 'decision' ? measureDecision(label) : measureNode(label);
     const extra = loopExtra.get(n.id) ?? 0;
-    return { id: n.id, label, link, parent: parent.get(n.id), style: STYLE[shape], width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
+    return { id: n.id, label, link, parent: parent.get(n.id), style: shape === 'decision' ? decisionStyle(size) : STYLE[shape], width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
   });
   const layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction });
   return graphCells(cid, layout, { containers, nodes, edges });
@@ -669,7 +672,10 @@ async function emitActivity(ir, cid, warnings, refs) {
         case 'fork':
         case 'join': return { ...base, style: STYLE.bar, width: horizontal ? 8 : 120, height: horizontal ? 120 : 8 };
         case 'merge': return { ...base, style: STYLE.mergeNode, width: 40, height: 40 };
-        default: return { ...base, label: c.label ?? '', style: STYLE.decision, ...measureNode(c.label ?? 'decision', { minWidth: 140, baseHeight: 80 }) };
+        default: {
+          const size = measureDecision(c.label ?? 'decision');
+          return { ...base, label: c.label ?? '', style: decisionStyle(size), width: size.width, height: size.height };
+        }
       }
     }),
   ];

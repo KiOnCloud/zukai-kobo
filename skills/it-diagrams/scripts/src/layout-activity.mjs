@@ -238,6 +238,16 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
           const arrivals = straight.map((a) => a.x);
           if (straight.every((a) => a.fromDecision)) arrivals.push(...trunk);
           if (arrivals.length) want.set(id, arrivals.reduce((a, b) => a + b, 0) / arrivals.length - byId.get(id).width / 2);
+          // A flow that leaves straight for another lane also breaks the tie: its run crosses
+          // the gap towards that lane, so the node wants the side of its row-mates nearest
+          // that lane and the run cuts none of their columns. A long flow says nothing: it
+          // goes down its own column when that is free, which a sibling's run must not span,
+          // so the sibling's side decides. A flow that stays in the lane says nothing either,
+          // as its target is placed only after this row.
+          for (const f of ir.flows) {
+            if (f.from !== id || plans.get(f.id).type !== 'adjacent' || byId.get(f.to).lane === l.id) continue;
+            lean.set(id, lean.get(id) + (laneIndex.get(byId.get(f.to).lane) < laneIndex.get(l.id) ? -1 : 1));
+          }
         }
         const total = ids.reduce((sum, id) => sum + byId.get(id).width, 0) + (ids.length - 1) * m.nodeGap;
         if (want.size === 0) {
@@ -520,7 +530,7 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
     const oneLane = lanesOf.every((lane) => lane === lanesOf[0]);
     warnings.push(oneLane
       ? { path: '/flows', message: `layout: flows "${a}" and "${b}" cross inside lane "${lanesOf[0]}"; no column order that avoids it was found`, hint: 'the lanes do not force this crossing; moving one of the nodes to another lane avoids it, or report the shape so the column order can learn it' }
-      : { path: '/flows', message: `layout: flows "${a}" and "${b}" cross; no route around it was found`, hint: 'a crossing that the lanes of the nodes force can be accepted; reordering flows does not change the route' });
+      : { path: '/flows', message: `layout: flows "${a}" and "${b}" cross; no route around it was found`, hint: 'a crossing that the lanes of the nodes force can be accepted; reordering flows does not change the route, but nodes that share a row of one lane keep their order in `actions` and `controls` when nothing else separates them, so reordering those can move it' });
   }
 
   // Guard labels: greedy placement over candidate anchors, avoiding nodes and other labels.
