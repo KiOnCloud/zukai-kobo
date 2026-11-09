@@ -1,0 +1,27 @@
+---
+title: "Ticket triage"
+---
+swimlane-beta TB
+  %% id: desk
+  subgraph n1["Help desk"]
+    %% id: esc
+    n2["Escalate"]
+    %% id: close
+    n3["Close the ticket"]
+    %% id: start
+    n4@{ shape: sm-circ }
+    %% id: d
+    n5{"Conditions present and office type 0-5?"}
+    %% id: end
+    n6@{ shape: fr-circ }
+  end
+  %% id: f1
+  n4 --> n5
+  %% id: f2
+  n5 -->|"yes"| n2
+  %% id: f3
+  n5 -->|"no"| n3
+  %% id: f4
+  n2 --> n6
+  %% id: f5
+  n3 --> n6

@@ -4,7 +4,10 @@ import { emitDrawio, slugify } from '../src/emit-drawio.mjs';
 import { xmlAttr, htmlLabel, vertex } from '../src/drawio-xml.mjs';
 import { measureNode, measureDecision, wrapText, wrappedLines } from '../src/layout-graph.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
-import { loadFixture, validFixtures } from './helpers.mjs';
+import { loadFixture, validFixtures, scriptsDir } from './helpers.mjs';
+import { loadPlaywright } from '../src/preview.mjs';
+
+const pw = loadPlaywright(scriptsDir);
 
 describe('drawio-xml', () => {
   it('escapes attribute values and HTML labels', () => {
@@ -87,6 +90,77 @@ describe('drawio-xml', () => {
       const cell = checkDrawioStructure(f.output).cells.find((c) => (c.style ?? '').startsWith('rhombus') && c.style.includes('spacingLeft='));
       expect(cell).toBeDefined();
       expect(cellBounds(cell).width).toBe(measureDecision('Is the configured retention period of the tenant exceeded for this document?').width);
+    });
+  });
+
+  describe('issue 40: a wrapped question takes balanced lines, so draw.io does not strand its last token', () => {
+    // draw.io wraps the label at width - 4 - 2 * spacing. The width heuristic is generous, so a
+    // line the model fills nearly to that width leaves draw.io room for one more token: it then
+    // breaks at the last chance it finds, a hyphen inside "0-5", and "5?" stands alone.
+    const wrapWidth = ({ width, spacing }) => width - 4 - 2 * spacing;
+
+    it('wraps the question of the report into two lines of about half the text each', () => {
+      const label = 'Conditions present and office type 0-5?';
+      const d = measureDecision(label);
+      expect(d).toEqual({ width: 224, height: 80, spacing: 40 });
+      const block = wrapText(label, wrapWidth(d));
+      expect(block).toEqual({ lines: 2, widest: 140 });
+      // No narrower wrap keeps two lines, so neither line is a nearly full one with a remainder after it.
+      expect(wrapText(label, block.widest - 1).lines).toBe(3);
+    });
+
+    it('wraps every multi-line question at the narrowest width that keeps its line count', () => {
+      for (const q of ['Conditions present and priority level 0-5?', 'Type is PDF or PNG and size is under the configured limit?', 'Is the configured retention period of the tenant exceeded for this document?', '在庫はありますか？それとも入荷待ちですか？']) {
+        const d = measureDecision(q);
+        const block = wrapText(q, wrapWidth(d));
+        expect(block.lines, q).toBeGreaterThan(1);
+        // Any wrap narrower than the widest line takes more lines: the lines are as balanced as the line count allows.
+        expect(wrapText(q, Math.ceil(block.widest) - 1).lines, q).toBeGreaterThan(block.lines);
+        expect(block.widest / d.width + (block.lines * 15) / d.height, q).toBeLessThanOrEqual(1 + 1e-9);
+      }
+    });
+
+    it('emits the activity fixture of the report with that rhombus', async () => {
+      const r = await emit(loadFixture('activity', 'valid-decision-range'), 'drawio');
+      expect(r.ok).toBe(true);
+      expect(r.warnings).toEqual([]);
+      const d = checkDrawioStructure(r.output).cells.find((c) => c.id === 'ticket-triage:d');
+      expect(d.style).toBe('rhombus;whiteSpace=wrap;html=1;spacingLeft=40;spacingRight=40;');
+      expect(cellBounds(d)).toMatchObject({ width: 224, height: 80 });
+    });
+
+    it.skipIf(!pw)('renders in Chromium as two lines at the emitted wrap width, with the value range on one line', async () => {
+      const labels = ['Conditions present and office type 0-5?', 'Conditions present and priority level 0-5?'];
+      const browser = await pw.chromium.launch();
+      try {
+        const page = await browser.newPage();
+        const widths = labels.map((l) => wrapWidth(measureDecision(l)));
+        await page.setContent(`<body style="font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.2">${labels.map((l, i) => `<div id="d${i}" style="width:${widths[i]}px;white-space:normal">${l}</div>`).join('')}</body>`);
+        const rendered = await page.evaluate((count) => Array.from({ length: count }, (_, i) => {
+          const text = document.getElementById(`d${i}`).firstChild;
+          const range = document.createRange();
+          const lines = [];
+          let start = 0;
+          let top;
+          for (let end = 1; end <= text.length; end++) {
+            range.setStart(text, 0);
+            range.setEnd(text, end);
+            const rects = range.getClientRects();
+            const last = rects[rects.length - 1];
+            if (top !== undefined && last.top > top + 1) { lines.push(text.data.slice(start, end - 1).trim()); start = end - 1; }
+            top = last.top;
+          }
+          lines.push(text.data.slice(start).trim());
+          return lines;
+        }), labels.length);
+        for (const lines of rendered) {
+          expect(lines).toHaveLength(2);
+          expect(lines[1]).toMatch(/0-5\?$/);
+          expect(lines[0].endsWith('-')).toBe(false);
+        }
+      } finally {
+        await browser.close();
+      }
     });
   });
 

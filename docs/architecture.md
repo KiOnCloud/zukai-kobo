@@ -54,8 +54,9 @@ renderers are not bundled and not required; the step reports why it was skipped.
 heuristics share `text-metrics.mjs`, which counts CJK and full-width characters as 1.75
 Latin widths (7 px each), the ratio Chromium renders at draw.io's 12 px font; a test checks
 it against a browser measurement when Playwright is present. A decision's rhombus is sized
-against its inscribed rectangle rather than its box, wrapping a long question narrower and
-adding label spacing so draw.io wraps inside the diamond (see the draw.io target reference).
+against its inscribed rectangle rather than its box, wrapping a long question into balanced
+lines and adding label spacing so draw.io wraps inside the diamond (see the draw.io target
+reference).
 
 ## Distribution
 

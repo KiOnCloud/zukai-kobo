@@ -68,10 +68,10 @@ export function wrapText(label, width) {
 
 const DECISION_MIN_WIDTH = 140;
 const DECISION_MIN_HEIGHT = 80;
-/** A decision wider than this wraps its question narrower before the rhombus grows further. */
+/** A decision wider than this wraps its question onto one more line before the rhombus grows further. */
 const DECISION_MAX_WIDTH = 340;
-/** Wrap widths tried in turn, in px, when the question is too long for one or two full lines. */
-const DECISION_WRAP_STEPS = [220, 190, 160, 130, 100];
+/** A question is not wrapped narrower than this, in px, however long: the rhombus grows instead. */
+const DECISION_MIN_WRAP = 100;
 /** One line of draw.io's 12 px font. */
 const TEXT_LINE = 15;
 
@@ -90,22 +90,49 @@ function rhombusFor(a, b) {
 }
 
 /**
+ * The question wrapped into at most `lines` lines with the smallest widest line any such wrap
+ * can have: the narrowest width (never above `upper`) at which the greedy wrap still takes
+ * no more lines, found by bisection since the line count only falls as the width grows. The
+ * lines come out balanced, so no line is a nearly full one followed by a short remainder.
+ */
+function balancedBlock(label, lines, upper) {
+  let lo = 1;
+  let hi = upper;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (wrapText(label, mid).lines <= lines) hi = mid;
+    else lo = mid + 1;
+  }
+  return wrapText(label, lo);
+}
+
+/**
  * Size of a decision rhombus and the label spacing that keeps its question inside the
  * slanted edges. draw.io wraps a label at the box's width, but the rhombus is narrower than
  * its box everywhere but the centre line, so a long question wrapped to the box spills out
- * on both sides. The question is first wrapped as draw.io wraps it in the plain box of
- * `measureNode`; when the rhombus that holds that block would be wider than
- * DECISION_MAX_WIDTH, it is wrapped narrower, step by step, until the rhombus fits the cap
- * (else the narrowest step stands). A question on several lines gets `spacingLeft` and
- * `spacingRight` so draw.io wraps it at the block's width instead of the box's.
+ * on both sides. The question takes the line count draw.io gives it in the plain box of
+ * `measureNode`, wrapped at the narrowest width that still holds that count so the lines are
+ * balanced; when the rhombus that holds that block would be wider than DECISION_MAX_WIDTH,
+ * the question takes one more line, and so on until the rhombus fits the cap or a line
+ * would be narrower than DECISION_MIN_WRAP (then the narrowest rhombus found stands). A
+ * question on several lines gets `spacingLeft` and `spacingRight` so draw.io wraps it at
+ * the block's width instead of the box's.
+ *
+ * Balanced lines matter because the width heuristic is generous (7 px a character against
+ * about 5.6 px rendered): at a wrap width that leaves one line nearly full, draw.io fits a
+ * little more on it and breaks at the last opportunity it finds, which can be a hyphen
+ * inside a value such as `0-5`, leaving an orphan on the next line. With both lines about
+ * half the text, the slack is far too small to move a whole line.
  * @returns {{width:number, height:number, spacing:number}} spacing in px per side, 0 for none
  */
 export function measureDecision(label) {
   const base = measureNode(label, { minWidth: DECISION_MIN_WIDTH, baseHeight: DECISION_MIN_HEIGHT });
   const natural = base.width - 4; // draw.io's default 2 px spacing on each side
+  const most = wrapText(label, 1).lines;
   let pick;
-  for (const wrapAt of [natural, ...DECISION_WRAP_STEPS.filter((w) => w < natural)]) {
-    const block = wrapText(label, wrapAt);
+  for (let lines = wrapText(label, natural).lines; lines <= most; lines++) {
+    const block = balancedBlock(label, lines, natural);
+    if (pick && block.widest < DECISION_MIN_WRAP) break;
     const box = rhombusFor(block.widest, block.lines * TEXT_LINE);
     if (!pick || box.width < pick.box.width) pick = { block, box };
     if (box.width <= DECISION_MAX_WIDTH) break;

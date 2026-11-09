@@ -146,11 +146,16 @@ across re-runs.
   clamped width, so a long label gets a taller box instead of spilling onto its arrows.
 - Decision size: a rhombus is narrower than its box everywhere but the centre line, so its
   question is measured against the inscribed rectangle (a block `a` x `b` fits a `w` x `h`
-  rhombus when `a/w + b/h <= 1`). The question is wrapped as draw.io wraps it in the plain
-  box; when the rhombus that holds that block would be wider than 340 px, the question wraps
-  narrower in steps (220, 190, 160, 130, 100 px) until the rhombus fits the cap, and a
-  question on several lines gets `spacingLeft` / `spacingRight` so draw.io wraps it at the
-  block's width. The minimum stays 140 x 80 (`measureDecision`, same file).
+  rhombus when `a/w + b/h <= 1`). The question takes the line count draw.io gives it in the
+  plain box, wrapped at the narrowest width that still holds that count, so its lines are
+  balanced; when the rhombus that holds that block would be wider than 340 px, the question
+  takes one more line, and so on until the rhombus fits the cap or a line would be narrower
+  than 100 px. A question on several lines gets `spacingLeft` / `spacingRight` so draw.io
+  wraps it at the block's width. Balanced lines matter because the width heuristic is
+  generous: at a wrap width that leaves one line nearly full, draw.io fits a little more on
+  it and breaks at the last chance it finds, which can be a hyphen inside a value such as
+  `0-5`, stranding the rest on its own line. The minimum stays 140 x 80 (`measureDecision`,
+  same file).
 - ELK options: layered algorithm, direction from the IR, orthogonal edge routing,
   `hierarchyHandling=INCLUDE_CHILDREN` for edges that cross containers, root-relative
   edge coordinates. Node spacing 40, layer spacing 60 (60 and 80 for ER and class).
