@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Order platform",
+  "direction": "LR",
+  "meta": { "source": "brainstorm", "notes": ["Target state for the 2027 platform"] },
+  "components": [
+    { "id": "browser", "label": "Customer browser", "kind": "client" },
+    { "id": "web", "label": "Angular web app", "kind": "service" },
+    { "id": "api", "label": "Order API (.NET)", "kind": "service" },
+    { "id": "db", "label": "PostgreSQL", "kind": "database" },
+    { "id": "cache", "label": "Redis", "kind": "cache" },
+    { "id": "queue", "label": "SQS orders", "kind": "queue" },
+    { "id": "worker", "label": "Fulfilment worker", "kind": "service" },
+    { "id": "psp", "label": "Payment provider", "kind": "external" }
+  ],
+  "boundaries": [
+    { "id": "aws", "label": "AWS account", "children": ["vpc", "queue"] },
+    { "id": "vpc", "label": "VPC", "children": ["web", "api", "db", "cache", "worker"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "web", "label": "HTTPS" },
+    { "id": "c2", "from": "web", "to": "api", "label": "REST/JSON" },
+    { "id": "c3", "from": "api", "to": "db", "label": "SQL" },
+    { "id": "c4", "from": "api", "to": "cache", "label": "cache aside", "bidirectional": true },
+    { "id": "c5", "from": "api", "to": "queue", "label": "publish order placed" },
+    { "id": "c6", "from": "queue", "to": "worker", "label": "consume" },
+    { "id": "c7", "from": "api", "to": "psp", "label": "capture payment" }
+  ]
+}

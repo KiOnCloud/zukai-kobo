@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "er",
+  "title": "Broken data model",
+  "entities": [
+    { "id": "customer", "label": "Customer", "attributes": [{ "name": "id", "type": "uuid", "key": "primary" }, { "name": "id", "type": "uuid" }] }
+  ],
+  "relations": [
+    { "id": "r1", "from": "customer", "to": "order", "fromCardinality": "one", "toCardinality": "lots" }
+  ]
+}

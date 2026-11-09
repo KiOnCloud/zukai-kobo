@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate manifests parse and agree on the plugin name
+        run: |
+          node -e '
+            const fs = require("fs");
+            const plugin = JSON.parse(fs.readFileSync(".claude-plugin/plugin.json", "utf8"));
+            const market = JSON.parse(fs.readFileSync(".claude-plugin/marketplace.json", "utf8"));
+            if (!plugin.name || !plugin.version) throw new Error("plugin.json needs name and version");
+            if (!market.name || !market.owner?.name || !Array.isArray(market.plugins)) throw new Error("marketplace.json needs name, owner.name, plugins[]");
+            const entry = market.plugins.find((p) => p.name === plugin.name);
+            if (!entry) throw new Error("marketplace.json has no entry named " + plugin.name);
+            if (entry.source !== "./" && entry.source !== ".") throw new Error("entry source must be the marketplace root");
+            if (!/^\d+\.\d+\.\d+$/.test(plugin.version)) throw new Error("plugin version must be MAJOR.MINOR.PATCH");
+            console.log("manifests ok:", plugin.name, plugin.version);
+          '
+
+      - name: Check the skill frontmatter uses only portable fields
+        run: |
+          node -e '
+            const fs = require("fs");
+            const text = fs.readFileSync("skills/it-diagrams/SKILL.md", "utf8");
+            const m = text.match(/^---\n([\s\S]*?)\n---/);
+            if (!m) throw new Error("SKILL.md has no frontmatter");
+            const keys = m[1].split("\n").filter((l) => /^[a-zA-Z-]+:/.test(l)).map((l) => l.split(":")[0]);
+            const allowed = new Set(["name", "description", "license", "compatibility", "metadata", "allowed-tools"]);
+            const bad = keys.filter((k) => !allowed.has(k));
+            if (bad.length) throw new Error("non-portable frontmatter keys: " + bad.join(", "));
+            if (!keys.includes("name") || !keys.includes("description")) throw new Error("name and description are required");
+            console.log("frontmatter ok:", keys.join(", "));
+          '
+
+      - name: Install dev dependencies
+        if: ${{ hashFiles('skills/it-diagrams/scripts/package.json') != '' }}
+        working-directory: skills/it-diagrams/scripts
+        run: npm ci
+
+      - name: Run tests
+        if: ${{ hashFiles('skills/it-diagrams/scripts/package.json') != '' }}
+        working-directory: skills/it-diagrams/scripts
+        run: npm test
+
+      - name: Assert the bundle is committed
+        if: ${{ hashFiles('skills/it-diagrams/scripts/package.json') != '' }}
+        run: git ls-files --error-unmatch skills/it-diagrams/scripts/bin/cli.mjs
+
+      - name: Install the Claude Code CLI for strict validation
+        id: claude_cli
+        continue-on-error: true
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate the plugin strictly
+        if: ${{ steps.claude_cli.outcome == 'success' }}
+        run: claude plugin validate . --strict
+
+      - name: Record that strict validation was skipped
+        if: ${{ steps.claude_cli.outcome != 'success' }}
+        run: echo "::warning::Claude Code CLI did not install; 'claude plugin validate . --strict' is a local pre-release step (see docs/install.md)."

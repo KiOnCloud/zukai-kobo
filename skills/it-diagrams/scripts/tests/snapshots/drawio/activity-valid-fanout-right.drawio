@@ -1,0 +1,147 @@
+<mxfile host="it-diagrams" compressed="false" type="device">
+  <diagram id="routing-reject-branch-next-to-merged-bra" name="Routing: reject branch next to merged branches">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:svc" value="Order service" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="704" height="810" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-400" value="Return 400" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="30" y="374" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-A" value="Process A" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="190" y="374" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-B" value="Process B" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="350" y="374" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-C" value="Process C" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="510" y="374" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-done" value="Return result" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="350" y="650" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="395" y="70" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:d-type" value="Which type?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="340" y="160" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:end-400" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="75" y="505" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:d-next" value="Notify customer?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="340" y="480" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+          <mxGeometry x="395" y="750" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:f0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:start" target="routing-reject-branch-next-to-merged-bra:d-type">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fr" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:d-type" target="routing-reject-branch-next-to-merged-bra:a-400">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="302"/>
+              <mxPoint x="130" y="302"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fr:label" value="unsupported" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fr">
+          <mxGeometry x="0.28" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fe" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:a-400" target="routing-reject-branch-next-to-merged-bra:end-400">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fi0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:d-type" target="routing-reject-branch-next-to-merged-bra:a-A">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="324"/>
+              <mxPoint x="290" y="324"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fi0:label" value="A" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fi0">
+          <mxGeometry x="0.27" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fo0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:a-A" target="routing-reject-branch-next-to-merged-bra:d-next">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="498"/>
+              <mxPoint x="450" y="498"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fi1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:d-type" target="routing-reject-branch-next-to-merged-bra:a-B">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fi1:label" value="B" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fi1">
+          <mxGeometry x="0.52" y="0" relative="1" as="geometry">
+            <mxPoint x="15.5" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fo1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:a-B" target="routing-reject-branch-next-to-merged-bra:d-next">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fi2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:d-type" target="routing-reject-branch-next-to-merged-bra:a-C">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="368"/>
+              <mxPoint x="610" y="368"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fi2:label" value="C" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fi2">
+          <mxGeometry x="0.57" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fo2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:a-C" target="routing-reject-branch-next-to-merged-bra:d-next">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="610" y="498"/>
+              <mxPoint x="450" y="498"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fy" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:d-next" target="routing-reject-branch-next-to-merged-bra:a-done">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fy:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fy">
+          <mxGeometry x="0.29" y="0" relative="1" as="geometry">
+            <mxPoint x="22.5" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fn" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:d-next" target="routing-reject-branch-next-to-merged-bra:a-end">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="644"/>
+              <mxPoint x="722" y="644"/>
+              <mxPoint x="722" y="760"/>
+              <mxPoint x="450" y="760"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fn:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fn">
+          <mxGeometry x="-0.2" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="routing-reject-branch-next-to-merged-bra:fd" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:a-done" target="routing-reject-branch-next-to-merged-bra:a-end">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

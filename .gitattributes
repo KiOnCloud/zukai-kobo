@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.drawio text eol=lf
+*.mmd text eol=lf
+skills/it-diagrams/scripts/bin/* text eol=lf
+*.ps1 text eol=lf

@@ -1,0 +1,82 @@
+---
+title: "Order domain and persistence"
+---
+classDiagram
+  %% id: entity
+  class n1["Entity#lt;TId#gt;"] {
+    <<abstract>>
+    #TId Id
+    +Equals(object other) bool
+  }
+  %% id: aggregate
+  class n2["AggregateRoot#lt;TId#gt;"] {
+    <<abstract>>
+    -List~IDomainEvent~ _events
+    #Raise(IDomainEvent e) void
+    +PullEvents() IReadOnlyList~IDomainEvent~
+  }
+  %% id: order
+  class n3["Order"] {
+    -List~OrderLine~ _lines
+    +OrderStatus Status
+    +AddLine(Product product, int quantity, decimal unitPrice) ErrorOr~OrderLine~
+    +Pay(PaymentReference reference) ErrorOr~Success~
+    +Cancel(string reason) void
+  }
+  %% id: line
+  class n4["OrderLine"] {
+    +int Quantity
+    +decimal UnitPrice
+  }
+  %% id: status
+  class n5["OrderStatus"] {
+    <<enumeration>>
+    +Pending
+    +Paid
+    +Cancelled
+  }
+  %% id: repo
+  class n6["IRepository#lt;T#gt;"] {
+    <<interface>>
+    +GetAsync(Guid id, CancellationToken ct) Task~T?~
+    +AddAsync(T entity, CancellationToken ct) Task
+  }
+  %% id: order-repo
+  class n7["IOrderRepository"] {
+    <<interface>>
+    +FindByCustomerAsync(Guid customerId) Task~IReadOnlyList~Order~~
+  }
+  %% id: ef-repo
+  class n8["EfOrderRepository"] {
+    -ShopDbContext _db
+  }
+  %% id: event
+  class n9["IDomainEvent"] {
+    <<interface>>
+  }
+  %% id: paid
+  class n10["OrderPaid"] {
+    +Guid OrderId
+  }
+  %% id: r1
+  n1 <|-- n2
+  %% id: r2
+  n2 <|-- n3
+  %% id: r3
+  n1 <|-- n4
+  %% id: r4
+  n3 "1" *-- "1..*" n4
+  %% id: r5
+  n3 --> n5 : has
+  %% id: r6
+  n6 <|-- n7
+  %% id: r7
+  n7 <|.. n8
+  %% id: r8
+  n8 ..> n3 : persists
+  %% id: r9
+  n9 <|.. n10
+  %% id: r10
+  n2 "1" o-- "0..*" n9
+  %% id: r11
+  n3 ..> n10 : raises

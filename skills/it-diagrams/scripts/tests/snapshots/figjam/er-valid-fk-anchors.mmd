@@ -1,0 +1,25 @@
+erDiagram
+  %% id: customer
+  n1["Customer"] {
+    uuid id PK
+  }
+  %% id: address
+  n2["Address"] {
+    uuid id PK
+    varchar(200) line1
+  }
+  %% id: order
+  n3["Order"] {
+    uuid id PK
+    uuid customer_id FK
+    uuid billing_address_id FK
+    uuid shipping_address_id FK
+    decimal(10,2) total
+    varchar(20) status
+  }
+  %% id: r1
+  n1 ||--o{ n3 : "places"
+  %% id: r2
+  n2 ||..o{ n3 : "bills to"
+  %% id: r3
+  n2 |o..o{ n3 : "ships to"

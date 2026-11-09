@@ -1,0 +1,33 @@
+---
+title: "Order A: early exit declared first"
+---
+swimlane-beta TB
+  %% id: svc
+  subgraph n1["Order service"]
+    %% id: a-reject
+    n2["Return empty result"]
+    %% id: a-reserve
+    n3["Reserve stock"]
+    %% id: a-ship
+    n4["Create shipment"]
+    %% id: start
+    n5@{ shape: sm-circ }
+    %% id: d-stock
+    n6{"In stock?"}
+    %% id: end-empty
+    n7@{ shape: fr-circ }
+    %% id: end
+    n8@{ shape: fr-circ }
+  end
+  %% id: f1
+  n5 --> n6
+  %% id: f2
+  n6 -->|"yes"| n3
+  %% id: f3
+  n6 -->|"no"| n2
+  %% id: f4
+  n2 --> n7
+  %% id: f5
+  n3 --> n4
+  %% id: f6
+  n4 --> n8

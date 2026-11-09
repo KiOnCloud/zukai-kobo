@@ -1,0 +1,71 @@
+---
+title: "Order fulfilment"
+---
+swimlane-beta TB
+  %% id: sales
+  subgraph n1["Sales"]
+    %% id: receive
+    n4["Receive order"]
+    %% id: notify
+    n10["Notify customer"]
+    %% id: hold
+    n11["Put order on hold"]
+    %% id: start
+    n12@{ shape: sm-circ }
+    %% id: split
+    n13@{ shape: fork }
+    %% id: merge
+    n16{" "}
+    %% id: end
+    n17@{ shape: fr-circ }
+  end
+  %% id: warehouse
+  subgraph n2["Warehouse"]
+    %% id: pick
+    n5["Pick items"]
+    %% id: pack
+    n6["Pack parcel"]
+    %% id: ship
+    n9["Hand over to carrier"]
+    %% id: sync
+    n14@{ shape: join }
+  end
+  %% id: finance
+  subgraph n3["Finance"]
+    %% id: invoice
+    n7["Issue invoice"]
+    %% id: capture
+    n8["Capture payment"]
+    %% id: paid
+    n15{"Payment ok?"}
+  end
+  %% id: f1
+  n12 --> n4
+  %% id: f2
+  n4 --> n13
+  %% id: f3
+  n13 --> n5
+  %% id: f4
+  n13 --> n7
+  %% id: f5
+  n5 --> n6
+  %% id: f6
+  n7 --> n8
+  %% id: f7
+  n8 --> n15
+  %% id: f8
+  n15 -->|"yes"| n14
+  %% id: f9
+  n15 -->|"no"| n11
+  %% id: f10
+  n6 --> n14
+  %% id: f11
+  n14 --> n9
+  %% id: f12
+  n9 --> n10
+  %% id: f13
+  n10 --> n16
+  %% id: f14
+  n11 --> n16
+  %% id: f15
+  n16 --> n17

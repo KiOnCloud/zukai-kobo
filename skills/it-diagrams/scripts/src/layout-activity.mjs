@@ -1,0 +1,610 @@
+/**
+ * Cross-functional swimlane layout for activity diagrams: one full-height column per lane,
+ * in IR order, and one row per step of the flow. Rows come from a longest-path layering of
+ * the flows (back edges ignored). Nodes that share a lane and a row sit side by side, ordered
+ * by the position of their predecessors so branches do not cross. Every edge is routed
+ * explicitly: horizontal runs use the gap between rows, vertical runs between non-adjacent
+ * rows use a gutter at the right edge of the source lane, and each gap and gutter is split
+ * into tracks so that edges to different targets never share a segment, while edges into
+ * one target merge on a shared track and enter it together from the top. Coordinates are
+ * computed top-to-bottom and transposed for left-to-right flows.
+ */
+
+import { longestLine } from './text-metrics.mjs';
+
+export const ACTIVITY_METRICS = {
+  leftMargin: 40,
+  topMargin: 40,
+  headerHeight: 40,
+  lanePadding: 30,
+  gutterMin: 30,
+  trackPitch: 22,
+  minLaneWidth: 220,
+  rowGapMin: 60,
+  nodeGap: 40,
+  topGap: 30,
+  bottomGap: 30,
+  guardRoom: 24,
+};
+
+/** Soft draw.io colours per lane index: header fill, body fill, stroke. */
+export const LANE_PALETTE = [
+  ['#fff2cc', '#fffbe6', '#d6b656'],
+  ['#dae8fc', '#f0f6ff', '#6c8ebf'],
+  ['#d5e8d4', '#f1f8f0', '#82b366'],
+  ['#e1d5e7', '#f6f1f9', '#9673a6'],
+  ['#ffe6cc', '#fff5eb', '#d79b00'],
+  ['#f8cecc', '#fdf0ef', '#b85450'],
+];
+
+/**
+ * @param {object} ir validated activity IR
+ * @param {Array<{id:string,lane?:string,width:number,height:number}>} sizes one entry per action and control
+ * @param {object} [m]
+ * @returns {{ lanes: Array<{id:string,index:number,x:number,y:number,width:number,height:number}>,
+ *   nodes: Map<string,{x:number,y:number,width:number,height:number,lane:string,row:number}>,
+ *   edges: Map<string,{points:Array<{x:number,y:number}>, exit:{x:number,y:number}, entry:{x:number,y:number}, label?:object}>,
+ *   width:number, height:number, horizontal:boolean, warnings:Array<{path:string,message:string}> }}
+ */
+export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
+  const horizontal = ir.direction === 'LR' || ir.direction === 'RL';
+  const laneIndex = new Map(ir.lanes.map((l, i) => [l.id, i]));
+  const byId = new Map(sizes.map((n) => [n.id, { ...n }]));
+  const order = sizes.map((n) => n.id);
+  const out = new Map(order.map((id) => [id, []]));
+  const inn = new Map(order.map((id) => [id, []]));
+  for (const f of ir.flows) {
+    out.get(f.from).push(f.to);
+    inn.get(f.to).push(f.from);
+  }
+  // Controls without a lane borrow the lane of the node they lead to, else the one they follow.
+  for (const n of byId.values()) {
+    if (n.lane) continue;
+    const next = out.get(n.id).map((t) => byId.get(t).lane).find(Boolean);
+    const prev = inn.get(n.id).map((s) => byId.get(s).lane).find(Boolean);
+    n.lane = next ?? prev ?? ir.lanes[0].id;
+  }
+
+  // Rows: longest path over the flows with back edges (found by DFS in input order) ignored.
+  const state = new Map();
+  const back = new Set();
+  const visit = (u) => {
+    state.set(u, 1);
+    for (const v of out.get(u)) {
+      if (state.get(v) === 1) back.add(`${u}>${v}`);
+      else if (!state.has(v)) visit(v);
+    }
+    state.set(u, 2);
+  };
+  for (const s of [...order.filter((id) => inn.get(id).length === 0), ...order]) if (!state.has(s)) visit(s);
+  const row = new Map();
+  const indeg = new Map(order.map((id) => [id, inn.get(id).filter((s) => !back.has(`${s}>${id}`)).length]));
+  const queue = order.filter((id) => indeg.get(id) === 0);
+  while (queue.length > 0) {
+    const u = queue.shift();
+    if (!row.has(u)) row.set(u, 0);
+    for (const v of out.get(u)) {
+      if (back.has(`${u}>${v}`)) continue;
+      row.set(v, Math.max(row.get(v) ?? 0, row.get(u) + 1));
+      indeg.set(v, indeg.get(v) - 1);
+      if (indeg.get(v) === 0) queue.push(v);
+    }
+  }
+  for (const id of order) if (!row.has(id)) row.set(id, 0);
+  const rowCount = Math.max(...row.values()) + 1;
+
+  /**
+   * Plan routes, size lanes, place nodes and route edges. `columns` names the long flows
+   * that run straight down their source's column instead of through a gutter; which flows
+   * can do that is only known once nodes have positions, so the caller runs this to a fixed
+   * point.
+   */
+  const arrange = (columns) => {
+    // Route plan. Each edge's horizontal runs claim a track in a row gap and, for non-adjacent
+    // rows, a track in the source lane's gutter. Edges into the same target share a track;
+    // everything else gets its own, so distinct flows never lie on one line.
+    const trackKey = (f) => `to:${f.to}`;
+    const gapTracks = new Map(); // gap index (below row r) -> ordered keys
+    const gutterTracks = new Map(); // "<lane id>:R" | "<lane id>:L" -> ordered keys
+    const claim = (map, key, track) => {
+      if (!map.has(key)) map.set(key, []);
+      const list = map.get(key);
+      if (!list.includes(track)) list.push(track);
+    };
+    const plans = new Map();
+    for (const f of ir.flows) {
+      const rs = row.get(f.from);
+      const rt = row.get(f.to);
+      let type;
+      if (f.from === f.to) type = 'self';
+      else if (rt === rs + 1) type = 'adjacent';
+      else if (rt > rs + 1) type = columns.has(f.id) ? 'column' : 'skip';
+      else type = 'back';
+      plans.set(f.id, { type, key: trackKey(f), rs, rt, lane: byId.get(f.from).lane });
+    }
+    // A long edge runs down (or up) a gutter at one edge of its source lane or of its target
+    // lane. Each candidate is scored by the cross-lane runs that would cut its vertical: two
+    // points per run in a gap it passes through (a certain crossing), one per run in the gap
+    // where it starts or ends (a conflict the track order may not resolve). The lowest score
+    // wins, the source lane's right side on a tie, so a bypass in an outer lane hugs the free
+    // side and a loop back to another lane climbs where nothing crosses it.
+    const laneSpanCovers = (f, edgeAfterLane) => {
+      const a = laneIndex.get(byId.get(f.from).lane);
+      const b = laneIndex.get(byId.get(f.to).lane);
+      return Math.min(a, b) <= edgeAfterLane && Math.max(a, b) > edgeAfterLane;
+    };
+    for (const [id, pl] of plans) {
+      if (pl.type !== 'skip' && pl.type !== 'back') continue;
+      const lo = Math.min(pl.rs, pl.rt - 1);
+      const hi = Math.max(pl.rs, pl.rt - 1);
+      const targetLane = byId.get(ir.flows.find((f) => f.id === id).to).lane;
+      const candidates = [[pl.lane, 'R'], [pl.lane, 'L'], [targetLane, 'R'], [targetLane, 'L']];
+      let best;
+      for (const [lane, side] of candidates) {
+        const edge = side === 'R' ? laneIndex.get(lane) : laneIndex.get(lane) - 1;
+        let score = 0;
+        for (const f of ir.flows) {
+          const q = plans.get(f.id);
+          if (f.id === id || q.type !== 'adjacent' || q.rs < lo || q.rs > hi || !laneSpanCovers(f, edge)) continue;
+          score += q.rs === lo || q.rs === hi ? 1 : 2;
+        }
+        if (!best || score < best.score) best = { lane, side, score };
+      }
+      pl.gutterLane = best.lane;
+      pl.side = best.side;
+    }
+    for (const pl of plans.values()) {
+      if (pl.type === 'adjacent') claim(gapTracks, pl.rs, pl.key);
+      if (pl.type === 'column') claim(gapTracks, pl.rt - 1, pl.key);
+      if (pl.type === 'skip' || pl.type === 'back') {
+        claim(gapTracks, pl.rs, pl.key);
+        claim(gutterTracks, `${pl.gutterLane}:${pl.side}`, pl.key);
+        claim(gapTracks, pl.rt - 1, pl.key);
+      }
+    }
+    const gutterWidth = (laneId, side) => {
+      const n = gutterTracks.get(`${laneId}:${side}`)?.length ?? 0;
+      return side === 'R' ? Math.max(m.gutterMin, m.trackPitch * (n + 1)) : (n === 0 ? 0 : m.trackPitch * (n + 1));
+    };
+    // A gap whose tracks hold a guarded fan-out keeps extra room below the last track: the
+    // branch that goes straight on needs a private stretch below the last split for its guard.
+    const guardRoom = new Set();
+    for (const f of ir.flows) {
+      const pl = plans.get(f.id);
+      if (!f.guard || pl.type !== 'adjacent') continue;
+      if (ir.flows.some((o) => o !== f && o.from === f.from && plans.get(o.id).type !== 'self')) guardRoom.add(pl.rs);
+    }
+    const trackSpan = (g) => Math.max(m.rowGapMin, m.trackPitch * ((gapTracks.get(g)?.length ?? 0) + 1));
+    const gapHeight = (g) => trackSpan(g) + (guardRoom.has(g) ? m.guardRoom : 0);
+
+    // Cells per (lane, row).
+    const cell = new Map();
+    for (const id of order) {
+      const key = `${byId.get(id).lane}#${row.get(id)}`;
+      if (!cell.has(key)) cell.set(key, []);
+      cell.get(key).push(id);
+    }
+    const rowHeight = Array.from({ length: rowCount }, (_, r) => Math.max(...order.filter((id) => row.get(id) === r).map((id) => byId.get(id).height), 0));
+    const rowTop = [];
+    let y = m.topMargin + m.headerHeight + m.topGap;
+    for (let r = 0; r < rowCount; r++) {
+      rowTop.push(y);
+      y += rowHeight[r] + (r < rowCount - 1 ? gapHeight(r) : 0);
+    }
+    const height = y + m.bottomGap - m.topMargin;
+
+    // Horizontal positions, lane by lane, in the lane's own coordinates first. Each node wants
+    // to sit under the average x of its predecessors in the same lane, so chains run straight
+    // and a fan-out stays centred on its source; a node fed only from other lanes, or from
+    // nothing, is centred in the lane. Nodes that share a row are sorted by that wanted x,
+    // packed so they do not overlap, then slid together by their mean distance to the wanted
+    // positions. The lane is then made as wide as its content needs, so nothing is clamped.
+    const rel = new Map(); // id -> x in lane coordinates (0 = centre of rows without predecessors)
+    const laneExtent = new Map(); // lane id -> { min, max }
+    for (const l of ir.lanes) {
+      let min = Infinity;
+      let max = -Infinity;
+      for (let r = 0; r < rowCount; r++) {
+        const ids = cell.get(`${l.id}#${r}`) ?? [];
+        if (ids.length === 0) continue;
+        const want = new Map();
+        for (const id of ids) {
+          const preds = inn.get(id).filter((p) => rel.has(p) && !back.has(`${p}>${id}`) && byId.get(p).lane === l.id);
+          if (preds.length) want.set(id, preds.reduce((sum, p) => sum + rel.get(p) + byId.get(p).width / 2, 0) / preds.length - byId.get(id).width / 2);
+        }
+        const total = ids.reduce((sum, id) => sum + byId.get(id).width, 0) + (ids.length - 1) * m.nodeGap;
+        if (want.size === 0) {
+          let nx = -total / 2;
+          for (const id of ids) { rel.set(id, nx); nx += byId.get(id).width + m.nodeGap; }
+        } else {
+          const fallback = [...want.values()].reduce((a, b) => a + b, 0) / want.size;
+          const sorted = ids.map((id, i) => ({ id, i, w: want.get(id) ?? fallback })).sort((a, b) => (a.w + byId.get(a.id).width / 2) - (b.w + byId.get(b.id).width / 2) || a.i - b.i);
+          let nx = -Infinity;
+          for (const n of sorted) { n.x = Math.max(nx, n.w); nx = n.x + byId.get(n.id).width + m.nodeGap; }
+          // Slide by the node's error nearest the mean error, so one node sits exactly where it wants.
+          const mean = sorted.reduce((sum, n) => sum + (n.w - n.x), 0) / sorted.length;
+          const shift = sorted.map((n) => n.w - n.x).sort((a, b) => Math.abs(a - mean) - Math.abs(b - mean) || a - b)[0];
+          for (const n of sorted) rel.set(n.id, n.x + shift);
+        }
+        for (const id of ids) { min = Math.min(min, rel.get(id)); max = Math.max(max, rel.get(id) + byId.get(id).width); }
+      }
+      laneExtent.set(l.id, Number.isFinite(min) ? { min, max } : { min: 0, max: 0 });
+    }
+    const laneWidth = ir.lanes.map((l) => {
+      const { min, max } = laneExtent.get(l.id);
+      return Math.max(m.minLaneWidth, max - min + 2 * m.lanePadding + gutterWidth(l.id, 'R') + gutterWidth(l.id, 'L'));
+    });
+
+    const lanes = [];
+    let x = m.leftMargin;
+    ir.lanes.forEach((l, i) => {
+      lanes.push({ id: l.id, index: i, x, y: m.topMargin, width: laneWidth[i], height });
+      x += laneWidth[i];
+    });
+    const laneBox = (id) => lanes[laneIndex.get(id)];
+
+    const nodes = new Map();
+    const centerX = (id) => { const b = nodes.get(id); return b.x + b.width / 2; };
+    for (const l of ir.lanes) {
+      const box = laneBox(l.id);
+      const { min, max } = laneExtent.get(l.id);
+      const innerLeft = box.x + gutterWidth(l.id, 'L') + m.lanePadding;
+      const innerWidth = box.width - 2 * m.lanePadding - gutterWidth(l.id, 'L') - gutterWidth(l.id, 'R');
+      const offset = innerLeft - min + (innerWidth - (max - min)) / 2;
+      for (const id of order) {
+        if (byId.get(id).lane !== l.id) continue;
+        const n = byId.get(id);
+        const r = row.get(id);
+        nodes.set(id, { x: rel.get(id) + offset, y: rowTop[r] + (rowHeight[r] - n.height) / 2, width: n.width, height: n.height, lane: l.id, row: r });
+      }
+    }
+
+
+    // Track coordinates. A gutter's tracks are ordered by the row of their target. A gap's
+    // tracks are ordered so that no horizontal run is crossed by the vertical of another
+    // track: every run in the gap has verticals at its two ends, each going up (towards the
+    // row above, or up the gutter) or down. A vertical going up at x must belong to a track
+    // above every other track whose run spans x; one going down, to a track below it. The
+    // tracks are sorted topologically under those constraints, by target x otherwise; a
+    // constraint cycle means a crossing nothing can avoid, which the self-check below reports.
+    const targetX = (key) => centerX(key.slice(3));
+    const targetRow = (key) => row.get(key.slice(3));
+    for (const list of gutterTracks.values()) list.sort((a, b) => targetRow(a) - targetRow(b));
+    const gutterX = (pl) => {
+      const box = laneBox(pl.gutterLane);
+      const list = gutterTracks.get(`${pl.gutterLane}:${pl.side}`) ?? [];
+      const i = Math.max(list.indexOf(pl.key), 0);
+      const w = gutterWidth(pl.gutterLane, pl.side);
+      const left = pl.side === 'L' ? box.x : box.x + box.width - w;
+      return left + (w * (i + 1)) / (list.length + 1);
+    };
+    for (const [g, list] of gapTracks) {
+      const runs = []; // { key, verticals: [{ x, up }] }
+      for (const f of ir.flows) {
+        const pl = plans.get(f.id);
+        if (pl.type === 'self') continue;
+        const sx = centerX(f.from);
+        const tx = centerX(f.to);
+        const gx = pl.type === 'adjacent' || pl.type === 'column' || pl.type === 'self' ? undefined : gutterX(pl);
+        if (pl.type === 'adjacent' && pl.rs === g && Math.abs(sx - tx) > 0.5) runs.push({ key: pl.key, verticals: [{ x: sx, up: true }, { x: tx, up: false }] });
+        if (pl.type === 'column' && pl.rt - 1 === g && Math.abs(sx - tx) > 0.5) runs.push({ key: pl.key, verticals: [{ x: sx, up: true }, { x: tx, up: false }] });
+        if (pl.type === 'skip' && pl.rs === g) runs.push({ key: pl.key, verticals: [{ x: sx, up: true }, { x: gx, up: false }] });
+        if (pl.type === 'skip' && pl.rt - 1 === g) runs.push({ key: pl.key, verticals: [{ x: gx, up: true }, { x: tx, up: false }] });
+        if (pl.type === 'back' && pl.rs === g) runs.push({ key: pl.key, verticals: [{ x: sx, up: true }, { x: gx, up: true }] });
+        if (pl.type === 'back' && pl.rt - 1 === g) runs.push({ key: pl.key, verticals: [{ x: gx, up: false }, { x: tx, up: false }] });
+      }
+      const before = new Map(list.map((k) => [k, new Set()]));
+      for (const a of runs) for (const b of runs) {
+        if (a.key === b.key) continue;
+        const lo = Math.min(b.verticals[0].x, b.verticals[1].x);
+        const hi = Math.max(b.verticals[0].x, b.verticals[1].x);
+        for (const v of a.verticals) {
+          const inside = v.x > lo + 0.5 && v.x < hi - 0.5;
+          // At an endpoint of b, verticals in the same direction share a trunk or a merge; in
+          // opposite directions they would overlap unless ordered.
+          const atEnd = b.verticals.some((w) => Math.abs(w.x - v.x) <= 0.5 && w.up !== v.up);
+          if (!inside && !atEnd) continue;
+          if (v.up) before.get(b.key).add(a.key); else before.get(a.key).add(b.key);
+        }
+      }
+      const sorted = [];
+      const remaining = new Set(list);
+      while (remaining.size > 0) {
+        const ready = [...remaining].filter((k) => [...before.get(k)].every((d) => !remaining.has(d)));
+        const pool = ready.length > 0 ? ready : [...remaining];
+        pool.sort((a, b) => targetX(a) - targetX(b));
+        sorted.push(pool[0]);
+        remaining.delete(pool[0]);
+      }
+      list.splice(0, list.length, ...sorted);
+    }
+    const gapY = (g, key) => {
+      const top = rowTop[g] + rowHeight[g];
+      const list = gapTracks.get(g) ?? [];
+      const i = Math.max(list.indexOf(key), 0);
+      return top + (trackSpan(g) * (i + 1)) / (list.length + 1);
+    };
+    const gapAboveY = (r, key) => (r === 0 ? m.topMargin + m.headerHeight + m.topGap / 2 : gapY(r - 1, key));
+
+    const edges = new Map();
+    for (const f of ir.flows) {
+      const s = nodes.get(f.from);
+      const t = nodes.get(f.to);
+      const plan = plans.get(f.id);
+      const sx = s.x + s.width / 2;
+      const tx = t.x + t.width / 2;
+      const points = [];
+      let exit = { x: 0.5, y: 1 };
+      let entry = { x: 0.5, y: 0 };
+      switch (plan.type) {
+        case 'self': {
+          const side = s.x + s.width + m.nodeGap / 2;
+          points.push({ x: side, y: s.y + s.height / 2 }, { x: side, y: gapY(plan.rs, plan.key) }, { x: sx, y: gapY(plan.rs, plan.key) });
+          break;
+        }
+        case 'adjacent': {
+          if (Math.abs(sx - tx) > 0.5) {
+            const gy = gapY(plan.rs, plan.key);
+            points.push({ x: sx, y: gy }, { x: tx, y: gy });
+          }
+          break;
+        }
+        case 'column': {
+          // Straight down the source's own column, which is free, then across to the target
+          // on the track of the gap above it, where flows into the same target merge.
+          if (Math.abs(sx - tx) > 0.5) {
+            const ay = gapAboveY(plan.rt, plan.key);
+            points.push({ x: sx, y: ay }, { x: tx, y: ay });
+          }
+          break;
+        }
+        case 'skip':
+        case 'back': {
+          const gy = gapY(plan.rs, plan.key);
+          const gx = gutterX(plan);
+          const ay = gapAboveY(plan.rt, plan.key);
+          points.push({ x: sx, y: gy }, { x: gx, y: gy }, { x: gx, y: ay }, { x: tx, y: ay });
+          break;
+        }
+        default:
+          break;
+      }
+      edges.set(f.id, { points, exit, entry });
+    }
+    return { plans, lanes, nodes, edges, rowTop, rowHeight, height, right: x };
+
+  };
+
+  // A long flow goes straight down its own column when nothing is in the way: no node of
+  // any lane in the rows it passes, and no horizontal run of another flow in the gaps it
+  // crosses whole. Decide from one arrangement, arrange again, and repeat until stable.
+  const freeColumns = (A) => {
+    const free = new Set();
+    for (const f of ir.flows) {
+      const pl = A.plans.get(f.id);
+      if (pl.type !== 'skip' && pl.type !== 'column') continue;
+      const s = A.nodes.get(f.from);
+      const sx = s.x + s.width / 2;
+      const top = s.y + s.height;
+      const bottom = A.rowTop[pl.rt - 1] + A.rowHeight[pl.rt - 1];
+      let blocked = false;
+      for (const n of A.nodes.values()) {
+        if (n.row <= pl.rs || n.row >= pl.rt) continue;
+        if (n.x - 8 < sx && sx < n.x + n.width + 8) { blocked = true; break; }
+      }
+      if (!blocked) {
+        for (const o of ir.flows) {
+          if (o.id === f.id) continue;
+          const e = A.edges.get(o.id);
+          const so = A.nodes.get(o.from);
+          const to = A.nodes.get(o.to);
+          const path = [{ x: so.x + e.exit.x * so.width, y: so.y + e.exit.y * so.height }, ...e.points, { x: to.x + e.entry.x * to.width, y: to.y + e.entry.y * to.height }];
+          for (let i = 1; i < path.length && !blocked; i++) {
+            const a = path[i - 1];
+            const b = path[i];
+            if (Math.abs(a.y - b.y) > 0.5 || a.y <= top + 0.5 || a.y >= bottom - 0.5) continue;
+            if (Math.min(a.x, b.x) + 0.5 < sx && sx < Math.max(a.x, b.x) - 0.5) blocked = true;
+          }
+          if (blocked) break;
+        }
+      }
+      if (!blocked) free.add(f.id);
+    }
+    return free;
+  };
+  let columns = new Set();
+  let arranged = arrange(columns);
+  for (let pass = 0; pass < 3; pass++) {
+    const next = freeColumns(arranged);
+    if (next.size === columns.size && [...next].every((id) => columns.has(id))) break;
+    columns = next;
+    arranged = arrange(columns);
+  }
+  // Keep only columns that are still free in the final arrangement.
+  const still = freeColumns(arranged);
+  if ([...columns].some((id) => !still.has(id))) {
+    columns = new Set([...columns].filter((id) => still.has(id)));
+    arranged = arrange(columns);
+  }
+  const { lanes, nodes, edges, height, right: x } = arranged;
+  const warnings = [];
+
+  // Structural hints: a merge needs two incoming flows and a decision two outgoing ones.
+  for (const c of ir.controls ?? []) {
+    const ins = inn.get(c.id).filter((p) => p !== c.id).length;
+    const outs = out.get(c.id).filter((t) => t !== c.id).length;
+    const path = `/controls/${ir.controls.indexOf(c)}`;
+    if (c.kind === 'merge' && ins < 2) warnings.push({ path, message: `merge "${c.id}" has ${ins} incoming flow(s); a merge joins two or more branches, so remove it or connect the other branch` });
+    if (c.kind === 'decision' && outs < 2) warnings.push({ path, message: `decision "${c.id}" has ${outs} outgoing flow(s); a decision needs at least two guarded branches` });
+    if (c.kind === 'join' && ins < 2) warnings.push({ path, message: `join "${c.id}" has ${ins} incoming flow(s); a join waits for two or more parallel branches` });
+    if (c.kind === 'fork' && outs < 2) warnings.push({ path, message: `fork "${c.id}" has ${outs} outgoing flow(s); a fork starts two or more parallel branches` });
+  }
+
+  // Self-check: segments of edges with different targets must not overlap.
+  const segments = [];
+  for (const f of ir.flows) {
+    const s = nodes.get(f.from);
+    const t = nodes.get(f.to);
+    const e = edges.get(f.id);
+    const start = { x: s.x + e.exit.x * s.width, y: s.y + e.exit.y * s.height };
+    const end = { x: t.x + e.entry.x * t.width, y: t.y + e.entry.y * t.height };
+    const path = [start, ...e.points, end];
+    for (let i = 1; i < path.length; i++) segments.push({ id: f.id, from: f.from, to: f.to, first: i === 1, a: path[i - 1], b: path[i] });
+  }
+  const shared = new Set();
+  for (let i = 0; i < segments.length; i++) {
+    for (let j = i + 1; j < segments.length; j++) {
+      const p = segments[i];
+      const q = segments[j];
+      // Edges that merge into one target may share their approach; edges that fan out of one
+      // source share the trunk that leaves it. Anything else on one line is misleading.
+      if (p.id === q.id || p.to === q.to || (p.from === q.from && p.first && q.first)) continue;
+      const pH = Math.abs(p.a.y - p.b.y) < 0.5;
+      const qH = Math.abs(q.a.y - q.b.y) < 0.5;
+      if (pH && qH && Math.abs(p.a.y - q.a.y) < 0.5 && Math.min(p.a.x, p.b.x) < Math.max(q.a.x, q.b.x) - 0.5 && Math.min(q.a.x, q.b.x) < Math.max(p.a.x, p.b.x) - 0.5) shared.add(`${p.id}|${q.id}`);
+      const pV = Math.abs(p.a.x - p.b.x) < 0.5;
+      const qV = Math.abs(q.a.x - q.b.x) < 0.5;
+      if (pV && qV && Math.abs(p.a.x - q.a.x) < 0.5 && Math.min(p.a.y, p.b.y) < Math.max(q.a.y, q.b.y) - 0.5 && Math.min(q.a.y, q.b.y) < Math.max(p.a.y, p.b.y) - 0.5) shared.add(`${p.id}|${q.id}`);
+    }
+  }
+  for (const pair of shared) {
+    const [a, b] = pair.split('|');
+    warnings.push({ path: '/flows', message: `layout: flows "${a}" and "${b}" run along the same line although they lead to different targets; reorder the flows or move a node to another lane` });
+  }
+  // Self-check: a horizontal segment of one flow must not cut through a vertical of another.
+  const crossing = new Set();
+  for (const p of segments) {
+    if (Math.abs(p.a.y - p.b.y) > 0.5) continue;
+    for (const q of segments) {
+      if (p.id === q.id || Math.abs(q.a.x - q.b.x) > 0.5) continue;
+      const x = q.a.x;
+      const y = p.a.y;
+      if (x > Math.min(p.a.x, p.b.x) + 0.5 && x < Math.max(p.a.x, p.b.x) - 0.5 && y > Math.min(q.a.y, q.b.y) + 0.5 && y < Math.max(q.a.y, q.b.y) - 0.5) {
+        crossing.add([p.id, q.id].sort().join('|'));
+      }
+    }
+  }
+  for (const pair of crossing) {
+    const [a, b] = pair.split('|');
+    warnings.push({ path: '/flows', message: `layout: flows "${a}" and "${b}" cross; no route around it was found`, hint: 'a crossing that the lanes of the nodes force can be accepted; reordering flows does not change the route' });
+  }
+
+  // Guard labels: greedy placement over candidate anchors, avoiding nodes and other labels.
+  const obstacles = [...nodes.values()].map((b) => ({ x: b.x - 4, y: b.y - 4, width: b.width + 8, height: b.height + 8 }));
+  // The lines of other flows are obstacles too, so a guard never sits on an arrow it does not belong to.
+  const lineBoxes = segments.map((sg) => ({ id: sg.id, x: Math.min(sg.a.x, sg.b.x) - 2, y: Math.min(sg.a.y, sg.b.y) - 2, width: Math.abs(sg.a.x - sg.b.x) + 4, height: Math.abs(sg.a.y - sg.b.y) + 4 }));
+  const placed = [];
+  const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  for (const f of ir.flows) {
+    if (!f.guard) continue;
+    const s = nodes.get(f.from);
+    const t = nodes.get(f.to);
+    const e = edges.get(f.id);
+    // The part of the first segment that sibling flows (same source) run along is the shared
+    // trunk: a guard there would read as the guard of every branch, so it is an obstacle too.
+    const first = segments.find((sg) => sg.id === f.id && sg.first);
+    const trunkLen = Math.max(0, ...segments.filter((sg) => sg.first && sg.id !== f.id && sg.from === f.from).map((sg) => sharedPrefix(first, sg)));
+    const trunkBox = trunkLen > 0 ? { x: Math.min(first.a.x, first.a.x + Math.sign(first.b.x - first.a.x) * trunkLen) - 2, y: Math.min(first.a.y, first.a.y + Math.sign(first.b.y - first.a.y) * trunkLen) - 2, width: (Math.abs(first.b.x - first.a.x) > 0.5 ? trunkLen : 0) + 4, height: (Math.abs(first.b.y - first.a.y) > 0.5 ? trunkLen : 0) + 4 } : null;
+    const candidates = labelCandidates(s, t, e, f.guard, trunkLen);
+    const blocked = (box) => obstacles.some((o) => overlaps(box, o)) || placed.some((o) => overlaps(box, o.box)) || lineBoxes.some((o) => o.id !== f.id && overlaps(box, o)) || (trunkBox && overlaps(box, trunkBox));
+    const pick = candidates.find((c) => !blocked(c.box)) ?? candidates[0];
+    if (pick === candidates[0] && blocked(pick.box)) {
+      warnings.push({ path: `/flows/${ir.flows.indexOf(f)}/guard`, message: `layout: guard "${f.guard}" of flow "${f.id}" overlaps another label or node; shorten it or reorder the flows` });
+    }
+    placed.push({ id: f.id, box: pick.box });
+    e.label = { position: pick.position, offset: pick.offset };
+  }
+
+  const width = x + m.leftMargin;
+  const result = { lanes, nodes, edges, width, height: height + 2 * m.topMargin, horizontal, warnings };
+  return horizontal ? transpose(result) : result;
+}
+
+/** Length of the colinear prefix two segments share when they start at the same point. */
+function sharedPrefix(p, q) {
+  if (Math.abs(p.a.x - q.a.x) > 0.5 || Math.abs(p.a.y - q.a.y) > 0.5) return 0;
+  const dp = { x: Math.sign(p.b.x - p.a.x), y: Math.sign(p.b.y - p.a.y) };
+  const dq = { x: Math.sign(q.b.x - q.a.x), y: Math.sign(q.b.y - q.a.y) };
+  if (dp.x !== dq.x || dp.y !== dq.y) return 0;
+  const len = (sg) => Math.abs(sg.b.x - sg.a.x) + Math.abs(sg.b.y - sg.a.y);
+  return Math.min(len(p), len(q));
+}
+
+/**
+ * Candidate places for a guard label, best first: above the horizontal run just before it
+ * turns toward the target, beside the private part of the segment leaving the source (below
+ * the shared trunk of a fan-out, `trunkLen` from the start), beside the last vertical
+ * segment above the target, and beside the gutter run of a long route; each on the right
+ * and on the left. Every candidate carries its absolute box (for collision checks) and
+ * draw.io edge-label geometry (relative position along the path plus a pixel offset).
+ */
+function labelCandidates(s, t, e, guard, trunkLen = 0) {
+  const width = Math.ceil(longestLine(guard) * 7) + 12;
+  const height = 16;
+  const start = { x: s.x + e.exit.x * s.width, y: s.y + e.exit.y * s.height };
+  const end = { x: t.x + e.entry.x * t.width, y: t.y + e.entry.y * t.height };
+  const path = [start, ...e.points, end];
+  const seg = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  let total = 0;
+  for (let i = 1; i < path.length; i++) total += seg(path[i - 1], path[i]);
+  const distTo = (index) => {
+    let d = 0;
+    for (let i = 1; i <= index; i++) d += seg(path[i - 1], path[i]);
+    return d;
+  };
+  const anchors = [];
+  const out = [];
+  // Above each horizontal run, just before it turns toward the target: the natural place
+  // for a guard, and unambiguous because the arrow it labels is right below it.
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1];
+    const b = path[i];
+    if (Math.abs(a.y - b.y) > 0.5 || Math.abs(a.x - b.x) < width + 16) continue;
+    const dir = Math.sign(b.x - a.x);
+    const x = b.x - dir * (width / 2 + 8);
+    const d = distTo(i - 1) + Math.abs(x - a.x);
+    const offset = { x: 0, y: -(height / 2 + 2) };
+    out.push({ position: (2 * d) / total - 1, offset, box: { x: x - width / 2, y: a.y + offset.y - height / 2, width, height } });
+  }
+  const push = (pointIndex, dy) => {
+    const p = path[pointIndex];
+    const d = distTo(pointIndex) + dy;
+    anchors.push({ x: p.x, y: p.y + dy, position: total === 0 ? 0 : (2 * Math.min(d, total)) / total - 1 });
+  };
+  // Beside the first segment, past the shared trunk; on a straight branch the private part
+  // may be short, so the label goes to its middle.
+  const firstLen = seg(path[0], path[1]);
+  // The box must clear the trunk (2 px) above and the node margin (6 px) below.
+  const room = firstLen - trunkLen;
+  if (e.points.length === 0) push(0, trunkLen + Math.max(height / 2 + 2, Math.min(14, room - height / 2 - 6)));
+  else if (trunkLen + 14 + height / 2 <= firstLen) push(0, trunkLen + 14);
+  if (e.points.length > 0) {
+    push(path.length - 2, 14);
+    if (e.points.length >= 3) {
+      const a = path[2];
+      const b = path[3];
+      const mid = { x: a.x, y: (a.y + b.y) / 2 };
+      const d = distTo(2) + seg(a, mid);
+      anchors.push({ x: mid.x, y: mid.y, position: (2 * d) / total - 1 });
+    }
+  }
+  for (const a of anchors) {
+    for (const side of [1, -1]) {
+      const offset = { x: side * (width / 2 + 6), y: 0 };
+      out.push({ position: a.position, offset, box: { x: a.x + offset.x - width / 2, y: a.y - height / 2, width, height } });
+    }
+  }
+  return out;
+}
+
+function transpose(r) {
+  const flip = (b) => ({ ...b, x: b.y, y: b.x, width: b.height, height: b.width });
+  return {
+    ...r,
+    lanes: r.lanes.map(flip),
+    nodes: new Map([...r.nodes].map(([id, b]) => [id, flip(b)])),
+    edges: new Map([...r.edges].map(([id, e]) => [id, { points: e.points.map((p) => ({ x: p.y, y: p.x })), exit: { x: e.exit.y, y: e.exit.x }, entry: { x: e.entry.y, y: e.entry.x }, label: e.label && { position: e.label.position, offset: { x: e.label.offset.y, y: e.label.offset.x } } }])),
+    width: r.height,
+    height: r.width,
+  };
+}

@@ -1,0 +1,43 @@
+---
+title: "Order checkout"
+---
+flowchart TB
+  %% id: start
+  n1(["Customer submits cart"])
+  %% id: validate
+  n2["Validate cart contents"]
+  %% id: in-stock
+  n3{"All items in stock?"}
+  %% id: done
+  n7(["Order placed"])
+  %% id: backorder
+  n8["Offer backorder"]
+  %% id: hint
+  n9>"Stock is checked per warehouse"]
+  %% id: fulfilment
+  subgraph n10["Fulfilment"]
+    %% id: reserve
+    n4[["Reserve stock"]]
+    %% id: payment
+    n5[["Capture payment<br/>↳ order-checkout-payment"]]
+    %% id: receipt
+    n6[/"Send receipt email"/]
+  end
+  %% id: e1
+  n1 --> n2
+  %% id: e2
+  n2 --> n3
+  %% id: e3
+  n3 -->|"yes"| n4
+  %% id: e4
+  n3 -->|"no"| n8
+  %% id: e5
+  n4 --> n5
+  %% id: e6
+  n5 -->|"captured"| n6
+  %% id: e7
+  n6 --> n7
+  %% id: e8
+  n8 --> n7
+  %% id: e9
+  n9 --> n3

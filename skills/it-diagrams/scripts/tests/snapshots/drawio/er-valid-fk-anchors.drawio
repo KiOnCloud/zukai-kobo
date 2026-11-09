@@ -1,0 +1,85 @@
+<mxfile host="it-diagrams" compressed="false" type="device">
+  <diagram id="addresses-on-an-order" name="Addresses on an order">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="addresses-on-an-order:customer" value="Customer" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
+          <mxGeometry x="12" y="179" width="160" height="52" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:customer:row-0" value="PK id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="addresses-on-an-order:customer">
+          <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:address" value="Address" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=46;" vertex="1" parent="1">
+          <mxGeometry x="12" y="21" width="160" height="98" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:address:row-0" value="PK id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="addresses-on-an-order:address">
+          <mxGeometry x="0" y="46" width="160" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:address:row-1" value="line1: varchar(200)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="addresses-on-an-order:address">
+          <mxGeometry x="0" y="72" width="160" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:order" value="Order" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=46;" vertex="1" parent="1">
+          <mxGeometry x="397" y="22" width="220" height="202" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:order:row-0" value="PK id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="addresses-on-an-order:order">
+          <mxGeometry x="0" y="46" width="220" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:order:row-1" value="FK customer_id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="addresses-on-an-order:order">
+          <mxGeometry x="0" y="72" width="220" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:order:row-2" value="FK billing_address_id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="addresses-on-an-order:order">
+          <mxGeometry x="0" y="98" width="220" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:order:row-3" value="FK shipping_address_id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="addresses-on-an-order:order">
+          <mxGeometry x="0" y="124" width="220" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:order:row-4" value="total: decimal(10,2)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="addresses-on-an-order:order">
+          <mxGeometry x="0" y="150" width="220" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:order:row-5" value="status: varchar(20)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="addresses-on-an-order:order">
+          <mxGeometry x="0" y="176" width="220" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:r1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmandOne;startFill=0;endArrow=ERzeroToMany;endFill=0;exitX=1;exitY=0.269;exitDx=0;exitDy=0;entryX=0;entryY=0.426;entryDx=0;entryDy=0;" edge="1" parent="1" source="addresses-on-an-order:customer" target="addresses-on-an-order:order">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="198" y="193"/>
+              <mxPoint x="198" y="108"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:r1:label" value="places" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="addresses-on-an-order:r1">
+          <mxGeometry x="0.28" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:r2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmandOne;startFill=0;endArrow=ERzeroToMany;endFill=0;dashed=1;exitX=1;exitY=0.143;exitDx=0;exitDy=0;entryX=0;entryY=0.069;entryDx=0;entryDy=0;" edge="1" parent="1" source="addresses-on-an-order:address" target="addresses-on-an-order:order">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="342" y="35"/>
+              <mxPoint x="342" y="36"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:r2:label" value="bills to" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="addresses-on-an-order:r2">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERzeroToOne;startFill=0;endArrow=ERzeroToMany;endFill=0;dashed=1;exitX=1;exitY=0.347;exitDx=0;exitDy=0;entryX=0;entryY=0.168;entryDx=0;entryDy=0;" edge="1" parent="1" source="addresses-on-an-order:address" target="addresses-on-an-order:order">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="198" y="55"/>
+              <mxPoint x="198" y="56"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="addresses-on-an-order:r3:label" value="ships to" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="addresses-on-an-order:r3">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

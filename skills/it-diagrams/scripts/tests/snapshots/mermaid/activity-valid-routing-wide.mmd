@@ -1,0 +1,57 @@
+---
+title: "Routing: early exit shares the merge band"
+---
+swimlane-beta TB
+  %% id: svc
+  subgraph n1["Order service"]
+    %% id: a-400
+    n2["Return 400"]
+    %% id: a-0
+    n3["Standard order flow"]
+    %% id: a-1
+    n4["Express order flow"]
+    %% id: a-2
+    n5["Backorder flow"]
+    %% id: a-3
+    n6["Pre-order flow"]
+    %% id: a-done
+    n7["Return result"]
+    %% id: start
+    n8@{ shape: sm-circ }
+    %% id: d-type
+    n9{"Which order type?"}
+    %% id: end-400
+    n10@{ shape: fr-circ }
+    %% id: d-next
+    n11{"Notify customer?"}
+    %% id: end-a
+    n12@{ shape: fr-circ }
+  end
+  %% id: f0
+  n8 --> n9
+  %% id: fr
+  n9 -->|"unsupported"| n2
+  %% id: fe
+  n2 --> n10
+  %% id: fi0
+  n9 -->|"1"| n3
+  %% id: fo0
+  n3 --> n11
+  %% id: fi1
+  n9 -->|"2"| n4
+  %% id: fo1
+  n4 --> n11
+  %% id: fi2
+  n9 -->|"3"| n5
+  %% id: fo2
+  n5 --> n11
+  %% id: fi3
+  n9 -->|"4"| n6
+  %% id: fo3
+  n6 --> n11
+  %% id: fy
+  n11 -->|"yes"| n7
+  %% id: fn
+  n11 -->|"no"| n12
+  %% id: fd
+  n7 --> n12

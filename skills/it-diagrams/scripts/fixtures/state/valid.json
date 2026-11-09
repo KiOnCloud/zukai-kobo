@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "state",
+  "title": "Order lifecycle",
+  "direction": "TB",
+  "meta": { "source": "scout", "notes": ["src/orders/order-status.ts"] },
+  "states": [
+    { "id": "start", "kind": "initial" },
+    { "id": "draft", "label": "Draft" },
+    { "id": "placed", "label": "Placed" },
+    { "id": "processing", "label": "Processing", "kind": "composite", "children": ["p-start", "picking", "packing", "p-end"] },
+    { "id": "p-start", "kind": "initial" },
+    { "id": "picking", "label": "Picking" },
+    { "id": "packing", "label": "Packing" },
+    { "id": "p-end", "kind": "final" },
+    { "id": "shipped", "label": "Shipped" },
+    { "id": "cancelled", "label": "Cancelled" },
+    { "id": "end", "kind": "final" }
+  ],
+  "transitions": [
+    { "id": "t1", "from": "start", "to": "draft" },
+    { "id": "t2", "from": "draft", "to": "placed", "event": "submit", "guard": "cart not empty" },
+    { "id": "t3", "from": "placed", "to": "processing", "event": "payment captured", "action": "reserve stock" },
+    { "id": "t4", "from": "p-start", "to": "picking" },
+    { "id": "t5", "from": "picking", "to": "packing", "event": "all items picked" },
+    { "id": "t6", "from": "packing", "to": "p-end", "event": "label printed" },
+    { "id": "t7", "from": "processing", "to": "shipped", "event": "carrier pickup" },
+    { "id": "t8", "from": "placed", "to": "cancelled", "event": "cancel", "guard": "not yet processing" },
+    { "id": "t9", "from": "shipped", "to": "end" },
+    { "id": "t10", "from": "cancelled", "to": "end" }
+  ]
+}

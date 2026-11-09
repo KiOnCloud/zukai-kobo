@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "er",
+  "title": "Order data model",
+  "meta": { "source": "scout", "notes": ["src/orders/entities/*.cs"] },
+  "entities": [
+    {
+      "id": "customer",
+      "label": "Customer",
+      "attributes": [
+        { "name": "id", "type": "uuid", "key": "pk" },
+        { "name": "email", "type": "string", "comment": "unique, lower-cased" },
+        { "name": "created_at", "type": "timestamp" }
+      ]
+    },
+    {
+      "id": "order",
+      "label": "Order",
+      "attributes": [
+        { "name": "id", "type": "uuid", "key": "pk" },
+        { "name": "customer_id", "type": "uuid", "key": "fk" },
+        { "name": "status", "type": "string" },
+        { "name": "total", "type": "decimal(10,2)" }
+      ]
+    },
+    {
+      "id": "order-line",
+      "label": "Order line",
+      "attributes": [
+        { "name": "id", "type": "uuid", "key": "pk" },
+        { "name": "order_id", "type": "uuid", "key": "fk" },
+        { "name": "product_id", "type": "uuid", "key": "fk" },
+        { "name": "quantity", "type": "int" }
+      ]
+    },
+    { "id": "product", "label": "Product", "attributes": [{ "name": "id", "type": "uuid", "key": "pk" }, { "name": "name", "type": "string" }] },
+    { "id": "audit", "label": "Audit log" }
+  ],
+  "relations": [
+    { "id": "r1", "from": "customer", "to": "order", "label": "places", "fromCardinality": "one", "toCardinality": "many" },
+    { "id": "r2", "from": "order", "to": "order-line", "label": "contains", "fromCardinality": "one", "toCardinality": "one-many" },
+    { "id": "r3", "from": "product", "to": "order-line", "label": "appears in", "fromCardinality": "one", "toCardinality": "many" },
+    { "id": "r4", "from": "order", "to": "audit", "fromCardinality": "zero-one", "toCardinality": "many", "identifying": false }
+  ]
+}

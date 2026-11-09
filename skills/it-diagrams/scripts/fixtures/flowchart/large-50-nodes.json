@@ -1,0 +1,588 @@
+{
+  "schemaVersion": 1,
+  "kind": "flowchart",
+  "title": "Large process with 50 steps",
+  "direction": "TB",
+  "meta": {
+    "source": "manual",
+    "notes": [
+      "Generated fixture for layout performance"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "label": "Step 1",
+      "shape": "decision"
+    },
+    {
+      "id": "n2",
+      "label": "Step 2",
+      "shape": "process"
+    },
+    {
+      "id": "n3",
+      "label": "Step 3",
+      "shape": "process"
+    },
+    {
+      "id": "n4",
+      "label": "Step 4",
+      "shape": "io"
+    },
+    {
+      "id": "n5",
+      "label": "Step 5",
+      "shape": "subroutine"
+    },
+    {
+      "id": "n6",
+      "label": "Step 6",
+      "shape": "process"
+    },
+    {
+      "id": "n7",
+      "label": "Step 7 checks the inventory level",
+      "shape": "decision"
+    },
+    {
+      "id": "n8",
+      "label": "Step 8",
+      "shape": "process"
+    },
+    {
+      "id": "n9",
+      "label": "Step 9",
+      "shape": "process"
+    },
+    {
+      "id": "n10",
+      "label": "Step 10",
+      "shape": "io"
+    },
+    {
+      "id": "n11",
+      "label": "Step 11",
+      "shape": "subroutine"
+    },
+    {
+      "id": "n12",
+      "label": "Step 12",
+      "shape": "process"
+    },
+    {
+      "id": "n13",
+      "label": "Step 13",
+      "shape": "decision"
+    },
+    {
+      "id": "n14",
+      "label": "Step 14 checks the inventory level",
+      "shape": "process"
+    },
+    {
+      "id": "n15",
+      "label": "Step 15",
+      "shape": "process"
+    },
+    {
+      "id": "n16",
+      "label": "Step 16",
+      "shape": "io"
+    },
+    {
+      "id": "n17",
+      "label": "Step 17",
+      "shape": "subroutine"
+    },
+    {
+      "id": "n18",
+      "label": "Step 18",
+      "shape": "process"
+    },
+    {
+      "id": "n19",
+      "label": "Step 19",
+      "shape": "decision"
+    },
+    {
+      "id": "n20",
+      "label": "Step 20",
+      "shape": "process"
+    },
+    {
+      "id": "n21",
+      "label": "Step 21 checks the inventory level",
+      "shape": "process"
+    },
+    {
+      "id": "n22",
+      "label": "Step 22",
+      "shape": "io"
+    },
+    {
+      "id": "n23",
+      "label": "Step 23",
+      "shape": "subroutine"
+    },
+    {
+      "id": "n24",
+      "label": "Step 24",
+      "shape": "process"
+    },
+    {
+      "id": "n25",
+      "label": "Step 25",
+      "shape": "decision"
+    },
+    {
+      "id": "n26",
+      "label": "Step 26",
+      "shape": "process"
+    },
+    {
+      "id": "n27",
+      "label": "Step 27",
+      "shape": "process"
+    },
+    {
+      "id": "n28",
+      "label": "Step 28 checks the inventory level",
+      "shape": "io"
+    },
+    {
+      "id": "n29",
+      "label": "Step 29",
+      "shape": "subroutine"
+    },
+    {
+      "id": "n30",
+      "label": "Step 30",
+      "shape": "process"
+    },
+    {
+      "id": "n31",
+      "label": "Step 31",
+      "shape": "decision"
+    },
+    {
+      "id": "n32",
+      "label": "Step 32",
+      "shape": "process"
+    },
+    {
+      "id": "n33",
+      "label": "Step 33",
+      "shape": "process"
+    },
+    {
+      "id": "n34",
+      "label": "Step 34",
+      "shape": "io"
+    },
+    {
+      "id": "n35",
+      "label": "Step 35 checks the inventory level",
+      "shape": "subroutine"
+    },
+    {
+      "id": "n36",
+      "label": "Step 36",
+      "shape": "process"
+    },
+    {
+      "id": "n37",
+      "label": "Step 37",
+      "shape": "decision"
+    },
+    {
+      "id": "n38",
+      "label": "Step 38",
+      "shape": "process"
+    },
+    {
+      "id": "n39",
+      "label": "Step 39",
+      "shape": "process"
+    },
+    {
+      "id": "n40",
+      "label": "Step 40",
+      "shape": "io"
+    },
+    {
+      "id": "n41",
+      "label": "Step 41",
+      "shape": "subroutine"
+    },
+    {
+      "id": "n42",
+      "label": "Step 42 checks the inventory level",
+      "shape": "process"
+    },
+    {
+      "id": "n43",
+      "label": "Step 43",
+      "shape": "decision"
+    },
+    {
+      "id": "n44",
+      "label": "Step 44",
+      "shape": "process"
+    },
+    {
+      "id": "n45",
+      "label": "Step 45",
+      "shape": "process"
+    },
+    {
+      "id": "n46",
+      "label": "Step 46",
+      "shape": "io"
+    },
+    {
+      "id": "n47",
+      "label": "Step 47",
+      "shape": "subroutine"
+    },
+    {
+      "id": "n48",
+      "label": "Step 48",
+      "shape": "process"
+    },
+    {
+      "id": "n49",
+      "label": "Step 49 checks the inventory level",
+      "shape": "decision"
+    },
+    {
+      "id": "n50",
+      "label": "Step 50",
+      "shape": "process"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "id": "e2",
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "id": "e3",
+      "from": "n3",
+      "to": "n4"
+    },
+    {
+      "id": "e4",
+      "from": "n4",
+      "to": "n5"
+    },
+    {
+      "id": "e5",
+      "from": "n5",
+      "to": "n6"
+    },
+    {
+      "id": "e6",
+      "from": "n6",
+      "to": "n7",
+      "kind": "conditional",
+      "label": "yes"
+    },
+    {
+      "id": "e7",
+      "from": "n7",
+      "to": "n8"
+    },
+    {
+      "id": "e8",
+      "from": "n8",
+      "to": "n9"
+    },
+    {
+      "id": "e9",
+      "from": "n9",
+      "to": "n10"
+    },
+    {
+      "id": "e10",
+      "from": "n10",
+      "to": "n11"
+    },
+    {
+      "id": "e11",
+      "from": "n11",
+      "to": "n12"
+    },
+    {
+      "id": "e12",
+      "from": "n12",
+      "to": "n13",
+      "kind": "conditional",
+      "label": "yes"
+    },
+    {
+      "id": "e13",
+      "from": "n13",
+      "to": "n14"
+    },
+    {
+      "id": "e14",
+      "from": "n14",
+      "to": "n15"
+    },
+    {
+      "id": "e15",
+      "from": "n15",
+      "to": "n16"
+    },
+    {
+      "id": "e16",
+      "from": "n16",
+      "to": "n17"
+    },
+    {
+      "id": "e17",
+      "from": "n17",
+      "to": "n18"
+    },
+    {
+      "id": "e18",
+      "from": "n18",
+      "to": "n19",
+      "kind": "conditional",
+      "label": "yes"
+    },
+    {
+      "id": "e19",
+      "from": "n19",
+      "to": "n20"
+    },
+    {
+      "id": "e20",
+      "from": "n20",
+      "to": "n21"
+    },
+    {
+      "id": "e21",
+      "from": "n21",
+      "to": "n22"
+    },
+    {
+      "id": "e22",
+      "from": "n22",
+      "to": "n23"
+    },
+    {
+      "id": "e23",
+      "from": "n23",
+      "to": "n24"
+    },
+    {
+      "id": "e24",
+      "from": "n24",
+      "to": "n25",
+      "kind": "conditional",
+      "label": "yes"
+    },
+    {
+      "id": "e25",
+      "from": "n25",
+      "to": "n26"
+    },
+    {
+      "id": "e26",
+      "from": "n26",
+      "to": "n27"
+    },
+    {
+      "id": "e27",
+      "from": "n27",
+      "to": "n28"
+    },
+    {
+      "id": "e28",
+      "from": "n28",
+      "to": "n29"
+    },
+    {
+      "id": "e29",
+      "from": "n29",
+      "to": "n30"
+    },
+    {
+      "id": "e30",
+      "from": "n30",
+      "to": "n31",
+      "kind": "conditional",
+      "label": "yes"
+    },
+    {
+      "id": "e31",
+      "from": "n31",
+      "to": "n32"
+    },
+    {
+      "id": "e32",
+      "from": "n32",
+      "to": "n33"
+    },
+    {
+      "id": "e33",
+      "from": "n33",
+      "to": "n34"
+    },
+    {
+      "id": "e34",
+      "from": "n34",
+      "to": "n35"
+    },
+    {
+      "id": "e35",
+      "from": "n35",
+      "to": "n36"
+    },
+    {
+      "id": "e36",
+      "from": "n36",
+      "to": "n37",
+      "kind": "conditional",
+      "label": "yes"
+    },
+    {
+      "id": "e37",
+      "from": "n37",
+      "to": "n38"
+    },
+    {
+      "id": "e38",
+      "from": "n38",
+      "to": "n39"
+    },
+    {
+      "id": "e39",
+      "from": "n39",
+      "to": "n40"
+    },
+    {
+      "id": "e40",
+      "from": "n40",
+      "to": "n41"
+    },
+    {
+      "id": "e41",
+      "from": "n41",
+      "to": "n42"
+    },
+    {
+      "id": "e42",
+      "from": "n42",
+      "to": "n43",
+      "kind": "conditional",
+      "label": "yes"
+    },
+    {
+      "id": "e43",
+      "from": "n43",
+      "to": "n44"
+    },
+    {
+      "id": "e44",
+      "from": "n44",
+      "to": "n45"
+    },
+    {
+      "id": "e45",
+      "from": "n45",
+      "to": "n46"
+    },
+    {
+      "id": "e46",
+      "from": "n46",
+      "to": "n47"
+    },
+    {
+      "id": "e47",
+      "from": "n47",
+      "to": "n48"
+    },
+    {
+      "id": "e48",
+      "from": "n48",
+      "to": "n49",
+      "kind": "conditional",
+      "label": "yes"
+    },
+    {
+      "id": "e49",
+      "from": "n49",
+      "to": "n50"
+    },
+    {
+      "id": "x3",
+      "from": "n3",
+      "to": "n8",
+      "kind": "conditional",
+      "label": "no"
+    },
+    {
+      "id": "x12",
+      "from": "n12",
+      "to": "n17",
+      "kind": "conditional",
+      "label": "no"
+    },
+    {
+      "id": "x21",
+      "from": "n21",
+      "to": "n26",
+      "kind": "conditional",
+      "label": "no"
+    },
+    {
+      "id": "x30",
+      "from": "n30",
+      "to": "n35",
+      "kind": "conditional",
+      "label": "no"
+    },
+    {
+      "id": "x39",
+      "from": "n39",
+      "to": "n44",
+      "kind": "conditional",
+      "label": "no"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g1",
+      "label": "Intake",
+      "children": [
+        "n1",
+        "n2",
+        "n3",
+        "n4",
+        "n5"
+      ]
+    },
+    {
+      "id": "g2",
+      "label": "Fulfilment",
+      "children": [
+        "n20",
+        "n21",
+        "n22",
+        "n23",
+        "n24",
+        "n25",
+        "n26"
+      ]
+    }
+  ]
+}

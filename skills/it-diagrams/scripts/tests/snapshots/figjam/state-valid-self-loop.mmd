@@ -1,0 +1,28 @@
+stateDiagram-v2
+  %% id: pay
+  state "Awaiting payment" as n2
+  %% id: review
+  state "Under review" as n3 {
+    %% id: check
+    state "Checking" as n4
+    %% id: hold
+    state "On hold" as n5
+    %% id: t4
+    n4 --> n4 : more data
+    %% id: t5
+    n4 --> n5 : suspicious
+  }
+  %% id: paid
+  state "Paid" as n6
+  %% id: t1
+  [*] --> n2
+  %% id: t2
+  n2 --> n2 : payment failed [attempts 3] / notify customer
+  %% id: t3
+  n2 --> n4 : flagged
+  %% id: t6
+  n5 --> n6 : cleared
+  %% id: t7
+  n2 --> n6 : payment captured
+  %% id: t8
+  n6 --> [*]

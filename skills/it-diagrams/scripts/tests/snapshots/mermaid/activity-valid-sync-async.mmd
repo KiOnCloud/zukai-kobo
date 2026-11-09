@@ -1,0 +1,83 @@
+---
+title: "Sync and async report"
+---
+swimlane-beta TB
+  %% id: client
+  subgraph n1["Client"]
+    %% id: a-send
+    n4["Request a report"]
+    %% id: start
+    n13@{ shape: sm-circ }
+  end
+  %% id: api
+  subgraph n2["API"]
+    %% id: a-queue
+    n5["Queue a background job"]
+    %% id: a-call
+    n6["Build the report now"]
+    %% id: a-accept
+    n7["Reply 202"]
+    %% id: a-job
+    n8["Job builds the report"]
+    %% id: a-empty
+    n9["Empty report"]
+    %% id: a-return
+    n11["Return the report"]
+    %% id: a-send-out
+    n12["Send the report"]
+    %% id: d-route
+    n14{"Sync or async?"}
+    %% id: fork
+    n15@{ shape: fork }
+    %% id: end-accepted
+    n16@{ shape: fr-circ }
+    %% id: d-result
+    n18{"Who gets it?"}
+    %% id: end-sync
+    n19@{ shape: fr-circ }
+    %% id: end-async
+    n20@{ shape: fr-circ }
+  end
+  %% id: worker
+  subgraph n3["Worker"]
+    %% id: a-build
+    n10["Build the report"]
+    %% id: d-check
+    n17{"Input usable?"}
+  end
+  %% id: f1
+  n13 --> n4
+  %% id: f2
+  n4 --> n14
+  %% id: f-async
+  n14 -->|"async"| n5
+  %% id: f-sync
+  n14 -->|"sync"| n6
+  %% id: f-queue
+  n5 --> n15
+  %% id: f-fork-accept
+  n15 --> n7
+  %% id: f-accept
+  n7 --> n16
+  %% id: f-fork-job
+  n15 --> n8
+  %% id: f-job
+  n8 --> n17
+  %% id: f-call
+  n6 --> n17
+  %% id: f-no
+  n17 -->|"no"| n9
+  %% id: f-yes
+  n17 -->|"yes"| n10
+  %% id: f-empty
+  n9 --> n18
+  %% id: f-build
+  n10 --> n18
+  %% id: f-r-sync
+  n18 -->|"sync"| n11
+  %% id: f-r-async
+  n18 -->|"async"| n12
+  %% id: f-ret
+  n11 --> n19
+  %% id: f-out
+  n12 --> n20

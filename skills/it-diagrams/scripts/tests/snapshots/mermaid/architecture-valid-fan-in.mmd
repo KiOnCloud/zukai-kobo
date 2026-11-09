@@ -1,0 +1,24 @@
+---
+title: "Fan-in and triangle"
+---
+flowchart LR
+  %% id: web
+  n1(("Web client"))
+  %% id: mob
+  n2(("Mobile app"))
+  %% id: gw
+  n3["API gateway"]
+  %% id: a
+  n4["Order service"]
+  %% id: b
+  n5["Catalog service"]
+  %% id: c1
+  n1 --> n3
+  %% id: c2
+  n2 --> n3
+  %% id: c3
+  n3 --> n4
+  %% id: c4
+  n3 --> n5
+  %% id: c5
+  n4 --> n5

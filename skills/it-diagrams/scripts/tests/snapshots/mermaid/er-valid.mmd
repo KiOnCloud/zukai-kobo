@@ -1,0 +1,39 @@
+---
+title: "Order data model"
+---
+erDiagram
+  %% id: customer
+  n1["Customer"] {
+    uuid id PK
+    string email "unique, lower-cased"
+    timestamp created_at
+  }
+  %% id: order
+  n2["Order"] {
+    uuid id PK
+    uuid customer_id FK
+    string status
+    decimal(10,2) total
+  }
+  %% id: order-line
+  n3["Order line"] {
+    uuid id PK
+    uuid order_id FK
+    uuid product_id FK
+    int quantity
+  }
+  %% id: product
+  n4["Product"] {
+    uuid id PK
+    string name
+  }
+  %% id: audit
+  n5["Audit log"]
+  %% id: r1
+  n1 ||--o{ n2 : "places"
+  %% id: r2
+  n2 ||--|{ n3 : "contains"
+  %% id: r3
+  n4 ||--o{ n3 : "appears in"
+  %% id: r4
+  n2 |o..o{ n5 : ""

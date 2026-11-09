@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "kind": "state",
+  "title": "Payment retries",
+  "states": [
+    {
+      "id": "s0",
+      "kind": "initial"
+    },
+    {
+      "id": "pay",
+      "label": "Awaiting payment",
+      "kind": "simple"
+    },
+    {
+      "id": "review",
+      "label": "Under review",
+      "kind": "composite",
+      "children": [
+        "check",
+        "hold"
+      ]
+    },
+    {
+      "id": "check",
+      "label": "Checking",
+      "kind": "simple"
+    },
+    {
+      "id": "hold",
+      "label": "On hold",
+      "kind": "simple"
+    },
+    {
+      "id": "paid",
+      "label": "Paid",
+      "kind": "simple"
+    },
+    {
+      "id": "end",
+      "kind": "final"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t1",
+      "from": "s0",
+      "to": "pay"
+    },
+    {
+      "id": "t2",
+      "from": "pay",
+      "to": "pay",
+      "event": "payment failed",
+      "guard": "attempts < 3",
+      "action": "notify customer"
+    },
+    {
+      "id": "t3",
+      "from": "pay",
+      "to": "check",
+      "event": "flagged"
+    },
+    {
+      "id": "t4",
+      "from": "check",
+      "to": "check",
+      "event": "more data"
+    },
+    {
+      "id": "t5",
+      "from": "check",
+      "to": "hold",
+      "event": "suspicious"
+    },
+    {
+      "id": "t6",
+      "from": "hold",
+      "to": "paid",
+      "event": "cleared"
+    },
+    {
+      "id": "t7",
+      "from": "pay",
+      "to": "paid",
+      "event": "payment captured"
+    },
+    {
+      "id": "t8",
+      "from": "paid",
+      "to": "end"
+    }
+  ]
+}

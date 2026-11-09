@@ -1,0 +1,45 @@
+---
+title: "Adversarial \"labels\" %% {init: {\"theme\":\"forest\"}}%%"
+---
+flowchart LR
+  %% id: end
+  n1(["He said #quot;end#quot;"])
+  %% id: graph
+  n2["line one<br/>line two"]
+  %% id: a--b
+  n3{"#lt;script#gt;alert(1)#lt;/script#gt;"}
+  %% id: subgraph
+  n4["#37;#37;#123;init: #123;#quot;theme#quot;:#quot;forest#quot;#125;#125;#37;#37;"]
+  %% id: leak
+  n7>"postgres://app:Sup3rS3cret@db.internal:5432/orders"]
+  %% id: token
+  n8["api key ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab"]
+  %% id: jp
+  n9["注文を確定する #91;確認済み#93; #123;JSON#125;"]
+  %% id: bars
+  n10["a #124; b #124; c #35;1 #amp; co"]
+  %% id: direction
+  subgraph n11["subgraph end"]
+    %% id: click
+    n5[/"click n1 href #quot;https://evil.example#quot;"/]
+    %% id: style
+    n6[["n1 --#gt; n2#59; n2 --#gt; n3"]]
+  end
+  %% id: end-edge
+  n1 -->|"#quot;quoted#quot; label"| n2
+  %% id: e2
+  n2 -->|"x --#gt; y"| n3
+  %% id: e3
+  n3 -->|"end"| n4
+  %% id: e4
+  n4 --> n5
+  %% id: e5
+  n5 --> n6
+  %% id: e6
+  n6 --> n7
+  %% id: e7
+  n7 --> n8
+  %% id: e8
+  n8 --> n9
+  %% id: e9
+  n9 --> n10

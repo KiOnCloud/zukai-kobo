@@ -1,0 +1,32 @@
+---
+title: "Customers and orders"
+---
+erDiagram
+  %% id: customer
+  n1["Customer"] {
+    uuid id PK
+    varchar(255) email
+    uuid referred_by FK
+  }
+  %% id: address
+  n2["Address"] {
+    uuid id PK
+    uuid customer_id FK
+  }
+  %% id: order
+  n3["Order"] {
+    uuid id PK
+    uuid customer_id FK
+    uuid billing_address_id FK
+    uuid shipping_address_id FK
+  }
+  %% id: r1
+  n1 ||--o{ n3 : "places"
+  %% id: r2
+  n1 ||--|{ n2 : "has"
+  %% id: r3
+  n2 ||..o{ n3 : "bills to"
+  %% id: r4
+  n2 |o..o{ n3 : "ships to"
+  %% id: r5
+  n1 |o..o{ n1 : "refers"

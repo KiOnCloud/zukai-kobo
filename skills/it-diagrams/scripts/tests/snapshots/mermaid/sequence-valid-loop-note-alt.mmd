@@ -1,0 +1,31 @@
+---
+title: "Pay with retries"
+---
+sequenceDiagram
+  %% id: web
+  participant n1 as Web shop
+  %% id: api
+  participant n2 as Order service
+  %% id: db
+  participant n3@{ "type" : "database" } as Order database
+  %% id: psp
+  participant n4 as Payment provider
+  %% id: m1
+  n1->>n2: POST /orders
+  %% id: b1
+  loop up to 3 attempts
+    %% id: m2
+    n2->>n4: Authorize card payment for the order total
+    %% id: n1
+    Note right of n4: Timeout 10 s
+    %% id: m3
+    n4-->>n2: authorized
+  end
+  %% id: b2
+  alt authorized
+    %% id: m4
+    n2-->>n1: 201 Created
+  else declined after 3 attempts
+    %% id: m5
+    n2-->>n1: 402 Payment Required
+  end

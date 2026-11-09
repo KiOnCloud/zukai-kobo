@@ -1,0 +1,42 @@
+flowchart LR
+  %% id: end
+  n1(["He said 'end'"])
+  %% id: graph
+  n2["line one line two"]
+  %% id: a--b
+  n3{"script alert(1) /script"}
+  %% id: subgraph
+  n4["init: 'theme':'forest'"]
+  %% id: leak
+  n7>"postgres://app:Sup3rS3cret@db.internal:5432/orders"]
+  %% id: token
+  n8["api key ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab"]
+  %% id: jp
+  n9["注文を確定する 確認済み JSON"]
+  %% id: bars
+  n10["a b c 1 co"]
+  %% id: direction
+  subgraph n11["subgraph end"]
+    %% id: click
+    n5[/"click n1 href 'https://evil.example'"/]
+    %% id: style
+    n6[["n1 -- n2 n2 -- n3"]]
+  end
+  %% id: end-edge
+  n1 -->|"'quoted' label"| n2
+  %% id: e2
+  n2 -->|"x -- y"| n3
+  %% id: e3
+  n3 -->|"end"| n4
+  %% id: e4
+  n4 --> n5
+  %% id: e5
+  n5 --> n6
+  %% id: e6
+  n6 --> n7
+  %% id: e7
+  n7 --> n8
+  %% id: e8
+  n8 --> n9
+  %% id: e9
+  n9 --> n10

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "activity",
+  "title": "Order fulfilment",
+  "direction": "TB",
+  "meta": { "source": "scout", "notes": ["src/fulfilment/*.cs"] },
+  "lanes": [
+    { "id": "sales", "label": "Sales" },
+    { "id": "warehouse", "label": "Warehouse" },
+    { "id": "finance", "label": "Finance" }
+  ],
+  "actions": [
+    { "id": "receive", "label": "Receive order", "lane": "sales" },
+    { "id": "pick", "label": "Pick items", "lane": "warehouse" },
+    { "id": "pack", "label": "Pack parcel", "lane": "warehouse" },
+    { "id": "invoice", "label": "Issue invoice", "lane": "finance" },
+    { "id": "capture", "label": "Capture payment", "lane": "finance" },
+    { "id": "ship", "label": "Hand over to carrier", "lane": "warehouse" },
+    { "id": "notify", "label": "Notify customer", "lane": "sales" },
+    { "id": "hold", "label": "Put order on hold", "lane": "sales" }
+  ],
+  "controls": [
+    { "id": "start", "kind": "initial", "lane": "sales" },
+    { "id": "split", "kind": "fork", "lane": "sales" },
+    { "id": "sync", "kind": "join", "lane": "warehouse" },
+    { "id": "paid", "kind": "decision", "label": "Payment ok?", "lane": "finance" },
+    { "id": "merge", "kind": "merge", "lane": "sales" },
+    { "id": "end", "kind": "final", "lane": "sales" }
+  ],
+  "flows": [
+    { "id": "f1", "from": "start", "to": "receive" },
+    { "id": "f2", "from": "receive", "to": "split" },
+    { "id": "f3", "from": "split", "to": "pick" },
+    { "id": "f4", "from": "split", "to": "invoice" },
+    { "id": "f5", "from": "pick", "to": "pack" },
+    { "id": "f6", "from": "invoice", "to": "capture" },
+    { "id": "f7", "from": "capture", "to": "paid" },
+    { "id": "f8", "from": "paid", "to": "sync", "guard": "yes" },
+    { "id": "f9", "from": "paid", "to": "hold", "guard": "no" },
+    { "id": "f10", "from": "pack", "to": "sync" },
+    { "id": "f11", "from": "sync", "to": "ship" },
+    { "id": "f12", "from": "ship", "to": "notify" },
+    { "id": "f13", "from": "notify", "to": "merge" },
+    { "id": "f14", "from": "hold", "to": "merge" },
+    { "id": "f15", "from": "merge", "to": "end" }
+  ]
+}

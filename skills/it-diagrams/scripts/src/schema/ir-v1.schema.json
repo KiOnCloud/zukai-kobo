@@ -1,0 +1,1022 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/KiOnCloud/it-diagrams/schema/ir-v1.schema.json",
+  "title": "it-diagrams IR v1",
+  "description": "Intermediate representation written by the agent and consumed by every emitter. Discriminated on `kind`.",
+  "type": "object",
+  "required": [
+    "kind"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "flowchart",
+        "sequence",
+        "state",
+        "er",
+        "class",
+        "architecture",
+        "activity"
+      ]
+    }
+  },
+  "discriminator": {
+    "propertyName": "kind"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/flowchart"
+    },
+    {
+      "$ref": "#/$defs/sequence"
+    },
+    {
+      "$ref": "#/$defs/state"
+    },
+    {
+      "$ref": "#/$defs/er"
+    },
+    {
+      "$ref": "#/$defs/class"
+    },
+    {
+      "$ref": "#/$defs/architecture"
+    },
+    {
+      "$ref": "#/$defs/activity"
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+      "description": "Unique across the whole document. Letters, digits, underscore and hyphen only."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "idList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "uniqueItems": true
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "TB",
+        "BT",
+        "LR",
+        "RL"
+      ]
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "clarify",
+            "scout",
+            "brainstorm",
+            "manual"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "audience": {
+          "type": "string",
+          "enum": [
+            "technical",
+            "business"
+          ],
+          "description": "Who reads the diagram: technical (default) keeps implementation names and steps; business keeps only what a non-technical reader acts on, with every business condition intact"
+        },
+        "omitted": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "description": "What the diagram leaves out on purpose, one entry each with a short reason (a branch, a step, a condition the reader asked to drop); the review does not ask for these back"
+        },
+        "lang": {
+          "type": "string",
+          "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+          "description": "BCP 47 tag of the label language, set on a translated variant"
+        }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "kind": {
+          "type": "string"
+        },
+        "title": {
+          "$ref": "#/$defs/label"
+        },
+        "direction": {
+          "$ref": "#/$defs/direction"
+        },
+        "meta": {
+          "$ref": "#/$defs/meta"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "title"
+      ]
+    },
+    "flowchart": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/envelope"
+        }
+      ],
+      "properties": {
+        "kind": {
+          "const": "flowchart"
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "shape": {
+                "type": "string",
+                "enum": [
+                  "process",
+                  "decision",
+                  "terminal",
+                  "io",
+                  "subroutine",
+                  "note"
+                ]
+              },
+              "ref": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                "description": "Slug of another diagram file that details this step"
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "from": {
+                "$ref": "#/$defs/id"
+              },
+              "to": {
+                "$ref": "#/$defs/id"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "flow",
+                  "conditional"
+                ]
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              }
+            }
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "children"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "children": {
+                "$ref": "#/$defs/idList"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "nodes",
+        "edges"
+      ],
+      "unevaluatedProperties": false
+    },
+    "sequence": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/envelope"
+        }
+      ],
+      "properties": {
+        "kind": {
+          "const": "sequence"
+        },
+        "participants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "actor",
+                  "participant",
+                  "database",
+                  "boundary",
+                  "control",
+                  "entity"
+                ]
+              }
+            }
+          }
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "from": {
+                "$ref": "#/$defs/id"
+              },
+              "to": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "sync",
+                  "async",
+                  "return"
+                ]
+              }
+            }
+          }
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "kind",
+              "label",
+              "messages"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "alt",
+                  "opt",
+                  "loop",
+                  "par"
+                ]
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "messages": {
+                "$ref": "#/$defs/idList",
+                "type": "array",
+                "minItems": 1
+              },
+              "branches": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "label",
+                    "messages"
+                  ],
+                  "properties": {
+                    "label": {
+                      "$ref": "#/$defs/label"
+                    },
+                    "messages": {
+                      "$ref": "#/$defs/idList",
+                      "type": "array",
+                      "minItems": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "participants"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "participants": {
+                "$ref": "#/$defs/idList",
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 2
+              },
+              "position": {
+                "type": "string",
+                "enum": [
+                  "left",
+                  "right",
+                  "over"
+                ]
+              },
+              "after": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "participants",
+        "messages"
+      ],
+      "unevaluatedProperties": false
+    },
+    "state": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/envelope"
+        }
+      ],
+      "properties": {
+        "kind": {
+          "const": "state"
+        },
+        "states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "initial",
+                  "final",
+                  "simple",
+                  "composite"
+                ]
+              },
+              "children": {
+                "$ref": "#/$defs/idList"
+              }
+            }
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "from": {
+                "$ref": "#/$defs/id"
+              },
+              "to": {
+                "$ref": "#/$defs/id"
+              },
+              "event": {
+                "$ref": "#/$defs/text"
+              },
+              "guard": {
+                "$ref": "#/$defs/text"
+              },
+              "action": {
+                "$ref": "#/$defs/text"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "states",
+        "transitions"
+      ],
+      "unevaluatedProperties": false
+    },
+    "er": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/envelope"
+        }
+      ],
+      "properties": {
+        "kind": {
+          "const": "er"
+        },
+        "entities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "attributes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name",
+                    "type"
+                  ],
+                  "properties": {
+                    "name": {
+                      "$ref": "#/$defs/label"
+                    },
+                    "type": {
+                      "$ref": "#/$defs/label"
+                    },
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "pk",
+                        "fk",
+                        "none"
+                      ]
+                    },
+                    "comment": {
+                      "$ref": "#/$defs/text"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to",
+              "fromCardinality",
+              "toCardinality"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "from": {
+                "$ref": "#/$defs/id"
+              },
+              "to": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "fromCardinality": {
+                "type": "string",
+                "enum": [
+                  "one",
+                  "zero-one",
+                  "many",
+                  "one-many"
+                ]
+              },
+              "toCardinality": {
+                "type": "string",
+                "enum": [
+                  "one",
+                  "zero-one",
+                  "many",
+                  "one-many"
+                ]
+              },
+              "identifying": {
+                "type": "boolean"
+              },
+              "fromAttribute": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Attribute name on the from entity the relation line is anchored to (draw.io); defaults to a unique FK whose name contains the other entity's id, else the header"
+              },
+              "toAttribute": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Attribute name on the to entity the relation line is anchored to (draw.io)"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "entities",
+        "relations"
+      ],
+      "unevaluatedProperties": false
+    },
+    "class": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/envelope"
+        }
+      ],
+      "properties": {
+        "kind": {
+          "const": "class"
+        },
+        "classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "stereotype": {
+                "$ref": "#/$defs/label"
+              },
+              "attributes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name"
+                  ],
+                  "properties": {
+                    "name": {
+                      "$ref": "#/$defs/label"
+                    },
+                    "type": {
+                      "$ref": "#/$defs/label"
+                    },
+                    "visibility": {
+                      "type": "string",
+                      "enum": [
+                        "public",
+                        "private",
+                        "protected",
+                        "package"
+                      ]
+                    }
+                  }
+                }
+              },
+              "methods": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name"
+                  ],
+                  "properties": {
+                    "name": {
+                      "$ref": "#/$defs/label"
+                    },
+                    "params": {
+                      "$ref": "#/$defs/text"
+                    },
+                    "returns": {
+                      "$ref": "#/$defs/label"
+                    },
+                    "visibility": {
+                      "type": "string",
+                      "enum": [
+                        "public",
+                        "private",
+                        "protected",
+                        "package"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to",
+              "kind"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "from": {
+                "$ref": "#/$defs/id"
+              },
+              "to": {
+                "$ref": "#/$defs/id"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "inheritance",
+                  "realization",
+                  "composition",
+                  "aggregation",
+                  "association",
+                  "dependency"
+                ]
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "fromCardinality": {
+                "$ref": "#/$defs/label"
+              },
+              "toCardinality": {
+                "$ref": "#/$defs/label"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "classes",
+        "relations"
+      ],
+      "unevaluatedProperties": false
+    },
+    "architecture": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/envelope"
+        }
+      ],
+      "properties": {
+        "kind": {
+          "const": "architecture"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "service",
+                  "database",
+                  "queue",
+                  "cache",
+                  "client",
+                  "external"
+                ]
+              }
+            }
+          }
+        },
+        "boundaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "children"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "children": {
+                "$ref": "#/$defs/idList"
+              }
+            }
+          }
+        },
+        "connections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "from": {
+                "$ref": "#/$defs/id"
+              },
+              "to": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "bidirectional": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "components",
+        "connections"
+      ],
+      "unevaluatedProperties": false
+    },
+    "activity": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/envelope"
+        }
+      ],
+      "properties": {
+        "kind": {
+          "const": "activity"
+        },
+        "lanes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              }
+            }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "lane"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "lane": {
+                "$ref": "#/$defs/id"
+              },
+              "ref": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                "description": "Slug of another diagram file that details this step"
+              }
+            }
+          }
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "kind"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "initial",
+                  "final",
+                  "decision",
+                  "merge",
+                  "fork",
+                  "join"
+                ]
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "lane": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        "flows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "from": {
+                "$ref": "#/$defs/id"
+              },
+              "to": {
+                "$ref": "#/$defs/id"
+              },
+              "guard": {
+                "$ref": "#/$defs/text"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "lanes",
+        "actions",
+        "flows"
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

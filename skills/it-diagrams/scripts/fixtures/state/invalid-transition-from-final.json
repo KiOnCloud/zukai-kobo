@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "state",
+  "title": "Broken lifecycle",
+  "states": [
+    { "id": "start", "kind": "initial" },
+    { "id": "draft" },
+    { "id": "outer", "label": "Outer", "kind": "composite", "children": ["inner"] },
+    { "id": "inner", "label": "Inner", "kind": "composite", "children": ["outer"] },
+    { "id": "end", "kind": "final" }
+  ],
+  "transitions": [
+    { "id": "t1", "from": "end", "to": "draft" },
+    { "id": "t2", "from": "draft", "to": "start" }
+  ]
+}

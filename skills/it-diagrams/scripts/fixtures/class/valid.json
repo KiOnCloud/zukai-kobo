@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "class",
+  "title": "Order domain",
+  "direction": "TB",
+  "meta": { "source": "scout", "notes": ["src/Orders/Domain/*.cs"] },
+  "classes": [
+    {
+      "id": "order",
+      "label": "Order",
+      "stereotype": "aggregate root",
+      "attributes": [
+        { "name": "Id", "type": "Guid", "visibility": "public" },
+        { "name": "lines", "type": "List<OrderLine>", "visibility": "private" }
+      ],
+      "methods": [
+        { "name": "AddLine", "params": "Product product, int quantity", "returns": "ErrorOr<OrderLine>", "visibility": "public" },
+        { "name": "Total", "returns": "Money", "visibility": "public" }
+      ]
+    },
+    {
+      "id": "order-line",
+      "label": "OrderLine",
+      "attributes": [
+        { "name": "Quantity", "type": "int", "visibility": "public" },
+        { "name": "UnitPrice", "type": "Money", "visibility": "public" }
+      ]
+    },
+    { "id": "product", "label": "Product", "attributes": [{ "name": "Sku", "type": "string" }] },
+    { "id": "entity", "label": "Entity", "stereotype": "abstract", "attributes": [{ "name": "Id", "type": "Guid", "visibility": "protected" }] },
+    { "id": "repository", "label": "IOrderRepository", "stereotype": "interface", "methods": [{ "name": "Save", "params": "Order order, CancellationToken ct", "returns": "Task" }] },
+    { "id": "ef-repository", "label": "EfOrderRepository" }
+  ],
+  "relations": [
+    { "id": "r1", "from": "order", "to": "entity", "kind": "inheritance" },
+    { "id": "r2", "from": "order", "to": "order-line", "kind": "composition", "label": "lines", "fromCardinality": "1", "toCardinality": "1..*" },
+    { "id": "r3", "from": "order-line", "to": "product", "kind": "association", "label": "for", "toCardinality": "1" },
+    { "id": "r4", "from": "ef-repository", "to": "repository", "kind": "realization" },
+    { "id": "r5", "from": "ef-repository", "to": "order", "kind": "dependency", "label": "persists" },
+    { "id": "r6", "from": "order", "to": "product", "kind": "aggregation" }
+  ]
+}

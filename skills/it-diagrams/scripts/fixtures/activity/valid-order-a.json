@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "activity",
+  "title": "Order A: early exit declared first",
+  "direction": "TB",
+  "meta": {
+    "source": "clarify",
+    "notes": [
+      "layout repro from issue 1"
+    ]
+  },
+  "lanes": [
+    {
+      "id": "svc",
+      "label": "Order service"
+    }
+  ],
+  "actions": [
+    {
+      "id": "a-reject",
+      "label": "Return empty result",
+      "lane": "svc"
+    },
+    {
+      "id": "a-reserve",
+      "label": "Reserve stock",
+      "lane": "svc"
+    },
+    {
+      "id": "a-ship",
+      "label": "Create shipment",
+      "lane": "svc"
+    }
+  ],
+  "controls": [
+    {
+      "id": "start",
+      "kind": "initial",
+      "lane": "svc"
+    },
+    {
+      "id": "d-stock",
+      "kind": "decision",
+      "label": "In stock?",
+      "lane": "svc"
+    },
+    {
+      "id": "end-empty",
+      "kind": "final",
+      "lane": "svc"
+    },
+    {
+      "id": "end",
+      "kind": "final",
+      "lane": "svc"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "from": "start",
+      "to": "d-stock"
+    },
+    {
+      "id": "f2",
+      "from": "d-stock",
+      "to": "a-reserve",
+      "guard": "yes"
+    },
+    {
+      "id": "f3",
+      "from": "d-stock",
+      "to": "a-reject",
+      "guard": "no"
+    },
+    {
+      "id": "f4",
+      "from": "a-reject",
+      "to": "end-empty"
+    },
+    {
+      "id": "f5",
+      "from": "a-reserve",
+      "to": "a-ship"
+    },
+    {
+      "id": "f6",
+      "from": "a-ship",
+      "to": "end"
+    }
+  ]
+}

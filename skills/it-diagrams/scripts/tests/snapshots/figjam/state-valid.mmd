@@ -1,0 +1,37 @@
+stateDiagram-v2
+  direction TB
+  %% id: draft
+  state "Draft" as n2
+  %% id: placed
+  state "Placed" as n3
+  %% id: processing
+  state "Processing" as n4 {
+    %% id: picking
+    state "Picking" as n6
+    %% id: packing
+    state "Packing" as n7
+    %% id: t4
+    [*] --> n6
+    %% id: t5
+    n6 --> n7 : all items picked
+    %% id: t6
+    n7 --> [*] : label printed
+  }
+  %% id: shipped
+  state "Shipped" as n9
+  %% id: cancelled
+  state "Cancelled" as n10
+  %% id: t1
+  [*] --> n2
+  %% id: t2
+  n2 --> n3 : submit [cart not empty]
+  %% id: t3
+  n3 --> n4 : payment captured / reserve stock
+  %% id: t7
+  n4 --> n9 : carrier pickup
+  %% id: t8
+  n3 --> n10 : cancel [not yet processing]
+  %% id: t9
+  n9 --> [*]
+  %% id: t10
+  n10 --> [*]

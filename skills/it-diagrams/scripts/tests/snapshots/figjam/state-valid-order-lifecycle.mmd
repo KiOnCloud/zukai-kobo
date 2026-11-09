@@ -1,0 +1,54 @@
+stateDiagram-v2
+  %% id: new
+  state "New" as n2
+  %% id: payment
+  state "Awaiting payment" as n3
+  %% id: fulfil
+  state "Fulfilment" as n4 {
+    %% id: picking
+    state "Picking" as n6
+    %% id: packing
+    state "Packing" as n7
+    %% id: t5
+    [*] --> n6
+    %% id: t6
+    n6 --> n7 : all items picked
+    %% id: t7
+    n7 --> [*] : label printed
+    %% id: t17
+    n6 --> n6 : item missing / restock request
+  }
+  %% id: shipped
+  state "Shipped" as n9
+  %% id: delivered
+  state "Delivered" as n10
+  %% id: cancelled
+  state "Cancelled" as n11
+  %% id: returned
+  state "Returned" as n12
+  %% id: t1
+  [*] --> n2
+  %% id: t2
+  n2 --> n3 : checkout
+  %% id: t3
+  n3 --> n3 : payment failed [attempts 3] / notify customer
+  %% id: t4
+  n3 --> n4 : payment captured / reserve stock
+  %% id: t8
+  n4 --> n9 : carrier pickup
+  %% id: t9
+  n9 --> n10 : proof of delivery
+  %% id: t10
+  n2 --> n11 : customer cancels
+  %% id: t11
+  n3 --> n11 : timeout [after 24 h]
+  %% id: t12
+  n4 --> n11 : out of stock / refund
+  %% id: t13
+  n10 --> n12 : return received [within 30 days]
+  %% id: t14
+  n10 --> [*]
+  %% id: t15
+  n11 --> [*]
+  %% id: t16
+  n12 --> [*]

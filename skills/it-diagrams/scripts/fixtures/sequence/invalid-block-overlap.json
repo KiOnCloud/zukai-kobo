@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "sequence",
+  "title": "Broken login",
+  "participants": [
+    { "id": "user", "label": "User", "kind": "actor" },
+    { "id": "web", "label": "Web app" }
+  ],
+  "messages": [
+    { "id": "m1", "from": "user", "to": "web", "label": "a" },
+    { "id": "m2", "from": "web", "to": "api", "label": "b" },
+    { "id": "m3", "from": "web", "to": "user", "label": "c" },
+    { "id": "m4", "from": "user", "to": "web", "label": "d", "kind": "fire-and-forget" }
+  ],
+  "blocks": [
+    { "id": "b1", "kind": "loop", "label": "x", "messages": ["m1", "m2"] },
+    { "id": "b2", "kind": "opt", "label": "y", "messages": ["m2", "m3"] },
+    { "id": "b3", "kind": "loop", "label": "z", "messages": ["m4"], "branches": [{ "label": "no", "messages": ["m9"] }] }
+  ]
+}

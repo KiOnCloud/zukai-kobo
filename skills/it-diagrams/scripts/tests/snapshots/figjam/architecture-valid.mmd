@@ -1,0 +1,37 @@
+flowchart LR
+  %% id: browser
+  n1(("Customer browser"))
+  %% id: psp
+  n8>"Payment provider"]
+  %% id: aws
+  subgraph n9["AWS account"]
+    %% id: vpc
+    subgraph n10["VPC"]
+      %% id: web
+      n2["Angular web app"]
+      %% id: api
+      n3["Order API (.NET)"]
+      %% id: db
+      n4[("PostgreSQL")]
+      %% id: cache
+      n5(["Redis"])
+      %% id: worker
+      n7["Fulfilment worker"]
+    end
+    %% id: queue
+    n6[["SQS orders"]]
+  end
+  %% id: c1
+  n1 -->|"HTTPS"| n2
+  %% id: c2
+  n2 -->|"REST/JSON"| n3
+  %% id: c3
+  n3 -->|"SQL"| n4
+  %% id: c4
+  n3 <-->|"cache aside"| n5
+  %% id: c5
+  n3 -->|"publish order placed"| n6
+  %% id: c6
+  n6 -->|"consume"| n7
+  %% id: c7
+  n3 -->|"capture payment"| n8

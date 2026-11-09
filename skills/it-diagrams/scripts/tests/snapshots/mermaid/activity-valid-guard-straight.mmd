@@ -1,0 +1,28 @@
+---
+title: "Guard on a straight branch"
+---
+swimlane-beta TB
+  %% id: svc
+  subgraph n1["Order service"]
+    %% id: start
+    n4@{ shape: sm-circ }
+    %% id: d
+    n5{"Test request?"}
+    %% id: end-a
+    n6@{ shape: fr-circ }
+  end
+  %% id: bank
+  subgraph n2["Bank"]
+    %% id: a-ask
+    n3["Check the limit"]
+    %% id: end-b
+    n7@{ shape: fr-circ }
+  end
+  %% id: f1
+  n4 --> n5
+  %% id: f-yes
+  n5 -->|"yes: nothing is sent"| n6
+  %% id: f-no
+  n5 -->|"no"| n3
+  %% id: f2
+  n3 --> n7

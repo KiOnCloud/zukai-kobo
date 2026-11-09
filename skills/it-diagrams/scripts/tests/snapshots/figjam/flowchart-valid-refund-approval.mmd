@@ -1,0 +1,66 @@
+flowchart TB
+  %% id: start
+  n1(["Customer asks for a refund"])
+  %% id: form
+  n2[/"Refund form with order number and reason"/]
+  %% id: found
+  n3{"Order found?"}
+  %% id: ask
+  n4["Ask the customer to correct the order number"]
+  %% id: reject
+  n9["Send rejection with reason"]
+  %% id: end
+  n13(["Refund closed"])
+  %% id: g-finance
+  subgraph n14["Finance"]
+    %% id: g-payout
+    subgraph n15["Payout"]
+      %% id: pay
+      n10["Pay back to the original card"]
+      %% id: note
+      n12>"Card refunds take 3 to 5 working days"]
+    end
+    %% id: ledger
+    n11["Book the refund in the ledger"]
+  end
+  %% id: g-approval
+  subgraph n16["Approval"]
+    %% id: amount
+    n5{"Amount over 500 EUR?"}
+    %% id: auto
+    n6["Approve automatically"]
+    %% id: review
+    n7[["Manager review"]]
+    %% id: ok
+    n8{"Manager approves?"}
+  end
+  %% id: e1
+  n1 --> n2
+  %% id: e2
+  n2 --> n3
+  %% id: e3
+  n3 -->|"no"| n4
+  %% id: e4
+  n4 --> n2
+  %% id: e5
+  n3 -->|"yes"| n5
+  %% id: e6
+  n5 -->|"no"| n6
+  %% id: e7
+  n5 -->|"yes"| n7
+  %% id: e8
+  n7 --> n8
+  %% id: e9
+  n8 -->|"no"| n9
+  %% id: e10
+  n8 -->|"yes"| n10
+  %% id: e11
+  n6 --> n10
+  %% id: e12
+  n10 --> n11
+  %% id: e13
+  n11 --> n13
+  %% id: e14
+  n9 --> n13
+  %% id: e15
+  n12 --> n10

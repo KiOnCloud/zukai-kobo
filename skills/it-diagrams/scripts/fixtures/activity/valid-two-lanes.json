@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kind": "activity",
+  "title": "Return request",
+  "direction": "TB",
+  "meta": {
+    "source": "clarify",
+    "notes": [
+      "Happy path only"
+    ]
+  },
+  "lanes": [
+    {
+      "id": "customer",
+      "label": "Customer"
+    },
+    {
+      "id": "support",
+      "label": "Support"
+    }
+  ],
+  "actions": [
+    {
+      "id": "request",
+      "label": "Request return",
+      "lane": "customer"
+    },
+    {
+      "id": "review",
+      "label": "Review request",
+      "lane": "support"
+    },
+    {
+      "id": "approve",
+      "label": "Approve and send label",
+      "lane": "support",
+      "ref": "return-request-label"
+    },
+    {
+      "id": "reject",
+      "label": "Explain rejection",
+      "lane": "support"
+    },
+    {
+      "id": "ship",
+      "label": "Ship item back",
+      "lane": "customer"
+    }
+  ],
+  "controls": [
+    {
+      "id": "start",
+      "kind": "initial",
+      "lane": "customer"
+    },
+    {
+      "id": "eligible",
+      "kind": "decision",
+      "label": "Eligible?",
+      "lane": "support"
+    },
+    {
+      "id": "done",
+      "kind": "final",
+      "lane": "customer"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "from": "start",
+      "to": "request"
+    },
+    {
+      "id": "f2",
+      "from": "request",
+      "to": "review"
+    },
+    {
+      "id": "f3",
+      "from": "review",
+      "to": "eligible"
+    },
+    {
+      "id": "f4",
+      "from": "eligible",
+      "to": "approve",
+      "guard": "yes"
+    },
+    {
+      "id": "f5",
+      "from": "eligible",
+      "to": "reject",
+      "guard": "no"
+    },
+    {
+      "id": "f6",
+      "from": "approve",
+      "to": "ship"
+    },
+    {
+      "id": "f7",
+      "from": "ship",
+      "to": "done"
+    },
+    {
+      "id": "f8",
+      "from": "reject",
+      "to": "done"
+    }
+  ]
+}

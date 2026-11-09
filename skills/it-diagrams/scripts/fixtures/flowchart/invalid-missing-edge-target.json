@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "flowchart",
+  "title": "Broken checkout",
+  "nodes": [
+    { "id": "start", "label": "Start", "shape": "circle" },
+    { "id": "end", "label": "End", "shape": "terminal" }
+  ],
+  "edges": [
+    { "id": "e1", "from": "start", "to": "finish" }
+  ]
+}

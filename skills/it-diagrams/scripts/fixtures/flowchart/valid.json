@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "kind": "flowchart",
+  "title": "Order checkout",
+  "direction": "TB",
+  "meta": {
+    "source": "clarify",
+    "notes": [
+      "Happy path plus the out-of-stock branch"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "label": "Customer submits cart",
+      "shape": "terminal"
+    },
+    {
+      "id": "validate",
+      "label": "Validate cart contents",
+      "shape": "process"
+    },
+    {
+      "id": "in-stock",
+      "label": "All items in stock?",
+      "shape": "decision"
+    },
+    {
+      "id": "reserve",
+      "label": "Reserve stock",
+      "shape": "subroutine"
+    },
+    {
+      "id": "payment",
+      "label": "Capture payment",
+      "shape": "process",
+      "ref": "order-checkout-payment"
+    },
+    {
+      "id": "receipt",
+      "label": "Send receipt email",
+      "shape": "io"
+    },
+    {
+      "id": "done",
+      "label": "Order placed",
+      "shape": "terminal"
+    },
+    {
+      "id": "backorder",
+      "label": "Offer backorder",
+      "shape": "process"
+    },
+    {
+      "id": "hint",
+      "label": "Stock is checked per warehouse",
+      "shape": "note"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "start",
+      "to": "validate"
+    },
+    {
+      "id": "e2",
+      "from": "validate",
+      "to": "in-stock"
+    },
+    {
+      "id": "e3",
+      "from": "in-stock",
+      "to": "reserve",
+      "kind": "conditional",
+      "label": "yes"
+    },
+    {
+      "id": "e4",
+      "from": "in-stock",
+      "to": "backorder",
+      "kind": "conditional",
+      "label": "no"
+    },
+    {
+      "id": "e5",
+      "from": "reserve",
+      "to": "payment"
+    },
+    {
+      "id": "e6",
+      "from": "payment",
+      "to": "receipt",
+      "label": "captured"
+    },
+    {
+      "id": "e7",
+      "from": "receipt",
+      "to": "done"
+    },
+    {
+      "id": "e8",
+      "from": "backorder",
+      "to": "done"
+    },
+    {
+      "id": "e9",
+      "from": "hint",
+      "to": "in-stock"
+    }
+  ],
+  "groups": [
+    {
+      "id": "fulfilment",
+      "label": "Fulfilment",
+      "children": [
+        "reserve",
+        "payment",
+        "receipt"
+      ]
+    }
+  ]
+}

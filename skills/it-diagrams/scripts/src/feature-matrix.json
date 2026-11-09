@@ -1,0 +1,511 @@
+{
+  "schemaVersion": 1,
+  "targets": [
+    "mermaid",
+    "drawio",
+    "figjam"
+  ],
+  "statuses": [
+    "supported",
+    "degraded",
+    "unsupported"
+  ],
+  "kinds": {
+    "flowchart": {
+      "kind": {
+        "mermaid": "supported",
+        "drawio": "supported",
+        "figjam": "supported"
+      },
+      "features": {
+        "node.shape.process": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "node.shape.decision": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "node.shape.terminal": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "node.shape.io": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "node.shape.subroutine": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "node.shape.note": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "edge.kind.flow": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "edge.kind.conditional": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "group": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "group.nested": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "node.ref": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        }
+      }
+    },
+    "sequence": {
+      "kind": {
+        "mermaid": "supported",
+        "drawio": "supported",
+        "figjam": "supported"
+      },
+      "features": {
+        "participant.kind.actor": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "participant.kind.participant": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "participant.kind.database": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "FigJam sequence diagrams have only actor and participant; rendered as a plain participant"
+          }
+        },
+        "participant.kind.boundary": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "FigJam sequence diagrams have only actor and participant; rendered as a plain participant"
+          }
+        },
+        "participant.kind.control": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "FigJam sequence diagrams have only actor and participant; rendered as a plain participant"
+          }
+        },
+        "participant.kind.entity": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "FigJam sequence diagrams have only actor and participant; rendered as a plain participant"
+          }
+        },
+        "message.kind.sync": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "message.kind.async": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "message.kind.return": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "block.kind.alt": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "block.kind.opt": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "block.kind.loop": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "block.kind.par": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "note": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "FigJam drops sequence Note statements; the note is left out"
+          }
+        }
+      }
+    },
+    "state": {
+      "kind": {
+        "mermaid": "supported",
+        "drawio": "supported",
+        "figjam": "supported"
+      },
+      "features": {
+        "state.kind.initial": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "state.kind.final": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "state.kind.simple": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "state.kind.composite": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "composite.depth.gt2": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "composite states nested deeper than two levels are flattened into their level-2 ancestor"
+          },
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "composite states nested deeper than two levels are flattened into their level-2 ancestor"
+          }
+        },
+        "transition.guard": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "transition.action": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        }
+      }
+    },
+    "er": {
+      "kind": {
+        "mermaid": "supported",
+        "drawio": "supported",
+        "figjam": "supported"
+      },
+      "features": {
+        "attribute.key.pk": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "attribute.key.fk": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "attribute.comment": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.cardinality.one": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.cardinality.zero-one": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.cardinality.many": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.cardinality.one-many": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.nonIdentifying": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        }
+      }
+    },
+    "class": {
+      "kind": {
+        "mermaid": "supported",
+        "drawio": "supported",
+        "figjam": {
+          "status": "unsupported",
+          "note": "FigJam generate_diagram does not accept classDiagram; use --to mermaid or --to drawio"
+        }
+      },
+      "features": {
+        "stereotype": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "member.visibility": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "method.params": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.inheritance": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.realization": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.composition": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.aggregation": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.association": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.dependency": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.cardinality": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        }
+      }
+    },
+    "architecture": {
+      "kind": {
+        "mermaid": "supported",
+        "drawio": "supported",
+        "figjam": {
+          "status": "degraded",
+          "note": "rendered as a flowchart: boundaries become subgraphs and component kinds become node shapes instead of icons"
+        }
+      },
+      "features": {
+        "component.kind.service": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "component.kind.database": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "component.kind.queue": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "architecture-beta has no queue icon; rendered with the server icon"
+          },
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "component.kind.cache": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "architecture-beta has no cache icon; rendered with the server icon"
+          },
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "component.kind.client": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "component.kind.external": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "boundary": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "boundary.nested": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "connection.label": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "architecture-beta edges have no labels; the label is dropped"
+          },
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "connection.bidirectional": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "flowchart edges are one-way; the label gains \"(both ways)\""
+          }
+        }
+      }
+    },
+    "activity": {
+      "kind": {
+        "mermaid": {
+          "status": "degraded",
+          "note": "Mermaid has no activity diagram; emitted as swimlane-beta (beta syntax, Mermaid 11.16 or newer, rendering of fork and join bars unverified) or, with --mermaid-stable, as a flowchart with subgraphs as lanes"
+        },
+        "drawio": "supported",
+        "figjam": {
+          "status": "unsupported",
+          "note": "FigJam generate_diagram does not accept swimlane-beta; use --to drawio"
+        }
+      },
+      "features": {
+        "lane": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "control.kind.initial": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "control.kind.final": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "control.kind.decision": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "control.kind.merge": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "control.kind.fork": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "control.kind.join": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "flow.guard": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "action.ref": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        }
+      }
+    }
+  },
+  "bundle": {
+    "pages": {
+      "mermaid": {
+        "status": "degraded",
+        "note": "one Markdown document with a heading and fenced block per diagram; no pages"
+      },
+      "drawio": "supported",
+      "figjam": {
+        "status": "unsupported",
+        "note": "figjam has no bundle; boards are created one diagram at a time"
+      }
+    },
+    "ref.title": {
+      "mermaid": "supported",
+      "drawio": "supported",
+      "figjam": {
+        "status": "unsupported",
+        "note": "figjam has no bundle; boards are created one diagram at a time"
+      }
+    },
+    "ref.link": {
+      "mermaid": {
+        "status": "degraded",
+        "note": "no link; click directives are stripped by most Markdown renderers, the target is the next heading"
+      },
+      "drawio": "supported",
+      "figjam": {
+        "status": "unsupported",
+        "note": "figjam has no bundle; boards are created one diagram at a time"
+      }
+    },
+    "canvas": {
+      "mermaid": {
+        "status": "unsupported",
+        "note": "--canvas is refused; the document already shows every diagram in order"
+      },
+      "drawio": "supported",
+      "figjam": {
+        "status": "unsupported",
+        "note": "figjam has no bundle; boards are created one diagram at a time"
+      }
+    }
+  }
+}

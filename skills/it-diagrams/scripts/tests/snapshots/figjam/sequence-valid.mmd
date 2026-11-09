@@ -1,0 +1,36 @@
+sequenceDiagram
+  %% id: user
+  actor n1 as User
+  %% id: web
+  participant n2 as Web app
+  %% id: auth
+  participant n3 as Auth service
+  %% id: db
+  participant n4 as User DB
+  %% id: b2
+  loop until 3 attempts
+    %% id: m1
+    n1->>n2: Submit credentials
+    %% id: m2
+    n2->>n3: POST /login
+    %% id: m3
+    n3->>n4: SELECT user by email
+    %% id: m4
+    n4-->>n3: user row
+    %% id: m5
+    n3->>n3: Verify password hash
+    %% id: b1
+    alt password matches
+      %% id: m6
+      n3-->>n2: 200 session token
+      %% id: m7
+      n2-->>n1: Redirect to dashboard
+    else password wrong
+      %% id: m8
+      n3-->>n2: 401 invalid credentials
+      %% id: m9
+      n2-->>n1: Show error
+    end
+  end
+  %% id: m10
+  n2-)n3: Audit login attempt

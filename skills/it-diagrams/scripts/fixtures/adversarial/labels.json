@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "kind": "flowchart",
+  "title": "Adversarial \"labels\" %%{init: {\"theme\":\"forest\"}}%%",
+  "direction": "LR",
+  "meta": { "source": "manual", "notes": ["Connection string copied by mistake: postgres://app:Sup3rS3cret@db.internal:5432/orders"] },
+  "nodes": [
+    { "id": "end", "label": "He said \"end\"", "shape": "terminal" },
+    { "id": "graph", "label": "line one\nline two", "shape": "process" },
+    { "id": "a--b", "label": "<script>alert(1)</script>", "shape": "decision" },
+    { "id": "subgraph", "label": "%%{init: {\"theme\":\"forest\"}}%%", "shape": "process" },
+    { "id": "click", "label": "click n1 href \"https://evil.example\"", "shape": "io" },
+    { "id": "style", "label": "n1 --> n2; n2 --> n3", "shape": "subroutine" },
+    { "id": "leak", "label": "postgres://app:Sup3rS3cret@db.internal:5432/orders", "shape": "note" },
+    { "id": "token", "label": "api key ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab", "shape": "process" },
+    { "id": "jp", "label": "注文を確定する [確認済み] {JSON}", "shape": "process" },
+    { "id": "bars", "label": "a | b | c #1 & co", "shape": "process" }
+  ],
+  "edges": [
+    { "id": "end-edge", "from": "end", "to": "graph", "label": "\"quoted\" label" },
+    { "id": "e2", "from": "graph", "to": "a--b", "kind": "conditional", "label": "x --> y" },
+    { "id": "e3", "from": "a--b", "to": "subgraph", "kind": "conditional", "label": "end" },
+    { "id": "e4", "from": "subgraph", "to": "click" },
+    { "id": "e5", "from": "click", "to": "style" },
+    { "id": "e6", "from": "style", "to": "leak" },
+    { "id": "e7", "from": "leak", "to": "token" },
+    { "id": "e8", "from": "token", "to": "jp" },
+    { "id": "e9", "from": "jp", "to": "bars" }
+  ],
+  "groups": [
+    { "id": "direction", "label": "subgraph end", "children": ["click", "style"] }
+  ]
+}

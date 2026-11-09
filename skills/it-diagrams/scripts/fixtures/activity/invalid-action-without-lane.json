@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "activity",
+  "title": "Broken activity",
+  "lanes": [
+    { "id": "customer", "label": "Customer" }
+  ],
+  "actions": [
+    { "id": "request", "label": "Request return" },
+    { "id": "review", "label": "Review request", "lane": "support" }
+  ],
+  "controls": [
+    { "id": "start", "kind": "initial" },
+    { "id": "end", "kind": "final" },
+    { "id": "gate", "kind": "choice" }
+  ],
+  "flows": [
+    { "id": "f1", "from": "end", "to": "request" },
+    { "id": "f2", "from": "request", "to": "nowhere" }
+  ]
+}

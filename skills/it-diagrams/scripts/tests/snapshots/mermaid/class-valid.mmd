@@ -1,0 +1,46 @@
+---
+title: "Order domain"
+---
+classDiagram
+  direction TB
+  %% id: order
+  class n1["Order"] {
+    <<aggregate_root>>
+    +Guid Id
+    -List~OrderLine~ lines
+    +AddLine(Product product, int quantity) ErrorOr~OrderLine~
+    +Total() Money
+  }
+  %% id: order-line
+  class n2["OrderLine"] {
+    +int Quantity
+    +Money UnitPrice
+  }
+  %% id: product
+  class n3["Product"] {
+    string Sku
+  }
+  %% id: entity
+  class n4["Entity"] {
+    <<abstract>>
+    #Guid Id
+  }
+  %% id: repository
+  class n5["IOrderRepository"] {
+    <<interface>>
+    Save(Order order, CancellationToken ct) Task
+  }
+  %% id: ef-repository
+  class n6["EfOrderRepository"]
+  %% id: r1
+  n4 <|-- n1
+  %% id: r2
+  n1 "1" *-- "1..*" n2 : lines
+  %% id: r3
+  n2 --> "1" n3 : for
+  %% id: r4
+  n5 <|.. n6
+  %% id: r5
+  n6 ..> n1 : persists
+  %% id: r6
+  n1 o-- n3

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "class",
+  "title": "Broken domain",
+  "classes": [
+    { "id": "order", "label": "Order", "methods": [{ "name": "Total", "visiblity": "public" }] },
+    { "id": "order", "label": "Duplicate" }
+  ],
+  "relations": [
+    { "id": "r1", "from": "order", "to": "line", "kind": "extends" }
+  ]
+}

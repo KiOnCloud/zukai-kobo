@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kind": "sequence",
+  "title": "Participant kinds",
+  "participants": [
+    {
+      "id": "web",
+      "label": "Web shop",
+      "kind": "boundary"
+    },
+    {
+      "id": "svc",
+      "label": "Order service",
+      "kind": "control"
+    },
+    {
+      "id": "order",
+      "label": "Order",
+      "kind": "entity"
+    },
+    {
+      "id": "db",
+      "label": "Order database",
+      "kind": "database"
+    },
+    {
+      "id": "user",
+      "label": "Customer",
+      "kind": "actor"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "user",
+      "to": "web",
+      "label": "Submit order",
+      "kind": "sync"
+    },
+    {
+      "id": "m2",
+      "from": "web",
+      "to": "svc",
+      "label": "POST /orders",
+      "kind": "sync"
+    },
+    {
+      "id": "m3",
+      "from": "svc",
+      "to": "order",
+      "label": "create",
+      "kind": "sync"
+    },
+    {
+      "id": "m4",
+      "from": "svc",
+      "to": "db",
+      "label": "INSERT order",
+      "kind": "sync"
+    },
+    {
+      "id": "m5",
+      "from": "db",
+      "to": "svc",
+      "label": "ok",
+      "kind": "return"
+    },
+    {
+      "id": "m6",
+      "from": "svc",
+      "to": "web",
+      "label": "201 Created",
+      "kind": "return"
+    }
+  ]
+}

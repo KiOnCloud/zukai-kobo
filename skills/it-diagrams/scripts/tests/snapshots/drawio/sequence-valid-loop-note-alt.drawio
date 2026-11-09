@@ -1,0 +1,84 @@
+<mxfile host="it-diagrams" compressed="false" type="device">
+  <diagram id="pay-with-retries" name="Pay with retries">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="pay-with-retries:b1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=179;height=20;" vertex="1" parent="1">
+          <mxGeometry x="244" y="200" width="684" height="178" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:b2" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=130;height=20;" vertex="1" parent="1">
+          <mxGeometry x="64" y="378" width="332" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:b2:sep-1" value="" style="line;strokeWidth=1;dashed=1;html=1;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="64" y="467" width="332" height="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:web" value="Web shop" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="120" height="478" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:api" value="Order service" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="260" y="100" width="120" height="478" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:db" value="&lt;i&gt;«database»&lt;/i&gt;&lt;br&gt;Order database" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="440" y="100" width="120" height="478" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:psp" value="Payment provider" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="620" y="100" width="120" height="478" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:act-m2" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="pay-with-retries:psp">
+          <mxGeometry x="55" y="154" width="10" height="88" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:act-m1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="pay-with-retries:api">
+          <mxGeometry x="55" y="80" width="10" height="322" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:n1" value="Timeout 10 s" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;" vertex="1" parent="1">
+          <mxGeometry x="692" y="280" width="220" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:m1" value="POST /orders" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="pay-with-retries:web" target="pay-with-retries:api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="180"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pay-with-retries:m2" value="Authorize card payment for the order total" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="pay-with-retries:api" target="pay-with-retries:psp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="254"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pay-with-retries:m3" value="authorized" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="pay-with-retries:psp" target="pay-with-retries:api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="342"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pay-with-retries:m4" value="201 Created" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="pay-with-retries:api" target="pay-with-retries:web">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="432"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pay-with-retries:m5" value="402 Payment Required" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="pay-with-retries:api" target="pay-with-retries:web">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="502"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pay-with-retries:b1:tab" value="loop up to 3 attempts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="245" y="201" width="171" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:b2:tab" value="alt authorized" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="65" y="379" width="122" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="pay-with-retries:b2:sep-label-1" value="else declined after 3 attempts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=5;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="64" y="457" width="242" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

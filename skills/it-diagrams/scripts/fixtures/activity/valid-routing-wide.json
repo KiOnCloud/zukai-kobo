@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "kind": "activity",
+  "title": "Routing: early exit shares the merge band",
+  "direction": "TB",
+  "meta": {
+    "source": "clarify",
+    "notes": [
+      "layout repro from issue 1"
+    ]
+  },
+  "lanes": [
+    {
+      "id": "svc",
+      "label": "Order service"
+    }
+  ],
+  "actions": [
+    {
+      "id": "a-400",
+      "label": "Return 400",
+      "lane": "svc"
+    },
+    {
+      "id": "a-0",
+      "label": "Standard order flow",
+      "lane": "svc"
+    },
+    {
+      "id": "a-1",
+      "label": "Express order flow",
+      "lane": "svc"
+    },
+    {
+      "id": "a-2",
+      "label": "Backorder flow",
+      "lane": "svc"
+    },
+    {
+      "id": "a-3",
+      "label": "Pre-order flow",
+      "lane": "svc"
+    },
+    {
+      "id": "a-done",
+      "label": "Return result",
+      "lane": "svc"
+    }
+  ],
+  "controls": [
+    {
+      "id": "start",
+      "kind": "initial",
+      "lane": "svc"
+    },
+    {
+      "id": "d-type",
+      "kind": "decision",
+      "label": "Which order type?",
+      "lane": "svc"
+    },
+    {
+      "id": "end-400",
+      "kind": "final",
+      "lane": "svc"
+    },
+    {
+      "id": "d-next",
+      "kind": "decision",
+      "label": "Notify customer?",
+      "lane": "svc"
+    },
+    {
+      "id": "end-a",
+      "kind": "final",
+      "lane": "svc"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f0",
+      "from": "start",
+      "to": "d-type"
+    },
+    {
+      "id": "fr",
+      "from": "d-type",
+      "to": "a-400",
+      "guard": "unsupported"
+    },
+    {
+      "id": "fe",
+      "from": "a-400",
+      "to": "end-400"
+    },
+    {
+      "id": "fi0",
+      "from": "d-type",
+      "to": "a-0",
+      "guard": "1"
+    },
+    {
+      "id": "fo0",
+      "from": "a-0",
+      "to": "d-next"
+    },
+    {
+      "id": "fi1",
+      "from": "d-type",
+      "to": "a-1",
+      "guard": "2"
+    },
+    {
+      "id": "fo1",
+      "from": "a-1",
+      "to": "d-next"
+    },
+    {
+      "id": "fi2",
+      "from": "d-type",
+      "to": "a-2",
+      "guard": "3"
+    },
+    {
+      "id": "fo2",
+      "from": "a-2",
+      "to": "d-next"
+    },
+    {
+      "id": "fi3",
+      "from": "d-type",
+      "to": "a-3",
+      "guard": "4"
+    },
+    {
+      "id": "fo3",
+      "from": "a-3",
+      "to": "d-next"
+    },
+    {
+      "id": "fy",
+      "from": "d-next",
+      "to": "a-done",
+      "guard": "yes"
+    },
+    {
+      "id": "fn",
+      "from": "d-next",
+      "to": "end-a",
+      "guard": "no"
+    },
+    {
+      "id": "fd",
+      "from": "a-done",
+      "to": "end-a"
+    }
+  ]
+}

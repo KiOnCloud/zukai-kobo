@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "sequence",
+  "title": "Login with password",
+  "meta": { "source": "scout", "notes": ["src/auth/login-controller.ts", "src/auth/session-store.ts"] },
+  "participants": [
+    { "id": "user", "label": "User", "kind": "actor" },
+    { "id": "web", "label": "Web app", "kind": "participant" },
+    { "id": "auth", "label": "Auth service", "kind": "control" },
+    { "id": "db", "label": "User DB", "kind": "database" }
+  ],
+  "messages": [
+    { "id": "m1", "from": "user", "to": "web", "label": "Submit credentials", "kind": "sync" },
+    { "id": "m2", "from": "web", "to": "auth", "label": "POST /login", "kind": "sync" },
+    { "id": "m3", "from": "auth", "to": "db", "label": "SELECT user by email", "kind": "sync" },
+    { "id": "m4", "from": "db", "to": "auth", "label": "user row", "kind": "return" },
+    { "id": "m5", "from": "auth", "to": "auth", "label": "Verify password hash", "kind": "sync" },
+    { "id": "m6", "from": "auth", "to": "web", "label": "200 session token", "kind": "return" },
+    { "id": "m7", "from": "web", "to": "user", "label": "Redirect to dashboard", "kind": "return" },
+    { "id": "m8", "from": "auth", "to": "web", "label": "401 invalid credentials", "kind": "return" },
+    { "id": "m9", "from": "web", "to": "user", "label": "Show error", "kind": "return" },
+    { "id": "m10", "from": "web", "to": "auth", "label": "Audit login attempt", "kind": "async" }
+  ],
+  "blocks": [
+    { "id": "b1", "kind": "alt", "label": "password matches", "messages": ["m6", "m7"], "branches": [{ "label": "password wrong", "messages": ["m8", "m9"] }] },
+    { "id": "b2", "kind": "loop", "label": "until 3 attempts", "messages": ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9"] }
+  ],
+  "notes": [
+    { "id": "n1", "label": "Rate limited per IP", "participants": ["web"], "position": "right", "after": "m1" },
+    { "id": "n2", "label": "Hash: argon2id", "participants": ["auth", "db"], "after": "m5" }
+  ]
+}

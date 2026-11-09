@@ -1,0 +1,26 @@
+---
+title: "Order service fan-out"
+---
+flowchart LR
+  %% id: gw
+  n1["API gateway"]
+  %% id: orders
+  n2["Order service"]
+  %% id: odb
+  n3[("Orders DB")]
+  %% id: pay
+  n4["Payment service"]
+  %% id: bus
+  n5[["Event bus"]]
+  %% id: catalog
+  n6["Catalog service"]
+  %% id: c1
+  n1 -->|"REST"| n2
+  %% id: c2
+  n2 -->|"SQL"| n3
+  %% id: c3
+  n2 -->|"gRPC"| n4
+  %% id: c4
+  n2 -->|"publish OrderPaid"| n5
+  %% id: c5
+  n2 -->|"check stock"| n6

@@ -1,0 +1,63 @@
+flowchart LR
+  %% id: browser
+  n1(("Customer browser"))
+  %% id: mobile
+  n2(("Mobile app"))
+  %% id: cdn
+  n3>"CDN"]
+  %% id: psp
+  n13>"Payment provider"]
+  %% id: smtp
+  n14>"SMTP relay"]
+  %% id: cloud
+  subgraph n15["Cloud account"]
+    %% id: vpc
+    subgraph n16["Private network"]
+      %% id: gw
+      n4["API gateway"]
+      %% id: orders
+      n5["Order service"]
+      %% id: catalog
+      n6["Catalog service"]
+      %% id: pay
+      n7["Payment service"]
+      %% id: odb
+      n8[("Orders DB (PostgreSQL)")]
+      %% id: cdb
+      n9[("Catalog DB")]
+      %% id: cache
+      n10(["Redis cache"])
+    end
+    %% id: bus
+    n11[["Event bus"]]
+    %% id: mailer
+    n12["Mail worker"]
+  end
+  %% id: c1
+  n1 -->|"HTTPS"| n3
+  %% id: c2
+  n3 -->|"HTTPS"| n4
+  %% id: c3
+  n2 -->|"HTTPS"| n4
+  %% id: c4
+  n4 -->|"REST"| n5
+  %% id: c5
+  n4 -->|"REST"| n6
+  %% id: c6
+  n5 -->|"SQL"| n8
+  %% id: c7
+  n6 -->|"SQL"| n9
+  %% id: c8
+  n6 <-->|"read-through"| n10
+  %% id: c9
+  n5 -->|"gRPC"| n7
+  %% id: c10
+  n7 <-->|"HTTPS + webhook"| n13
+  %% id: c11
+  n5 -->|"publish OrderPaid"| n11
+  %% id: c12
+  n11 -->|"subscribe"| n12
+  %% id: c13
+  n12 -->|"SMTP"| n14
+  %% id: c14
+  n5 -->|"check stock"| n6

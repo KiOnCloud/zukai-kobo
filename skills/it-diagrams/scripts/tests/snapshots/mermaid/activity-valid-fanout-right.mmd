@@ -1,0 +1,51 @@
+---
+title: "Routing: reject branch next to merged branches"
+---
+swimlane-beta TB
+  %% id: svc
+  subgraph n1["Order service"]
+    %% id: a-400
+    n2["Return 400"]
+    %% id: a-A
+    n3["Process A"]
+    %% id: a-B
+    n4["Process B"]
+    %% id: a-C
+    n5["Process C"]
+    %% id: a-done
+    n6["Return result"]
+    %% id: start
+    n7@{ shape: sm-circ }
+    %% id: d-type
+    n8{"Which type?"}
+    %% id: end-400
+    n9@{ shape: fr-circ }
+    %% id: d-next
+    n10{"Notify customer?"}
+    %% id: a-end
+    n11@{ shape: fr-circ }
+  end
+  %% id: f0
+  n7 --> n8
+  %% id: fr
+  n8 -->|"unsupported"| n2
+  %% id: fe
+  n2 --> n9
+  %% id: fi0
+  n8 -->|"A"| n3
+  %% id: fo0
+  n3 --> n10
+  %% id: fi1
+  n8 -->|"B"| n4
+  %% id: fo1
+  n4 --> n10
+  %% id: fi2
+  n8 -->|"C"| n5
+  %% id: fo2
+  n5 --> n10
+  %% id: fy
+  n10 -->|"yes"| n6
+  %% id: fn
+  n10 -->|"no"| n11
+  %% id: fd
+  n6 --> n11

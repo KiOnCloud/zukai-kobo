@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Broken platform",
+  "components": [
+    { "id": "api", "label": "API", "kind": "lambda" }
+  ],
+  "boundaries": [
+    { "id": "a", "label": "A", "children": ["b", "api"] },
+    { "id": "b", "label": "B", "children": ["a"] },
+    { "id": "c", "label": "C", "children": ["api"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "api", "to": "db" }
+  ]
+}

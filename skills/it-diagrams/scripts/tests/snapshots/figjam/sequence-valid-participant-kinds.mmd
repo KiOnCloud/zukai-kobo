@@ -1,0 +1,23 @@
+sequenceDiagram
+  %% id: web
+  participant n1 as Web shop
+  %% id: svc
+  participant n2 as Order service
+  %% id: order
+  participant n3 as Order
+  %% id: db
+  participant n4 as Order database
+  %% id: user
+  actor n5 as Customer
+  %% id: m1
+  n5->>n1: Submit order
+  %% id: m2
+  n1->>n2: POST /orders
+  %% id: m3
+  n2->>n3: create
+  %% id: m4
+  n2->>n4: INSERT order
+  %% id: m5
+  n4-->>n2: ok
+  %% id: m6
+  n2-->>n1: 201 Created

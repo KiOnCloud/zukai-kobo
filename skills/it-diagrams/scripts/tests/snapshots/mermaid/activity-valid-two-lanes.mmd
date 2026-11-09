@@ -1,0 +1,42 @@
+---
+title: "Return request"
+---
+swimlane-beta TB
+  %% id: customer
+  subgraph n1["Customer"]
+    %% id: request
+    n3["Request return"]
+    %% id: ship
+    n7["Ship item back"]
+    %% id: start
+    n8@{ shape: sm-circ }
+    %% id: done
+    n10@{ shape: fr-circ }
+  end
+  %% id: support
+  subgraph n2["Support"]
+    %% id: review
+    n4["Review request"]
+    %% id: approve
+    n5[["Approve and send label<br/>↳ return-request-label"]]
+    %% id: reject
+    n6["Explain rejection"]
+    %% id: eligible
+    n9{"Eligible?"}
+  end
+  %% id: f1
+  n8 --> n3
+  %% id: f2
+  n3 --> n4
+  %% id: f3
+  n4 --> n9
+  %% id: f4
+  n9 -->|"yes"| n5
+  %% id: f5
+  n9 -->|"no"| n6
+  %% id: f6
+  n5 --> n7
+  %% id: f7
+  n7 --> n10
+  %% id: f8
+  n6 --> n10

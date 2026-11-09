@@ -1,0 +1,16 @@
+---
+title: "Repository"
+---
+classDiagram
+  %% id: repo
+  class n1["IOrderRepository"] {
+    <<interface>>
+    +FindByCustomerAsync(Guid customerId) Task~IReadOnlyList~Order~~
+  }
+  %% id: order
+  class n2["Order"] {
+    +OrderStatus Status
+    +AddLine(Product product, int quantity, decimal unitPrice) ErrorOr~OrderLine~
+  }
+  %% id: r1
+  n1 ..> n2 : loads

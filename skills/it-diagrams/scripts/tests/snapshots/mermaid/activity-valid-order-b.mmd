@@ -1,0 +1,33 @@
+---
+title: "Order B: same flow, main path declared first"
+---
+swimlane-beta TB
+  %% id: svc
+  subgraph n1["Order service"]
+    %% id: a-reserve
+    n2["Reserve stock"]
+    %% id: a-reject
+    n3["Return empty result"]
+    %% id: a-ship
+    n4["Create shipment"]
+    %% id: start
+    n5@{ shape: sm-circ }
+    %% id: d-stock
+    n6{"In stock?"}
+    %% id: end
+    n7@{ shape: fr-circ }
+    %% id: end-empty
+    n8@{ shape: fr-circ }
+  end
+  %% id: f1
+  n5 --> n6
+  %% id: f2
+  n6 -->|"yes"| n2
+  %% id: f3
+  n6 -->|"no"| n3
+  %% id: f4
+  n3 --> n8
+  %% id: f5
+  n2 --> n4
+  %% id: f6
+  n4 --> n7
