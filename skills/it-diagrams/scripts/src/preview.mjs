@@ -10,9 +10,12 @@
  */
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
+import { pngSize, decodePng, cropPng, encodePng } from './png.mjs';
+
+export { pngSize };
 
 const MERMAID_CDN = 'https://cdn.jsdelivr.net/npm/mermaid@12.3.0/dist/mermaid.esm.min.mjs';
 const DRAWIO_VIEWER = 'https://viewer.diagrams.net/?lightbox=1&nav=0&layers=0&highlight=none&edit=_blank';
@@ -78,31 +81,70 @@ export function findDrawioBinary() {
   return { bin: null, tried };
 }
 
-/** Pixel size of a PNG from its header. */
-export function pngSize(file) {
-  const head = readFileSync(file).subarray(16, 24);
-  return { width: head.readUInt32BE(0), height: head.readUInt32BE(4) };
+/** Frame draw.io desktop draws around an export, in output pixels, whatever the scale. */
+const BORDER = 20;
+
+/** Tile frames along the long axis of a `width` x `height` image, each at most `step` long. */
+function tileFrames(width, height, step) {
+  const vertical = height >= width;
+  const total = vertical ? height : width;
+  const frames = [];
+  for (let off = 0; off < total; off += step) {
+    const len = Math.min(step, total - off);
+    frames.push(vertical ? { x: 0, y: off, width, height: len } : { x: off, y: 0, width: len, height });
+  }
+  return frames;
 }
 
 /**
- * draw.io desktop exports at scale 2; when the result is longer than `maxPx` on its longest
- * side it is exported again at the scale that fits.
+ * draw.io desktop exports at scale 2. Under `maxPx` the scale that fits comes from that
+ * first export: the drawing is (size - 2 * BORDER) / 2 units long, so scale s gives about
+ * s * units + 2 * BORDER px, and the size is checked after the export because draw.io rounds.
+ * A diagram at least twice as long as it is wide that would fall below scale 1 is instead
+ * exported at scale 1 (or the scale that fits its short side) and the PNG is cut into tiles
+ * along its long axis, each within the cap, written as `<out>-1.png`, `<out>-2.png`, ...
  */
 function renderDrawioDesktop(bin, file, out, maxPx) {
   const run = (scale) => {
-    const args = ['-x', '-f', 'png', '-s', String(scale), '-b', '20', '-o', out, file];
+    const args = ['-x', '-f', 'png', '-s', String(scale), '-b', String(BORDER), '-o', out, file];
     if (process.platform === 'linux') args.push('--no-sandbox', '--disable-gpu');
     const r = spawnSync(bin, args, { encoding: 'utf8', timeout: 120_000 });
     if (r.error || r.status !== 0) return { ok: false, message: (r.stderr || r.error?.message || 'draw.io export failed').trim().slice(0, 300) };
-    return { ok: true, scale };
+    return { ok: true, scale, files: [out] };
   };
   let r = run(2);
   if (!r.ok || !maxPx) return r;
   const size = pngSize(out);
-  const longest = Math.max(size.width, size.height);
-  if (longest <= maxPx) return r;
-  r = run(Math.max(0.1, Math.floor(((2 * maxPx) / longest) * 100) / 100));
-  return r;
+  if (Math.max(size.width, size.height) <= maxPx) return r;
+  const units = { long: (Math.max(size.width, size.height) - 2 * BORDER) / 2, short: (Math.min(size.width, size.height) - 2 * BORDER) / 2 };
+  const fit = (px, u) => Math.max(0.1, Math.floor(((px - 2 * BORDER) / Math.max(u, 1)) * 100) / 100);
+  const tiled = fit(maxPx, units.long) < 1 && units.long >= 2 * units.short;
+  let scale = tiled ? Math.min(1, fit(maxPx, units.short)) : fit(maxPx, units.long);
+  for (let attempt = 0; ; attempt++) {
+    r = run(scale);
+    if (!r.ok) return r;
+    const s = pngSize(out);
+    const side = tiled ? Math.min(s.width, s.height) : Math.max(s.width, s.height);
+    if (side <= maxPx || scale <= 0.1 || attempt >= 2) break;
+    scale = Math.max(0.1, Math.floor((scale - 0.01) * 100) / 100);
+  }
+  if (!tiled) return r;
+  let png;
+  try {
+    png = decodePng(readFileSync(out));
+  } catch {
+    return run(fit(maxPx, units.long)); // an export this module cannot cut: fall back to the fitting scale
+  }
+  const frames = tileFrames(png.width, png.height, maxPx);
+  if (frames.length < 2) return r;
+  const base = out.replace(/\.png$/i, '');
+  const files = frames.map((frame, i) => {
+    const target = `${base}-${i + 1}.png`;
+    writeFileSync(target, encodePng(cropPng(png, frame)));
+    return target;
+  });
+  rmSync(out, { force: true });
+  return { ok: true, scale, files, tiled: true };
 }
 
 /**
@@ -134,7 +176,8 @@ const MAX_SIDE = 15000;
  * `fixed` is given, that size with the window made to match it (draw.io's viewer fits the
  * diagram to the window). A region much taller or wider than it is high would shrink below
  * scale 1 under the cap, so it is cut into tiles along its long axis instead, each one
- * within the cap at scale 1; the tiles are written as `<out>-1.png`, `<out>-2.png`, ...
+ * within the cap at scale 1 (or at the scale that fits the short side); the tiles are
+ * written as `<out>-1.png`, `<out>-2.png`, ...
  */
 async function shoot(browser, url, setup, locate, out, maxPx, fixed) {
   const margin = 20;
@@ -151,18 +194,14 @@ async function shoot(browser, url, setup, locate, out, maxPx, fixed) {
     region = { x: Math.max(0, box.x - margin), y: Math.max(0, box.y - margin), width: box.width + 2 * margin, height: box.height + 2 * margin };
   }
   const longest = Math.max(region.width, region.height);
+  const shortest = Math.min(region.width, region.height);
   let scale = Math.min(maxPx ? maxPx / longest : 2, 2, MAX_SIDE / longest);
-  const tiles = [];
-  if (maxPx && scale < 1 && longest >= 2 * Math.min(region.width, region.height)) {
-    scale = 1;
-    const vertical = region.height >= region.width;
-    const step = maxPx;
-    const count = Math.ceil(longest / step);
-    for (let i = 0; i < count; i++) {
-      tiles.push(vertical
-        ? { x: region.x, y: region.y + i * step, width: region.width, height: Math.min(step, region.height - i * step) }
-        : { x: region.x + i * step, y: region.y, width: Math.min(step, region.width - i * step), height: region.height });
-    }
+  let tiles = [];
+  if (maxPx && scale < 1 && longest >= 2 * shortest) {
+    // Scale 1 unless even the short side is over the cap; a fractional scale rounds, so leave a pixel.
+    scale = Math.min(1, maxPx / shortest);
+    const step = scale === 1 ? maxPx : Math.floor((maxPx - 1) / scale);
+    tiles = tileFrames(region.width, region.height, step).map((t) => ({ ...t, x: t.x + region.x, y: t.y + region.y }));
   }
   const viewport = fixed ? { width: region.width, height: region.height } : { width: Math.ceil(region.x + region.width) + 50, height: Math.ceil(region.y + region.height) + 50 };
   const page = await browser.newPage({ viewport, deviceScaleFactor: scale });
@@ -237,9 +276,11 @@ async function renderMermaidWeb(pw, text, out, maxPx) {
 
 /**
  * @param {string} file path to a .drawio or .mmd file
- * @param {{ out?: string, cwd?: string, maxPx?: number }} [options] `maxPx` caps the longest side of
- *   the PNG; a very tall or wide diagram is then cut into tiles at scale 1 instead
- * @returns {Promise<{ ok: boolean, out?: string, renderer?: string, errors: Array<{ path: string, message: string, hint?: string }> }>}
+ * @param {{ out?: string, cwd?: string, maxPx?: number, renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
+ *   `maxPx` caps the longest side of every PNG, border included; a very tall or wide diagram
+ *   is then cut into tiles at scale 1 instead, with both renderers. `renderer` forces one of
+ *   the two .drawio renderers instead of preferring draw.io desktop (used by the tests).
+ * @returns {Promise<{ ok: boolean, out?: string, files?: string[], tiled?: boolean, scale?: number, renderer?: string, errors: Array<{ path: string, message: string, hint?: string }> }>}
  */
 export async function preview(file, options = {}) {
   const cwd = options.cwd ?? process.cwd();
@@ -258,15 +299,16 @@ export async function preview(file, options = {}) {
   }
   mkdirSync(dirname(out), { recursive: true });
   const attempts = [];
-  if (ext === '.drawio') {
+  if (ext === '.drawio' && options.renderer !== 'drawio-web') {
     const { bin, tried } = findDrawioBinary();
     if (bin) {
       const r = renderDrawioDesktop(bin, input, out, options.maxPx);
-      if (r.ok) return { ok: true, out, files: [out], scale: r.scale, renderer: 'drawio-desktop', errors: [] };
+      if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, scale: r.scale, renderer: 'drawio-desktop', errors: [] };
       attempts.push(`draw.io desktop (${bin}): ${r.message}`);
     } else {
       attempts.push(`draw.io desktop not found; looked for ${tried.join(', ')}`);
     }
+    if (options.renderer === 'drawio-desktop') return { ok: false, errors: [{ path: file, message: `draw.io desktop could not render the file (${attempts.join('; ')})` }] };
   }
   const pw = loadPlaywright(cwd);
   if (!pw) {
