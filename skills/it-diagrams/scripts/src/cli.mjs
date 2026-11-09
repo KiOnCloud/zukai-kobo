@@ -167,7 +167,7 @@ export async function main(argv) {
     if (opts.maxPx !== undefined && !(Number.isInteger(maxPx) && maxPx >= 200)) return fail(1, { ok: false, errors: [{ path: '/', message: '--max-px takes a whole number of pixels, 200 or more' }], usage: USAGE });
     const result = await preview(opts.positional[0], { out: opts.out, maxPx });
     if (!result.ok) return fail(1, { ok: false, errors: result.errors });
-    process.stdout.write(JSON.stringify({ ok: true, preview: result.out, files: result.files, tiled: result.tiled === true, scale: result.scale, renderer: result.renderer }) + '\n');
+    process.stdout.write(JSON.stringify({ ok: true, preview: result.out, files: result.files, tiled: result.tiled === true, ...(result.tiled ? { overlap: result.overlap } : {}), scale: result.scale, renderer: result.renderer }) + '\n');
     return 0;
   }
   return fail(1, { ok: false, errors: [{ path: '/', message: `unknown command "${opts.command ?? ''}"` }], usage: USAGE });

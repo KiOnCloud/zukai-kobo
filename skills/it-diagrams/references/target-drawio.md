@@ -83,10 +83,11 @@ node "<skill-dir>/scripts/bin/cli.mjs" preview ./diagrams/order-checkout.drawio 
 Renders a PNG into the system temp directory and prints `{"ok":true,"preview":<path>,
 "files":[...],"tiled":false,"scale":2,"renderer":...}`. `--max-px <n>` caps the longest side
 of every PNG at `n` pixels, border included, with both renderers (draw.io desktop re-exports
-at the fitting scale); a diagram at least twice as tall as it is wide (or the reverse) that
-would shrink below scale 1 is instead cut into tiles `<name>-1.png`, `<name>-2.png`, ... at
-scale 1 (draw.io desktop exports once at scale 1 and the PNG is cut), all listed in `files`,
-so the reviewer opens each. The image is for your own inspection, not for the user; do not mention or
+at the fitting scale). A diagram at least twice as tall as it is wide (or the reverse) that
+would shrink below scale 0.6 is instead cut into tiles `<name>-1.png`, `<name>-2.png`, ... at
+scale 1 (draw.io desktop exports once at scale 1 and the PNG is cut), all the same length and
+overlapping by the largest node (`overlap`, px) so every node is whole in at least one tile;
+all are listed in `files`, so the reviewer opens each. The image is for your own inspection, not for the user; do not mention or
 offer it. The renderer is draw.io desktop when its CLI is on `PATH` (offline), else
 Playwright with Chromium loading draw.io's viewer page in a local browser (the XML is rendered
 locally; only the page itself is fetched). Exit 1 with a hint when neither is installed; the

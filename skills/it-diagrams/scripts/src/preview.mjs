@@ -18,7 +18,10 @@ import { pngSize, decodePng, cropPng, encodePng } from './png.mjs';
 export { pngSize };
 
 const MERMAID_CDN = 'https://cdn.jsdelivr.net/npm/mermaid@12.3.0/dist/mermaid.esm.min.mjs';
-const DRAWIO_VIEWER = 'https://viewer.diagrams.net/?lightbox=1&nav=0&layers=0&highlight=none&edit=_blank';
+/** White space kept around the drawing in a preview, CSS px. */
+const MARGIN = 20;
+/** The viewer fits the drawing to the window minus `border`, so a window of extent + 2 * MARGIN shows it at scale 1. */
+const DRAWIO_VIEWER = `https://viewer.diagrams.net/?lightbox=1&nav=0&layers=0&highlight=none&edit=_blank&border=${MARGIN}`;
 
 let globalRoot;
 /** The global node_modules folder (`npm root -g`), looked up once; null when npm is missing. */
@@ -83,28 +86,39 @@ export function findDrawioBinary() {
 
 /** Frame draw.io desktop draws around an export, in output pixels, whatever the scale. */
 const BORDER = 20;
+/** Below this single-image scale the text is too small to review; a long diagram is tiled instead. */
+const TILE_BELOW = 0.6;
 
-/** Tile frames along the long axis of a `width` x `height` image, each at most `step` long. */
-function tileFrames(width, height, step) {
+/**
+ * Frames that cut a `width` x `height` image into tiles along its long axis, each at most
+ * `maxLen` long, as few as the cap allows, all the same length and evenly spread so that
+ * consecutive tiles overlap by at least `overlap` pixels (at most half a tile). An overlap
+ * of the largest node along the axis keeps every node whole in at least one tile.
+ */
+export function tileFrames(width, height, maxLen, overlap = 0) {
   const vertical = height >= width;
   const total = vertical ? height : width;
-  const frames = [];
-  for (let off = 0; off < total; off += step) {
-    const len = Math.min(step, total - off);
-    frames.push(vertical ? { x: 0, y: off, width, height: len } : { x: off, y: 0, width: len, height });
-  }
-  return frames;
+  if (total <= maxLen) return [{ x: 0, y: 0, width, height }];
+  const o = Math.min(Math.max(0, Math.ceil(overlap)), Math.floor(maxLen / 2));
+  const count = Math.ceil((total - o) / (maxLen - o));
+  const len = Math.ceil((total + (count - 1) * o) / count);
+  const step = (total - len) / (count - 1);
+  return Array.from({ length: count }, (_, i) => {
+    const off = Math.floor(i * step);
+    return vertical ? { x: 0, y: off, width, height: len } : { x: off, y: 0, width: len, height };
+  });
 }
 
 /**
  * draw.io desktop exports at scale 2. Under `maxPx` the scale that fits comes from that
  * first export: the drawing is (size - 2 * BORDER) / 2 units long, so scale s gives about
  * s * units + 2 * BORDER px, and the size is checked after the export because draw.io rounds.
- * A diagram at least twice as long as it is wide that would fall below scale 1 is instead
- * exported at scale 1 (or the scale that fits its short side) and the PNG is cut into tiles
- * along its long axis, each within the cap, written as `<out>-1.png`, `<out>-2.png`, ...
+ * A diagram at least twice as long as it is wide that would fall below TILE_BELOW is instead
+ * exported at scale 1 (or the scale that fits its short side) and the PNG is cut into
+ * overlapping tiles along its long axis, each within the cap, written as `<out>-1.png`,
+ * `<out>-2.png`, ...; `xml` is the file's content, for the node sizes that set the overlap.
  */
-function renderDrawioDesktop(bin, file, out, maxPx) {
+function renderDrawioDesktop(bin, file, xml, out, maxPx) {
   const run = (scale) => {
     const args = ['-x', '-f', 'png', '-s', String(scale), '-b', String(BORDER), '-o', out, file];
     if (process.platform === 'linux') args.push('--no-sandbox', '--disable-gpu');
@@ -118,7 +132,7 @@ function renderDrawioDesktop(bin, file, out, maxPx) {
   if (Math.max(size.width, size.height) <= maxPx) return r;
   const units = { long: (Math.max(size.width, size.height) - 2 * BORDER) / 2, short: (Math.min(size.width, size.height) - 2 * BORDER) / 2 };
   const fit = (px, u) => Math.max(0.1, Math.floor(((px - 2 * BORDER) / Math.max(u, 1)) * 100) / 100);
-  const tiled = fit(maxPx, units.long) < 1 && units.long >= 2 * units.short;
+  const tiled = fit(maxPx, units.long) < TILE_BELOW && units.long >= 2 * units.short;
   let scale = tiled ? Math.min(1, fit(maxPx, units.short)) : fit(maxPx, units.long);
   for (let attempt = 0; ; attempt++) {
     r = run(scale);
@@ -135,7 +149,12 @@ function renderDrawioDesktop(bin, file, out, maxPx) {
   } catch {
     return run(fit(maxPx, units.long)); // an export this module cannot cut: fall back to the fitting scale
   }
-  const frames = tileFrames(png.width, png.height, maxPx);
+  const vertical = png.height >= png.width;
+  const extent = drawioExtent(xml);
+  const pxPerUnit = ((vertical ? png.height : png.width) - 2 * BORDER) / Math.max(vertical ? extent.height : extent.width, 1);
+  const node = Math.max(0, ...drawioVertices(xml).map((v) => (vertical ? v.height : v.width))) * pxPerUnit;
+  const overlap = Math.min(Math.ceil(node + 2 * BORDER), Math.floor(maxPx / 2));
+  const frames = tileFrames(png.width, png.height, maxPx, overlap);
   if (frames.length < 2) return r;
   const base = out.replace(/\.png$/i, '');
   const files = frames.map((frame, i) => {
@@ -144,7 +163,30 @@ function renderDrawioDesktop(bin, file, out, maxPx) {
     return target;
   });
   rmSync(out, { force: true });
-  return { ok: true, scale, files, tiled: true };
+  return { ok: true, scale, files, tiled: true, overlap };
+}
+
+/**
+ * The page-level cells (parent "1") of the first page of a .drawio file, each with its
+ * attribute text and body. Self-closing cells ("0" and "1") are skipped, or they would
+ * swallow the next cell's body.
+ */
+function* pageCells(xml) {
+  const page = xml.match(/<diagram\b[\s\S]*?<\/diagram>/)?.[0] ?? xml;
+  for (const m of page.matchAll(/<mxCell\b([^>]*?)(?<!\/)>([\s\S]*?)<\/mxCell>/g)) {
+    if (/\sparent="1"(?:\s|$)/.test(m[1])) yield { attrs: m[1], body: m[2] };
+  }
+}
+
+/** Position and size, in diagram units, of every page-level vertex of the first page. */
+export function drawioVertices(xml) {
+  const out = [];
+  for (const c of pageCells(xml)) {
+    if (!/\svertex="1"/.test(c.attrs)) continue;
+    const g = /<mxGeometry x="(-?[\d.]+)" y="(-?[\d.]+)" width="(-?[\d.]+)" height="(-?[\d.]+)"/.exec(c.body);
+    if (g) out.push({ x: +g[1], y: +g[2], width: +g[3], height: +g[4] });
+  }
+  return out;
 }
 
 /**
@@ -153,15 +195,11 @@ function renderDrawioDesktop(bin, file, out, maxPx) {
  * the window, so a window of this size shows the diagram at about scale 1.
  */
 export function drawioExtent(xml) {
-  const page = xml.match(/<diagram\b[\s\S]*?<\/diagram>/)?.[0] ?? xml;
   let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
   const extend = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
-  // Self-closing cells ("0" and "1") are skipped, or they would swallow the next cell's body.
-  for (const m of page.matchAll(/<mxCell\b([^>]*?)(?<!\/)>([\s\S]*?)<\/mxCell>/g)) {
-    if (!/\sparent="1"(?:\s|$)/.test(m[1])) continue;
-    const g = /<mxGeometry x="(-?[\d.]+)" y="(-?[\d.]+)" width="(-?[\d.]+)" height="(-?[\d.]+)"/.exec(m[2]);
-    if (g && /\svertex="1"/.test(m[1])) { extend(+g[1], +g[2]); extend(+g[1] + +g[3], +g[2] + +g[4]); }
-    if (/\sedge="1"/.test(m[1])) for (const p of m[2].matchAll(/<mxPoint x="(-?[\d.]+)" y="(-?[\d.]+)"/g)) extend(+p[1], +p[2]);
+  for (const v of drawioVertices(xml)) { extend(v.x, v.y); extend(v.x + v.width, v.y + v.height); }
+  for (const c of pageCells(xml)) {
+    if (/\sedge="1"/.test(c.attrs)) for (const p of c.body.matchAll(/<mxPoint x="(-?[\d.]+)" y="(-?[\d.]+)"/g)) extend(+p[1], +p[2]);
   }
   if (!Number.isFinite(minX)) return { width: 800, height: 600 };
   return { width: Math.ceil(maxX - minX), height: Math.ceil(maxY - minY) };
@@ -175,12 +213,13 @@ const MAX_SIDE = 15000;
  * (2 when unlimited). The region is the one `locate` measures on a probe page, or, when
  * `fixed` is given, that size with the window made to match it (draw.io's viewer fits the
  * diagram to the window). A region much taller or wider than it is high would shrink below
- * scale 1 under the cap, so it is cut into tiles along its long axis instead, each one
- * within the cap at scale 1 (or at the scale that fits the short side); the tiles are
- * written as `<out>-1.png`, `<out>-2.png`, ...
+ * TILE_BELOW under the cap, so it is cut into tiles along its long axis instead, each one
+ * within the cap at scale 1 (or at the scale that fits the short side), overlapping by the
+ * largest node that `measure` reports (CSS px) so every node is whole in one tile; the
+ * tiles are written as `<out>-1.png`, `<out>-2.png`, ...
  */
-async function shoot(browser, url, setup, locate, out, maxPx, fixed) {
-  const margin = 20;
+async function shoot(browser, url, setup, locate, measure, out, maxPx, fixed) {
+  const margin = MARGIN;
   let region;
   if (fixed) {
     const cap = (v) => Math.min(Math.max(Math.ceil(v), 200), 8000);
@@ -196,31 +235,31 @@ async function shoot(browser, url, setup, locate, out, maxPx, fixed) {
   const longest = Math.max(region.width, region.height);
   const shortest = Math.min(region.width, region.height);
   let scale = Math.min(maxPx ? maxPx / longest : 2, 2, MAX_SIDE / longest);
-  let tiles = [];
-  if (maxPx && scale < 1 && longest >= 2 * shortest) {
-    // Scale 1 unless even the short side is over the cap; a fractional scale rounds, so leave a pixel.
-    scale = Math.min(1, maxPx / shortest);
-    const step = scale === 1 ? maxPx : Math.floor((maxPx - 1) / scale);
-    tiles = tileFrames(region.width, region.height, step).map((t) => ({ ...t, x: t.x + region.x, y: t.y + region.y }));
-  }
+  const tiled = Boolean(maxPx) && scale < TILE_BELOW && longest >= 2 * shortest;
+  // Tiles at scale 1 unless even the short side is over the cap.
+  if (tiled) scale = Math.min(1, maxPx / shortest);
   const viewport = fixed ? { width: region.width, height: region.height } : { width: Math.ceil(region.x + region.width) + 50, height: Math.ceil(region.y + region.height) + 50 };
   const page = await browser.newPage({ viewport, deviceScaleFactor: scale });
   await setup(page, url);
-  await locate(page);
-  if (tiles.length === 0) {
+  const box = await locate(page);
+  if (!tiled) {
     await page.screenshot({ path: out, clip: region });
     await page.close();
     return { ok: true, scale, files: [out] };
   }
+  const node = (await measure(page, box)) ?? { width: 0, height: 0 };
+  // CSS px per tile; a fractional scale rounds, so leave a pixel.
+  const maxLen = scale === 1 ? maxPx : Math.floor((maxPx - 1) / scale);
+  const overlap = Math.min(Math.ceil((region.height >= region.width ? node.height : node.width) + 2 * margin), Math.floor(maxLen / 2));
   const base = out.replace(/\.png$/i, '');
   const files = [];
-  for (const [i, clip] of tiles.entries()) {
+  for (const [i, frame] of tileFrames(region.width, region.height, maxLen, overlap).entries()) {
     const file = `${base}-${i + 1}.png`;
-    await page.screenshot({ path: file, clip });
+    await page.screenshot({ path: file, clip: { ...frame, x: frame.x + region.x, y: frame.y + region.y } });
     files.push(file);
   }
   await page.close();
-  return { ok: true, scale, files, tiled: true };
+  return { ok: true, scale, files, tiled: true, overlap: Math.round(overlap * scale) };
 }
 
 async function renderDrawioWeb(pw, xml, out, maxPx) {
@@ -234,7 +273,27 @@ async function renderDrawioWeb(pw, xml, out, maxPx) {
       await page.waitForTimeout(500);
       return drawing.boundingBox();
     };
-    return await shoot(browser, url, setup, locate, out, maxPx, drawioExtent(xml));
+    const extent = drawioExtent(xml);
+    // The largest vertex of the page in CSS px: the viewer fits the drawing to the window at
+    // its own scale, read off the drawn shapes (groups and the HTML label frames span far
+    // beyond the drawing).
+    const measure = async (page) => {
+      const v = drawioVertices(xml);
+      if (v.length === 0) return null;
+      const drawn = await page.evaluate(() => {
+        let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+        for (const el of document.querySelectorAll('.geDiagramContainer svg rect, .geDiagramContainer svg ellipse, .geDiagramContainer svg path, .geDiagramContainer svg image')) {
+          const b = el.getBoundingClientRect();
+          if (b.width === 0 && b.height === 0) continue;
+          minX = Math.min(minX, b.left); minY = Math.min(minY, b.top); maxX = Math.max(maxX, b.right); maxY = Math.max(maxY, b.bottom);
+        }
+        return Number.isFinite(minX) ? { width: maxX - minX, height: maxY - minY } : null;
+      });
+      if (!drawn) return null;
+      const fit = Math.max(drawn.width / Math.max(extent.width, 1), drawn.height / Math.max(extent.height, 1));
+      return { width: Math.max(...v.map((c) => c.width)) * fit, height: Math.max(...v.map((c) => c.height)) * fit };
+    };
+    return await shoot(browser, url, setup, locate, measure, out, maxPx, extent);
   } finally {
     await browser.close();
   }
@@ -266,7 +325,21 @@ async function renderMermaidWeb(pw, text, out, maxPx) {
       renderError = await page.evaluate(() => window.__error);
     };
     const locate = async (page) => (renderError ? null : page.locator('#target svg').first().boundingBox());
-    const r = await shoot(browser, null, setup, locate, out, maxPx);
+    // The largest node, label or text of the drawing; anything near the size of the whole
+    // drawing is a background or a cluster and does not count.
+    const measure = (page) => page.evaluate(() => {
+      const root = document.querySelector('#target svg');
+      if (!root) return null;
+      const whole = root.getBoundingClientRect();
+      let width = 0; let height = 0;
+      for (const el of root.querySelectorAll('g.node, g.actor, rect, polygon, circle, ellipse, text, foreignObject, image')) {
+        const b = el.getBoundingClientRect();
+        if (b.width >= whole.width * 0.9 && b.height >= whole.height * 0.9) continue;
+        width = Math.max(width, b.width); height = Math.max(height, b.height);
+      }
+      return { width, height };
+    });
+    const r = await shoot(browser, null, setup, locate, measure, out, maxPx);
     if (renderError) return { ok: false, message: `Mermaid could not render the diagram: ${renderError.slice(0, 300)}` };
     return r;
   } finally {
@@ -278,9 +351,10 @@ async function renderMermaidWeb(pw, text, out, maxPx) {
  * @param {string} file path to a .drawio or .mmd file
  * @param {{ out?: string, cwd?: string, maxPx?: number, renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
  *   `maxPx` caps the longest side of every PNG, border included; a very tall or wide diagram
- *   is then cut into tiles at scale 1 instead, with both renderers. `renderer` forces one of
- *   the two .drawio renderers instead of preferring draw.io desktop (used by the tests).
- * @returns {Promise<{ ok: boolean, out?: string, files?: string[], tiled?: boolean, scale?: number, renderer?: string, errors: Array<{ path: string, message: string, hint?: string }> }>}
+ *   that would fall below scale 0.6 is instead cut into tiles at scale 1 that overlap by the
+ *   largest node (`overlap`, px), with both renderers. `renderer` forces one of the two
+ *   .drawio renderers instead of preferring draw.io desktop (used by the tests).
+ * @returns {Promise<{ ok: boolean, out?: string, files?: string[], tiled?: boolean, overlap?: number, scale?: number, renderer?: string, errors: Array<{ path: string, message: string, hint?: string }> }>}
  */
 export async function preview(file, options = {}) {
   const cwd = options.cwd ?? process.cwd();
@@ -302,8 +376,8 @@ export async function preview(file, options = {}) {
   if (ext === '.drawio' && options.renderer !== 'drawio-web') {
     const { bin, tried } = findDrawioBinary();
     if (bin) {
-      const r = renderDrawioDesktop(bin, input, out, options.maxPx);
-      if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, scale: r.scale, renderer: 'drawio-desktop', errors: [] };
+      const r = renderDrawioDesktop(bin, input, text, out, options.maxPx);
+      if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: 'drawio-desktop', errors: [] };
       attempts.push(`draw.io desktop (${bin}): ${r.message}`);
     } else {
       attempts.push(`draw.io desktop not found; looked for ${tried.join(', ')}`);
@@ -322,7 +396,7 @@ export async function preview(file, options = {}) {
   }
   try {
     const r = ext === '.drawio' ? await renderDrawioWeb(pw, text, out, options.maxPx) : await renderMermaidWeb(pw, text, out, options.maxPx);
-    if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, scale: r.scale, renderer: ext === '.drawio' ? 'drawio-web' : 'mermaid-web', errors: [] };
+    if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: ext === '.drawio' ? 'drawio-web' : 'mermaid-web', errors: [] };
     return { ok: false, errors: [{ path: file, message: r.message }] };
   } catch (e) {
     attempts.push(`browser render: ${String(e.message).slice(0, 200)}`);
