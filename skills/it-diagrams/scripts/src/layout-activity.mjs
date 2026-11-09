@@ -197,11 +197,19 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
     const height = y + m.bottomGap - m.topMargin;
 
     // Horizontal positions, lane by lane, in the lane's own coordinates first. Each node wants
-    // to sit under the average x of its predecessors in the same lane, so chains run straight
-    // and a fan-out stays centred on its source; a node fed only from other lanes, or from
-    // nothing, is centred in the lane. Nodes that share a row are sorted by that wanted x,
-    // packed so they do not overlap, then slid together by their mean distance to the wanted
-    // positions. The lane is then made as wide as its content needs, so nothing is clamped.
+    // to sit under the average x of the flows that reach it straight from the same lane (an
+    // adjacent row, or a long flow in its own column), so chains run straight and a fan-out
+    // stays centred on its source; a node fed only from other lanes, or from nothing, is
+    // centred in the lane. A long flow that arrives down a gutter counts at the lane's edge
+    // instead, but only when nothing arrives straight, or when every straight arrival is a
+    // decision's branch: a trunk joining that branch would read as another exit of the
+    // decision, so the node moves to the trunk's side and its inputs meet above it. Otherwise
+    // the trunk only breaks ties: nodes that share a row are sorted by wanted x, then towards
+    // the side their trunks come from, so a merge fed from the left sits left of its sibling
+    // and the trunk reaches it without crossing. The row is then packed so nodes do not
+    // overlap and slid together by the mean distance to the wanted positions, and the lane is
+    // made as wide as its content needs, so nothing is clamped.
+    const kindOf = new Map((ir.controls ?? []).map((c) => [c.id, c.kind]));
     const rel = new Map(); // id -> x in lane coordinates (0 = centre of rows without predecessors)
     const laneExtent = new Map(); // lane id -> { min, max }
     for (const l of ir.lanes) {
@@ -211,9 +219,25 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
         const ids = cell.get(`${l.id}#${r}`) ?? [];
         if (ids.length === 0) continue;
         const want = new Map();
+        const lean = new Map(ids.map((id) => [id, 0]));
         for (const id of ids) {
-          const preds = inn.get(id).filter((p) => rel.has(p) && !back.has(`${p}>${id}`) && byId.get(p).lane === l.id);
-          if (preds.length) want.set(id, preds.reduce((sum, p) => sum + rel.get(p) + byId.get(p).width / 2, 0) / preds.length - byId.get(id).width / 2);
+          const straight = [];
+          const trunk = [];
+          for (const f of ir.flows) {
+            if (f.to !== id || !rel.has(f.from) || back.has(`${f.from}>${id}`) || byId.get(f.from).lane !== l.id) continue;
+            const pl = plans.get(f.id);
+            if (pl.type === 'skip') {
+              // The rows above are placed, so the lane's extent so far says where each gutter is.
+              const side = pl.gutterLane === l.id ? pl.side : laneIndex.get(pl.gutterLane) < laneIndex.get(l.id) ? 'L' : 'R';
+              trunk.push(side === 'L' ? min - m.lanePadding : max + m.lanePadding);
+              lean.set(id, lean.get(id) + (side === 'L' ? -1 : 1));
+            } else {
+              straight.push({ x: rel.get(f.from) + byId.get(f.from).width / 2, fromDecision: kindOf.get(f.from) === 'decision' });
+            }
+          }
+          const arrivals = straight.map((a) => a.x);
+          if (straight.every((a) => a.fromDecision)) arrivals.push(...trunk);
+          if (arrivals.length) want.set(id, arrivals.reduce((a, b) => a + b, 0) / arrivals.length - byId.get(id).width / 2);
         }
         const total = ids.reduce((sum, id) => sum + byId.get(id).width, 0) + (ids.length - 1) * m.nodeGap;
         if (want.size === 0) {
@@ -221,7 +245,8 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
           for (const id of ids) { rel.set(id, nx); nx += byId.get(id).width + m.nodeGap; }
         } else {
           const fallback = [...want.values()].reduce((a, b) => a + b, 0) / want.size;
-          const sorted = ids.map((id, i) => ({ id, i, w: want.get(id) ?? fallback })).sort((a, b) => (a.w + byId.get(a.id).width / 2) - (b.w + byId.get(b.id).width / 2) || a.i - b.i);
+          const centre = (n) => n.w + byId.get(n.id).width / 2;
+          const sorted = ids.map((id, i) => ({ id, i, w: want.get(id) ?? fallback })).sort((a, b) => (Math.abs(centre(a) - centre(b)) > 0.5 ? centre(a) - centre(b) : 0) || lean.get(a.id) - lean.get(b.id) || a.i - b.i);
           let nx = -Infinity;
           for (const n of sorted) { n.x = Math.max(nx, n.w); nx = n.x + byId.get(n.id).width + m.nodeGap; }
           // Slide by the node's error nearest the mean error, so one node sits exactly where it wants.
@@ -487,9 +512,15 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
       }
     }
   }
+  // A crossing between flows whose four nodes share one lane is not forced by the lanes: it is
+  // a column order the layout did not find, so its hint says so instead of blaming the lanes.
   for (const pair of crossing) {
     const [a, b] = pair.split('|');
-    warnings.push({ path: '/flows', message: `layout: flows "${a}" and "${b}" cross; no route around it was found`, hint: 'a crossing that the lanes of the nodes force can be accepted; reordering flows does not change the route' });
+    const lanesOf = [a, b].flatMap((id) => { const f = ir.flows.find((x) => x.id === id); return [byId.get(f.from).lane, byId.get(f.to).lane]; });
+    const oneLane = lanesOf.every((lane) => lane === lanesOf[0]);
+    warnings.push(oneLane
+      ? { path: '/flows', message: `layout: flows "${a}" and "${b}" cross inside lane "${lanesOf[0]}"; no column order that avoids it was found`, hint: 'the lanes do not force this crossing; moving one of the nodes to another lane avoids it, or report the shape so the column order can learn it' }
+      : { path: '/flows', message: `layout: flows "${a}" and "${b}" cross; no route around it was found`, hint: 'a crossing that the lanes of the nodes force can be accepted; reordering flows does not change the route' });
   }
 
   // Guard labels: greedy placement over candidate anchors, avoiding nodes and other labels.

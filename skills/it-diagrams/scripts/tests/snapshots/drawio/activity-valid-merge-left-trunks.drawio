@@ -1,0 +1,189 @@
+<mxfile host="it-diagrams" compressed="false" type="device">
+  <diagram id="catalogue-export" name="Catalogue export">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="catalogue-export:client" value="Client" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="345" height="1260" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:api" value="Shop API" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#dae8fc;swimlaneFillColor=#f0f6ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="385" y="40" width="568.5" height="1260" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:store" value="Product store" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="953.5" y="40" width="345" height="1260" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:ask" value="Request the catalogue of one shop" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:client">
+          <mxGeometry x="30" y="160" width="255" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:cats" value="Read the shop's active categories" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:store">
+          <mxGeometry x="30" y="438" width="255" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:items" value="Read the products on sale today" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:store">
+          <mxGeometry x="37" y="716" width="241" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:shape" value="Drop products without a price" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+          <mxGeometry x="281.5" y="994" width="227" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:send" value="Return the catalogue" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+          <mxGeometry x="313" y="1100" width="164" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:none" value="Return an empty catalogue" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+          <mxGeometry x="74" y="1100" width="199" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="catalogue-export:client">
+          <mxGeometry x="142.5" y="70" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:ok" value="Shop code valid?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+          <mxGeometry x="325" y="260" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:anycat" value="Any categories?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+          <mxGeometry x="325" y="538" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:anyitem" value="Any products?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+          <mxGeometry x="325" y="816" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:empty" value="" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+          <mxGeometry x="201.5" y="994" width="40" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="catalogue-export:client">
+          <mxGeometry x="142.5" y="1200" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalogue-export:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:start" target="catalogue-export:ask">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:ask" target="catalogue-export:ok">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="197.5" y="270"/>
+              <mxPoint x="780" y="270"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:ok" target="catalogue-export:cats">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="424"/>
+              <mxPoint x="1111" y="424"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f3:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="catalogue-export:f3">
+          <mxGeometry x="0.63" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:ok" target="catalogue-export:empty">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="402"/>
+              <mxPoint x="407" y="402"/>
+              <mxPoint x="407" y="958"/>
+              <mxPoint x="606.5" y="958"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f4:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="catalogue-export:f4">
+          <mxGeometry x="-0.39" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:cats" target="catalogue-export:anycat">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1111" y="548"/>
+              <mxPoint x="780" y="548"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:anycat" target="catalogue-export:items">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="702"/>
+              <mxPoint x="1111" y="702"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f6:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="catalogue-export:f6">
+          <mxGeometry x="0.63" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:anycat" target="catalogue-export:empty">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="680"/>
+              <mxPoint x="407" y="680"/>
+              <mxPoint x="407" y="958"/>
+              <mxPoint x="606.5" y="958"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f7:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="catalogue-export:f7">
+          <mxGeometry x="-0.21" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:items" target="catalogue-export:anyitem">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1111" y="826"/>
+              <mxPoint x="780" y="826"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:anyitem" target="catalogue-export:shape">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f9:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="catalogue-export:f9">
+          <mxGeometry x="0.22" y="0" relative="1" as="geometry">
+            <mxPoint x="22.5" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:anyitem" target="catalogue-export:empty">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="958"/>
+              <mxPoint x="606.5" y="958"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f10:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="catalogue-export:f10">
+          <mxGeometry x="0.29" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:shape" target="catalogue-export:send">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:empty" target="catalogue-export:none">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="606.5" y="1096"/>
+              <mxPoint x="558.5" y="1096"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:send" target="catalogue-export:end">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="1210"/>
+              <mxPoint x="197.5" y="1210"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="catalogue-export:f14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogue-export:none" target="catalogue-export:end">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="558.5" y="1210"/>
+              <mxPoint x="197.5" y="1210"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

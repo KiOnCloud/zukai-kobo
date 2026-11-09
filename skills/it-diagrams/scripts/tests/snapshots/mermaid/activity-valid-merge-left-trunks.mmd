@@ -1,0 +1,65 @@
+---
+title: "Catalogue export"
+---
+swimlane-beta TB
+  %% id: client
+  subgraph n1["Client"]
+    %% id: ask
+    n4["Request the catalogue of one shop"]
+    %% id: start
+    n10@{ shape: sm-circ }
+    %% id: end
+    n15@{ shape: fr-circ }
+  end
+  %% id: api
+  subgraph n2["Shop API"]
+    %% id: shape
+    n7["Drop products without a price"]
+    %% id: send
+    n8["Return the catalogue"]
+    %% id: none
+    n9["Return an empty catalogue"]
+    %% id: ok
+    n11{"Shop code valid?"}
+    %% id: anycat
+    n12{"Any categories?"}
+    %% id: anyitem
+    n13{"Any products?"}
+    %% id: empty
+    n14{" "}
+  end
+  %% id: store
+  subgraph n3["Product store"]
+    %% id: cats
+    n5["Read the shop's active categories"]
+    %% id: items
+    n6["Read the products on sale today"]
+  end
+  %% id: f1
+  n10 --> n4
+  %% id: f2
+  n4 --> n11
+  %% id: f3
+  n11 -->|"yes"| n5
+  %% id: f4
+  n11 -->|"no"| n14
+  %% id: f5
+  n5 --> n12
+  %% id: f6
+  n12 -->|"yes"| n6
+  %% id: f7
+  n12 -->|"no"| n14
+  %% id: f8
+  n6 --> n13
+  %% id: f9
+  n13 -->|"yes"| n7
+  %% id: f10
+  n13 -->|"no"| n14
+  %% id: f11
+  n7 --> n8
+  %% id: f12
+  n14 --> n9
+  %% id: f13
+  n8 --> n15
+  %% id: f14
+  n9 --> n15

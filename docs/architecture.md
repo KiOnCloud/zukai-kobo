@@ -72,8 +72,12 @@ its own grid: one full-height coloured column per lane in IR order, one row per 
 longest-path layering of the flows (back edges ignored), nodes of a lane centred in its
 column and side by side when they share a row, and every edge routed explicitly through the
 gap between rows and a gutter at the right edge of the source lane, so no segment crosses a
-node. Within a lane, each node wants to sit under the average x of its predecessors in that
-lane; nodes sharing a row are packed and slid together so one of them sits exactly where it
+node. Within a lane, each node wants to sit under the average x of the flows that reach it
+straight from that lane; a long flow that arrives down a gutter counts at the lane's edge
+when nothing arrives straight or when every straight arrival is a decision's branch, and
+otherwise only decides which side of its row-mates the node takes, so a merge fed by side
+trunks sits on their side of the sibling branch and the trunks reach it without crossing.
+Nodes sharing a row are packed and slid together so one of them sits exactly where it
 wants, and the lane is then sized from its content, so chains run straight, a fan-out stays
 centred on its decision and an early exit keeps its own column. Each row gap and each gutter
 is divided into tracks: every flow with a distinct target gets its own track, so two flows
@@ -88,8 +92,9 @@ merge; otherwise it uses the left or right gutter of its source lane or of its t
 the side scored by the cross-lane runs that would cut it, so a bypass in an outer lane hugs
 the free edge. Which columns are free is only known once nodes have positions, so the
 arrangement runs to a fixed point (at most three passes). The layout checks its own result and reports any two flows that still share a
-segment or cross as a `layout:` warning (a crossing that lanes force is reported too, and
-may be accepted). Guard labels are placed greedily over candidate anchors (above the
+segment or cross as a `layout:` warning; a crossing between flows of different lanes is
+reported as one the lanes may force, a crossing whose four nodes share one lane as a column
+order the layout did not find. Guard labels are placed greedily over candidate anchors (above the
 horizontal run just before the turn toward the target, beside the target corner, the source,
 or the gutter run, on either side) avoiding nodes, other labels, the lines of other flows
 and the trunk its own flow shares with sibling branches; a gap that holds a guarded fan-out

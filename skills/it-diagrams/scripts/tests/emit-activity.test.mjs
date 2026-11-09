@@ -278,6 +278,77 @@ describe('activity kind', () => {
       void sizesOf;
     });
 
+    describe('issue 37: a merge fed by side trunks sits on their side of the sibling branch', () => {
+      const { segmentsOf, crossings } = helpers();
+      const swap = (arr, a, b) => { const i = arr.findIndex((x) => x.id === a); const j = arr.findIndex((x) => x.id === b); const out = arr.slice(); [out[i], out[j]] = [out[j], out[i]]; return out; };
+      const cx = (L, id) => L.nodes.get(id).x + L.nodes.get(id).width / 2;
+
+      it('three decisions whose no-branches share one merge: no crossing, the merge left of the yes-branch, whatever the declaration order', async () => {
+        const base = loadFixture('activity', 'valid-merge-left-trunks');
+        const variants = {
+          base,
+          'merge declared first': { ...base, controls: [base.controls.find((c) => c.id === 'empty'), ...base.controls.filter((c) => c.id !== 'empty')] },
+          'successor declared before the sibling': { ...base, actions: swap(base.actions, 'shape', 'none') },
+          'yes and no flows swapped': { ...base, flows: swap(base.flows, 'f9', 'f10') },
+        };
+        for (const [name, ir] of Object.entries(variants)) {
+          const { L, segments } = segmentsOf(ir);
+          expect(crossings(segments), name).toBe(0);
+          expect(L.warnings.filter((w) => w.message.startsWith('layout:')), name).toEqual([]);
+          // The merge and its successor take the column the left trunk reaches; the yes-branch stays straight.
+          expect(cx(L, 'empty'), name).toBeLessThan(cx(L, 'shape'));
+          expect(cx(L, 'none'), name).toBeLessThan(cx(L, 'send'));
+          expect(L.edges.get('f9').points, name).toEqual([]);
+          // Each trunk ends above the merge, where the no-branch of the last decision joins it, not under that decision's split.
+          const join = L.edges.get('f10').points.at(-1);
+          expect(Math.abs(join.x - cx(L, 'anyitem')), name).toBeGreaterThan(20);
+          for (const id of ['f4', 'f7']) {
+            const last = L.edges.get(id).points.at(-1);
+            expect(last.x, `${name}/${id}`).toBeCloseTo(cx(L, 'empty'), 5);
+            expect(last.y, `${name}/${id}`).toBeCloseTo(join.y, 5);
+          }
+        }
+        const r = await emit(base, 'drawio');
+        expect(r.ok).toBe(true);
+        expect(r.warnings.filter((w) => String(w.message).startsWith('layout:'))).toEqual([]);
+      });
+
+      it('mirrored lanes send the trunks down the right gutter and the merge right of the yes-branch', () => {
+        const base = loadFixture('activity', 'valid-merge-left-trunks');
+        const { L, segments } = segmentsOf({ ...base, lanes: [base.lanes[2], base.lanes[1], base.lanes[0]] });
+        expect(crossings(segments)).toBe(0);
+        expect(cx(L, 'empty')).toBeGreaterThan(cx(L, 'shape'));
+      });
+
+      it('a merge alone under its decision still moves aside so the trunks meet the no-branch above the merge', () => {
+        const base = loadFixture('activity', 'valid-merge-left-trunks');
+        const ir = { ...base, actions: base.actions.filter((a) => a.id !== 'shape' && a.id !== 'send'), flows: [...base.flows.filter((f) => !['f9', 'f11', 'f13'].includes(f.id)), { id: 'f9', from: 'anyitem', to: 'end', guard: 'yes' }] };
+        const { L, segments } = segmentsOf(ir);
+        expect(crossings(segments)).toBe(0);
+        expect(cx(L, 'empty')).toBeLessThan(cx(L, 'anyitem') - 20);
+        expect(L.edges.get('f10').points.at(-1).x).toBeCloseTo(cx(L, 'empty'), 5);
+      });
+
+      it('a trunk into a node fed straight from an action only breaks the tie with its sibling; the chain stays straight', () => {
+        const base = loadFixture('activity', 'valid-merge-left-trunks');
+        const ir = { ...base, actions: [...base.actions, { id: 'anyitem', label: 'Collect', lane: 'api' }], controls: base.controls.filter((c) => c.id !== 'anyitem'), flows: base.flows.map((f) => (f.from === 'anyitem' ? { id: f.id, from: f.from, to: f.to } : f)) };
+        const { L, segments } = segmentsOf(ir);
+        expect(crossings(segments)).toBe(0);
+        expect(cx(L, 'empty')).toBeLessThan(cx(L, 'shape'));
+        expect(L.edges.get('f9').points).toEqual([]);
+        // Without a sibling the node stays under the action, as every other fixture does.
+        const { L: alone } = segmentsOf(loadFixture('activity', 'valid-fanout-right'));
+        expect(cx(alone, 'a-end')).toBeCloseTo(cx(alone, 'a-done'), 5);
+      });
+
+      it('blames the lanes only for a crossing between flows of different lanes', () => {
+        const { L } = segmentsOf(loadFixture('activity', 'valid-fork-join'));
+        const w = L.warnings.find((x) => x.message.includes('cross'));
+        expect(w.hint).toMatch(/lanes of the nodes force/);
+        expect(w.message).not.toMatch(/inside lane/);
+      });
+    });
+
     describe('issue 13: a guard never sits on the trunk shared with sibling branches', () => {
       const { segmentsOf } = helpers();
 
