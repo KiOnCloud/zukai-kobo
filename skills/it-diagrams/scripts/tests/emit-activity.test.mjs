@@ -3,6 +3,7 @@ import { emit } from '../src/pipeline.mjs';
 import { validateIr } from '../src/validate-ir.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
 import { layoutActivity } from '../src/layout-activity.mjs';
+import { measureNode } from '../src/layout-graph.mjs';
 import { loadFixture, loadMermaid } from './helpers.mjs';
 
 describe('activity kind', () => {
@@ -299,6 +300,64 @@ describe('activity kind', () => {
           expect(box.bottom, `${name}/${flowId} guard above its target`).toBeLessThanOrEqual(end.y);
           expect(L.warnings.filter((w) => w.message.includes(`"${flowId}"`))).toEqual([]);
         }
+      });
+    });
+
+    describe('issue 32 and 33: long labels and the guard of a straight branch', () => {
+      const { segmentsOf } = helpers();
+
+      it('32: an action whose label wraps gets a taller box in activity and flowchart output', async () => {
+        const act = await emit(loadFixture('activity', 'valid-business-fulfilment'), 'drawio', { diagramId: 'a' });
+        const { cells } = checkDrawioStructure(act.output);
+        const collect = cellBounds(cells.find((c) => c.id === 'a:collect'));
+        expect(collect.width).toBe(260);
+        expect(collect.height).toBeGreaterThanOrEqual(100);
+        const flow = await emit(loadFixture('flowchart', 'valid-refund-check'), 'drawio', { diagramId: 'f' });
+        const a = cellBounds(checkDrawioStructure(flow.output).cells.find((c) => c.id === 'f:a'));
+        expect(a.width).toBe(260);
+        expect(a.height).toBeGreaterThanOrEqual(100);
+      });
+
+      it('33: the guard of a straight branch is 12 px clear of its sibling and nearest to its own edge', () => {
+        const ir = loadFixture('activity', 'valid-business-fulfilment');
+        // Real sizes, as the emitter computes them, so the label geometry is the shipped one.
+        const sizes = [...ir.actions.map((x) => ({ id: x.id, lane: x.lane, ...measureNode(x.label) })), ...ir.controls.map((c) => ({ id: c.id, lane: c.lane, ...(c.kind === 'decision' ? measureNode(c.label ?? 'decision', { minWidth: 140, baseHeight: 80 }) : c.kind === 'merge' ? { width: 40, height: 40 } : { width: 30, height: 30 }) }))];
+        const L = layoutActivity(ir, sizes);
+        const paths = new Map();
+        for (const f of ir.flows) {
+          const s = L.nodes.get(f.from); const t = L.nodes.get(f.to); const e = L.edges.get(f.id);
+          paths.set(f.id, [{ x: s.x + e.exit.x * s.width, y: s.y + e.exit.y * s.height }, ...e.points, { x: t.x + e.entry.x * t.width, y: t.y + e.entry.y * t.height }]);
+        }
+        const dist = (box, path) => {
+          let best = Infinity;
+          for (let i = 1; i < path.length; i++) {
+            const a = path[i - 1]; const b = path[i];
+            const l2 = (b.x - a.x) ** 2 + (b.y - a.y) ** 2;
+            const cx = box.x + box.width / 2; const cy = box.y + box.height / 2;
+            const t = l2 ? Math.max(0, Math.min(1, ((cx - a.x) * (b.x - a.x) + (cy - a.y) * (b.y - a.y)) / l2)) : 0;
+            const p = { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
+            best = Math.min(best, Math.hypot(Math.max(box.x - p.x, 0, p.x - box.x - box.width), Math.max(box.y - p.y, 0, p.y - box.y - box.height)));
+          }
+          return best;
+        };
+        const labelBox = (id, guard) => {
+          const path = paths.get(id); const e = L.edges.get(id);
+          let total = 0; const lens = [];
+          for (let i = 1; i < path.length; i++) { const l = Math.abs(path[i].x - path[i - 1].x) + Math.abs(path[i].y - path[i - 1].y); lens.push(l); total += l; }
+          let d = ((e.label.position + 1) / 2) * total; let p = path[0];
+          for (let i = 1; i < path.length; i++) { if (d <= lens[i - 1] || i === path.length - 1) { const tt = lens[i - 1] ? Math.min(1, d / lens[i - 1]) : 0; p = { x: path[i - 1].x + tt * (path[i].x - path[i - 1].x), y: path[i - 1].y + tt * (path[i].y - path[i - 1].y) }; break; } d -= lens[i - 1]; }
+          const w = guard.length * 7 + 12;
+          return { x: p.x + e.label.offset.x - w / 2, y: p.y + e.label.offset.y - 8, width: w, height: 16 };
+        };
+        const yes = labelBox('f4', 'yes');
+        expect(dist(yes, paths.get('f5'))).toBeGreaterThanOrEqual(12);
+        for (const [id, guard] of [['f4', 'yes'], ['f5', 'no: nothing to ship']]) {
+          const box = labelBox(id, guard);
+          const own = dist(box, paths.get(id));
+          expect(own, `${id} on its own edge`).toBeLessThanOrEqual(6);
+          for (const [other, path] of paths) if (other !== id) expect(dist(box, path), `${id} vs ${other}`).toBeGreaterThan(own);
+        }
+        expect(L.warnings.filter((w) => w.message.startsWith('layout:'))).toEqual([]);
       });
     });
 

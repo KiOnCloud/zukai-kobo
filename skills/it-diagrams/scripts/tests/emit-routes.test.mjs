@@ -215,7 +215,7 @@ describe('issue 28: Mermaid architecture grid plan', () => {
     expect(r.output).toContain('architecture-beta');
   });
 
-  it.skipIf(!loadPlaywright(scriptsDir))('renders the triangle and the shop platform within 4000 px', async () => {
+  it.skipIf(!loadPlaywright(scriptsDir))('renders the triangle and the shop platform within the review cap', async () => {
     const { preview } = await import('../src/preview.mjs');
     const { mkdtempSync, writeFileSync, readFileSync } = await import('node:fs');
     const { tmpdir } = await import('node:os');
@@ -225,12 +225,13 @@ describe('issue 28: Mermaid architecture grid plan', () => {
       const r = await emit(loadFixture('architecture', name), 'mermaid');
       const file = join(dir, `${name}.mmd`);
       writeFileSync(file, r.output);
-      const p = await preview(file, { out: join(dir, `${name}.png`) });
+      const p = await preview(file, { out: join(dir, `${name}.png`), maxPx: 1600 });
       expect(p.ok, name).toBe(true);
-      const head = readFileSync(p.out).subarray(16, 24);
-      const width = head.readUInt32BE(0); const height = head.readUInt32BE(4);
-      expect(width, name).toBeLessThan(4000);
-      expect(height, name).toBeLessThan(4000);
+      for (const f of p.files) {
+        const head = readFileSync(f).subarray(16, 24);
+        const width = head.readUInt32BE(0); const height = head.readUInt32BE(4);
+        expect(Math.max(width, height), name).toBeLessThanOrEqual(1600);
+      }
     }
   }, 120_000);
 });

@@ -77,11 +77,15 @@ business-audience variant, is in `variants.md`.
 ## Preview
 
 ```bash
-node "<skill-dir>/scripts/bin/cli.mjs" preview ./diagrams/order-checkout.drawio
+node "<skill-dir>/scripts/bin/cli.mjs" preview ./diagrams/order-checkout.drawio --max-px 1600
 ```
 
 Renders a PNG into the system temp directory and prints `{"ok":true,"preview":<path>,
-"renderer":...}`. The image is for your own inspection, not for the user; do not mention or
+"files":[...],"tiled":false,"scale":2,"renderer":...}`. `--max-px <n>` caps the longest side
+at `n` pixels (both renderers; draw.io desktop re-exports at the fitting scale); a diagram
+at least twice as tall as it is wide (or the reverse) that would shrink below scale 1 is
+instead cut into tiles `<name>-1.png`, `<name>-2.png`, ... at scale 1, all listed in
+`files`, so the reviewer opens each. The image is for your own inspection, not for the user; do not mention or
 offer it. The renderer is draw.io desktop when its CLI is on `PATH` (offline), else
 Playwright with Chromium loading draw.io's viewer page in a local browser (the XML is rendered
 locally; only the page itself is fetched). Exit 1 with a hint when neither is installed; the
@@ -135,7 +139,8 @@ across re-runs.
   120 to 260 px; height is 40 plus 20 per extra line; tables add 26 px per row. The
   heuristic lives in one function (`measureNode` in `scripts/src/layout-graph.mjs`), so
   tune it there if Japanese or very long labels wrap badly. Labels wrap inside the shape
-  (`whiteSpace=wrap`), so an underestimate only makes the node look tight.
+  (`whiteSpace=wrap`), and the height grows by one line height per wrapped line at the
+  clamped width, so a long label gets a taller box instead of spilling onto its arrows.
 - ELK options: layered algorithm, direction from the IR, orthogonal edge routing,
   `hierarchyHandling=INCLUDE_CHILDREN` for edges that cross containers, root-relative
   edge coordinates. Node spacing 40, layer spacing 60 (60 and 80 for ER and class).

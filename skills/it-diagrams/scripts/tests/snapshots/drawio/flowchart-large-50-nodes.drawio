@@ -8,7 +8,7 @@
           <mxGeometry x="84" y="12" width="190" height="390" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:g2" value="Fulfilment" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
-          <mxGeometry x="24" y="2220" width="300" height="546" as="geometry"/>
+          <mxGeometry x="24" y="2240" width="300" height="566" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n1" value="Step 1" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="large-process-with-50-steps:g1">
           <mxGeometry x="20" y="50" width="140" height="80" as="geometry"/>
@@ -50,115 +50,115 @@
           <mxGeometry x="84" y="1359" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n14" value="Step 14 checks the inventory level" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="24" y="1499" width="260" height="40" as="geometry"/>
+          <mxGeometry x="24" y="1499" width="260" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n15" value="Step 15" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="94" y="1599" width="120" height="40" as="geometry"/>
+          <mxGeometry x="94" y="1619" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n16" value="Step 16" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
-          <mxGeometry x="94" y="1699" width="120" height="40" as="geometry"/>
+          <mxGeometry x="94" y="1719" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n17" value="Step 17" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
-          <mxGeometry x="114" y="1799" width="120" height="40" as="geometry"/>
+          <mxGeometry x="114" y="1819" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n18" value="Step 18" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="114" y="1899" width="120" height="40" as="geometry"/>
+          <mxGeometry x="114" y="1919" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n19" value="Step 19" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="104" y="2075" width="140" height="80" as="geometry"/>
+          <mxGeometry x="104" y="2095" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n20" value="Step 20" style="whiteSpace=wrap;html=1;" vertex="1" parent="large-process-with-50-steps:g2">
           <mxGeometry x="90" y="50" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n21" value="Step 21 checks the inventory level" style="whiteSpace=wrap;html=1;" vertex="1" parent="large-process-with-50-steps:g2">
-          <mxGeometry x="20" y="110" width="260" height="40" as="geometry"/>
+          <mxGeometry x="20" y="110" width="260" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n22" value="Step 22" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="large-process-with-50-steps:g2">
-          <mxGeometry x="133.33" y="170" width="120" height="40" as="geometry"/>
+          <mxGeometry x="133.33" y="190" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n23" value="Step 23" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="large-process-with-50-steps:g2">
-          <mxGeometry x="133.33" y="230" width="120" height="40" as="geometry"/>
+          <mxGeometry x="133.33" y="250" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n24" value="Step 24" style="whiteSpace=wrap;html=1;" vertex="1" parent="large-process-with-50-steps:g2">
-          <mxGeometry x="133.33" y="290" width="120" height="40" as="geometry"/>
+          <mxGeometry x="133.33" y="310" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n25" value="Step 25" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="large-process-with-50-steps:g2">
-          <mxGeometry x="123.33" y="386" width="140" height="80" as="geometry"/>
+          <mxGeometry x="123.33" y="406" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n26" value="Step 26" style="whiteSpace=wrap;html=1;" vertex="1" parent="large-process-with-50-steps:g2">
-          <mxGeometry x="66.67" y="486" width="120" height="40" as="geometry"/>
+          <mxGeometry x="66.67" y="506" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n27" value="Step 27" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="91" y="2831" width="120" height="40" as="geometry"/>
+          <mxGeometry x="91" y="2871" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n28" value="Step 28 checks the inventory level" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
-          <mxGeometry x="21" y="2931" width="260" height="40" as="geometry"/>
+          <mxGeometry x="21" y="2971" width="260" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n29" value="Step 29" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
-          <mxGeometry x="91" y="3031" width="120" height="40" as="geometry"/>
+          <mxGeometry x="91" y="3091" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n30" value="Step 30" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="91" y="3131" width="120" height="40" as="geometry"/>
+          <mxGeometry x="91" y="3191" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n31" value="Step 31" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="61" y="3307" width="140" height="80" as="geometry"/>
+          <mxGeometry x="61" y="3367" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n32" value="Step 32" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="71" y="3447" width="120" height="40" as="geometry"/>
+          <mxGeometry x="71" y="3507" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n33" value="Step 33" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="71" y="3547" width="120" height="40" as="geometry"/>
+          <mxGeometry x="71" y="3607" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n34" value="Step 34" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
-          <mxGeometry x="71" y="3647" width="120" height="40" as="geometry"/>
+          <mxGeometry x="71" y="3707" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n35" value="Step 35 checks the inventory level" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
-          <mxGeometry x="44" y="3747" width="260" height="40" as="geometry"/>
+          <mxGeometry x="44" y="3807" width="260" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n36" value="Step 36" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="114" y="3847" width="120" height="40" as="geometry"/>
+          <mxGeometry x="114" y="3927" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n37" value="Step 37" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="104" y="4023" width="140" height="80" as="geometry"/>
+          <mxGeometry x="104" y="4103" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n38" value="Step 38" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="114" y="4163" width="120" height="40" as="geometry"/>
+          <mxGeometry x="114" y="4243" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n39" value="Step 39" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="114" y="4263" width="120" height="40" as="geometry"/>
+          <mxGeometry x="114" y="4343" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n40" value="Step 40" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
-          <mxGeometry x="94" y="4363" width="120" height="40" as="geometry"/>
+          <mxGeometry x="94" y="4443" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n41" value="Step 41" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
-          <mxGeometry x="94" y="4463" width="120" height="40" as="geometry"/>
+          <mxGeometry x="94" y="4543" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n42" value="Step 42 checks the inventory level" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="24" y="4563" width="260" height="40" as="geometry"/>
+          <mxGeometry x="24" y="4643" width="260" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n43" value="Step 43" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="84" y="4739" width="140" height="80" as="geometry"/>
+          <mxGeometry x="84" y="4839" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n44" value="Step 44" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="114" y="4879" width="120" height="40" as="geometry"/>
-        </mxCell>
-        <mxCell id="large-process-with-50-steps:n45" value="Step 45" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="114" y="4979" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="large-process-with-50-steps:n46" value="Step 46" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
+        <mxCell id="large-process-with-50-steps:n45" value="Step 45" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="114" y="5079" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="large-process-with-50-steps:n47" value="Step 47" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
+        <mxCell id="large-process-with-50-steps:n46" value="Step 46" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
           <mxGeometry x="114" y="5179" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="large-process-with-50-steps:n48" value="Step 48" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="large-process-with-50-steps:n47" value="Step 47" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
           <mxGeometry x="114" y="5279" width="120" height="40" as="geometry"/>
         </mxCell>
+        <mxCell id="large-process-with-50-steps:n48" value="Step 48" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="114" y="5379" width="120" height="40" as="geometry"/>
+        </mxCell>
         <mxCell id="large-process-with-50-steps:n49" value="Step 49 checks the inventory level" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="44" y="5455" width="260" height="80" as="geometry"/>
+          <mxGeometry x="44" y="5555" width="260" height="100" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:n50" value="Step 50" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="114" y="5595" width="120" height="40" as="geometry"/>
+          <mxGeometry x="114" y="5715" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="large-process-with-50-steps:e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="large-process-with-50-steps:n1" target="large-process-with-50-steps:n2">
           <mxGeometry relative="1" as="geometry">
@@ -279,15 +279,15 @@
         <mxCell id="large-process-with-50-steps:e25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="large-process-with-50-steps:n25" target="large-process-with-50-steps:n26">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="217.33" y="2696"/>
-              <mxPoint x="170.67" y="2696"/>
+              <mxPoint x="217.33" y="2736"/>
+              <mxPoint x="170.67" y="2736"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="large-process-with-50-steps:e26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="large-process-with-50-steps:n26" target="large-process-with-50-steps:n27">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="151" y="2771"/>
+              <mxPoint x="151" y="2811"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -425,8 +425,8 @@
             <Array as="points">
               <mxPoint x="194" y="1248"/>
               <mxPoint x="324" y="1248"/>
-              <mxPoint x="324" y="1764"/>
-              <mxPoint x="194" y="1764"/>
+              <mxPoint x="324" y="1784"/>
+              <mxPoint x="194" y="1784"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -447,10 +447,10 @@
         <mxCell id="large-process-with-50-steps:x30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.665;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="large-process-with-50-steps:n30" target="large-process-with-50-steps:n35">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="171" y="3196"/>
-              <mxPoint x="231" y="3196"/>
-              <mxPoint x="231" y="3712"/>
-              <mxPoint x="217" y="3712"/>
+              <mxPoint x="171" y="3256"/>
+              <mxPoint x="231" y="3256"/>
+              <mxPoint x="231" y="3772"/>
+              <mxPoint x="217" y="3772"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -462,10 +462,10 @@
         <mxCell id="large-process-with-50-steps:x39" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="large-process-with-50-steps:n39" target="large-process-with-50-steps:n44">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="194" y="4328"/>
-              <mxPoint x="324" y="4328"/>
-              <mxPoint x="324" y="4844"/>
-              <mxPoint x="194" y="4844"/>
+              <mxPoint x="194" y="4408"/>
+              <mxPoint x="324" y="4408"/>
+              <mxPoint x="324" y="4944"/>
+              <mxPoint x="194" y="4944"/>
             </Array>
           </mxGeometry>
         </mxCell>

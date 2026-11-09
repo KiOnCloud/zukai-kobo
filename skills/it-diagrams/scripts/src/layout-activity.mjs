@@ -12,6 +12,9 @@
 
 import { longestLine } from './text-metrics.mjs';
 
+/** Minimum distance between a straight branch's guard and the sibling run it leaves below. */
+const GUARD_CLEAR = 12;
+
 export const ACTIVITY_METRICS = {
   leftMargin: 40,
   topMargin: 40,
@@ -24,7 +27,7 @@ export const ACTIVITY_METRICS = {
   nodeGap: 40,
   topGap: 30,
   bottomGap: 30,
-  guardRoom: 24,
+  guardRoom: 32,
 };
 
 /** Soft draw.io colours per lane index: header fill, body fill, stroke. */
@@ -574,9 +577,11 @@ function labelCandidates(s, t, e, guard, trunkLen = 0) {
   // Beside the first segment, past the shared trunk; on a straight branch the private part
   // may be short, so the label goes to its middle.
   const firstLen = seg(path[0], path[1]);
-  // The box must clear the trunk (2 px) above and the node margin (6 px) below.
+  // On a straight branch the label sits in the middle of the private stretch, at least
+  // GUARD_CLEAR below the sibling's turn and 6 px above the node, so it reads as this
+  // branch's label and not as a second label of the sibling's horizontal run.
   const room = firstLen - trunkLen;
-  if (e.points.length === 0) push(0, trunkLen + Math.max(height / 2 + 2, Math.min(14, room - height / 2 - 6)));
+  if (e.points.length === 0) push(0, trunkLen + Math.min(Math.max(room / 2, height / 2 + GUARD_CLEAR), room - height / 2 - 6));
   else if (trunkLen + 14 + height / 2 <= firstLen) push(0, trunkLen + 14);
   if (e.points.length > 0) {
     push(path.length - 2, 14);

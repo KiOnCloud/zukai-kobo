@@ -8,7 +8,7 @@
  *   node cli.mjs bundle --to <drawio|mermaid> --out <file> [--title <text>] [--canvas all|<id,id,...> [--gap <px>]] <ir.json>...
  *     (one file holding every diagram; --canvas adds a first draw.io page with those diagrams side by side)
  *   node cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>   (new labels by IR id, layout kept)
- *   node cli.mjs preview <file.drawio|file.mmd> [--out <file.png>]   (optional; needs draw.io desktop or Playwright)
+ *   node cli.mjs preview <file.drawio|file.mmd> [--out <file.png>] [--max-px <n>]   (optional; needs draw.io desktop or Playwright)
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { basename, dirname, extname, resolve } from 'node:path';
@@ -22,7 +22,7 @@ const USAGE = `usage:
   cli.mjs emit --to <${TARGETS.join('|')}> <ir.json> [--out <file>] [--allow-sensitive] [--mermaid-stable]
   cli.mjs bundle --to <drawio|mermaid> --out <file> [--title <text>] [--canvas all|<id,id,...> [--gap <px>]] <ir.json>...
   cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>
-  cli.mjs preview <file.drawio|file.mmd> [--out <file.png>]`;
+  cli.mjs preview <file.drawio|file.mmd> [--out <file.png>] [--max-px <n>]`;
 
 function fail(code, payload) {
   process.stderr.write(JSON.stringify(payload) + '\n');
@@ -31,7 +31,7 @@ function fail(code, payload) {
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, allowSensitive: false, mermaidStable: false };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, allowSensitive: false, mermaidStable: false };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
     if (a === '--to') opts.to = rest[++i];
@@ -40,6 +40,7 @@ function parseArgs(argv) {
     else if (a === '--canvas') opts.canvas = rest[++i];
     else if (a === '--gap') opts.gap = rest[++i];
     else if (a === '--map') opts.map = rest[++i];
+    else if (a === '--max-px') opts.maxPx = rest[++i];
     else if (a === '--allow-sensitive') opts.allowSensitive = true;
     else if (a === '--mermaid-stable') opts.mermaidStable = true;
     else if (a.startsWith('--')) return { error: `unknown option ${a}` };
@@ -162,9 +163,11 @@ export async function main(argv) {
   }
   if (opts.command === 'preview') {
     if (opts.positional.length !== 1) return fail(1, { ok: false, errors: [{ path: '/', message: 'preview takes exactly one file' }], usage: USAGE });
-    const result = await preview(opts.positional[0], { out: opts.out });
+    const maxPx = opts.maxPx === undefined ? undefined : Number(opts.maxPx);
+    if (opts.maxPx !== undefined && !(Number.isInteger(maxPx) && maxPx >= 200)) return fail(1, { ok: false, errors: [{ path: '/', message: '--max-px takes a whole number of pixels, 200 or more' }], usage: USAGE });
+    const result = await preview(opts.positional[0], { out: opts.out, maxPx });
     if (!result.ok) return fail(1, { ok: false, errors: result.errors });
-    process.stdout.write(JSON.stringify({ ok: true, preview: result.out, renderer: result.renderer }) + '\n');
+    process.stdout.write(JSON.stringify({ ok: true, preview: result.out, files: result.files, tiled: result.tiled === true, scale: result.scale, renderer: result.renderer }) + '\n');
     return 0;
   }
   return fail(1, { ok: false, errors: [{ path: '/', message: `unknown command "${opts.command ?? ''}"` }], usage: USAGE });

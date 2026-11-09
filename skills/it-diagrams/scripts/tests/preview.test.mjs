@@ -3,7 +3,9 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { preview, loadPlaywright, drawioInstallPaths, findDrawioBinary } from '../src/preview.mjs';
+import { preview, loadPlaywright, drawioInstallPaths, findDrawioBinary, drawioExtent, pngSize } from '../src/preview.mjs';
+import { emit } from '../src/pipeline.mjs';
+import { loadFixture } from './helpers.mjs';
 import { scriptsDir } from './helpers.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'it-diagrams-preview-'));
@@ -29,6 +31,35 @@ describe('preview', () => {
       if (r.errors[0].message.includes('not found')) expect(r.errors[0].message).toMatch(/looked for drawio on PATH, draw\.io on PATH, \//);
     }
   });
+
+  it('issue 34: reads the extent of a draw.io page from its cells', async () => {
+    const r = await emit(loadFixture('activity', 'valid-business-fulfilment'), 'drawio', { diagramId: 'a' });
+    const extent = drawioExtent(r.output);
+    expect(extent.width).toBeGreaterThan(500);
+    expect(extent.height).toBeGreaterThan(extent.width);
+    expect(drawioExtent('<mxfile><diagram id="d" name="d"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>')).toEqual({ width: 800, height: 600 });
+  });
+
+  it.skipIf(!hasPlaywright)('issue 34: --max-px caps the longest side and tiles a tall diagram', async () => {
+    const r = await emit(loadFixture('activity', 'valid-business-fulfilment'), 'drawio', { diagramId: 'a' });
+    const file = join(dir, 'cap.drawio');
+    writeFileSync(file, r.output);
+    const capped = await preview(file, { out: join(dir, 'cap.png'), maxPx: 600 });
+    expect(capped.ok).toBe(true);
+    expect(capped.files).toHaveLength(1);
+    const size = pngSize(capped.out);
+    expect(Math.max(size.width, size.height)).toBeLessThanOrEqual(600);
+    // A long single-lane chain is far taller than wide: under a small cap it comes back as tiles at scale 1.
+    const chain = { schemaVersion: 1, kind: 'activity', title: 'Chain', direction: 'TB', lanes: [{ id: 'l', label: 'Lane' }], actions: Array.from({ length: 10 }, (_, i) => ({ id: `a${i}`, label: `Step ${i + 1}`, lane: 'l' })), controls: [], flows: Array.from({ length: 9 }, (_, i) => ({ id: `f${i}`, from: `a${i}`, to: `a${i + 1}` })) };
+    const c = await emit(chain, 'drawio', { diagramId: 'c' });
+    const tallFile = join(dir, 'tall.drawio');
+    writeFileSync(tallFile, c.output);
+    const tall = await preview(tallFile, { out: join(dir, 'tiles.png'), maxPx: 400 });
+    expect(tall.ok).toBe(true);
+    expect(tall.tiled).toBe(true);
+    expect(tall.files.length).toBeGreaterThan(1);
+    for (const f of tall.files) { const s = pngSize(f); expect(s.height).toBeLessThanOrEqual(400); expect(s.width).toBeLessThanOrEqual(400); }
+  }, 180_000);
 
   it('rejects files that are not .drawio or .mmd', async () => {
     const r = await preview(join(scriptsDir, 'package.json'));

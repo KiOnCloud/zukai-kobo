@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emit } from '../src/pipeline.mjs';
 import { emitDrawio, slugify } from '../src/emit-drawio.mjs';
 import { xmlAttr, htmlLabel, vertex } from '../src/drawio-xml.mjs';
-import { measureNode } from '../src/layout-graph.mjs';
+import { measureNode, wrappedLines } from '../src/layout-graph.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
 import { loadFixture, validFixtures } from './helpers.mjs';
 
@@ -20,9 +20,19 @@ describe('drawio-xml', () => {
     expect(slugify('注文')).toBe('diagram');
   });
 
+  it('issue 32: grows the height by one line per wrapped line at the width cap', () => {
+    // 33 characters are 231 px, which fits one 236 px text line at the 260 px cap.
+    const heights = [1, 2, 3, 4, 5].map((n) => measureNode('x'.repeat(33 * n)).height);
+    for (let i = 1; i < heights.length; i++) expect(heights[i] - heights[i - 1]).toBe(20);
+    expect(heights[0]).toBe(40);
+    expect(wrappedLines('a\nb', 260)).toBe(2);
+    expect(measureNode('short').height).toBe(40);
+  });
+
   it('measures nodes with the clamp rule', () => {
     expect(measureNode('ab')).toEqual({ width: 120, height: 40 });
-    expect(measureNode('x'.repeat(100))).toEqual({ width: 260, height: 40 });
+    // 100 characters wrap to three lines at the 260 px cap, so the box grows by two line heights.
+    expect(measureNode('x'.repeat(100))).toEqual({ width: 260, height: 80 });
     expect(measureNode('one\ntwo\nthree', { extraRows: 2 })).toEqual({ width: 120, height: 116 });
   });
 });

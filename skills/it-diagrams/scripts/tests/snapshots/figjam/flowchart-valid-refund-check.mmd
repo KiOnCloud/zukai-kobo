@@ -1,0 +1,15 @@
+flowchart TB
+  %% id: s
+  n1(["Start"])
+  %% id: a
+  n2["Check the refund request against the order: items returned within 30 days, unopened, with the original receipt gift orders refund as store credit only"]
+  %% id: d
+  n3{"Eligible?"}
+  %% id: e
+  n4(["End"])
+  %% id: e1
+  n1 --> n2
+  %% id: e2
+  n2 --> n3
+  %% id: e3
+  n3 -->|"yes"| n4

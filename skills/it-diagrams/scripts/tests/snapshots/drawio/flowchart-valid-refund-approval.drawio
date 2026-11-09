@@ -5,25 +5,25 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="refund-approval:g-finance" value="Finance" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
-          <mxGeometry x="84" y="925" width="380.25" height="320" as="geometry"/>
+          <mxGeometry x="84" y="945" width="380.25" height="340" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:g-payout" value="Payout" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="refund-approval:g-finance">
-          <mxGeometry x="20" y="55" width="340.25" height="180" as="geometry"/>
+          <mxGeometry x="20" y="55" width="340.25" height="200" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:g-approval" value="Approval" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
-          <mxGeometry x="312" y="433" width="363.5" height="346" as="geometry"/>
+          <mxGeometry x="312" y="453" width="363.5" height="346" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:start" value="Customer asks for a refund" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="39" y="12" width="206" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:form" value="Refund form with order number and reason" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
-          <mxGeometry x="12" y="112" width="260" height="40" as="geometry"/>
+          <mxGeometry x="12" y="112" width="260" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:found" value="Order found?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="138" y="212" width="140" height="80" as="geometry"/>
+          <mxGeometry x="138" y="232" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:ask" value="Ask the customer to correct the order number" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="12" y="433" width="260" height="40" as="geometry"/>
+          <mxGeometry x="12" y="453" width="260" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:amount" value="Amount over 500 EUR?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="refund-approval:g-approval">
           <mxGeometry x="50.83" y="50" width="164" height="80" as="geometry"/>
@@ -38,19 +38,19 @@
           <mxGeometry x="200.5" y="246" width="143" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:reject" value="Send rejection with reason" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="505" y="1065" width="206" height="40" as="geometry"/>
+          <mxGeometry x="505" y="1095" width="206" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:pay" value="Pay back to the original card" style="whiteSpace=wrap;html=1;" vertex="1" parent="refund-approval:g-payout">
-          <mxGeometry x="93.25" y="120" width="227" height="40" as="geometry"/>
+          <mxGeometry x="93.25" y="140" width="227" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:ledger" value="Book the refund in the ledger" style="whiteSpace=wrap;html=1;" vertex="1" parent="refund-approval:g-finance">
-          <mxGeometry x="113.25" y="260" width="227" height="40" as="geometry"/>
+          <mxGeometry x="113.25" y="280" width="227" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:note" value="Card refunds take 3 to 5 working days" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;" vertex="1" parent="refund-approval:g-payout">
-          <mxGeometry x="20" y="50" width="260" height="40" as="geometry"/>
+          <mxGeometry x="20" y="50" width="260" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:end" value="Refund closed" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="528" y="1310" width="120" height="40" as="geometry"/>
+          <mxGeometry x="528" y="1350" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="refund-approval:e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="refund-approval:start" target="refund-approval:form">
           <mxGeometry relative="1" as="geometry">
@@ -59,8 +59,8 @@
         <mxCell id="refund-approval:e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.665;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="refund-approval:form" target="refund-approval:found">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="185" y="177"/>
-              <mxPoint x="208" y="177"/>
+              <mxPoint x="185" y="197"/>
+              <mxPoint x="208" y="197"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -80,9 +80,9 @@
         <mxCell id="refund-approval:e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.664;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="refund-approval:found" target="refund-approval:amount">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="231" y="317"/>
-              <mxPoint x="445" y="317"/>
-              <mxPoint x="444.83" y="428"/>
+              <mxPoint x="231" y="337"/>
+              <mxPoint x="445" y="337"/>
+              <mxPoint x="444.83" y="448"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -103,8 +103,8 @@
         <mxCell id="refund-approval:e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="refund-approval:amount" target="refund-approval:review">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="472.17" y="573"/>
-              <mxPoint x="584" y="573"/>
+              <mxPoint x="472.17" y="593"/>
+              <mxPoint x="584" y="593"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -120,41 +120,41 @@
         <mxCell id="refund-approval:e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="refund-approval:ok" target="refund-approval:reject">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="608" y="784"/>
+              <mxPoint x="608" y="804"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="refund-approval:e9:label" value="no" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="refund-approval:e9">
-          <mxGeometry x="-0.39" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.41" y="0" relative="1" as="geometry">
             <mxPoint x="-4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="refund-approval:e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.333;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="refund-approval:ok" target="refund-approval:pay">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="560" y="784"/>
-              <mxPoint x="560" y="809"/>
-              <mxPoint x="524" y="809"/>
-              <mxPoint x="524" y="885"/>
-              <mxPoint x="405" y="885"/>
-              <mxPoint x="405" y="1090"/>
-              <mxPoint x="367.5" y="1090"/>
+              <mxPoint x="560" y="804"/>
+              <mxPoint x="560" y="829"/>
+              <mxPoint x="524" y="829"/>
+              <mxPoint x="524" y="905"/>
+              <mxPoint x="405" y="905"/>
+              <mxPoint x="405" y="1130"/>
+              <mxPoint x="367.5" y="1130"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="refund-approval:e10:label" value="yes" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="refund-approval:e10">
-          <mxGeometry x="-0.52" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.53" y="0" relative="1" as="geometry">
             <mxPoint x="4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="refund-approval:e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="refund-approval:auto" target="refund-approval:pay">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="418" y="784"/>
-              <mxPoint x="418" y="809"/>
-              <mxPoint x="394" y="809"/>
-              <mxPoint x="394" y="1080"/>
-              <mxPoint x="310.75" y="1080"/>
+              <mxPoint x="418" y="804"/>
+              <mxPoint x="418" y="829"/>
+              <mxPoint x="394" y="829"/>
+              <mxPoint x="394" y="1120"/>
+              <mxPoint x="310.75" y="1120"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -165,9 +165,9 @@
         <mxCell id="refund-approval:e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.333;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="refund-approval:ledger" target="refund-approval:end">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="311" y="1250"/>
-              <mxPoint x="311" y="1275"/>
-              <mxPoint x="568" y="1275"/>
+              <mxPoint x="311" y="1290"/>
+              <mxPoint x="311" y="1315"/>
+              <mxPoint x="568" y="1315"/>
             </Array>
           </mxGeometry>
         </mxCell>

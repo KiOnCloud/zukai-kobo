@@ -62,9 +62,15 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 
 ```text
 Verdict: PASS | FAIL
+Images: <diagram id>: opened | not opened (<reason>) ; ...
 Findings:
 - [wrong|missing-rule|polish] [layout|wording|structure] <diagram id> / <element id or path>: <what is wrong> -> <fix, as an IR change>
 ```
+
+The `Images:` line says, for every diagram, whether the reviewer actually opened its PNG
+(every tile when there are several). A diagram whose image was not opened was reviewed on
+the IR and warnings only, and the layout items could not be checked; the closing report
+repeats this line as it is.
 
 Every finding carries a severity first:
 

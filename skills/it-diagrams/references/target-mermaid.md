@@ -74,8 +74,11 @@ Mermaid has no layout to preserve, so a translated diagram is a translated IR: c
 ## Preview
 
 ```bash
-node "<skill-dir>/scripts/bin/cli.mjs" preview ./diagrams/order-checkout.mmd
+node "<skill-dir>/scripts/bin/cli.mjs" preview ./diagrams/order-checkout.mmd --max-px 1600
 ```
+
+`--max-px <n>` caps the longest side and tiles a very tall or wide diagram, as for draw.io
+(see `target-drawio.md`); the JSON lists every file under `files`.
 
 Renders the text with Mermaid 12.3 in a local Chromium through Playwright into a PNG in the
 system temp directory (the text is rendered locally; only the Mermaid library is fetched).

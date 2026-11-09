@@ -1,0 +1,106 @@
+<mxfile host="it-diagrams" compressed="false" type="device">
+  <diagram id="order-fulfilment" name="Order fulfilment">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="order-fulfilment:customer" value="Customer" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="220" height="1178" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:shop" value="Shop" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#dae8fc;swimlaneFillColor=#f0f6ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="364" height="1178" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:warehouse" value="Warehouse" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="624" y="40" width="220" height="1178" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:order" value="Place an order" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:customer">
+          <mxGeometry x="34" y="160" width="122" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:collect" value="Collect the order lines placed in the last 24 hours (express orders: last 48 hours); skip cancelled lines; gift orders: wrapped items only; bulk orders: drop back-ordered items" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:shop">
+          <mxGeometry x="30" y="260" width="260" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:price" value="Price the lines with the customer's current tier, from 00:00 of the order day (members) or the previous day (guests); skip expired coupons" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:shop">
+          <mxGeometry x="30" y="638" width="260" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:pick" value="Pick the items" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:warehouse">
+          <mxGeometry x="34" y="918" width="122" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:ship" value="Ship the parcel" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:warehouse">
+          <mxGeometry x="30.5" y="1018" width="129" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-fulfilment:customer">
+          <mxGeometry x="80" y="70" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:any" value="Any lines?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:shop">
+          <mxGeometry x="90" y="460" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:join" value="" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:shop">
+          <mxGeometry x="140" y="818" width="40" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:done" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-fulfilment:warehouse">
+          <mxGeometry x="80" y="1118" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-fulfilment:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:start" target="order-fulfilment:order">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:order" target="order-fulfilment:collect">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="135" y="270"/>
+              <mxPoint x="420" y="270"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:collect" target="order-fulfilment:any">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:any" target="order-fulfilment:price">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f4:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-fulfilment:f4">
+          <mxGeometry x="0.45" y="0" relative="1" as="geometry">
+            <mxPoint x="22.5" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:any" target="order-fulfilment:join">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="624"/>
+              <mxPoint x="602" y="624"/>
+              <mxPoint x="602" y="828"/>
+              <mxPoint x="420" y="828"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f5:label" value="no: nothing to ship" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-fulfilment:f5">
+          <mxGeometry x="-0.55" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:price" target="order-fulfilment:join">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:join" target="order-fulfilment:pick">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="928"/>
+              <mxPoint x="719" y="928"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:pick" target="order-fulfilment:ship">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-fulfilment:f9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:ship" target="order-fulfilment:done">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

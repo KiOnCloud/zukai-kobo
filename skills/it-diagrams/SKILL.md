@@ -44,9 +44,9 @@ The invocation arguments select the mode and target. Claude Code appends them as
   audience was used and why. `references/variants.md` says what a business view removes and
   keeps, and how to produce a language variant (`relabel` for draw.io) of an existing run.
 - No mode given: ask "Which input do you have: requirements to clarify, code to scout, or a
-  raw idea to brainstorm?" together with the kind question below, in one `AskUserQuestion`
-  call when the runtime has that tool (see the next section), else in one text message.
-  Nothing else is asked before the user answers.
+  raw idea to brainstorm?" as one more part of the opening call described in the next
+  section (mode, kind, scope and view, at most four questions in one `AskUserQuestion`
+  call, else one text message). Nothing else is asked before the user answers.
 
 | Mode | When | Protocol |
 |---|---|---|
@@ -180,10 +180,13 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    (main diagram first). For draw.io with more than one diagram add `--canvas all`, so the
    file opens on a page that shows every diagram side by side before the one-per-page
    copies. For `figjam` follow the target reference; it has no bundle.
-4. Review gate. Run `node "<skill-dir>/scripts/bin/cli.mjs" preview <file>` on each
-   individual output file; it renders a PNG into the system temp directory (path in its
-   JSON output) when draw.io desktop or Playwright is available, exit 1 with a hint
-   otherwise. The PNG is the reviewer's working copy, never an output for the user. Then
+4. Review gate. Run `node "<skill-dir>/scripts/bin/cli.mjs" preview <file> --max-px 1600`
+   on each individual output file; it renders a PNG into the system temp directory when
+   draw.io desktop or Playwright is available, exit 1 with a hint otherwise. The cap keeps
+   the longest side at 1600 px so the reviewer can open the image; a very tall or wide
+   diagram comes back as tiles, all listed under `files` in the JSON output, and the
+   reviewer gets every file. The PNG is the reviewer's working copy, never an output for
+   the user. Then
    have the diagrams reviewed against `references/review-checklist.md`: in Claude Code spawn
    the `diagram-reviewer` agent with the IR paths, the PNG paths and the CLI warnings; in
    other runtimes read the checklist and review as a separate, explicit step in the
@@ -196,8 +199,9 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    preview could be rendered, the review runs on the IR and warnings only and says so.
 5. Show the user: the run folder, the combined file, the list of diagrams in it, every
    warning verbatim, the review verdict with the number of rounds and any remaining
-   findings, whether the review saw a rendered image (when it did not, say so and quote
-   the `preview` hint, which names where it looked for a renderer), the `meta.omitted`
+   findings, the reviewer's own `Images:` line per diagram (opened or not opened; never
+   assume it opened them, and when `preview` failed quote its hint, which names where it
+   looked for a renderer), the `meta.omitted`
    entries of each diagram as "not shown on purpose", the audience used and why when it was
    not asked (flag or reader named in the request), and a one-line summary per diagram;
    with `both`, list the technical and the business IR of each subject together as two

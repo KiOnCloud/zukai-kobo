@@ -1,0 +1,49 @@
+---
+title: "Order fulfilment"
+---
+swimlane-beta TB
+  %% id: customer
+  subgraph n1["Customer"]
+    %% id: order
+    n4["Place an order"]
+    %% id: start
+    n9@{ shape: sm-circ }
+  end
+  %% id: shop
+  subgraph n2["Shop"]
+    %% id: collect
+    n5["Collect the order lines placed in the last 24 hours (express orders: last 48 hours)#59; skip cancelled lines#59; gift orders: wrapped items only#59; bulk orders: drop back-ordered items"]
+    %% id: price
+    n6["Price the lines with the customer's current tier, from 00:00 of the order day (members) or the previous day (guests)#59; skip expired coupons"]
+    %% id: any
+    n10{"Any lines?"}
+    %% id: join
+    n11{" "}
+  end
+  %% id: warehouse
+  subgraph n3["Warehouse"]
+    %% id: pick
+    n7["Pick the items"]
+    %% id: ship
+    n8["Ship the parcel"]
+    %% id: done
+    n12@{ shape: fr-circ }
+  end
+  %% id: f1
+  n9 --> n4
+  %% id: f2
+  n4 --> n5
+  %% id: f3
+  n5 --> n10
+  %% id: f4
+  n10 -->|"yes"| n6
+  %% id: f5
+  n10 -->|"no: nothing to ship"| n11
+  %% id: f6
+  n6 --> n11
+  %% id: f7
+  n11 --> n7
+  %% id: f8
+  n7 --> n8
+  %% id: f9
+  n8 --> n12

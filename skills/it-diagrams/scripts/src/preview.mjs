@@ -78,27 +78,124 @@ export function findDrawioBinary() {
   return { bin: null, tried };
 }
 
-function renderDrawioDesktop(bin, file, out) {
-  const args = ['-x', '-f', 'png', '-s', '2', '-b', '20', '-o', out, file];
-  if (process.platform === 'linux') args.push('--no-sandbox', '--disable-gpu');
-  const r = spawnSync(bin, args, { encoding: 'utf8', timeout: 120_000 });
-  if (r.error || r.status !== 0) return { ok: false, message: (r.stderr || r.error?.message || 'draw.io export failed').trim().slice(0, 300) };
-  return { ok: true };
+/** Pixel size of a PNG from its header. */
+export function pngSize(file) {
+  const head = readFileSync(file).subarray(16, 24);
+  return { width: head.readUInt32BE(0), height: head.readUInt32BE(4) };
 }
 
-async function renderDrawioWeb(pw, xml, out) {
+/**
+ * draw.io desktop exports at scale 2; when the result is longer than `maxPx` on its longest
+ * side it is exported again at the scale that fits.
+ */
+function renderDrawioDesktop(bin, file, out, maxPx) {
+  const run = (scale) => {
+    const args = ['-x', '-f', 'png', '-s', String(scale), '-b', '20', '-o', out, file];
+    if (process.platform === 'linux') args.push('--no-sandbox', '--disable-gpu');
+    const r = spawnSync(bin, args, { encoding: 'utf8', timeout: 120_000 });
+    if (r.error || r.status !== 0) return { ok: false, message: (r.stderr || r.error?.message || 'draw.io export failed').trim().slice(0, 300) };
+    return { ok: true, scale };
+  };
+  let r = run(2);
+  if (!r.ok || !maxPx) return r;
+  const size = pngSize(out);
+  const longest = Math.max(size.width, size.height);
+  if (longest <= maxPx) return r;
+  r = run(Math.max(0.1, Math.floor(((2 * maxPx) / longest) * 100) / 100));
+  return r;
+}
+
+/**
+ * Extent of the first page of a .drawio file in diagram units, from the page-level cells
+ * (vertices with parent "1" and the waypoints of their edges). The viewer fits the page to
+ * the window, so a window of this size shows the diagram at about scale 1.
+ */
+export function drawioExtent(xml) {
+  const page = xml.match(/<diagram\b[\s\S]*?<\/diagram>/)?.[0] ?? xml;
+  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+  const extend = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
+  // Self-closing cells ("0" and "1") are skipped, or they would swallow the next cell's body.
+  for (const m of page.matchAll(/<mxCell\b([^>]*?)(?<!\/)>([\s\S]*?)<\/mxCell>/g)) {
+    if (!/\sparent="1"(?:\s|$)/.test(m[1])) continue;
+    const g = /<mxGeometry x="(-?[\d.]+)" y="(-?[\d.]+)" width="(-?[\d.]+)" height="(-?[\d.]+)"/.exec(m[2]);
+    if (g && /\svertex="1"/.test(m[1])) { extend(+g[1], +g[2]); extend(+g[1] + +g[3], +g[2] + +g[4]); }
+    if (/\sedge="1"/.test(m[1])) for (const p of m[2].matchAll(/<mxPoint x="(-?[\d.]+)" y="(-?[\d.]+)"/g)) extend(+p[1], +p[2]);
+  }
+  if (!Number.isFinite(minX)) return { width: 800, height: 600 };
+  return { width: Math.ceil(maxX - minX), height: Math.ceil(maxY - minY) };
+}
+
+/** Chromium refuses screenshots past about 16k px a side. */
+const MAX_SIDE = 15000;
+
+/**
+ * Screenshot a region of the page at the scale that keeps its longest side within `maxPx`
+ * (2 when unlimited). The region is the one `locate` measures on a probe page, or, when
+ * `fixed` is given, that size with the window made to match it (draw.io's viewer fits the
+ * diagram to the window). A region much taller or wider than it is high would shrink below
+ * scale 1 under the cap, so it is cut into tiles along its long axis instead, each one
+ * within the cap at scale 1; the tiles are written as `<out>-1.png`, `<out>-2.png`, ...
+ */
+async function shoot(browser, url, setup, locate, out, maxPx, fixed) {
+  const margin = 20;
+  let region;
+  if (fixed) {
+    const cap = (v) => Math.min(Math.max(Math.ceil(v), 200), 8000);
+    region = { x: 0, y: 0, width: cap(fixed.width + 2 * margin), height: cap(fixed.height + 2 * margin) };
+  } else {
+    const probe = await browser.newPage({ viewport: { width: 2000, height: 1400 }, deviceScaleFactor: 1 });
+    await setup(probe, url);
+    const box = await locate(probe);
+    await probe.close();
+    if (!box) return { ok: false, message: 'the renderer drew nothing' };
+    region = { x: Math.max(0, box.x - margin), y: Math.max(0, box.y - margin), width: box.width + 2 * margin, height: box.height + 2 * margin };
+  }
+  const longest = Math.max(region.width, region.height);
+  let scale = Math.min(maxPx ? maxPx / longest : 2, 2, MAX_SIDE / longest);
+  const tiles = [];
+  if (maxPx && scale < 1 && longest >= 2 * Math.min(region.width, region.height)) {
+    scale = 1;
+    const vertical = region.height >= region.width;
+    const step = maxPx;
+    const count = Math.ceil(longest / step);
+    for (let i = 0; i < count; i++) {
+      tiles.push(vertical
+        ? { x: region.x, y: region.y + i * step, width: region.width, height: Math.min(step, region.height - i * step) }
+        : { x: region.x + i * step, y: region.y, width: Math.min(step, region.width - i * step), height: region.height });
+    }
+  }
+  const viewport = fixed ? { width: region.width, height: region.height } : { width: Math.ceil(region.x + region.width) + 50, height: Math.ceil(region.y + region.height) + 50 };
+  const page = await browser.newPage({ viewport, deviceScaleFactor: scale });
+  await setup(page, url);
+  await locate(page);
+  if (tiles.length === 0) {
+    await page.screenshot({ path: out, clip: region });
+    await page.close();
+    return { ok: true, scale, files: [out] };
+  }
+  const base = out.replace(/\.png$/i, '');
+  const files = [];
+  for (const [i, clip] of tiles.entries()) {
+    const file = `${base}-${i + 1}.png`;
+    await page.screenshot({ path: file, clip });
+    files.push(file);
+  }
+  await page.close();
+  return { ok: true, scale, files, tiled: true };
+}
+
+async function renderDrawioWeb(pw, xml, out, maxPx) {
   const browser = await pw.chromium.launch();
   try {
-    const page = await browser.newPage({ viewport: { width: 2000, height: 1400 }, deviceScaleFactor: 2 });
-    await page.goto(`${DRAWIO_VIEWER}#R${encodeURIComponent(xml)}`, { waitUntil: 'load', timeout: 90_000 });
-    const drawing = page.locator('.geDiagramContainer svg > g').first();
-    await drawing.waitFor({ state: 'visible', timeout: 60_000 });
-    await page.waitForTimeout(500);
-    const box = await drawing.boundingBox();
-    if (!box) return { ok: false, message: 'draw.io rendered nothing' };
-    const margin = 20;
-    await page.screenshot({ path: out, clip: { x: Math.max(0, box.x - margin), y: Math.max(0, box.y - margin), width: box.width + 2 * margin, height: box.height + 2 * margin } });
-    return { ok: true };
+    const url = `${DRAWIO_VIEWER}#R${encodeURIComponent(xml)}`;
+    const setup = (page, target) => page.goto(target, { waitUntil: 'load', timeout: 90_000 });
+    const locate = async (page) => {
+      const drawing = page.locator('.geDiagramContainer svg > g').first();
+      await drawing.waitFor({ state: 'visible', timeout: 60_000 });
+      await page.waitForTimeout(500);
+      return drawing.boundingBox();
+    };
+    return await shoot(browser, url, setup, locate, out, maxPx, drawioExtent(xml));
   } finally {
     await browser.close();
   }
@@ -119,17 +216,20 @@ const MERMAID_PAGE = `<!doctype html><html><body style="margin:0;background:#fff
   }
 </script></body></html>`;
 
-async function renderMermaidWeb(pw, text, out) {
+async function renderMermaidWeb(pw, text, out, maxPx) {
   const browser = await pw.chromium.launch();
   try {
-    const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 2 });
     const html = MERMAID_PAGE.replace('<script type="module">', `<script type="application/json" id="src">${JSON.stringify(text).replace(/</g, '\\u003c')}</script><script type="module">`);
-    await page.setContent(html, { waitUntil: 'load' });
-    await page.waitForFunction(() => window.__done === true || typeof window.__error === 'string', null, { timeout: 90_000 });
-    const error = await page.evaluate(() => window.__error);
-    if (error) return { ok: false, message: `Mermaid could not render the diagram: ${error.slice(0, 300)}` };
-    await page.locator('#target svg').first().screenshot({ path: out });
-    return { ok: true };
+    let renderError;
+    const setup = async (page) => {
+      await page.setContent(html, { waitUntil: 'load' });
+      await page.waitForFunction(() => window.__done === true || typeof window.__error === 'string', null, { timeout: 90_000 });
+      renderError = await page.evaluate(() => window.__error);
+    };
+    const locate = async (page) => (renderError ? null : page.locator('#target svg').first().boundingBox());
+    const r = await shoot(browser, null, setup, locate, out, maxPx);
+    if (renderError) return { ok: false, message: `Mermaid could not render the diagram: ${renderError.slice(0, 300)}` };
+    return r;
   } finally {
     await browser.close();
   }
@@ -137,7 +237,8 @@ async function renderMermaidWeb(pw, text, out) {
 
 /**
  * @param {string} file path to a .drawio or .mmd file
- * @param {{ out?: string, cwd?: string }} [options]
+ * @param {{ out?: string, cwd?: string, maxPx?: number }} [options] `maxPx` caps the longest side of
+ *   the PNG; a very tall or wide diagram is then cut into tiles at scale 1 instead
  * @returns {Promise<{ ok: boolean, out?: string, renderer?: string, errors: Array<{ path: string, message: string, hint?: string }> }>}
  */
 export async function preview(file, options = {}) {
@@ -160,8 +261,8 @@ export async function preview(file, options = {}) {
   if (ext === '.drawio') {
     const { bin, tried } = findDrawioBinary();
     if (bin) {
-      const r = renderDrawioDesktop(bin, input, out);
-      if (r.ok) return { ok: true, out, renderer: 'drawio-desktop', errors: [] };
+      const r = renderDrawioDesktop(bin, input, out, options.maxPx);
+      if (r.ok) return { ok: true, out, files: [out], scale: r.scale, renderer: 'drawio-desktop', errors: [] };
       attempts.push(`draw.io desktop (${bin}): ${r.message}`);
     } else {
       attempts.push(`draw.io desktop not found; looked for ${tried.join(', ')}`);
@@ -178,8 +279,8 @@ export async function preview(file, options = {}) {
     return { ok: false, errors: [{ path: file, message: `no renderer available (${attempts.join('; ')})`, hint }] };
   }
   try {
-    const r = ext === '.drawio' ? await renderDrawioWeb(pw, text, out) : await renderMermaidWeb(pw, text, out);
-    if (r.ok) return { ok: true, out, renderer: ext === '.drawio' ? 'drawio-web' : 'mermaid-web', errors: [] };
+    const r = ext === '.drawio' ? await renderDrawioWeb(pw, text, out, options.maxPx) : await renderMermaidWeb(pw, text, out, options.maxPx);
+    if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, scale: r.scale, renderer: ext === '.drawio' ? 'drawio-web' : 'mermaid-web', errors: [] };
     return { ok: false, errors: [{ path: file, message: r.message }] };
   } catch (e) {
     attempts.push(`browser render: ${String(e.message).slice(0, 200)}`);

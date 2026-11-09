@@ -1,5 +1,5 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
-import { longestLine } from './text-metrics.mjs';
+import { longestLine, displayLength } from './text-metrics.mjs';
 
 /**
  * Graph layout through elkjs (layered algorithm) for every kind except sequence. ELK never
@@ -11,12 +11,22 @@ const CHAR_WIDTH = 7;
 const LINE_HEIGHT = 20;
 const ROW_HEIGHT = 18;
 
-/** Size of a node from its label and the number of extra rows (attributes, members). */
+/** Lines a text takes in a box of the given width: explicit breaks plus word wrap at the text area. */
+export function wrappedLines(label, width) {
+  const usable = Math.max(width - 24, CHAR_WIDTH);
+  return String(label).split(/\r\n?|\n/).reduce((n, line) => n + Math.max(1, Math.ceil((CHAR_WIDTH * displayLength(line)) / usable)), 0);
+}
+
+/**
+ * Size of a node from its label and the number of extra rows (attributes, members). The
+ * width grows with the longest line up to `maxWidth`; past that the text wraps, and the
+ * height grows by one line height per wrapped line, so a long label never spills over the
+ * box onto its arrows.
+ */
 export function measureNode(label, { extraRows = 0, minWidth = 120, maxWidth = 260, baseHeight = 40 } = {}) {
-  const lines = String(label).split(/\r\n?|\n/);
   const longest = longestLine(label);
   const width = Math.min(maxWidth, Math.max(minWidth, Math.ceil(CHAR_WIDTH * longest) + 24));
-  const height = baseHeight + LINE_HEIGHT * (lines.length - 1) + ROW_HEIGHT * extraRows;
+  const height = baseHeight + LINE_HEIGHT * (wrappedLines(label, width) - 1) + ROW_HEIGHT * extraRows;
   return { width, height };
 }
 

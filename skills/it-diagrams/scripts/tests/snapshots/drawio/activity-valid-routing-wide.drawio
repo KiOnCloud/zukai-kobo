@@ -5,25 +5,25 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="routing-early-exit-shares-the-merge-band:svc" value="Order service" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="935" height="832" as="geometry"/>
+          <mxGeometry x="40" y="40" width="935" height="848" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:a-400" value="Return 400" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
-          <mxGeometry x="30" y="396" width="120" height="40" as="geometry"/>
+          <mxGeometry x="30" y="404" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:a-0" value="Standard order flow" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
-          <mxGeometry x="190" y="396" width="157" height="40" as="geometry"/>
+          <mxGeometry x="190" y="404" width="157" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:a-1" value="Express order flow" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
-          <mxGeometry x="387" y="396" width="150" height="40" as="geometry"/>
+          <mxGeometry x="387" y="404" width="150" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:a-2" value="Backorder flow" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
-          <mxGeometry x="577" y="396" width="122" height="40" as="geometry"/>
+          <mxGeometry x="577" y="404" width="122" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:a-3" value="Pre-order flow" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
-          <mxGeometry x="739" y="396" width="122" height="40" as="geometry"/>
+          <mxGeometry x="739" y="404" width="122" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:a-done" value="Return result" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
-          <mxGeometry x="482.13" y="672" width="120" height="40" as="geometry"/>
+          <mxGeometry x="482.13" y="688" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
           <mxGeometry x="447" y="70" width="30" height="30" as="geometry"/>
@@ -32,13 +32,13 @@
           <mxGeometry x="390.5" y="160" width="143" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:end-400" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
-          <mxGeometry x="75" y="527" width="30" height="30" as="geometry"/>
+          <mxGeometry x="75" y="535" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:d-next" value="Notify customer?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
-          <mxGeometry x="472.13" y="502" width="140" height="80" as="geometry"/>
+          <mxGeometry x="472.13" y="510" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:end-a" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
-          <mxGeometry x="527.13" y="772" width="30" height="30" as="geometry"/>
+          <mxGeometry x="527.13" y="788" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:f0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-early-exit-shares-the-merge-band:start" target="routing-early-exit-shares-the-merge-band:d-type">
           <mxGeometry relative="1" as="geometry">
@@ -53,7 +53,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fr:label" value="unsupported" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-early-exit-shares-the-merge-band:fr">
-          <mxGeometry x="0.29" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.27" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -70,15 +70,15 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fi0:label" value="1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-early-exit-shares-the-merge-band:fi0">
-          <mxGeometry x="0.26" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.23" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fo0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-early-exit-shares-the-merge-band:a-0" target="routing-early-exit-shares-the-merge-band:d-next">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="308.5" y="520"/>
-              <mxPoint x="582.13" y="520"/>
+              <mxPoint x="308.5" y="528"/>
+              <mxPoint x="582.13" y="528"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -87,15 +87,15 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fi1:label" value="2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-early-exit-shares-the-merge-band:fi1">
-          <mxGeometry x="0.59" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.67" y="0" relative="1" as="geometry">
             <mxPoint x="15.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fo1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-early-exit-shares-the-merge-band:a-1" target="routing-early-exit-shares-the-merge-band:d-next">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="502" y="520"/>
-              <mxPoint x="582.13" y="520"/>
+              <mxPoint x="502" y="528"/>
+              <mxPoint x="582.13" y="528"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -108,15 +108,15 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fi2:label" value="3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-early-exit-shares-the-merge-band:fi2">
-          <mxGeometry x="0.62" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.58" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fo2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-early-exit-shares-the-merge-band:a-2" target="routing-early-exit-shares-the-merge-band:d-next">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="678" y="520"/>
-              <mxPoint x="582.13" y="520"/>
+              <mxPoint x="678" y="528"/>
+              <mxPoint x="582.13" y="528"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -129,15 +129,15 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fi3:label" value="4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-early-exit-shares-the-merge-band:fi3">
-          <mxGeometry x="0.65" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.63" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fo3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-early-exit-shares-the-merge-band:a-3" target="routing-early-exit-shares-the-merge-band:d-next">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="840" y="520"/>
-              <mxPoint x="582.13" y="520"/>
+              <mxPoint x="840" y="528"/>
+              <mxPoint x="582.13" y="528"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -146,22 +146,22 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fy:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-early-exit-shares-the-merge-band:fy">
-          <mxGeometry x="0.29" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.45" y="0" relative="1" as="geometry">
             <mxPoint x="22.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fn" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-early-exit-shares-the-merge-band:d-next" target="routing-early-exit-shares-the-merge-band:end-a">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="582.13" y="666"/>
-              <mxPoint x="953" y="666"/>
-              <mxPoint x="953" y="782"/>
-              <mxPoint x="582.13" y="782"/>
+              <mxPoint x="582.13" y="674"/>
+              <mxPoint x="953" y="674"/>
+              <mxPoint x="953" y="798"/>
+              <mxPoint x="582.13" y="798"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:fn:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-early-exit-shares-the-merge-band:fn">
-          <mxGeometry x="-0.15" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.16" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>

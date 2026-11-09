@@ -5,40 +5,40 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="sync-and-async-report:client" value="Client" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="226" height="1316" as="geometry"/>
+          <mxGeometry x="40" y="40" width="226" height="1340" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:api" value="API" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#dae8fc;swimlaneFillColor=#f0f6ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="266" y="40" width="628.5" height="1316" as="geometry"/>
+          <mxGeometry x="266" y="40" width="628.5" height="1340" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:worker" value="Worker" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="894.5" y="40" width="230" height="1316" as="geometry"/>
+          <mxGeometry x="894.5" y="40" width="230" height="1340" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:a-send" value="Request a report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:client">
           <mxGeometry x="30" y="160" width="136" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:a-queue" value="Queue a background job" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="186.5" y="430" width="178" height="40" as="geometry"/>
+          <mxGeometry x="186.5" y="438" width="178" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:a-call" value="Build the report now" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="404.5" y="430" width="164" height="40" as="geometry"/>
+          <mxGeometry x="404.5" y="438" width="164" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:a-accept" value="Reply 202" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="30" y="604" width="120" height="40" as="geometry"/>
+          <mxGeometry x="30" y="612" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:a-job" value="Job builds the report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="190" y="604" width="171" height="40" as="geometry"/>
+          <mxGeometry x="190" y="612" width="171" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:a-empty" value="Empty report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="426.5" y="880" width="120" height="40" as="geometry"/>
+          <mxGeometry x="426.5" y="896" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:a-build" value="Build the report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:worker">
-          <mxGeometry x="32" y="880" width="136" height="40" as="geometry"/>
+          <mxGeometry x="32" y="896" width="136" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:a-return" value="Return the report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="239" y="1150" width="143" height="40" as="geometry"/>
+          <mxGeometry x="239" y="1174" width="143" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:a-send-out" value="Send the report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="422" y="1150" width="129" height="40" as="geometry"/>
+          <mxGeometry x="422" y="1174" width="129" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="sync-and-async-report:client">
           <mxGeometry x="83" y="70" width="30" height="30" as="geometry"/>
@@ -47,22 +47,22 @@
           <mxGeometry x="416.5" y="260" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:fork" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="215.5" y="530" width="120" height="8" as="geometry"/>
+          <mxGeometry x="215.5" y="538" width="120" height="8" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:end-accepted" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="75" y="735" width="30" height="30" as="geometry"/>
+          <mxGeometry x="75" y="743" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:d-check" value="Input usable?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:worker">
-          <mxGeometry x="30" y="710" width="140" height="80" as="geometry"/>
+          <mxGeometry x="30" y="718" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:d-result" value="Who gets it?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="416.5" y="980" width="140" height="80" as="geometry"/>
+          <mxGeometry x="416.5" y="996" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:end-sync" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="295.5" y="1256" width="30" height="30" as="geometry"/>
+          <mxGeometry x="295.5" y="1280" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:end-async" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="sync-and-async-report:api">
-          <mxGeometry x="471.5" y="1256" width="30" height="30" as="geometry"/>
+          <mxGeometry x="471.5" y="1280" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sync-and-async-report:start" target="sync-and-async-report:a-send">
           <mxGeometry relative="1" as="geometry">
@@ -85,7 +85,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="sync-and-async-report:f-async:label" value="async" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="sync-and-async-report:f-async">
-          <mxGeometry x="0.34" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.3" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -94,7 +94,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="sync-and-async-report:f-sync:label" value="sync" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="sync-and-async-report:f-sync">
-          <mxGeometry x="-0.2" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.22" y="0" relative="1" as="geometry">
             <mxPoint x="26" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -105,8 +105,8 @@
         <mxCell id="sync-and-async-report:f-fork-accept" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sync-and-async-report:fork" target="sync-and-async-report:a-accept">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="541.5" y="600"/>
-              <mxPoint x="356" y="600"/>
+              <mxPoint x="541.5" y="608"/>
+              <mxPoint x="356" y="608"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -121,29 +121,29 @@
         <mxCell id="sync-and-async-report:f-job" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sync-and-async-report:a-job" target="sync-and-async-report:d-check">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="541.5" y="728"/>
-              <mxPoint x="994.5" y="728"/>
+              <mxPoint x="541.5" y="736"/>
+              <mxPoint x="994.5" y="736"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="sync-and-async-report:f-call" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sync-and-async-report:a-call" target="sync-and-async-report:d-check">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="752.5" y="728"/>
-              <mxPoint x="994.5" y="728"/>
+              <mxPoint x="752.5" y="736"/>
+              <mxPoint x="994.5" y="736"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="sync-and-async-report:f-no" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sync-and-async-report:d-check" target="sync-and-async-report:a-empty">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="994.5" y="852"/>
-              <mxPoint x="752.5" y="852"/>
+              <mxPoint x="994.5" y="860"/>
+              <mxPoint x="752.5" y="860"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="sync-and-async-report:f-no:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="sync-and-async-report:f-no">
-          <mxGeometry x="0.46" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.43" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -152,7 +152,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="sync-and-async-report:f-yes:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="sync-and-async-report:f-yes">
-          <mxGeometry x="-0.2" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.22" y="0" relative="1" as="geometry">
             <mxPoint x="22.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -163,21 +163,21 @@
         <mxCell id="sync-and-async-report:f-build" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sync-and-async-report:a-build" target="sync-and-async-report:d-result">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="994.5" y="990"/>
-              <mxPoint x="752.5" y="990"/>
+              <mxPoint x="994.5" y="1006"/>
+              <mxPoint x="752.5" y="1006"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="sync-and-async-report:f-r-sync" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sync-and-async-report:d-result" target="sync-and-async-report:a-return">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="752.5" y="1122"/>
-              <mxPoint x="576.5" y="1122"/>
+              <mxPoint x="752.5" y="1138"/>
+              <mxPoint x="576.5" y="1138"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="sync-and-async-report:f-r-sync:label" value="sync" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="sync-and-async-report:f-r-sync">
-          <mxGeometry x="0.28" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.24" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -186,7 +186,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="sync-and-async-report:f-r-async:label" value="async" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="sync-and-async-report:f-r-async">
-          <mxGeometry x="-0.2" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.22" y="0" relative="1" as="geometry">
             <mxPoint x="29.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>

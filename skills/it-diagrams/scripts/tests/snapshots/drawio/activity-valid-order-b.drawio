@@ -5,16 +5,16 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="order-b-same-flow-main-path-declared-fir:svc" value="Order service" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="411.5" height="596" as="geometry"/>
+          <mxGeometry x="40" y="40" width="411.5" height="604" as="geometry"/>
         </mxCell>
         <mxCell id="order-b-same-flow-main-path-declared-fir:a-reserve" value="Reserve stock" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
-          <mxGeometry x="34.5" y="330" width="120" height="40" as="geometry"/>
+          <mxGeometry x="34.5" y="338" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-b-same-flow-main-path-declared-fir:a-reject" value="Return empty result" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
-          <mxGeometry x="194.5" y="330" width="157" height="40" as="geometry"/>
+          <mxGeometry x="194.5" y="338" width="157" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-b-same-flow-main-path-declared-fir:a-ship" value="Create shipment" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
-          <mxGeometry x="30" y="436" width="129" height="40" as="geometry"/>
+          <mxGeometry x="30" y="444" width="129" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-b-same-flow-main-path-declared-fir:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
           <mxGeometry x="258" y="70" width="30" height="30" as="geometry"/>
@@ -23,10 +23,10 @@
           <mxGeometry x="203" y="160" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="order-b-same-flow-main-path-declared-fir:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
-          <mxGeometry x="79.5" y="536" width="30" height="30" as="geometry"/>
+          <mxGeometry x="79.5" y="544" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="order-b-same-flow-main-path-declared-fir:end-empty" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
-          <mxGeometry x="258" y="441" width="30" height="30" as="geometry"/>
+          <mxGeometry x="258" y="449" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="order-b-same-flow-main-path-declared-fir:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-b-same-flow-main-path-declared-fir:start" target="order-b-same-flow-main-path-declared-fir:d-stock">
           <mxGeometry relative="1" as="geometry">
@@ -41,7 +41,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="order-b-same-flow-main-path-declared-fir:f2:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-b-same-flow-main-path-declared-fir:f2">
-          <mxGeometry x="0.31" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.27" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -50,7 +50,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="order-b-same-flow-main-path-declared-fir:f3:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-b-same-flow-main-path-declared-fir:f3">
-          <mxGeometry x="-0.2" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.22" y="0" relative="1" as="geometry">
             <mxPoint x="19" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>

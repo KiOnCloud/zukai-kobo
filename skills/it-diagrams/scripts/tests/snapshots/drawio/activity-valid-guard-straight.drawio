@@ -5,13 +5,13 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="guard-on-a-straight-branch:svc" value="Order service" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="230" height="490" as="geometry"/>
+          <mxGeometry x="40" y="40" width="230" height="498" as="geometry"/>
         </mxCell>
         <mxCell id="guard-on-a-straight-branch:bank" value="Bank" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#dae8fc;swimlaneFillColor=#f0f6ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="270" y="40" width="220" height="490" as="geometry"/>
+          <mxGeometry x="270" y="40" width="220" height="498" as="geometry"/>
         </mxCell>
         <mxCell id="guard-on-a-straight-branch:a-ask" value="Check the limit" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="guard-on-a-straight-branch:bank">
-          <mxGeometry x="30.5" y="330" width="129" height="40" as="geometry"/>
+          <mxGeometry x="30.5" y="338" width="129" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="guard-on-a-straight-branch:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="guard-on-a-straight-branch:svc">
           <mxGeometry x="85" y="70" width="30" height="30" as="geometry"/>
@@ -20,10 +20,10 @@
           <mxGeometry x="30" y="160" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="guard-on-a-straight-branch:end-a" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="guard-on-a-straight-branch:svc">
-          <mxGeometry x="85" y="335" width="30" height="30" as="geometry"/>
+          <mxGeometry x="85" y="343" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="guard-on-a-straight-branch:end-b" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="guard-on-a-straight-branch:bank">
-          <mxGeometry x="80" y="430" width="30" height="30" as="geometry"/>
+          <mxGeometry x="80" y="438" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="guard-on-a-straight-branch:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch:start" target="guard-on-a-straight-branch:d">
           <mxGeometry relative="1" as="geometry">
@@ -34,7 +34,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="guard-on-a-straight-branch:f-yes:label" value="yes: nothing is sent" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="guard-on-a-straight-branch:f-yes">
-          <mxGeometry x="0.22" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.43" y="0" relative="1" as="geometry">
             <mxPoint x="82" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -47,7 +47,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="guard-on-a-straight-branch:f-no:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="guard-on-a-straight-branch:f-no">
-          <mxGeometry x="0.57" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.54" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>

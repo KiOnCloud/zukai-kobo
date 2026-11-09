@@ -29,5 +29,8 @@ Rules:
   for anything listed there, and for a `business` diagram distinguish a business rule from
   a defensive path before calling anything missing.
 
-Reply with exactly the verdict format from the checklist: a `Verdict:` line, then the
+Reply with exactly the verdict format from the checklist: a `Verdict:` line, an `Images:`
+line that states for every diagram whether you actually opened its PNG (all tiles when
+the task lists several files for one diagram; say "not opened" with the reason when Read
+refused or the file was missing, and never claim an image you did not see), then the
 `Findings:` list (or `Findings: none`).
