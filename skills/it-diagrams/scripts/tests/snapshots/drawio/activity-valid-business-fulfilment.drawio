@@ -13,19 +13,19 @@
         <mxCell id="order-fulfilment:warehouse" value="Warehouse" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="624" y="40" width="220" height="1178" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:order" value="Place an order" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:customer">
+        <mxCell id="order-fulfilment:order" value="Place an order" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:customer">
           <mxGeometry x="34" y="160" width="122" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:collect" value="Collect the order lines placed in the last 24 hours (express orders: last 48 hours); skip cancelled lines; gift orders: wrapped items only; bulk orders: drop back-ordered items" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:shop">
+        <mxCell id="order-fulfilment:collect" value="Collect the order lines placed in the last 24 hours (express orders: last 48 hours); skip cancelled lines; gift orders: wrapped items only; bulk orders: drop back-ordered items" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:shop">
           <mxGeometry x="30" y="260" width="260" height="140" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:price" value="Price the lines with the customer's current tier, from 00:00 of the order day (members) or the previous day (guests); skip expired coupons" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:shop">
+        <mxCell id="order-fulfilment:price" value="Price the lines with the customer's current tier, from 00:00 of the order day (members) or the previous day (guests); skip expired coupons" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:shop">
           <mxGeometry x="30" y="638" width="260" height="120" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:pick" value="Pick the items" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:warehouse">
+        <mxCell id="order-fulfilment:pick" value="Pick the items" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:warehouse">
           <mxGeometry x="34" y="918" width="122" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:ship" value="Ship the parcel" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:warehouse">
+        <mxCell id="order-fulfilment:ship" value="Ship the parcel" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:warehouse">
           <mxGeometry x="30.5" y="1018" width="129" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-fulfilment:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-fulfilment:customer">

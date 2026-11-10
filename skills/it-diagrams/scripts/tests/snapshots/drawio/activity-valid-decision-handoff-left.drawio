@@ -13,19 +13,19 @@
         <mxCell id="invoice-download:store" value="Invoice store" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="850" y="40" width="350" height="818" as="geometry"/>
         </mxCell>
-        <mxCell id="invoice-download:ask" value="Request an invoice PDF" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="invoice-download:client">
+        <mxCell id="invoice-download:ask" value="Request an invoice PDF" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:client">
           <mxGeometry x="30" y="160" width="178" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="invoice-download:lookup" value="Find the invoice file by number and version" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="invoice-download:store">
+        <mxCell id="invoice-download:lookup" value="Find the invoice file by number and version" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:store">
           <mxGeometry x="30" y="260" width="260" height="60" as="geometry"/>
         </mxCell>
-        <mxCell id="invoice-download:missing" value="Return 'invoice not found'" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="invoice-download:api">
+        <mxCell id="invoice-download:missing" value="Return 'invoice not found'" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:api">
           <mxGeometry x="276" y="558" width="206" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="invoice-download:stream" value="Send the PDF to the client" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="invoice-download:api">
+        <mxCell id="invoice-download:stream" value="Send the PDF to the client" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:api">
           <mxGeometry x="30" y="558" width="206" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="invoice-download:save" value="Save the PDF" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="invoice-download:client">
+        <mxCell id="invoice-download:save" value="Save the PDF" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:client">
           <mxGeometry x="59" y="658" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="invoice-download:client">

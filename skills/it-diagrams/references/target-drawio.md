@@ -147,6 +147,15 @@ across re-runs.
   tune it there if Japanese or very long labels wrap badly. Labels wrap inside the shape
   (`whiteSpace=wrap`), and the height grows by one line height per wrapped line at the
   clamped width, so a long label gets a taller box instead of spilling onto its arrows.
+- Label padding: the 24 px are 12 px of clear space on each side of the text (`LABEL_PAD`),
+  and the node styles draw them as `spacingLeft=10;spacingRight=10;` on top of draw.io's own
+  2 px. The text therefore wraps at the width its height was measured for, and a line that
+  fills that width stops 12 px short of the border and of an arrowhead that ends on it. A
+  parallelogram (`io`) and a hexagon (`queue`) are narrower than their box by a 20 px slant
+  (`size=20`), so their text keeps 22 px on each side and their box is 20 px wider for the
+  same label. A cylinder's side walls are straight, so it keeps the 12 px. A subroutine has
+  no extra spacing: draw.io already bounds its label by the side bars. Decisions are sized
+  by the next rule.
 - Decision size: a rhombus is narrower than its box everywhere but the centre line, so its
   question is measured against the inscribed rectangle (a block `a` x `b` fits a `w` x `h`
   rhombus when `a/w + b/h <= 1`). The question takes the line count draw.io gives it in the

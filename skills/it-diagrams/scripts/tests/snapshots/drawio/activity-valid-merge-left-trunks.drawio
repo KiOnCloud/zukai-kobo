@@ -13,22 +13,22 @@
         <mxCell id="catalogue-export:store" value="Product store" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="953.5" y="40" width="345" height="1260" as="geometry"/>
         </mxCell>
-        <mxCell id="catalogue-export:ask" value="Request the catalogue of one shop" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:client">
+        <mxCell id="catalogue-export:ask" value="Request the catalogue of one shop" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="catalogue-export:client">
           <mxGeometry x="30" y="160" width="255" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="catalogue-export:cats" value="Read the shop's active categories" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:store">
+        <mxCell id="catalogue-export:cats" value="Read the shop's active categories" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="catalogue-export:store">
           <mxGeometry x="30" y="438" width="255" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="catalogue-export:items" value="Read the products on sale today" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:store">
+        <mxCell id="catalogue-export:items" value="Read the products on sale today" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="catalogue-export:store">
           <mxGeometry x="37" y="716" width="241" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="catalogue-export:shape" value="Drop products without a price" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+        <mxCell id="catalogue-export:shape" value="Drop products without a price" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="catalogue-export:api">
           <mxGeometry x="281.5" y="994" width="227" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="catalogue-export:send" value="Return the catalogue" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+        <mxCell id="catalogue-export:send" value="Return the catalogue" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="catalogue-export:api">
           <mxGeometry x="313" y="1100" width="164" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="catalogue-export:none" value="Return an empty catalogue" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="catalogue-export:api">
+        <mxCell id="catalogue-export:none" value="Return an empty catalogue" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="catalogue-export:api">
           <mxGeometry x="74" y="1100" width="199" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="catalogue-export:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="catalogue-export:client">

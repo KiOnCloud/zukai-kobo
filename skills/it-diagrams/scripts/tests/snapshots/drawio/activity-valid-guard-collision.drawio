@@ -13,25 +13,25 @@
         <mxCell id="corporate-login:api" value="Client API" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="713" y="40" width="289" height="1298" as="geometry"/>
         </mxCell>
-        <mxCell id="corporate-login:enter" value="Enter custID and custPass" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="corporate-login:user">
+        <mxCell id="corporate-login:enter" value="Enter custID and custPass" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="corporate-login:user">
           <mxGeometry x="74" y="260" width="199" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="corporate-login:submit" value="Submit login-by-staff" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="corporate-login:web">
+        <mxCell id="corporate-login:submit" value="Submit login-by-staff" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="corporate-login:web">
           <mxGeometry x="91.5" y="360" width="171" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="corporate-login:verify" value="Verify staff with CK Pass" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="corporate-login:api">
+        <mxCell id="corporate-login:verify" value="Verify staff with CK Pass" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="corporate-login:api">
           <mxGeometry x="30" y="460" width="199" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="corporate-login:filter" value="Filter active offices" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="corporate-login:api">
+        <mxCell id="corporate-login:filter" value="Filter active offices" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="corporate-login:api">
           <mxGeometry x="44" y="738" width="171" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="corporate-login:store" value="Store token and staff info" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="corporate-login:web">
+        <mxCell id="corporate-login:store" value="Store token and staff info" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="corporate-login:web">
           <mxGeometry x="74" y="866" width="206" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="corporate-login:pick-office" value="Choose office" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="corporate-login:user">
+        <mxCell id="corporate-login:pick-office" value="Choose office" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="corporate-login:user">
           <mxGeometry x="113.5" y="1138" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="corporate-login:error" value="Show login error" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="corporate-login:web">
+        <mxCell id="corporate-login:error" value="Show login error" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="corporate-login:web">
           <mxGeometry x="109" y="738" width="136" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="corporate-login:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="corporate-login:user">

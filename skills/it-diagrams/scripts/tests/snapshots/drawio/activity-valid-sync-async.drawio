@@ -13,31 +13,31 @@
         <mxCell id="sync-and-async-report:worker" value="Worker" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="894.5" y="40" width="230" height="1340" as="geometry"/>
         </mxCell>
-        <mxCell id="sync-and-async-report:a-send" value="Request a report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:client">
+        <mxCell id="sync-and-async-report:a-send" value="Request a report" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="sync-and-async-report:client">
           <mxGeometry x="30" y="160" width="136" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="sync-and-async-report:a-queue" value="Queue a background job" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
+        <mxCell id="sync-and-async-report:a-queue" value="Queue a background job" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="sync-and-async-report:api">
           <mxGeometry x="186.5" y="438" width="178" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="sync-and-async-report:a-call" value="Build the report now" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
+        <mxCell id="sync-and-async-report:a-call" value="Build the report now" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="sync-and-async-report:api">
           <mxGeometry x="404.5" y="438" width="164" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="sync-and-async-report:a-accept" value="Reply 202" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
+        <mxCell id="sync-and-async-report:a-accept" value="Reply 202" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="sync-and-async-report:api">
           <mxGeometry x="30" y="612" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="sync-and-async-report:a-job" value="Job builds the report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
+        <mxCell id="sync-and-async-report:a-job" value="Job builds the report" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="sync-and-async-report:api">
           <mxGeometry x="190" y="612" width="171" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="sync-and-async-report:a-empty" value="Empty report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
+        <mxCell id="sync-and-async-report:a-empty" value="Empty report" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="sync-and-async-report:api">
           <mxGeometry x="426.5" y="896" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="sync-and-async-report:a-build" value="Build the report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:worker">
+        <mxCell id="sync-and-async-report:a-build" value="Build the report" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="sync-and-async-report:worker">
           <mxGeometry x="32" y="896" width="136" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="sync-and-async-report:a-return" value="Return the report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
+        <mxCell id="sync-and-async-report:a-return" value="Return the report" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="sync-and-async-report:api">
           <mxGeometry x="239" y="1174" width="143" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="sync-and-async-report:a-send-out" value="Send the report" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="sync-and-async-report:api">
+        <mxCell id="sync-and-async-report:a-send-out" value="Send the report" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="sync-and-async-report:api">
           <mxGeometry x="422" y="1174" width="129" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="sync-and-async-report:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="sync-and-async-report:client">

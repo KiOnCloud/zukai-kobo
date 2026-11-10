@@ -1,5 +1,5 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
-import { layoutGraph, measureNode, measureDecision, measureLabel, measureLabelBelow } from './layout-graph.mjs';
+import { layoutGraph, measureNode, measureDecision, measureLabel, measureLabelBelow, LABEL_PAD } from './layout-graph.mjs';
 import { layoutSequence } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
 import { longestLine, displayLength } from './text-metrics.mjs';
@@ -120,20 +120,42 @@ export function slugify(title) {
   return s || 'diagram';
 }
 
+/**
+ * The slant of a parallelogram and of a hexagon: how far their outline runs into the box on
+ * the left and right (draw.io's `size` for a shape with `fixedSize=1`).
+ */
+const SLANT = 20;
+/**
+ * Room between the box and the text on each side, for the shapes whose outline is narrower
+ * than their box; every other labelled node keeps LABEL_PAD. A parallelogram's side is half
+ * the slant in at mid-height, where an arrowhead meets it, and a hexagon's corner cuts up to
+ * the whole slant, so their text starts LABEL_PAD past the half slant: clear of the arrowhead
+ * by the usual margin and of the slanted line at every height the text reaches.
+ */
+const SHAPE_PAD = { io: SLANT / 2 + LABEL_PAD, queue: SLANT / 2 + LABEL_PAD };
+const padOf = (shape) => SHAPE_PAD[shape] ?? LABEL_PAD;
+/**
+ * Label spacing that draws the room `measureNode` counted on each side of a node's text.
+ * draw.io keeps 2 px of its own, so the rest is added: the text wraps `pad` px inside the
+ * box and a full line touches neither the border nor an arrowhead on it.
+ */
+const labelPad = (shape) => `spacingLeft=${padOf(shape) - 2};spacingRight=${padOf(shape) - 2};`;
+
 export const STYLE = {
   // flowchart
-  process: 'whiteSpace=wrap;html=1;',
-  terminal: 'rounded=1;whiteSpace=wrap;html=1;',
+  process: `whiteSpace=wrap;html=1;${labelPad('process')}`,
+  terminal: `rounded=1;whiteSpace=wrap;html=1;${labelPad('terminal')}`,
   decision: 'rhombus;whiteSpace=wrap;html=1;',
-  io: 'shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;',
+  io: `shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;size=${SLANT};${labelPad('io')}`,
+  // The side bars of a subroutine already bound its label, a tenth of the width in from each side.
   subroutine: 'shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;',
-  note: 'shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;',
+  note: `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;${labelPad('note')}`,
   container: 'swimlane;whiteSpace=wrap;html=1;startSize=30;',
   flowEdge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;',
   // state
   initial: 'ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;',
   final: 'ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;',
-  state: 'rounded=1;whiteSpace=wrap;html=1;arcSize=30;',
+  state: `rounded=1;whiteSpace=wrap;html=1;arcSize=30;${labelPad('state')}`,
   composite: 'swimlane;whiteSpace=wrap;html=1;startSize=30;rounded=1;arcSize=10;',
   // er and class tables
   table: 'swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;',
@@ -142,12 +164,12 @@ export const STYLE = {
   erEdge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;',
   classEdge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;',
   // architecture
-  service: 'rounded=1;whiteSpace=wrap;html=1;',
-  database: 'shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;',
-  queue: 'shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;',
-  cache: 'shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;dashed=1;',
+  service: `rounded=1;whiteSpace=wrap;html=1;${labelPad('service')}`,
+  database: `shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;${labelPad('database')}`,
+  queue: `shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;size=${SLANT};${labelPad('queue')}`,
+  cache: `shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;dashed=1;${labelPad('cache')}`,
   client: 'shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;',
-  external: 'rounded=1;whiteSpace=wrap;html=1;dashed=1;',
+  external: `rounded=1;whiteSpace=wrap;html=1;dashed=1;${labelPad('external')}`,
   // activity
   lane: 'swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;',
   bar: 'rounded=0;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;',
@@ -449,7 +471,7 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   const nodes = ir.nodes.map((n, i) => {
     const shape = n.ref ? 'subroutine' : (n.shape ?? 'process');
     const { label, link } = refLabel(n.label, n.ref, refs, `/nodes/${i}/ref`, warnings);
-    const size = shape === 'decision' ? measureDecision(label) : measureNode(label);
+    const size = shape === 'decision' ? measureDecision(label) : measureNode(label, { pad: padOf(shape) });
     const extra = loopExtra.get(n.id) ?? 0;
     return { id: n.id, label, link, parent: parent.get(n.id), style: shape === 'decision' ? decisionStyle(size) : STYLE[shape], width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
   });
@@ -742,7 +764,7 @@ async function emitArchitecture(ir, cid, refs, warnings) {
       const b = below.get(c.id);
       return { ...node, style: `${STYLE.client}labelWidth=${b.wrap};`, width: actorWidth.get(node.parent), height: even(ACTOR.height + b.height), drawWidth: ACTOR.width, drawHeight: ACTOR.height };
     }
-    return { ...node, ...(kind === 'database' || kind === 'cache' ? measureNode(label, { baseHeight: 70 }) : measureNode(label)) };
+    return { ...node, ...measureNode(label, { pad: padOf(kind), baseHeight: kind === 'database' || kind === 'cache' ? 70 : 40 }) };
   });
   const edges = ir.connections.map((c) => ({ id: c.id, from: c.from, to: c.to, label: c.label, style: `${STYLE.flowEdge}${c.bidirectional ? 'startArrow=classic;startFill=1;' : ''}` }));
   const spacing = { nodeNode: 50, layer: 80 };

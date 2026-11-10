@@ -7,10 +7,10 @@
         <mxCell id="order-checkout:fulfilment" value="Fulfilment" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
           <mxGeometry x="12" y="433" width="232" height="286" as="geometry"/>
         </mxCell>
-        <mxCell id="order-checkout:start" value="Customer submits cart" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="order-checkout:start" value="Customer submits cart" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="209" y="12" width="171" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-checkout:validate" value="Validate cart contents" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="order-checkout:validate" value="Validate cart contents" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="206" y="112" width="178" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-checkout:in-stock" value="All items in stock?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
@@ -22,16 +22,16 @@
         <mxCell id="order-checkout:payment" value="Capture payment&lt;br&gt;↳ order-checkout-payment" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="order-checkout:fulfilment">
           <mxGeometry x="20" y="110" width="192" height="60" as="geometry"/>
         </mxCell>
-        <mxCell id="order-checkout:receipt" value="Send receipt email" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="order-checkout:fulfilment">
-          <mxGeometry x="41" y="226" width="150" height="40" as="geometry"/>
+        <mxCell id="order-checkout:receipt" value="Send receipt email" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;size=20;spacingLeft=20;spacingRight=20;" vertex="1" parent="order-checkout:fulfilment">
+          <mxGeometry x="31" y="226" width="170" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-checkout:done" value="Order placed" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="order-checkout:done" value="Order placed" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="88" y="784" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-checkout:backorder" value="Offer backorder" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="order-checkout:backorder" value="Offer backorder" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="284" y="556" width="129" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-checkout:hint" value="Stock is checked per warehouse" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;" vertex="1" parent="1">
+        <mxCell id="order-checkout:hint" value="Stock is checked per warehouse" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="424" y="112" width="234" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-checkout:e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.503;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:start" target="order-checkout:validate">

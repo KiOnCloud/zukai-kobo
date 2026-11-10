@@ -10,7 +10,7 @@
         <mxCell id="guard-on-a-straight-branch:bank" value="Bank" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#dae8fc;swimlaneFillColor=#f0f6ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="270" y="40" width="220" height="498" as="geometry"/>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch:a-ask" value="Check the limit" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="guard-on-a-straight-branch:bank">
+        <mxCell id="guard-on-a-straight-branch:a-ask" value="Check the limit" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="guard-on-a-straight-branch:bank">
           <mxGeometry x="30.5" y="338" width="129" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="guard-on-a-straight-branch:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="guard-on-a-straight-branch:svc">

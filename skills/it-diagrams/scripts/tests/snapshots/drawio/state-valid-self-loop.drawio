@@ -10,16 +10,16 @@
         <mxCell id="payment-retries:s0" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="738" y="12" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="payment-retries:pay" value="Awaiting payment" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;" vertex="1" parent="1">
+        <mxCell id="payment-retries:pay" value="Awaiting payment" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="685" y="102" width="136" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="payment-retries:check" value="Checking" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;" vertex="1" parent="payment-retries:review">
+        <mxCell id="payment-retries:check" value="Checking" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="payment-retries:review">
           <mxGeometry x="210" y="50" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="payment-retries:hold" value="On hold" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;" vertex="1" parent="payment-retries:review">
+        <mxCell id="payment-retries:hold" value="On hold" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="payment-retries:review">
           <mxGeometry x="210" y="146" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="payment-retries:paid" value="Paid" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;" vertex="1" parent="1">
+        <mxCell id="payment-retries:paid" value="Paid" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="584" y="630" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="payment-retries:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">

@@ -7,10 +7,10 @@
         <mxCell id="order-platform-main:web" value="Back office&lt;br&gt;↳ order-sync-02-store" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=155;" vertex="1" parent="1">
           <mxGeometry x="70" y="17" width="40" height="60" as="geometry"/>
         </mxCell>
-        <mxCell id="order-platform-main:api" value="Order API&lt;br&gt;↳ order-sync-01-load" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="order-platform-main:api" value="Order API&lt;br&gt;↳ order-sync-01-load" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="371" y="17" width="164" height="60" as="geometry"/>
         </mxCell>
-        <mxCell id="order-platform-main:db" value="Orders DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+        <mxCell id="order-platform-main:db" value="Orders DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="724" y="12" width="120" height="70" as="geometry"/>
         </mxCell>
         <mxCell id="order-platform-main:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-main:web" target="order-platform-main:api">

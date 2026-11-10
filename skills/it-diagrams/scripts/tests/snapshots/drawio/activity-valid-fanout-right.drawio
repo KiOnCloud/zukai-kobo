@@ -7,19 +7,19 @@
         <mxCell id="routing-reject-branch-next-to-merged-bra:svc" value="Order service" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="40" y="40" width="704" height="826" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-reject-branch-next-to-merged-bra:a-400" value="Return 400" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-400" value="Return 400" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
           <mxGeometry x="30" y="382" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-reject-branch-next-to-merged-bra:a-A" value="Process A" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-A" value="Process A" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
           <mxGeometry x="190" y="382" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-reject-branch-next-to-merged-bra:a-B" value="Process B" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-B" value="Process B" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
           <mxGeometry x="350" y="382" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-reject-branch-next-to-merged-bra:a-C" value="Process C" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-C" value="Process C" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
           <mxGeometry x="510" y="382" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-reject-branch-next-to-merged-bra:a-done" value="Return result" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
+        <mxCell id="routing-reject-branch-next-to-merged-bra:a-done" value="Return result" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">
           <mxGeometry x="350" y="666" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="routing-reject-branch-next-to-merged-bra:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="routing-reject-branch-next-to-merged-bra:svc">

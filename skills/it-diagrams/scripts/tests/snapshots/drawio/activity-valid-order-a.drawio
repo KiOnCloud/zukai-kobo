@@ -7,13 +7,13 @@
         <mxCell id="order-a-early-exit-declared-first:svc" value="Order service" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="40" y="40" width="417" height="604" as="geometry"/>
         </mxCell>
-        <mxCell id="order-a-early-exit-declared-first:a-reject" value="Return empty result" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-a-early-exit-declared-first:svc">
+        <mxCell id="order-a-early-exit-declared-first:a-reject" value="Return empty result" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-a-early-exit-declared-first:svc">
           <mxGeometry x="30" y="338" width="157" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-a-early-exit-declared-first:a-reserve" value="Reserve stock" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-a-early-exit-declared-first:svc">
+        <mxCell id="order-a-early-exit-declared-first:a-reserve" value="Reserve stock" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-a-early-exit-declared-first:svc">
           <mxGeometry x="227" y="338" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-a-early-exit-declared-first:a-ship" value="Create shipment" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-a-early-exit-declared-first:svc">
+        <mxCell id="order-a-early-exit-declared-first:a-ship" value="Create shipment" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-a-early-exit-declared-first:svc">
           <mxGeometry x="222.5" y="444" width="129" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-a-early-exit-declared-first:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-a-early-exit-declared-first:svc">

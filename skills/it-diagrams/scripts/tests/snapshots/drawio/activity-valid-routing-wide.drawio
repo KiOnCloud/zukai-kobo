@@ -7,22 +7,22 @@
         <mxCell id="routing-early-exit-shares-the-merge-band:svc" value="Order service" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="40" y="40" width="935" height="848" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-early-exit-shares-the-merge-band:a-400" value="Return 400" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
+        <mxCell id="routing-early-exit-shares-the-merge-band:a-400" value="Return 400" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
           <mxGeometry x="30" y="404" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-early-exit-shares-the-merge-band:a-0" value="Standard order flow" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
+        <mxCell id="routing-early-exit-shares-the-merge-band:a-0" value="Standard order flow" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
           <mxGeometry x="190" y="404" width="157" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-early-exit-shares-the-merge-band:a-1" value="Express order flow" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
+        <mxCell id="routing-early-exit-shares-the-merge-band:a-1" value="Express order flow" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
           <mxGeometry x="387" y="404" width="150" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-early-exit-shares-the-merge-band:a-2" value="Backorder flow" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
+        <mxCell id="routing-early-exit-shares-the-merge-band:a-2" value="Backorder flow" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
           <mxGeometry x="577" y="404" width="122" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-early-exit-shares-the-merge-band:a-3" value="Pre-order flow" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
+        <mxCell id="routing-early-exit-shares-the-merge-band:a-3" value="Pre-order flow" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
           <mxGeometry x="739" y="404" width="122" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="routing-early-exit-shares-the-merge-band:a-done" value="Return result" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
+        <mxCell id="routing-early-exit-shares-the-merge-band:a-done" value="Return result" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">
           <mxGeometry x="482.13" y="688" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="routing-early-exit-shares-the-merge-band:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="routing-early-exit-shares-the-merge-band:svc">

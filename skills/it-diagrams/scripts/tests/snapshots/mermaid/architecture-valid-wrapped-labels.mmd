@@ -1,0 +1,26 @@
+---
+title: "Report service"
+---
+architecture-beta
+  %% id: web
+  service n1(internet)[Web app]
+  %% id: jobs
+  service n2(server)[Scheduler]
+  %% id: svc
+  service n3(server)[Report service (PDF, CSV, XLSX, HTML, JSON, ...) - stateless]
+  %% id: main-db
+  service n4(database)[Main DB (orders, invoices, customers, payments)]
+  %% id: arch-db
+  service n5(database)[Archive DB of closed customer accounts (read only)]
+  %% id: exports
+  service n6(server)[Export requests waiting for the nightly run (FIFO)]
+  %% id: c1
+  n1:R --> L:n3
+  %% id: c2
+  n2:B --> T:n3
+  %% id: c3
+  n3:R --> L:n4
+  %% id: c4
+  n3:B --> T:n5
+  %% id: c5
+  n2:R --> L:n6

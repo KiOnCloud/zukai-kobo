@@ -13,28 +13,28 @@
         <mxCell id="order-fulfilment:finance" value="Finance" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="571" y="40" width="230" height="1184" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:receive" value="Receive order" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:sales">
+        <mxCell id="order-fulfilment:receive" value="Receive order" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:sales">
           <mxGeometry x="85.5" y="160" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:pick" value="Pick items" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:warehouse">
+        <mxCell id="order-fulfilment:pick" value="Pick items" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:warehouse">
           <mxGeometry x="52" y="334" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:pack" value="Pack parcel" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:warehouse">
+        <mxCell id="order-fulfilment:pack" value="Pack parcel" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:warehouse">
           <mxGeometry x="52" y="440" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:invoice" value="Issue invoice" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:finance">
+        <mxCell id="order-fulfilment:invoice" value="Issue invoice" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:finance">
           <mxGeometry x="40" y="334" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:capture" value="Capture payment" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:finance">
+        <mxCell id="order-fulfilment:capture" value="Capture payment" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:finance">
           <mxGeometry x="35.5" y="440" width="129" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:ship" value="Hand over to carrier" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:warehouse">
+        <mxCell id="order-fulfilment:ship" value="Hand over to carrier" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:warehouse">
           <mxGeometry x="30" y="824" width="164" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:notify" value="Notify customer" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:sales">
+        <mxCell id="order-fulfilment:notify" value="Notify customer" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:sales">
           <mxGeometry x="81" y="924" width="129" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-fulfilment:hold" value="Put order on hold" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-fulfilment:sales">
+        <mxCell id="order-fulfilment:hold" value="Put order on hold" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-fulfilment:sales">
           <mxGeometry x="74" y="718" width="143" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-fulfilment:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-fulfilment:sales">

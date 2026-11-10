@@ -10,16 +10,16 @@
         <mxCell id="order-lifecycle-main:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="104" y="12" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="order-lifecycle-main:new" value="New" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;" vertex="1" parent="1">
+        <mxCell id="order-lifecycle-main:new" value="New" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="59" y="102" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-lifecycle-main:paying" value="Paying&lt;br&gt;↳ order-sync-01-load" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;" vertex="1" parent="1">
+        <mxCell id="order-lifecycle-main:paying" value="Paying&lt;br&gt;↳ order-sync-01-load" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="37" y="278" width="164" height="60" as="geometry"/>
         </mxCell>
-        <mxCell id="order-lifecycle-main:picking" value="Picking" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;" vertex="1" parent="order-lifecycle-main:fulfil">
+        <mxCell id="order-lifecycle-main:picking" value="Picking" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-lifecycle-main:fulfil">
           <mxGeometry x="47" y="66" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-lifecycle-main:shipped" value="Shipped" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;" vertex="1" parent="order-lifecycle-main:fulfil">
+        <mxCell id="order-lifecycle-main:shipped" value="Shipped" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-lifecycle-main:fulfil">
           <mxGeometry x="47" y="162" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle-main:done" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">

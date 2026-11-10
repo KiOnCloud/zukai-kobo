@@ -11,9 +11,17 @@ const CHAR_WIDTH = 7;
 const LINE_HEIGHT = 20;
 const ROW_HEIGHT = 18;
 
-/** Lines a text takes in a box of the given width: explicit breaks plus word wrap at the text area. */
-export function wrappedLines(label, width) {
-  const usable = Math.max(width - 24, CHAR_WIDTH);
+/**
+ * Clear space between a node's border and its text, on the left and on the right. The size
+ * heuristic counts it and the emitter draws it as label spacing, so draw.io wraps the text at
+ * the width the height was measured for, and a line that fills that width still stops short
+ * of the border and of the arrowheads that end on it.
+ */
+export const LABEL_PAD = 12;
+
+/** Lines a text takes in a box of the given width: explicit breaks plus word wrap at the text area, `pad` px in from each side. */
+export function wrappedLines(label, width, pad = LABEL_PAD) {
+  const usable = Math.max(width - 2 * pad, CHAR_WIDTH);
   return String(label).split(/\r\n?|\n/).reduce((n, line) => n + Math.max(1, Math.ceil((CHAR_WIDTH * displayLength(line)) / usable)), 0);
 }
 
@@ -21,12 +29,13 @@ export function wrappedLines(label, width) {
  * Size of a node from its label and the number of extra rows (attributes, members). The
  * width grows with the longest line up to `maxWidth`; past that the text wraps, and the
  * height grows by one line height per wrapped line, so a long label never spills over the
- * box onto its arrows.
+ * box onto its arrows. `pad` is the room kept on each side of the text: more than the
+ * default for a shape whose outline is narrower than its box.
  */
-export function measureNode(label, { extraRows = 0, minWidth = 120, maxWidth = 260, baseHeight = 40 } = {}) {
+export function measureNode(label, { extraRows = 0, minWidth = 120, maxWidth = 260, baseHeight = 40, pad = LABEL_PAD } = {}) {
   const longest = longestLine(label);
-  const width = Math.min(maxWidth, Math.max(minWidth, Math.ceil(CHAR_WIDTH * longest) + 24));
-  const height = baseHeight + LINE_HEIGHT * (wrappedLines(label, width) - 1) + ROW_HEIGHT * extraRows;
+  const width = Math.min(maxWidth, Math.max(minWidth, Math.ceil(CHAR_WIDTH * longest) + 2 * pad));
+  const height = baseHeight + LINE_HEIGHT * (wrappedLines(label, width, pad) - 1) + ROW_HEIGHT * extraRows;
   return { width, height };
 }
 
