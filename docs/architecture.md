@@ -109,7 +109,12 @@ horizontal run just before the turn toward the target, beside the target corner,
 or the gutter run, on either side) avoiding nodes, other labels, the lines of other flows
 and the trunk its own flow shares with sibling branches; a gap that holds a guarded fan-out
 keeps extra room below its last track so the straight branch has a private stretch for its
-guard, and any label that still overlaps is reported as a `layout:` warning. Left-to-right diagrams are
+guard, and any label that still overlaps is reported as a `layout:` warning. The stretch a
+flow shares with flows from other sources on their way into the same node is not its own
+either: a horizontal run counts only up to the point where such a flow joins it, and beside
+the segment that leaves the source the guard takes the middle of the part between the
+sibling trunk and that point, so a branch that goes straight down and then turns into a
+shared run is labelled on its own vertical. Left-to-right diagrams are
 the same layout transposed. ELK is still used for the other graph kinds.
 
 ## Bundled draw.io files

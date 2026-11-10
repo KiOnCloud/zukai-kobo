@@ -116,7 +116,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="corporate-login:f10:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="corporate-login:f10">
-          <mxGeometry x="0.16" y="0" relative="1" as="geometry">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
             <mxPoint x="21.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>

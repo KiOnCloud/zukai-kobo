@@ -4,6 +4,7 @@ import { validateIr } from '../src/validate-ir.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
 import { layoutActivity } from '../src/layout-activity.mjs';
 import { measureNode } from '../src/layout-graph.mjs';
+import { widestLine } from '../src/text-metrics.mjs';
 import { loadFixture, loadMermaid } from './helpers.mjs';
 
 describe('activity kind', () => {
@@ -547,6 +548,70 @@ describe('activity kind', () => {
           for (const [other, path] of paths) if (other !== id) expect(dist(box, path), `${id} vs ${other}`).toBeGreaterThan(own);
         }
         expect(L.warnings.filter((w) => w.message.startsWith('layout:'))).toEqual([]);
+      });
+    });
+
+    describe('a guard keeps to the stretch only its own flow runs along when its target has other incoming flows', () => {
+      const { segmentsOf } = helpers();
+      // Centre and box of a guard label, rebuilt from the edge-label geometry: a relative
+      // position along the routed path plus a pixel offset.
+      const labelOf = (L, ir, id) => {
+        const f = ir.flows.find((x) => x.id === id);
+        const s = L.nodes.get(f.from); const t = L.nodes.get(f.to); const e = L.edges.get(id);
+        const path = [{ x: s.x + e.exit.x * s.width, y: s.y + e.exit.y * s.height }, ...e.points, { x: t.x + e.entry.x * t.width, y: t.y + e.entry.y * t.height }];
+        const lens = path.slice(1).map((p, i) => Math.abs(p.x - path[i].x) + Math.abs(p.y - path[i].y));
+        let d = ((e.label.position + 1) / 2) * lens.reduce((a, b) => a + b, 0);
+        let i = 0;
+        while (i < lens.length - 1 && d > lens[i]) { d -= lens[i]; i += 1; }
+        const k = lens[i] ? d / lens[i] : 0;
+        const anchor = { x: path[i].x + k * (path[i + 1].x - path[i].x), y: path[i].y + k * (path[i + 1].y - path[i].y) };
+        const width = Math.ceil(widestLine(f.guard)) + 12;
+        const centre = { x: anchor.x + e.label.offset.x, y: anchor.y + e.label.offset.y };
+        return { path, anchor, centre, box: { left: centre.x - width / 2, right: centre.x + width / 2, top: centre.y - 8, bottom: centre.y + 8 } };
+      };
+
+      it('puts the guard of a straight branch in the middle of its private run, whether it is long or short', () => {
+        for (const guard of ['yes: nothing is sent', 'yes']) {
+          const ir = loadFixture('activity', 'valid-guard-shared-bus');
+          ir.flows.find((f) => f.id === 'f7').guard = guard;
+          const { L, segments } = segmentsOf(ir);
+          const { path, anchor, box, centre } = labelOf(L, ir, 'f7');
+          // The branch goes straight down, then turns into the bus that f10 also runs along.
+          const turn = segments.find((sg) => sg.id === 'f8' && Math.abs(sg.a.y - sg.b.y) < 0.5).a.y;
+          const bus = path[1].y;
+          expect(segments.some((sg) => sg.id === 'f10' && Math.abs(sg.a.y - bus) < 0.5 && Math.abs(sg.b.y - bus) < 0.5), 'f10 runs along the bus').toBe(true);
+          expect(bus - turn, 'the private run is long').toBeGreaterThan(100);
+          expect(anchor.x, `"${guard}" is beside its own vertical`).toBeCloseTo(path[0].x, 5);
+          expect(centre.y, `"${guard}" is in the middle of the private run`).toBeCloseTo((turn + bus) / 2, 5);
+          expect(box.top - turn, `"${guard}" is clear of the sibling's turn`).toBeGreaterThanOrEqual(12);
+          expect(bus - box.bottom, `"${guard}" is clear of the bus`).toBeGreaterThanOrEqual(6);
+          expect(L.warnings.filter((w) => w.message.startsWith('layout:'))).toEqual([]);
+        }
+      });
+
+      it('keeps a guard above the part of a run that no other flow shares, before the point where another flow joins', () => {
+        const ir = loadFixture('activity', 'valid-guard-shared-bus');
+        ir.flows.find((f) => f.id === 'f10').guard = 'ok';
+        const { L } = segmentsOf(ir);
+        const { path, anchor, box } = labelOf(L, ir, 'f10');
+        const join = labelOf(L, ir, 'f7').path[1];
+        expect(anchor.y, 'the guard is above its own run on the bus').toBeCloseTo(join.y, 5);
+        expect(box.bottom).toBeLessThan(join.y);
+        // f10 comes in from the right; f7 joins it on the way to the target.
+        expect(path[1].x).toBeGreaterThan(join.x);
+        expect(box.left, 'the guard is before the point where f7 joins').toBeGreaterThan(join.x);
+        expect(L.warnings.filter((w) => w.message.startsWith('layout:'))).toEqual([]);
+      });
+
+      it('leaves the guard of a straight branch into a node of its own where it was', () => {
+        const ir = loadFixture('activity', 'valid-guard-shared-bus');
+        ir.controls.push({ id: 'done-dry', kind: 'final', lane: 'api' });
+        ir.flows.find((f) => f.id === 'f7').to = 'done-dry';
+        const { L, segments } = segmentsOf(ir);
+        const { path, centre } = labelOf(L, ir, 'f7');
+        expect(L.edges.get('f7').points).toEqual([]);
+        const turn = segments.find((sg) => sg.id === 'f8' && Math.abs(sg.a.y - sg.b.y) < 0.5).a.y;
+        expect(centre.y).toBeCloseTo((turn + path[1].y) / 2, 5);
       });
     });
 
