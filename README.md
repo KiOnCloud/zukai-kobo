@@ -8,6 +8,15 @@ Install: `/plugin install it-diagrams --marketplace KiOnCloud/it-diagrams` (see
 [docs/install.md](docs/install.md) for the two-step form, Codex and credentials).
 New here? Read [docs/quickstart.md](docs/quickstart.md).
 
+## Status: open beta
+
+Version 1.0.0 is the open beta. Every diagram kind and target listed below works and is
+covered by tests; layout is what still changes between releases, so a diagram emitted again
+after an update can come out arranged differently. Report a wrong or ugly diagram at
+[github.com/KiOnCloud/it-diagrams/issues](https://github.com/KiOnCloud/it-diagrams/issues)
+with the `.ir.json` file the skill wrote, which is enough to reproduce it. Pull a newer
+release with `/plugin marketplace update it-diagrams`.
+
 ## Entry point
 
 ```text
