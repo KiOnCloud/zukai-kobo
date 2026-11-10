@@ -925,6 +925,57 @@ async function nearSide(layout, { nodes, edges }, arrange) {
 }
 
 /**
+ * Write the label of each connection that enters the frames from outside beside the stretch
+ * of its line that lies before the outermost frame. The layout engine gives a label a layer
+ * of its own between the two ends, which pushes a client a further 96 px away from the
+ * frames it calls into; that stretch of line is free anyway, so the label stands there and
+ * the layout keeps the client at the usual distance.
+ * @returns {string|undefined} the id of the first connection whose label has no room there
+ *   (the line bends first, the stretch is too short, or something stands beside it)
+ */
+function placeEntryLabels(layout, entries, { containers, nodes, edges, direction }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const sideways = acrossIsVertical(direction);
+  const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const boxes = nodes.filter((n) => layout.nodes.has(n.id)).map((n) => absoluteBox(n.id, layout, parentOf));
+  const frames = containers.filter((c) => c.parent === undefined).map((c) => absoluteBox(c.id, layout, parentOf));
+  const others = [];
+  for (const e of edges) {
+    const r = layout.edges.get(e.id);
+    if (!r?.start || !r?.end) continue;
+    const path = [r.start, ...(r.points ?? []), r.end];
+    if (!entries.has(e.id)) for (let i = 1; i < path.length; i++) others.push({ x: Math.min(path[i - 1].x, path[i].x) - 1, y: Math.min(path[i - 1].y, path[i].y) - 1, width: Math.abs(path[i].x - path[i - 1].x) + 2, height: Math.abs(path[i].y - path[i - 1].y) + 2 });
+    if (e.label && r.label && !entries.has(e.id)) others.push(r.label);
+  }
+  for (const e of edges) {
+    if (!entries.has(e.id)) continue;
+    const r = layout.edges.get(e.id);
+    const a = r.start;
+    const b = (r.points ?? [])[0] ?? r.end;
+    let outer;
+    for (let p = parentOf.get(e.to); p; p = parentOf.get(p)) outer = p;
+    const frame = absoluteBox(outer, layout, parentOf);
+    const text = { width: Math.ceil(widestLine(e.label)) + 8, height: 16 * String(e.label).split(/\r\n?|\n/).length };
+    let box;
+    if (sideways) {
+      // A horizontal first stretch that reaches the frame; the label stands above it.
+      const edgeX = a.x < frame.x ? frame.x : frame.x + frame.width;
+      if (Math.abs(a.y - b.y) > 0.5 || Math.abs(b.x - a.x) < Math.abs(edgeX - a.x) || Math.abs(edgeX - a.x) < text.width + 16) return e.id;
+      box = { x: (a.x + edgeX - text.width) / 2, y: a.y - text.height - 4, width: text.width, height: text.height };
+    } else {
+      // A vertical first stretch that reaches the frame; the label stands to its left.
+      const edgeY = a.y < frame.y ? frame.y : frame.y + frame.height;
+      if (Math.abs(a.x - b.x) > 0.5 || Math.abs(b.y - a.y) < Math.abs(edgeY - a.y) || Math.abs(edgeY - a.y) < text.height + 16) return e.id;
+      box = { x: a.x - 6 - text.width, y: (a.y + edgeY - text.height) / 2, width: text.width, height: text.height };
+    }
+    if (boxes.some((n) => hit(box, n)) || frames.some((f) => hit(box, f)) || others.some((o) => hit(box, o))) return e.id;
+    r.label = box;
+    others.push(box);
+  }
+  return undefined;
+}
+
+/**
  * The stores that stand next to the component that uses them: a component with one
  * connection, from a figure in the same frame that also passes work on to something else.
  * The layout engine gives every connection a place along the flow, so such a store takes
@@ -958,7 +1009,12 @@ function attachStores(nodes, edges, direction) {
       user.store = { gap, mine, text };
     } else {
       // To the right of the user, figure level with figure; the label stands above the line.
-      const gap = Math.max(STORE_GAP, text.width + 24);
+      // The room is counted between the two figures: enough for the label, and for the two
+      // names, which reach past their figures on both sides, to stay apart.
+      const pastUser = (mine.width - user.drawWidth) / 2;
+      const pastStore = (store.width - (store.drawWidth ?? store.width)) / 2;
+      const between = Math.max(STORE_GAP, text.width + 24, pastUser + pastStore + 16);
+      const gap = between - pastUser - pastStore;
       user.drawX = (mine.width - user.drawWidth) / 2;
       user.width = mine.width + gap + store.width;
       user.height = Math.max(mine.height, store.height);
@@ -1171,6 +1227,12 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
   // The ports of a figure depend on the sides its connections use, so they are worked out
   // afresh for every arrangement that is tried.
+  // The labelled connections that enter the frames from a component outside them.
+  const entries = new Set();
+  if (usesAws) {
+    const frameOf = new Map(nodes.map((n) => [n.id, n.parent]));
+    for (const e of edges) if (e.label && e.from !== e.to && frameOf.get(e.from) === undefined && frameOf.get(e.to) !== undefined) { entries.add(e.id); e.labelPlacedByCaller = true; }
+  }
   const stores = usesAws ? attachStores(nodes, edges, ir.direction) : new Map();
   const aside = usesAws ? asideCandidates(nodes, edges) : new Map();
   const laidOut = () => ({ nodes: nodes.filter((n) => !aside.has(n.id) && !stores.has(n.id)), edges: edges.filter((e) => !aside.has(e.to) && !stores.has(e.to)) });
@@ -1187,8 +1249,12 @@ async function emitArchitecture(ir, cid, refs, warnings) {
     for (;;) {
       placeStores(base, stores, { containers, nodes, direction: ir.direction });
       const failed = placeBeside(base, aside, { containers, nodes, edges, direction: ir.direction });
-      if (failed === undefined) return base;
-      aside.delete(failed);
+      if (failed !== undefined) { aside.delete(failed); base = await arrange(); continue; }
+      // A label with no room before the frames goes back to the layout engine.
+      const crowded = placeEntryLabels(base, entries, { containers, nodes, edges, direction: ir.direction });
+      if (crowded === undefined) return base;
+      entries.delete(crowded);
+      delete edges.find((e) => e.id === crowded).labelPlacedByCaller;
       base = await arrange();
     }
   };

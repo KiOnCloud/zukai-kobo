@@ -217,7 +217,7 @@ const elk = () => (elkInstance ??= new ELK());
  * @param {Array<{id:string,width:number,height:number,parent?:string}>} input.nodes
  * @param {Array<{id:string,parent?:string,headerHeight?:number,minWidth?:number}>} input.containers
  *   `minWidth` keeps a container at least that wide, for a title that must fit on one line
- * @param {Array<{id:string,from:string,to:string,label?:string,layoutReversed?:boolean}>} input.edges
+ * @param {Array<{id:string,from:string,to:string,label?:string,layoutReversed?:boolean,labelPlacedByCaller?:boolean}>} input.edges
  *   `layoutReversed` places the ends of an edge in the opposite order along the flow; the
  *   returned route still runs from `from` to `to`
  * @param {string} [input.direction]
@@ -288,7 +288,8 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
       // which puts the two ends in the opposite order along the flow; the route is turned back below.
       sources: [e.layoutReversed ? (e.toPort ?? e.to) : (e.fromPort ?? e.from)],
       targets: [e.layoutReversed ? (e.fromPort ?? e.from) : (e.toPort ?? e.to)],
-      labels: e.label ? [{ text: e.label, ...measureLabel(e.label) }] : [],
+      // A label the caller places itself takes no room in the layout.
+      labels: e.label && !e.labelPlacedByCaller ? [{ text: e.label, ...measureLabel(e.label) }] : [],
     })),
   };
 

@@ -472,6 +472,32 @@ describe('AWS icons and group frames in draw.io', () => {
     }
   });
 
+  it('keeps a client as near the frames with a label on its connection as without one', async () => {
+    const groups = ['aws:aws_account', 'aws:region', 'aws:vpc', 'aws:public_subnet'];
+    const make = (direction, label) => ({
+      schemaVersion: 1, kind: 'architecture', title: 'T', direction,
+      components: [{ id: 'u', label: 'Users', kind: 'client' }, { id: 'a', label: 'Load balancer', icon: 'aws:elastic_load_balancing' }],
+      boundaries: groups.map((g, i) => ({ id: `f${i}`, label: `Frame ${i}`, group: g, children: [i === 3 ? 'a' : `f${i + 1}`] })),
+      connections: [{ id: 'c', from: 'u', to: 'a', ...(label ? { label } : {}) }],
+    });
+    const gap = (abs, direction) => {
+      const u = abs.get('a:u'); const f = abs.get('a:f0');
+      return { LR: f.x - (u.x + u.width), RL: u.x - (f.x + f.width), TB: f.y - (u.y + u.height), BT: u.y - (f.y + f.height) }[direction];
+    };
+    for (const direction of ['LR', 'TB', 'RL', 'BT']) {
+      const plain = await drawn(make(direction));
+      const labelled = await drawn(make(direction, 'HTTPS'));
+      expect(labelled.r.warnings, direction).toEqual([]);
+      expect(gap(labelled.abs, direction), direction).toBe(gap(plain.abs, direction));
+      // The label is written, and it stands before the outermost frame.
+      const label = labelled.cells.find((c) => c.id === 'a:c:label');
+      expect(label?.value, direction).toBe('HTTPS');
+    }
+    // A label too long for that stretch of a left-to-right line gets its own room from the layout, as before.
+    const long = await drawn(make('LR', 'HTTPS with mutual TLS and a client certificate'));
+    expect(gap(long.abs, 'LR')).toBeGreaterThan(gap((await drawn(make('LR'))).abs, 'LR'));
+  });
+
   it('keeps a system with several callers, or one that calls in, in the flow', async () => {
     const two = structuredClone(chain);
     two.connections.push({ id: 'c8', from: 'fn', to: 'tax' });
