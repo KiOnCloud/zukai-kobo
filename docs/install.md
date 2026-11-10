@@ -52,14 +52,14 @@ Add the marketplace and install the plugin. The repository is public, so no GitH
 or credential is needed; only `git` on `PATH`.
 
 ```text
-/plugin marketplace add KiOnCloud/zukai
+/plugin marketplace add KiOnCloud/zukai-kobo
 /plugin install zukai@zukai
 ```
 
 On Claude Code 2.1.275 or later the two steps collapse into one:
 
 ```text
-/plugin install zukai --marketplace KiOnCloud/zukai
+/plugin install zukai --marketplace KiOnCloud/zukai-kobo
 ```
 
 The same commands work from a shell as `claude plugin marketplace add ...` and
@@ -110,11 +110,11 @@ Codex reads skills from `.agents/skills/` in the project and from `~/.agents/ski
 the user. Clone this repository once, then copy the skill into the project:
 
 ```bash
-git clone git@github.com:KiOnCloud/zukai.git
+git clone git@github.com:KiOnCloud/zukai-kobo.git
 ```
 
 ```bash
-./zukai/install.sh --target codex --dest /path/to/your-project
+./zukai-kobo/install.sh --target codex --dest /path/to/your-project
 ```
 
 On Windows:
@@ -146,7 +146,7 @@ If a machine cannot add the marketplace, the same installer copies the skill int
 `.claude/skills/` of a project:
 
 ```bash
-./zukai/install.sh --target claude-project --dest /path/to/your-project
+./zukai-kobo/install.sh --target claude-project --dest /path/to/your-project
 ```
 
 Invoke the copy with `/zukai`. The script warns that this channel competes with the plugin

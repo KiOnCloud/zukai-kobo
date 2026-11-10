@@ -8,7 +8,7 @@ Five minutes from nothing to a reviewed draw.io diagram. The full reference is
 Requirements: Node 22.13 or newer, `git`, Claude Code. No GitHub account is needed.
 
 ```bash
-claude plugin marketplace add KiOnCloud/zukai
+claude plugin marketplace add KiOnCloud/zukai-kobo
 claude plugin install zukai@zukai
 ```
 
