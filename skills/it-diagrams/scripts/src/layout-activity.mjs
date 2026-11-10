@@ -672,10 +672,14 @@ function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0, horizontal 
     const offset = { x: 0, y: -(height / 2 + aboveGap) };
     above.push({ position: (2 * d) / total - 1, offset, box: { x: x - width / 2, y: a.y + offset.y - height / 2, width, height } });
   }
-  const push = (pointIndex, dy) => {
+  // An anchor never passes the end of the path: draw.io stops the label there, so the box
+  // that is checked stays where the text is drawn also when the segment is shorter than the
+  // text that lies along it.
+  const push = (pointIndex, along) => {
     const p = path[pointIndex];
+    const dy = Math.min(along, total - distTo(pointIndex));
     const d = distTo(pointIndex) + dy;
-    anchors.push({ x: p.x, y: p.y + dy, position: total === 0 ? 0 : (2 * Math.min(d, total)) / total - 1 });
+    anchors.push({ x: p.x, y: p.y + dy, position: total === 0 ? 0 : (2 * d) / total - 1 });
   };
   // Beside the first segment, in the middle of its private stretch: past the trunk shared
   // with siblings and before the point where flows into the same target join. The label is
