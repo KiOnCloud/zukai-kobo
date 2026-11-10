@@ -105,6 +105,31 @@ describe('ref on the element that a sub-diagram details, for every kind', () => 
     expect(startSize(st, 't:fulfil')).toBe(46);
   });
 
+  it('grows those headers further when a long title wraps, so the text stays above the first row', async () => {
+    const long = { id: PART, ir: { ...part().ir, title: 'Load, validate and reconcile the orders of one shop against the warehouse stock ledger' } };
+    for (const [kind, id, twoLines] of [['class', 'order', 46], ['er', 'customer', 46], ['state', 'fulfil', 46]]) {
+      const ir = structuredClone(loadFixture(kind, 'valid-ref-parts'));
+      for (const el of ir.classes ?? ir.entities ?? ir.states) if (el.ref) el.ref = PART;
+      const r = await bundle([{ id: 'main', ir }, long], 'drawio');
+      const { problems, cells } = checkDrawioStructure(r.output);
+      expect(problems).toEqual([]);
+      const cell = cells.find((c) => c.id === `main:${id}`);
+      const header = Number(cell.style.match(/startSize=(\d+)/)[1]);
+      // The title line alone is about 88 characters: it cannot fit one line of a box this wide.
+      expect(Number(cell.mxGeometry.width), kind).toBeLessThan(7 * 88);
+      expect(header, kind).toBeGreaterThan(twoLines);
+    }
+  });
+
+  it('names the ref, not the label, when the title of the part has characters architecture-beta cannot show', async () => {
+    const odd = { id: PART, ir: { ...part().ir, title: 'Load [orders] {shop}' } };
+    const r = await bundle([main('architecture'), odd], 'mermaid');
+    expect(r.output).toContain('[Order API ↳ Load orders shop]');
+    const w = r.warnings.filter((x) => String(x.message).includes('architecture-beta cannot show'));
+    expect(w.map((x) => x.path)).toEqual(['/components/1/ref']);
+    expect(w[0].message).toContain(`the title that ref "${PART}" shows on "api"`);
+  });
+
   it('writes the ref on the same line where the profile has no line break (FigJam, architecture-beta)', async () => {
     const figjam = await emit(loadFixture('sequence', 'valid-ref-parts'), 'figjam');
     expect(figjam.output).toContain(`loadOrders(request) ↳ ${PART}`);

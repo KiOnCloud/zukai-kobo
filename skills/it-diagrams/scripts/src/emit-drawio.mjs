@@ -2,7 +2,7 @@ import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, 
 import { layoutGraph, measureNode, measureDecision, measureLabel, measureLabelBelow } from './layout-graph.mjs';
 import { layoutSequence } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
-import { longestLine } from './text-metrics.mjs';
+import { longestLine, displayLength } from './text-metrics.mjs';
 
 /**
  * Emit an uncompressed .drawio file with individually editable shapes. Graph-shaped kinds
@@ -348,9 +348,10 @@ function graphCells(cid, layout, { containers, nodes, edges }, warnings = []) {
   const nodeOf = (id) => nodes.find((x) => x.id === id);
   // A shape with its label below it (`drawHeight`) is met in two ways. An edge that ELK ends
   // beside the figure attaches to the figure's side at that height and runs over the empty
-  // room next to it. An edge that ends lower, beside or under the label, keeps ELK's point as
+  // room next to it. An edge that ends below the figure, under the label, keeps ELK's point as
   // a pixel offset from the figure's bottom, so the line stops clear of the text instead of
-  // running through it; `perimeter=0` makes draw.io keep that point.
+  // running through it; `perimeter=0` makes draw.io keep that point. The layout gives such a
+  // shape ports within the figure's extent (see clientPorts), so no end lies beside the label.
   const anchor = (id, pt) => {
     const n = nodeOf(id) ?? {};
     const b = drawBox(n, absoluteBox(id, layout, parentOf));
@@ -469,7 +470,9 @@ async function emitState(ir, cid, refs, warnings) {
   const loopExtra = new Map();
   for (const e of edges) if (e.from === e.to) loopExtra.set(e.from, Math.max(loopExtra.get(e.from) ?? 0, selfLoopExtra(e.label)));
   const shown = new Map(ir.states.map((s, i) => [s.id, refLabel(s.label, s.ref, refs, `/states/${i}/ref`, warnings)]));
-  const containers = composites.map((s) => ({ id: s.id, label: shown.get(s.id).label, link: shown.get(s.id).link, parent: parent.get(s.id), style: STYLE.composite, headerHeight: 30 + 16 * (shown.get(s.id).label.split('\n').length - 1) }));
+  // A composite's header is as tall as the lines of its title: a ref adds one.
+  const compositeHeader = (lines) => 30 + 16 * (lines - 1);
+  const containers = composites.map((s) => ({ id: s.id, label: shown.get(s.id).label, link: shown.get(s.id).link, parent: parent.get(s.id), style: STYLE.composite, headerHeight: compositeHeader(shown.get(s.id).label.split('\n').length) }));
   const nodes = ir.states.filter((s) => kindOf(s) !== 'composite').map((s) => {
     const kind = kindOf(s);
     const circle = kind === 'initial' || kind === 'final';
@@ -478,7 +481,15 @@ async function emitState(ir, cid, refs, warnings) {
     const extra = loopExtra.get(s.id) ?? 0;
     return { id: s.id, label, link, parent: parent.get(s.id), style: STYLE[kind] ?? STYLE.state, width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
   });
-  const layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction });
+  let layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction });
+  // A composite is as wide as its content, which only the layout knows; a title that wraps at
+  // that width needs a taller header, and the layout runs once more with it.
+  let taller = false;
+  for (const c of containers) {
+    const height = compositeHeader(headerLines(c.label, layout.containers.get(c.id).width));
+    if (height > c.headerHeight) { c.headerHeight = height; taller = true; }
+  }
+  if (taller) layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction });
   return graphCells(cid, layout, { containers, nodes, edges });
 }
 
@@ -496,9 +507,15 @@ export function rowHeight(text, width) {
   return ROW + ROW_LINE * (lines - 1);
 }
 
-function tableNode(id, header, rows, { headerHeight = ROW, link } = {}) {
+/** Lines a title takes in a header of the given width: its own line breaks plus word wrap. */
+const headerLines = (text, width) => String(text).split(/\r\n?|\n/).reduce((n, line) => n + Math.max(1, Math.ceil((7 * displayLength(line)) / Math.max(width - 8, 1))), 0);
+
+function tableNode(id, header, rows, { headerHeight: minHeaderHeight = ROW, link } = {}) {
   const longest = Math.max(longestLine(header), ...rows.map((r) => longestLine(r.text ?? '')), 1);
   const width = Math.min(TABLE_MAX_WIDTH, Math.max(160, Math.ceil(7 * longest) + 24));
+  // The header grows with its lines as a row does: a stereotype, the title of a ref, and
+  // any of them that is wider than the table and wraps.
+  const headerHeight = Math.max(minHeaderHeight, ROW + HEADER_LINE * (headerLines(header, width) - 1));
   const heightOf = (r) => (r.separator ? 8 : rowHeight(r.text, width));
   const height = headerHeight + rows.reduce((h, r) => h + heightOf(r), 0);
   let y = headerHeight;
@@ -555,10 +572,9 @@ async function emitEr(ir, cid, warnings, refs) {
     const key = a.key === 'pk' ? 'PK ' : a.key === 'fk' ? 'FK ' : '';
     return { text: `${key}${a.name}: ${a.type}${a.comment ? ` (${a.comment})` : ''}` };
   });
-  // A ref adds a title line to the header, which keeps that room on top of its anchor band.
+  // The header is as tall as its anchor band or its title lines (a ref adds one), whichever is more.
   const shown = new Map(ir.entities.map((e, i) => [e.id, refLabel(e.label, e.ref, refs, `/entities/${i}/ref`, warnings)]));
-  const refRoom = (e) => (e.ref ? HEADER_LINE : 0);
-  const buildNodes = (headerHeights) => ir.entities.map((e) => tableNode(e.id, shown.get(e.id).label, rowsOf(e), { headerHeight: (headerHeights.get(e.id) ?? ROW) + refRoom(e), link: shown.get(e.id).link }));
+  const buildNodes = (headerHeights) => ir.entities.map((e) => tableNode(e.id, shown.get(e.id).label, rowsOf(e), { headerHeight: headerHeights.get(e.id) ?? ROW, link: shown.get(e.id).link }));
   const edgeStyle = (r) => `${STYLE.erEdge}startArrow=${ER_ARROW[r.fromCardinality]};startFill=0;endArrow=${ER_ARROW[r.toCardinality]};endFill=0;${r.identifying === false ? 'dashed=1;' : ''}`;
   const edges = ir.relations.map((r) => ({ id: r.id, from: r.from, to: r.to, label: r.label, style: edgeStyle(r) }));
   const spacing = { nodeNode: 60, layer: 80 };
@@ -687,7 +703,7 @@ async function emitClass(ir, cid, warnings, refs) {
     const methods = (c.methods ?? []).map((m) => ({ text: `${m.visibility ? VISIBILITY[m.visibility] : ''}${m.name}(${m.params ?? ''})${m.returns ? `: ${m.returns}` : ''}` }));
     const rows = attrs.length && methods.length ? [...attrs, { separator: true }, ...methods] : [...attrs, ...methods];
     const { label: header, link } = refLabel(c.stereotype ? `«${c.stereotype}»\n${c.label}` : c.label, c.ref, refs, `/classes/${i}/ref`, warnings);
-    return tableNode(c.id, header, rows, { headerHeight: ROW + HEADER_LINE * (header.split('\n').length - 1), link });
+    return tableNode(c.id, header, rows, { link });
   });
   const edges = ir.relations.map((r, i) => {
     const def = CLASS_EDGE[r.kind];
@@ -729,8 +745,55 @@ async function emitArchitecture(ir, cid, refs, warnings) {
     return { ...node, ...(kind === 'database' || kind === 'cache' ? measureNode(label, { baseHeight: 70 }) : measureNode(label)) };
   });
   const edges = ir.connections.map((c) => ({ id: c.id, from: c.from, to: c.to, label: c.label, style: `${STYLE.flowEdge}${c.bidirectional ? 'startArrow=classic;startFill=1;' : ''}` }));
-  const layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing: { nodeNode: 50, layer: 80 } });
+  const spacing = { nodeNode: 50, layer: 80 };
+  let layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
+  if (below.size > 0 && clientPorts(layout, { containers, nodes, edges })) layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
   return graphCells(cid, layout, { containers, nodes, edges });
+}
+
+/**
+ * A client's layout box is wider and taller than its figure, and ELK spreads the edges of a
+ * side over the whole box: some would end beside the name, or past the figure's shoulders.
+ * After a first layout has shown which side each connection uses and in what order, every
+ * end at a client gets a fixed port on that side of the box, within the figure's extent:
+ * across its height on the left and right, across its width on the top and bottom, evenly
+ * spaced in the order of the first pass. The second layout routes to those points, so a
+ * connection from the side meets the figure and one from below stops under the name on the
+ * figure's own column. Returns whether any port was set.
+ */
+function clientPorts(layout, { containers, nodes, edges }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const clients = new Map(nodes.filter((n) => n.drawHeight !== undefined).map((n) => [n.id, n]));
+  const sides = new Map();
+  for (const e of edges) {
+    if (e.from === e.to) continue;
+    const route = layout.edges.get(e.id);
+    for (const [end, id, pt] of [['from', e.from, route?.start], ['to', e.to, route?.end]]) {
+      if (!clients.has(id) || !pt) continue;
+      const b = absoluteBox(id, layout, parentOf);
+      const side = Math.abs(pt.x - b.x) < 0.5 ? 'left' : Math.abs(pt.x - b.x - b.width) < 0.5 ? 'right' : Math.abs(pt.y - b.y) < 0.5 ? 'top' : 'bottom';
+      const key = `${id}|${side}`;
+      if (!sides.has(key)) sides.set(key, []);
+      sides.get(key).push({ e, end, at: side === 'left' || side === 'right' ? pt.y : pt.x });
+    }
+  }
+  for (const [key, ends] of sides) {
+    const [id, side] = key.split('|');
+    const n = clients.get(id);
+    ends.sort((a, b) => a.at - b.at || a.e.id.localeCompare(b.e.id));
+    ends.forEach(({ e, end }, k) => {
+      // A port is a 1 px box whose centre the edge ends at, on the border it lies against.
+      const share = (k + 1) / (ends.length + 1);
+      const port = {
+        id: `${id}:port:${e.id}:${end}`,
+        x: side === 'left' ? 0 : side === 'right' ? n.width - 1 : Math.round((n.width - n.drawWidth) / 2 + n.drawWidth * share) - 0.5,
+        y: side === 'top' ? 0 : side === 'bottom' ? n.height - 1 : Math.round(n.drawHeight * share) - 0.5,
+      };
+      n.ports = [...(n.ports ?? []), port];
+      e[end === 'from' ? 'fromPort' : 'toPort'] = port.id;
+    });
+  }
+  return sides.size > 0;
 }
 
 function emitSequence(ir, cid, warnings, refs) {

@@ -79,6 +79,41 @@ describe('client actors of an architecture diagram in draw.io', () => {
     }
   });
 
+  it('ends several connections on the figure itself, apart from each other, whatever the width its name reserves', async () => {
+    // "Ops" shares a boundary, and so a layout width, with a client whose name is long: its
+    // box is far wider and taller than the figure that five services connect to.
+    const fanIn = (direction) => ({
+      schemaVersion: 1, kind: 'architecture', title: 'Alerts', direction,
+      components: [
+        { id: 'web', label: 'Customer web browser on a long name', kind: 'client' },
+        { id: 'ops', label: 'Ops', kind: 'client' },
+        ...[0, 1, 2, 3, 4].map((i) => ({ id: `s${i}`, label: `Service ${i}` })),
+      ],
+      boundaries: [{ id: 'users', label: 'Users', children: ['web', 'ops'] }],
+      connections: [0, 1, 2, 3, 4].map((i) => ({ id: `c${i}`, from: `s${i}`, to: 'ops' })),
+    });
+    for (const direction of ['TB', 'LR', 'BT', 'RL']) {
+      const { cells, actors, paths } = await clients(fanIn(direction));
+      const ops = actors.find((a) => a.id === 'ops');
+      const ends = cells.filter((c) => c.edge === '1').map((c) => ({ id: c.id, style: c.style, at: paths.get(c.id).at(-1) }));
+      expect(ends).toHaveLength(5);
+      const vertical = direction === 'TB' || direction === 'BT';
+      for (const e of ends) {
+        // On the figure (top or side), or straight under its name for an edge that comes from below.
+        expect(e.at.x, `${direction} ${e.id} x`).toBeGreaterThanOrEqual(ops.figure.x);
+        expect(e.at.x, `${direction} ${e.id} x`).toBeLessThanOrEqual(ops.figure.x + ops.figure.width);
+        if (direction === 'BT') expect(e.at.y, `${direction} ${e.id} under the name`).toBeGreaterThanOrEqual(ops.label.y + ops.label.height);
+        else {
+          expect(e.at.y, `${direction} ${e.id} y`).toBeGreaterThanOrEqual(ops.figure.y);
+          expect(e.at.y, `${direction} ${e.id} y`).toBeLessThanOrEqual(ops.figure.y + ops.figure.height);
+        }
+        expect(e.style, `${direction} ${e.id}`).toMatch(/entryDx=0;/);
+      }
+      const along = ends.map((e) => (vertical ? e.at.x : e.at.y)).sort((a, b) => a - b);
+      for (let i = 1; i < along.length; i++) expect(along[i] - along[i - 1], `${direction} ends apart`).toBeGreaterThanOrEqual(5);
+    }
+  });
+
   it('relabel measures a new name at the label width, not at the 40 px figure', async () => {
     const r = await emit(loadFixture('architecture', 'valid-client-labels'), 'drawio', { diagramId: 'a' });
     const fits = relabelDrawio(r.output, { web: 'Trình duyệt khách', partner: 'Tích hợp đối tác (nhập đơn hàng)', $keep: ['Users', 'Shop', 'Order API', 'Orders DB', 'HTTPS', 'SQL'] });

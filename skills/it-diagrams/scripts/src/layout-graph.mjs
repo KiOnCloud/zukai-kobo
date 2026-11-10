@@ -147,14 +147,16 @@ export function measureDecision(label) {
  * as the name under an actor figure. Such a label does not wrap at the shape, so it is given
  * a wrap width of its own (the `labelWidth` style) of at most `maxWidth`, narrowed to the
  * widest line of a balanced wrap; a word wider than that stands alone and sets the width.
- * The estimate is generous, so draw.io never needs more lines at that width than counted.
+ * The estimate is generous for mixed-case text (7 px a character against about 5.6 px
+ * rendered), and the wrap width keeps 8 px of slack on top, so draw.io rarely needs more
+ * lines than counted; a name in capitals or wide glyphs can still take one more.
  * @returns {{width:number, height:number, wrap:number}} the block below the shape and the
  *   width its text wraps at, in px
  */
 export function measureLabelBelow(label, { maxWidth = 160 } = {}) {
   const block = balancedBlock(label, wrapText(label, maxWidth).lines, maxWidth);
-  const wrap = Math.ceil(block.widest);
-  return { width: wrap + 8, height: block.lines * TEXT_LINE + 6, wrap };
+  const wrap = Math.ceil(block.widest) + 8;
+  return { width: wrap, height: block.lines * TEXT_LINE + 6, wrap };
 }
 
 export function measureLabel(text) {

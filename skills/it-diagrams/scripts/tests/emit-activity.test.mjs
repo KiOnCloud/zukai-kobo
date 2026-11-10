@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { emit } from '../src/pipeline.mjs';
+import { emit, bundle } from '../src/pipeline.mjs';
 import { validateIr } from '../src/validate-ir.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
 import { layoutActivity } from '../src/layout-activity.mjs';
@@ -48,6 +48,10 @@ describe('activity kind', () => {
       const stable = await emit(ir, 'mermaid', { mermaidStable: true });
       expect(stable.output.startsWith(`---\ntitle: ${JSON.stringify(ir.title)}\n---\nflowchart TB\n`)).toBe(true);
       expect(stable.warnings.some((x) => x.path === '/title')).toBe(false);
+      // In the combined file the heading above the block carries the title: nothing is lost, no warning.
+      const md = await bundle([{ id: 'invoice', ir }], 'mermaid');
+      expect(md.output).toContain(`## ${ir.title}`);
+      expect(md.warnings.some((x) => x.path === '/title')).toBe(false);
     });
 
     it('emits a stable flowchart with --mermaid-stable, warns about what was lost, and parses', async () => {

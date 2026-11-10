@@ -50,9 +50,9 @@ Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
   used and what it loses. Offer `--to drawio` for a real swimlane diagram.
 - the `swimlane-beta` text carries no title. Mermaid draws a front-matter title where
   `swimlane-beta` puts its lane header row, so the title would sit on top of the lane names
-  (and, with lanes as rows, inside the first lane). The emit warns at `/title`; the combined
-  file shows the title as the heading above the block, and the `--mermaid-stable` flowchart
-  form keeps it. A picture without a title is therefore expected for this form, not a defect
+  (and, with lanes as rows, inside the first lane). A single emit warns at `/title`; the
+  combined file shows the title as the heading above the block, so `bundle` does not warn,
+  and the `--mermaid-stable` flowchart form keeps it. A picture without a title is therefore expected for this form, not a defect
   of the IR.
 - `direction` is written for an `erDiagram` as it is for state and class diagrams. With
   `--mermaid-stable`, and in the figjam profile, the line is left out because older parsers

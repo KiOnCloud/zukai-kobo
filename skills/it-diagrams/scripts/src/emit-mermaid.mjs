@@ -12,9 +12,10 @@ import { encodeLabel, encodeInline, encodeMember, identifierToken, architectureL
  * HTML or line breaks, sequence notes dropped, architecture rendered as a flowchart with
  * boundaries as subgraphs.
  * @param {object} ir validated IR
- * @param {{ profile?: 'mermaid' | 'figjam', stable?: boolean }} [options] `stable` renders activity
+ * @param {{ profile?: 'mermaid' | 'figjam', stable?: boolean, refs?: Map<string, { title: string }> }} [options] `stable` renders activity
  *   diagrams as a plain flowchart instead of swimlane-beta, and leaves out the syntax that
- *   needs Mermaid 11 (typed sequence participants, the erDiagram direction line)
+ *   needs Mermaid 11 (typed sequence participants, the erDiagram direction line); `refs` is
+ *   the ref table of a bundle, set only when the text goes into a combined file
  * @returns {{ output: string, warnings: Array<{ path: string, message: string }> }}
  */
 export function emitMermaid(ir, options = {}) {
@@ -51,7 +52,7 @@ export function emitMermaid(ir, options = {}) {
       }
       break;
     }
-    case 'activity': emitActivity(ir, emit, t, options.stable === true); break;
+    case 'activity': emitActivity(ir, emit, t, options.stable === true, options.refs !== undefined); break;
     default: throw new Error(`unknown kind "${ir.kind}"`);
   }
   // swimlane-beta puts its lane header row where Mermaid draws a front-matter title, so the
@@ -476,10 +477,13 @@ function emitArchitecture(ir, emit, t, plan) {
   for (const c of ir.components) ids.add(c.id);
   // architecture-beta labels are one plain line, so a ref follows the label on that line.
   const label = (el, path) => {
-    const text = el.ref ? `${el.label} ${t.refText(el.ref, path.replace(/label$/, 'ref'))}` : el.label;
-    const r = architectureLabel(text);
-    if (r.altered) t.warnings.push({ path, message: `label of "${el.id}" contains characters architecture-beta cannot show; written as "${r.label}"` });
-    return r.label;
+    const own = architectureLabel(el.label);
+    if (own.altered) t.warnings.push({ path, message: `label of "${el.id}" contains characters architecture-beta cannot show; written as "${own.label}"` });
+    if (!el.ref) return own.label;
+    const refPath = path.replace(/label$/, 'ref');
+    const title = architectureLabel(t.refText(el.ref, refPath));
+    if (title.altered) t.warnings.push({ path: refPath, message: `the title that ref "${el.ref}" shows on "${el.id}" contains characters architecture-beta cannot show; written as "${title.label}"` });
+    return `${own.label} ${title.label}`;
   };
   // Groups must be declared before they are referenced with "in": parents first.
   const emitted = new Set();
@@ -558,7 +562,7 @@ function emitArchitectureAsFlowchart(ir, emit, t) {
  * stable form is a flowchart with subgraphs as lanes and labelled bars, which loses the lane
  * semantics and the bar shapes but renders on every Mermaid 10+ installation.
  */
-function emitActivity(ir, emit, t, stable) {
+function emitActivity(ir, emit, t, stable, bundled) {
   const ids = safeIds();
   const direction = ir.direction ?? 'TB';
   const controls = ir.controls ?? [];
@@ -569,7 +573,8 @@ function emitActivity(ir, emit, t, stable) {
     t.warnings.push({ path: '/kind', message: 'activity emitted in stable flowchart form: lanes are plain subgraphs, fork and join are labelled bars, initial and final are circles; swimlane semantics are lost' });
     emit(`flowchart ${direction}`);
   } else {
-    t.warnings.push({ path: '/title', message: 'the title is not written into the swimlane-beta text: Mermaid draws a front-matter title over the lane header row; the heading of the bundle carries it, and --mermaid-stable or --to drawio draw it' });
+    // Nothing is lost inside a bundle, where the heading above the block carries the title.
+    if (!bundled) t.warnings.push({ path: '/title', message: 'the title is not written into the swimlane-beta text: Mermaid draws a front-matter title over the lane header row; the combined file shows it as the heading above the block, and --mermaid-stable or --to drawio draw it' });
     emit(`swimlane-beta ${direction}`);
   }
   const controlLine = (c, i) => {

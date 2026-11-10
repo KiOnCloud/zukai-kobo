@@ -10,10 +10,10 @@
         <mxCell id="shop-platform:vpc" value="Private network" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="shop-platform:cloud">
           <mxGeometry x="25" y="50" width="931" height="362" as="geometry"/>
         </mxCell>
-        <mxCell id="shop-platform:browser" value="Customer browser" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=112;" vertex="1" parent="1">
-          <mxGeometry x="52" y="328" width="40" height="60" as="geometry"/>
+        <mxCell id="shop-platform:browser" value="Customer browser" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=120;" vertex="1" parent="1">
+          <mxGeometry x="52" y="339" width="40" height="60" as="geometry"/>
         </mxCell>
-        <mxCell id="shop-platform:mobile" value="Mobile app" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=70;" vertex="1" parent="1">
+        <mxCell id="shop-platform:mobile" value="Mobile app" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=78;" vertex="1" parent="1">
           <mxGeometry x="375" y="217" width="40" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:cdn" value="CDN" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
@@ -52,7 +52,7 @@
         <mxCell id="shop-platform:smtp" value="SMTP relay" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="2440" y="92" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="shop-platform:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.683;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:browser" target="shop-platform:cdn">
+        <mxCell id="shop-platform:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:browser" target="shop-platform:cdn">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -70,17 +70,17 @@
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.683;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:mobile" target="shop-platform:gw">
+        <mxCell id="shop-platform:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:mobile" target="shop-platform:gw">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="603" y="258"/>
+              <mxPoint x="603" y="247"/>
               <mxPoint x="603" y="356"/>
               <mxPoint x="658" y="355.67"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c3:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c3">
-          <mxGeometry x="-0.42" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.44" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
