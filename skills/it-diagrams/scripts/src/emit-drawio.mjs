@@ -804,6 +804,12 @@ const AWS_ICON_POINTS = 'points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0]
 const awsIconStyle = (icon) => `sketch=0;${AWS_ICON_POINTS}outlineConnect=0;fontColor=#232F3E;${icon.gradient ? `gradientColor=${icon.gradient};gradientDirection=north;` : ''}fillColor=${icon.fill};strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.${icon.name};`;
 /** The corner icon of an AWS group frame and the gap before its title (the palette's `spacingLeft=30`). */
 const AWS_GROUP_ICON = 30;
+/**
+ * Room between an AWS group frame and its members. AWS diagrams nest four or five frames
+ * (account, region, VPC, subnet) where a plain one nests one or two, so the 20 px a plain
+ * boundary keeps on each side would add up to a wide empty band around the innermost members.
+ */
+const AWS_FRAME_INSET = 12;
 /** Room kept between a frame title and its frame's side. */
 const TITLE_GAP = 8;
 /** Room kept between a frame title and a line that crosses the top of its frame. */
@@ -828,6 +834,7 @@ function awsGroupContainer(group, label) {
   return {
     style: stencil ? corner : `${corner}container=1;pointerEvents=0;collapsible=0;recursiveResize=0;`,
     title: { width: text.width, height: text.height + 4, start, centred: !stencil },
+    inset: AWS_FRAME_INSET,
     minWidth: Math.min(400, 2 * Math.ceil((start + text.width + TITLE_GAP) / 2)),
   };
 }

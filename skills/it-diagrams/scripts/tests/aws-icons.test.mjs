@@ -609,7 +609,12 @@ async function layoutMeasures(ir) {
     const frame = abs.get(`a:${b.id}`);
     return b.children.reduce((sum, k) => sum + abs.get(`a:${k}`).width * abs.get(`a:${k}`).height, 0) / (frame.width * frame.height);
   });
-  return { warnings: r.warnings.length, bendsPerConnection: bends / Math.max(1, paths.size), through, leastFilledFrame: fills.length ? Math.min(...fills) : undefined };
+  // How much of the whole drawing the components and their names take.
+  const all = [...abs.values()];
+  const width = Math.max(...all.map((b) => b.x + b.width)) - Math.min(...all.map((b) => b.x));
+  const height = Math.max(...all.map((b) => b.y + b.height)) - Math.min(...all.map((b) => b.y));
+  const ink = parts.reduce((sum, part) => sum + part.box.width * part.box.height + (part.name ? part.name.width * part.name.height : 0), 0);
+  return { warnings: r.warnings.length, bendsPerConnection: bends / Math.max(1, paths.size), through, leastFilledFrame: fills.length ? Math.min(...fills) : undefined, pageFill: ink / (width * height), connections: paths.size };
 }
 
 describe('AWS architecture diagrams against the plain architecture diagrams of this repository', () => {
@@ -636,5 +641,14 @@ describe('AWS architecture diagrams against the plain architecture diagrams of t
     // No AWS frame is emptier than the emptiest frame of a plain diagram.
     const emptiestPlain = Math.min(...framed(plain).map((m) => m.leastFilledFrame));
     for (const m of framed(aws)) expect(m.leastFilledFrame, `${m.name} ${m.direction}`).toBeGreaterThanOrEqual(emptiestPlain);
+    // The drawing as a whole is as full as the plain diagrams that have frames and at least as
+    // many connections as the smallest AWS one (a three-component diagram is fuller by nature).
+    const smallest = Math.min(...aws.map((m) => m.connections));
+    const comparable = framed(plain).filter((m) => m.connections >= smallest);
+    expect(comparable.length).toBeGreaterThanOrEqual(4);
+    // A system placed beside the frames widens the drawing for the sake of a straight
+    // connection, so the AWS diagrams may stay up to 15 % under the plain ones here, no more.
+    expect(mean(aws, 'pageFill')).toBeGreaterThanOrEqual(0.85 * mean(comparable, 'pageFill'));
+    expect(mean(framed(aws), 'leastFilledFrame')).toBeGreaterThanOrEqual(0.95 * mean(framed(plain), 'leastFilledFrame'));
   });
 });

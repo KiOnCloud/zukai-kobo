@@ -215,8 +215,9 @@ const elk = () => (elkInstance ??= new ELK());
 /**
  * @param {object} input
  * @param {Array<{id:string,width:number,height:number,parent?:string}>} input.nodes
- * @param {Array<{id:string,parent?:string,headerHeight?:number,minWidth?:number}>} input.containers
- *   `minWidth` keeps a container at least that wide, for a title that must fit on one line
+ * @param {Array<{id:string,parent?:string,headerHeight?:number,minWidth?:number,inset?:number}>} input.containers
+ *   `minWidth` keeps a container at least that wide, for a title that must fit on one line;
+ *   `inset` is the room between a container's sides and its members (20 px when not given)
  * @param {Array<{id:string,from:string,to:string,label?:string,layoutReversed?:boolean,labelPlacedByCaller?:boolean}>} input.edges
  *   `layoutReversed` places the ends of an edge in the opposite order along the flow; the
  *   returned route still runs from `from` to `to`
@@ -255,7 +256,7 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     return {
       id: el.id,
       // ELK reads the self-loop distance from the graph a node lies in, so a container repeats it.
-      layoutOptions: { 'elk.padding': `[top=${header + 20},left=20,bottom=20,right=20]`, ...selfLoop, ...(el.minWidth ? { 'elk.nodeSize.constraints': 'MINIMUM_SIZE', 'elk.nodeSize.minimum': vertical ? `(0,${el.minWidth})` : `(${el.minWidth},0)` } : {}) },
+      layoutOptions: { 'elk.padding': `[top=${header + (el.inset ?? 20)},left=${el.inset ?? 20},bottom=${el.inset ?? 20},right=${el.inset ?? 20}]`, ...selfLoop, ...(el.minWidth ? { 'elk.nodeSize.constraints': 'MINIMUM_SIZE', 'elk.nodeSize.minimum': vertical ? `(0,${el.minWidth})` : `(${el.minWidth},0)` } : {}) },
       children: build(el.id),
     };
   });
