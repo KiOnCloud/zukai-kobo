@@ -1,0 +1,24 @@
+---
+title: "Shop platform"
+---
+flowchart LR
+  %% id: b-users
+  subgraph n5["Users"]
+    %% id: web
+    n1(("Customer web browser"))
+    %% id: partner
+    n2(("Partner integration (order import)"))
+  end
+  %% id: b-shop
+  subgraph n6["Shop"]
+    %% id: api
+    n3["Order API"]
+    %% id: db
+    n4[("Orders DB")]
+  end
+  %% id: c1
+  n1 -->|"HTTPS"| n3
+  %% id: c2
+  n2 -->|"HTTPS"| n3
+  %% id: c3
+  n3 -->|"SQL"| n4

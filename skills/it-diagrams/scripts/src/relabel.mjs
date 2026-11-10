@@ -24,7 +24,8 @@ import { displayLength } from './text-metrics.mjs';
  * width heuristic the emitters use (CJK characters at 1.75 Latin widths, which matches
  * draw.io's 12 px font within a few percent), it wraps to more lines than the box's height
  * holds and than the old label took, has an unbreakable word wider than the box, or exceeds
- * a non-wrapping box. A cell and its copies (the canvas page) give one warning naming the
+ * a non-wrapping box; a label drawn below its shape (an actor's name) is measured at its own
+ * wrap width against the lines the old label took. A cell and its copies (the canvas page) give one warning naming the
  * pages. Compressed input (draw.io's default for older files) is inflated; output is
  * uncompressed.
  * @param {string} xml the .drawio file
@@ -129,7 +130,10 @@ export function relabelDrawio(xml, map) {
       const value = joinLabel(parts);
       if (c.newText !== undefined && c.geometry && !c.selfClosing && c.geometry.width !== undefined && c.geometry.relative !== '1') {
         const spacing = ['spacingLeft', 'spacingRight'].reduce((sum, key) => sum + Number(c.style.match(new RegExp(`${key}=(\\d+)`))?.[1] ?? 0), 0);
-        const problem = checkFit(c.parts.main, c.newText, Number(c.geometry.width), Number(c.geometry.height), /whiteSpace=wrap/.test(c.style), { spacing, rhombus: /^rhombus;/.test(c.style) });
+        const wraps = /whiteSpace=wrap/.test(c.style);
+        const problem = /verticalLabelPosition=bottom/.test(c.style)
+          ? checkFitBelow(c.parts.main, c.newText, Number(c.style.match(/labelWidth=(\d+)/)?.[1] ?? c.geometry.width), wraps)
+          : checkFit(c.parts.main, c.newText, Number(c.geometry.width), Number(c.geometry.height), wraps, { spacing, rhombus: /^rhombus;/.test(c.style) });
         if (problem) {
           if (!fitProblems.has(c.attrs.id)) fitProblems.set(c.attrs.id, { problem, pages: [] });
           fitProblems.get(c.attrs.id).pages.unshift(p.pageId);
@@ -238,4 +242,21 @@ function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus
   }
   const need = Math.ceil(Math.max(...newText.split('\n').map(displayLength), 1) * CHAR) + TEXT_INSET;
   return need > width ? `the new label needs about ${need} px in a ${width} px box that does not wrap` : undefined;
+}
+
+/**
+ * Fit check for a label drawn below its shape (an actor's name): the shape does not hold the
+ * text, the layout left room under it for the lines the old label took at the label's wrap
+ * width. The new label fits when it takes no more lines and has no word wider than that
+ * width; a label that does not wrap must not be wider than the old one.
+ */
+function checkFitBelow(oldText, newText, width, wraps) {
+  if (!wraps) {
+    const need = (text) => Math.ceil(Math.max(...text.split('\n').map(displayLength), 1) * CHAR);
+    return need(newText) > Math.max(need(oldText), width) ? `the new label needs about ${need(newText)} px below its shape, where the old one took ${need(oldText)} px` : undefined;
+  }
+  if (widestWord(newText) > width && widestWord(oldText) <= width) return `a word of the new label is wider than the ${width} px the label below the shape wraps at`;
+  const lines = wrappedLines(newText, width);
+  const room = wrappedLines(oldText, width);
+  return lines > room ? `the new label wraps to ${lines} lines below its shape, where the layout left room for ${room}` : undefined;
 }

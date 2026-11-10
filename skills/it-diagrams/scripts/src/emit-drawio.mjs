@@ -1,5 +1,5 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
-import { layoutGraph, measureNode, measureDecision, measureLabel } from './layout-graph.mjs';
+import { layoutGraph, measureNode, measureDecision, measureLabel, measureLabelBelow } from './layout-graph.mjs';
 import { layoutSequence } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
 import { longestLine } from './text-metrics.mjs';
@@ -146,7 +146,7 @@ export const STYLE = {
   database: 'shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;',
   queue: 'shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;',
   cache: 'shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;dashed=1;',
-  client: 'shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;',
+  client: 'shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;',
   external: 'rounded=1;whiteSpace=wrap;html=1;dashed=1;',
   // activity
   lane: 'swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;',
@@ -191,7 +191,12 @@ const decisionStyle = (size) => (size.spacing > 0 ? `${STYLE.decision}spacingLef
 
 const selfLoopLabelWidth = (label) => Math.ceil(longestLine(label) * 5.6) + 4;
 const selfLoopExtra = (label) => SELF_LOOP_OUT + (label ? selfLoopLabelWidth(label) + 12 : 0) + 10;
-const drawBox = (n, box) => (n.drawWidth === undefined ? box : { ...box, x: box.x + (box.width - n.drawWidth) / 2, width: n.drawWidth });
+/**
+ * The box a shape is drawn in when the layout was given a larger one: centred across it at
+ * `drawWidth` (room for a self-loop beside the shape) and, with `drawHeight`, at its top
+ * (room for a label below the shape).
+ */
+const drawBox = (n, box) => (n.drawWidth === undefined ? box : { ...box, x: box.x + (box.width - n.drawWidth) / 2, width: n.drawWidth, height: n.drawHeight ?? box.height });
 
 /**
  * draw.io geometry (relative position along the path, pixel offset, text alignment) that puts
@@ -340,12 +345,23 @@ function graphCells(cid, layout, { containers, nodes, edges }, warnings = []) {
   // Fixing both ends keeps draw.io on ELK's route, so straight edges stay where the layout put
   // them instead of being re-routed at render time next to other edges.
   const nodeOf = (id) => nodes.find((x) => x.id === id);
+  // A shape with its label below it (`drawHeight`) is met in two ways. An edge that ELK ends
+  // beside the figure attaches to the figure's side at that height and runs over the empty
+  // room next to it. An edge that ends lower, beside or under the label, keeps ELK's point as
+  // a pixel offset from the figure's bottom, so the line stops clear of the text instead of
+  // running through it; `perimeter=0` makes draw.io keep that point.
   const anchor = (id, pt) => {
-    const b = drawBox(nodeOf(id) ?? {}, absoluteBox(id, layout, parentOf));
+    const n = nodeOf(id) ?? {};
+    const b = drawBox(n, absoluteBox(id, layout, parentOf));
     const clamp = (v) => Math.max(0, Math.min(1, v));
-    return { x: clamp((pt.x - b.x) / b.width), y: clamp((pt.y - b.y) / b.height) };
+    const a = { x: clamp((pt.x - b.x) / b.width), y: clamp((pt.y - b.y) / b.height), dx: 0, dy: 0 };
+    if (n.drawHeight !== undefined && pt.y > b.y + b.height + 0.5) {
+      a.dx = pt.x - (b.x + a.x * b.width);
+      a.dy = pt.y - (b.y + b.height);
+    }
+    return a;
   };
-  const anchorStyle = (prefix, a) => `${prefix}X=${round(a.x)};${prefix}Y=${round(a.y)};${prefix}Dx=0;${prefix}Dy=0;`;
+  const anchorStyle = (prefix, a) => `${prefix}X=${round(a.x)};${prefix}Y=${round(a.y)};${prefix}Dx=${round(a.dx)};${prefix}Dy=${round(a.dy)};${a.dx || a.dy ? `${prefix}Perimeter=0;` : ''}`;
   // Sides of a node that other edges touch, so a self-loop can take a free one.
   const sideUse = new Map();
   const noteSide = (id, a) => {
@@ -677,13 +693,29 @@ async function emitClass(ir, cid, warnings) {
   return graphCells(cid, layout, { containers: [], nodes, edges }, warnings);
 }
 
+/** The stick figure of a client; its label is drawn below it. */
+const ACTOR = { width: 40, height: 60 };
+
 async function emitArchitecture(ir, cid) {
   const parent = parentMap(ir.boundaries ?? []);
   const containers = (ir.boundaries ?? []).map((b) => ({ id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container }));
+  const kindOf = (c) => c.kind ?? 'service';
+  // A client's layout box holds the figure and the label under it, so a boundary frame, the
+  // next actor and the edges all keep clear of the text; the figure is drawn at its top
+  // centre. Clients that share a parent get one width, so their figures line up, and both
+  // sides are even, so the centre the edges leave from is a whole pixel.
+  const even = (v) => 2 * Math.ceil(v / 2);
+  const below = new Map(ir.components.filter((c) => kindOf(c) === 'client').map((c) => [c.id, measureLabelBelow(c.label)]));
+  const actorWidth = new Map();
+  for (const [id, b] of below) actorWidth.set(parent.get(id), Math.max(actorWidth.get(parent.get(id)) ?? ACTOR.width, even(b.width)));
   const nodes = ir.components.map((c) => {
-    const kind = c.kind ?? 'service';
-    const size = kind === 'client' ? { width: 40, height: 60 } : kind === 'database' || kind === 'cache' ? measureNode(c.label, { baseHeight: 70 }) : measureNode(c.label);
-    return { id: c.id, label: c.label, parent: parent.get(c.id), style: STYLE[kind], ...size };
+    const kind = kindOf(c);
+    const node = { id: c.id, label: c.label, parent: parent.get(c.id), style: STYLE[kind] };
+    if (kind === 'client') {
+      const b = below.get(c.id);
+      return { ...node, style: `${STYLE.client}labelWidth=${b.wrap};`, width: actorWidth.get(node.parent), height: even(ACTOR.height + b.height), drawWidth: ACTOR.width, drawHeight: ACTOR.height };
+    }
+    return { ...node, ...(kind === 'database' || kind === 'cache' ? measureNode(c.label, { baseHeight: 70 }) : measureNode(c.label)) };
   });
   const edges = ir.connections.map((c) => ({ id: c.id, from: c.from, to: c.to, label: c.label, style: `${STYLE.flowEdge}${c.bidirectional ? 'startArrow=classic;startFill=1;' : ''}` }));
   const layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing: { nodeNode: 50, layer: 80 } });

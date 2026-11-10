@@ -1,0 +1,63 @@
+<mxfile host="it-diagrams" compressed="false" type="device">
+  <diagram id="shop-platform" name="Shop platform">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="shop-platform:b-users" value="Users" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="12" y="12" width="188" height="268" as="geometry"/>
+        </mxCell>
+        <mxCell id="shop-platform:b-shop" value="Shop" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="413" y="25" width="349" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="shop-platform:web" value="Customer web browser" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=140;" vertex="1" parent="shop-platform:b-users">
+          <mxGeometry x="74" y="50" width="40" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="shop-platform:partner" value="Partner integration (order import)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=133;" vertex="1" parent="shop-platform:b-users">
+          <mxGeometry x="74" y="152" width="40" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="shop-platform:api" value="Order API" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="shop-platform:b-shop">
+          <mxGeometry x="20" y="65" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="shop-platform:db" value="Orders DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="shop-platform:b-shop">
+          <mxGeometry x="209" y="50" width="120" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="shop-platform:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.683;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:web" target="shop-platform:api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="408" y="103.33"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="shop-platform:c1:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c1">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0.02" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="shop-platform:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:partner" target="shop-platform:api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="353" y="212"/>
+              <mxPoint x="353" y="117"/>
+              <mxPoint x="408" y="116.67"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="shop-platform:c2:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c2">
+          <mxGeometry x="-0.27" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="shop-platform:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:api" target="shop-platform:db">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="shop-platform:c3:label" value="SQL" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c3">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

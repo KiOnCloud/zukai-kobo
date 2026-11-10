@@ -142,6 +142,21 @@ export function measureDecision(label) {
   return { width: box.width, height: box.height, spacing };
 }
 
+/**
+ * Room for a label that draw.io draws below its shape (`verticalLabelPosition=bottom`), such
+ * as the name under an actor figure. Such a label does not wrap at the shape, so it is given
+ * a wrap width of its own (the `labelWidth` style) of at most `maxWidth`, narrowed to the
+ * widest line of a balanced wrap; a word wider than that stands alone and sets the width.
+ * The estimate is generous, so draw.io never needs more lines at that width than counted.
+ * @returns {{width:number, height:number, wrap:number}} the block below the shape and the
+ *   width its text wraps at, in px
+ */
+export function measureLabelBelow(label, { maxWidth = 160 } = {}) {
+  const block = balancedBlock(label, wrapText(label, maxWidth).lines, maxWidth);
+  const wrap = Math.ceil(block.widest);
+  return { width: wrap + 8, height: block.lines * TEXT_LINE + 6, wrap };
+}
+
 export function measureLabel(text) {
   const lines = String(text).split(/\r\n?|\n/);
   const longest = longestLine(text);

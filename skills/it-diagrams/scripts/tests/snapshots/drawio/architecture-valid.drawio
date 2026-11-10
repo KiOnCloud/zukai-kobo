@@ -5,13 +5,13 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="order-platform:aws" value="AWS account" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
-          <mxGeometry x="260" y="12" width="1063" height="351" as="geometry"/>
+          <mxGeometry x="340" y="12" width="1063" height="351" as="geometry"/>
         </mxCell>
         <mxCell id="order-platform:vpc" value="VPC" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="order-platform:aws">
           <mxGeometry x="333" y="79" width="685" height="252" as="geometry"/>
         </mxCell>
-        <mxCell id="order-platform:browser" value="Customer browser" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
-          <mxGeometry x="12" y="240" width="40" height="60" as="geometry"/>
+        <mxCell id="order-platform:browser" value="Customer browser" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=112;" vertex="1" parent="1">
+          <mxGeometry x="52" y="229" width="40" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="order-platform:web" value="Angular web app" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="order-platform:vpc">
           <mxGeometry x="27" y="159" width="129" height="40" as="geometry"/>
@@ -32,9 +32,9 @@
           <mxGeometry x="20" y="99" width="143" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-platform:psp" value="Payment provider" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="1601" y="302" width="136" height="40" as="geometry"/>
+          <mxGeometry x="1681" y="302" width="136" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-platform:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:browser" target="order-platform:web">
+        <mxCell id="order-platform:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.683;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:browser" target="order-platform:web">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -64,8 +64,8 @@
         <mxCell id="order-platform:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;startArrow=classic;startFill=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:api" target="order-platform:cache">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1013" y="258"/>
-              <mxPoint x="1013" y="176"/>
+              <mxPoint x="1093" y="258"/>
+              <mxPoint x="1093" y="176"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -77,10 +77,10 @@
         <mxCell id="order-platform:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:api" target="order-platform:queue">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1023" y="274"/>
-              <mxPoint x="1023" y="311"/>
-              <mxPoint x="1293" y="311"/>
-              <mxPoint x="1293" y="81"/>
+              <mxPoint x="1103" y="274"/>
+              <mxPoint x="1103" y="311"/>
+              <mxPoint x="1373" y="311"/>
+              <mxPoint x="1373" y="81"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -92,8 +92,8 @@
         <mxCell id="order-platform:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:queue" target="order-platform:worker">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="410" y="94.33"/>
-              <mxPoint x="410" y="210"/>
+              <mxPoint x="490" y="94.33"/>
+              <mxPoint x="490" y="210"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -105,8 +105,8 @@
         <mxCell id="order-platform:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:api" target="order-platform:psp">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1013" y="282"/>
-              <mxPoint x="1013" y="322"/>
+              <mxPoint x="1093" y="282"/>
+              <mxPoint x="1093" y="322"/>
             </Array>
           </mxGeometry>
         </mxCell>

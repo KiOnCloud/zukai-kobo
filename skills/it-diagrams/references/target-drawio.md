@@ -68,10 +68,11 @@ has `<target id>:title`. Hand-copied cells (generated ids) get the translation o
 cell with the same source text; every labelled text still untouched is listed once with
 the places it occurs, except labels without letters and texts named in the map's `$keep`
 list. Boxes are not resized: a label that wraps to more lines than its box holds, has an
-unbreakable word wider than its box, overflows a non-wrapping box, or no longer fits inside
-a decision's rhombus (measured at the wrap width its label spacing leaves) (CJK characters
-count 1.75 Latin widths) is one `layout:` warning per cell across pages, and keys that
-matched nothing are listed. Compressed
+unbreakable word wider than its box, overflows a non-wrapping box, no longer fits inside
+a decision's rhombus (measured at the wrap width its label spacing leaves), or, for a name
+drawn below an actor figure, takes more lines at its wrap width than the old name did (CJK
+characters count 1.75 Latin widths) is one `layout:` warning per cell across pages, and keys
+that matched nothing are listed. Compressed
 input is accepted; the output is always uncompressed. The whole protocol, including the
 business-audience variant, is in `variants.md`.
 
@@ -120,7 +121,7 @@ moving shapes by hand, so the IR stays the source of truth.
 | graph edge (flowchart, state, ER, class, architecture) | written with ELK's waypoints and with fixed exit and entry anchors taken from ELK's end points, so draw.io never re-routes an edge at render time; a label beside a vertical segment (self-loops included) is anchored on the line and left- or right-aligned at a 4 px gap, a label at a horizontal segment sits 4 px above or below it |
 | ER relation | orthogonal edge with crow's-foot ends (`ERmandOne`, `ERzeroToOne`, `ERzeroToMany`, `ERoneToMany`); non-identifying relations are dashed |
 | class relation | orthogonal edge: hollow triangle (inheritance, dashed for realization), filled or hollow diamond at the whole (composition, aggregation), open arrow (association, dashed for dependency). A cardinality is anchored at its own end of the edge with a pixel offset: it starts 6 px past the end marker (24 px diamond, 16 px triangle, 10 px open arrow) and sits 5 px beside the line, right of a vertical segment or above a horizontal one. When a class, a line, a marker or another label is in the way it takes the other side, then moves along the line in 10 px steps (round a bend when the first segment is short), up to 30 px further; when no place is free the emit reports a `layout:` warning that names the relation |
-| architecture component `service` / `database` / `queue` / `cache` / `client` / `external` | rounded rectangle / cylinder / hexagon / dashed cylinder / actor figure / dashed rounded rectangle; parallel connections leave 20 px apart and each label sits where the layout engine placed it on its own edge |
+| architecture component `service` / `database` / `queue` / `cache` / `client` / `external` | rounded rectangle / cylinder / hexagon / dashed cylinder / actor figure / dashed rounded rectangle; parallel connections leave 20 px apart and each label sits where the layout engine placed it on its own edge. A `client` is a 40 x 60 figure with its name below it: the name wraps at its own width (`labelWidth`, at most 160 px, balanced lines), and the layout reserves the figure plus that block, so a boundary frame contains the name and the next actor starts below it. Clients in one boundary share a centre line. A connection that leaves sideways attaches to the figure; one that leaves downwards starts under the name (a pixel offset with `exitPerimeter=0`), never through it |
 | sequence participant | `umlLifeline` with a plain head; `actor` adds a stick figure above the head, `boundary`, `control`, `entity` and `database` show the kind as a `«stereotype»` line above the label (draw.io's robustness glyphs were tried and read as stray arrows) |
 | sequence message | horizontal edge between lifelines: filled arrow (sync), open arrow (async), dashed open arrow (return); self-messages loop out to the right and back with both ends anchored on the lifeline's centre line |
 | sequence block | `umlFrame` behind the messages it covers, wide enough for the notes attached to them; its tab text and each `else` / `and` label are opaque cells drawn above lifelines and activations |
