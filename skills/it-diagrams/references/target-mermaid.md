@@ -46,8 +46,14 @@ Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
 - activity diagrams have no Mermaid equivalent. The default output is `swimlane-beta` (beta
   syntax; needs Mermaid 11.16 or newer and the rendering of fork and join bars is not
   verified). With `--mermaid-stable` the output is a plain `flowchart` whose subgraphs stand
-  in for lanes and whose fork and join are labelled bars; the warning says which form was
-  used and what it loses. Offer `--to drawio` for a real swimlane diagram.
+  in for lanes; the warning says which form was used and what it loses. Its control nodes
+  carry no text, so nothing in the picture is in another language than the diagram: initial
+  is a filled circle, final a double circle with a ring, fork and join are filled boxes
+  across the flow (upright in a left-to-right diagram). They are classic shapes with a label
+  of blanks, painted by `style` lines at the end of the text. A classic node takes its size
+  from its label, so a bar is as thick as a line of text, not thin, and Mermaid 12 draws the
+  upright bar of a left-to-right diagram as a block, because it gives every box a minimum
+  width. Offer `--to drawio` for a real swimlane diagram with thin bars.
 - the `swimlane-beta` text carries no title. Mermaid draws a front-matter title where
   `swimlane-beta` puts its lane header row, so the title would sit on top of the lane names
   (and, with lanes as rows, inside the first lane). A single emit warns at `/title`; the

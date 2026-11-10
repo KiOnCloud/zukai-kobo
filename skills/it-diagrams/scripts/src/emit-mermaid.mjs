@@ -557,10 +557,24 @@ function emitArchitectureAsFlowchart(ir, emit, t) {
 }
 
 /**
+ * The control nodes of the stable activity form. A classic flowchart node has no shape for
+ * them and takes its size from its label, so each is a plain shape with a label of blanks,
+ * painted with a `style` line: nothing in it is a word, whatever the language of the diagram.
+ * Initial is a filled circle. Final is a double circle filled black, whose white strokes
+ * leave a ring between the dot and the rim. Fork and join are filled boxes as long as eight
+ * em spaces across the flow: one line of them for a top-down diagram, three lines of one for
+ * a left-to-right one. The subroutine box is the thinnest box Mermaid 10 to 12 draw.
+ */
+const BAR_ACROSS = '#emsp;'.repeat(8);
+const BAR_UPRIGHT = ['#emsp;', '#emsp;', '#emsp;'].join('<br/>');
+const FILLED = 'fill:#000,stroke:#000';
+const BULLSEYE = 'fill:#000,stroke:#fff,stroke-width:3px';
+
+/**
  * Activity diagrams. Mermaid has no UML activity diagram: the default form is swimlane-beta
  * (lanes as top-level subgraphs, fork and join bar shapes, start and end circles); the
- * stable form is a flowchart with subgraphs as lanes and labelled bars, which loses the lane
- * semantics and the bar shapes but renders on every Mermaid 10+ installation.
+ * stable form is a flowchart with subgraphs as lanes and painted control nodes, which loses
+ * the lane semantics and the thin bars but renders on every Mermaid 10+ installation.
  */
 function emitActivity(ir, emit, t, stable, bundled) {
   const ids = safeIds();
@@ -570,21 +584,22 @@ function emitActivity(ir, emit, t, stable, bundled) {
   for (const a of ir.actions) ids.add(a.id);
   for (const c of controls) ids.add(c.id);
   if (stable) {
-    t.warnings.push({ path: '/kind', message: 'activity emitted in stable flowchart form: lanes are plain subgraphs, fork and join are labelled bars, initial and final are circles; swimlane semantics are lost' });
+    t.warnings.push({ path: '/kind', message: 'activity emitted in stable flowchart form: lanes are plain subgraphs, fork and join are filled boxes a line of text thick, initial is a filled circle and final a double circle, all without text; swimlane semantics are lost' });
     emit(`flowchart ${direction}`);
   } else {
     // Nothing is lost inside a bundle, where the heading above the block carries the title.
     if (!bundled) t.warnings.push({ path: '/title', message: 'the title is not written into the swimlane-beta text: Mermaid draws a front-matter title over the lane header row; the combined file shows it as the heading above the block, and --mermaid-stable or --to drawio draw it' });
     emit(`swimlane-beta ${direction}`);
   }
+  const bar = direction === 'LR' || direction === 'RL' ? BAR_UPRIGHT : BAR_ACROSS;
   const controlLine = (c, i) => {
     const id = ids.get(c.id);
     const label = c.label ? t.label(c.label, `/controls/${i}/label`) : '';
     switch (c.kind) {
-      case 'initial': return stable ? `${id}(("start"))` : `${id}@{ shape: sm-circ }`;
-      case 'final': return stable ? `${id}((("end")))` : `${id}@{ shape: fr-circ }`;
-      case 'fork': return stable ? `${id}[["fork"]]` : `${id}@{ shape: fork }`;
-      case 'join': return stable ? `${id}[["join"]]` : `${id}@{ shape: join }`;
+      case 'initial': return stable ? `${id}((" "))` : `${id}@{ shape: sm-circ }`;
+      case 'final': return stable ? `${id}(((" ")))` : `${id}@{ shape: fr-circ }`;
+      case 'fork': return stable ? `${id}[["${bar}"]]` : `${id}@{ shape: fork }`;
+      case 'join': return stable ? `${id}[["${bar}"]]` : `${id}@{ shape: join }`;
       case 'merge': return `${id}{"${label || ' '}"}`;
       default: return `${id}{"${label || 'decision'}"}`;
     }
@@ -617,4 +632,11 @@ function emitActivity(ir, emit, t, stable, bundled) {
     const arrow = f.guard ? `-->|"${t.label(f.guard, `/flows/${i}/guard`)}"|` : '-->';
     emit(`  ${ids.get(f.from)} ${arrow} ${ids.get(f.to)}`);
   });
+  if (stable) {
+    // One statement per node: a list of ids in one `style` line is newer syntax.
+    for (const c of controls) {
+      if (c.kind === 'final') emit(`  style ${ids.get(c.id)} ${BULLSEYE}`);
+      else if (c.kind === 'initial' || c.kind === 'fork' || c.kind === 'join') emit(`  style ${ids.get(c.id)} ${FILLED}`);
+    }
+  }
 }

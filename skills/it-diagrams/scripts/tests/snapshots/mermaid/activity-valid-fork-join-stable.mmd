@@ -11,13 +11,13 @@ flowchart TB
     %% id: hold
     n11["Put order on hold"]
     %% id: start
-    n12(("start"))
+    n12((" "))
     %% id: split
-    n13[["fork"]]
+    n13[["#emsp;#emsp;#emsp;#emsp;#emsp;#emsp;#emsp;#emsp;"]]
     %% id: merge
     n16{" "}
     %% id: end
-    n17((("end")))
+    n17(((" ")))
   end
   %% id: warehouse
   subgraph n2["Warehouse"]
@@ -28,7 +28,7 @@ flowchart TB
     %% id: ship
     n9["Hand over to carrier"]
     %% id: sync
-    n14[["join"]]
+    n14[["#emsp;#emsp;#emsp;#emsp;#emsp;#emsp;#emsp;#emsp;"]]
   end
   %% id: finance
   subgraph n3["Finance"]
@@ -69,3 +69,7 @@ flowchart TB
   n11 --> n16
   %% id: f15
   n16 --> n17
+  style n12 fill:#000,stroke:#000
+  style n13 fill:#000,stroke:#000
+  style n14 fill:#000,stroke:#000
+  style n17 fill:#000,stroke:#fff,stroke-width:3px

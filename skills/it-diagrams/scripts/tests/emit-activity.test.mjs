@@ -59,12 +59,60 @@ describe('activity kind', () => {
       expect(r.ok).toBe(true);
       expect(r.output).toContain('flowchart TB');
       expect(r.output).not.toContain('swimlane');
-      expect(r.output).toContain('[["fork"]]');
-      expect(r.output).toContain('((("end")))');
       expect(r.warnings.map((w) => w.stage)).toEqual(['feature-matrix', 'emit']);
       expect(r.warnings[1].message).toContain('stable flowchart form');
       expect((await mermaid.parse(r.output)).diagramType).toBe('flowchart-v2');
       await expect(r.output).toMatchFileSnapshot('snapshots/mermaid/activity-valid-fork-join-stable.mmd');
+    });
+
+    describe('issue 53: the stable form writes no word of its own into a control node', () => {
+      const ja = {
+        schemaVersion: 1, kind: 'activity', title: '請求書のダウンロード', direction: 'TB', meta: { lang: 'ja' },
+        lanes: [{ id: 'client', label: 'クライアント' }, { id: 'api', label: '請求API' }],
+        actions: [{ id: 'ask', label: '請求書PDFを要求する', lane: 'client' }, { id: 'pdf', label: 'PDFを作成する', lane: 'api' }, { id: 'log', label: 'ダウンロードを記録する', lane: 'api' }, { id: 'save', label: 'PDFを保存する', lane: 'client' }],
+        controls: [{ id: 'start', kind: 'initial', lane: 'client' }, { id: 'fork', kind: 'fork', lane: 'api' }, { id: 'join', kind: 'join', lane: 'api' }, { id: 'end', kind: 'final', lane: 'client' }],
+        flows: [{ id: 'f1', from: 'start', to: 'ask' }, { id: 'f2', from: 'ask', to: 'fork' }, { id: 'f3', from: 'fork', to: 'pdf' }, { id: 'f4', from: 'fork', to: 'log' }, { id: 'f5', from: 'pdf', to: 'join' }, { id: 'f6', from: 'log', to: 'join' }, { id: 'f7', from: 'join', to: 'save' }, { id: 'f8', from: 'save', to: 'end' }],
+      };
+      /** Every quoted label of the text, with Mermaid's entity codes and line breaks taken out. */
+      const labels = (text) => [...text.replace(/^---[\s\S]*?---\n/, '').matchAll(/"([^"]*)"/g)].map((m) => m[1].replace(/#\w+;|<br\/>/g, ''));
+
+      it('draws initial, final, fork and join as painted shapes with blank labels', async () => {
+        const r = await emit(ja, 'mermaid', { mermaidStable: true });
+        expect(r.ok).toBe(true);
+        const line = (id) => r.output.split('\n')[r.output.split('\n').indexOf(`    %% id: ${id}`) + 1].trim();
+        expect(line('start')).toBe('n7((" "))');
+        expect(line('end')).toBe('n10(((" ")))');
+        expect(line('fork')).toBe(`n8[["${'#emsp;'.repeat(8)}"]]`);
+        expect(line('join')).toBe(line('fork').replace('n8', 'n9'));
+        // A filled circle, a double circle whose white strokes leave a ring, and two filled bars.
+        expect(r.output).toContain('  style n7 fill:#000,stroke:#000\n  style n8 fill:#000,stroke:#000\n  style n9 fill:#000,stroke:#000\n  style n10 fill:#000,stroke:#fff,stroke-width:3px\n');
+        expect(r.output.trimEnd().endsWith('stroke-width:3px')).toBe(true);
+        // No Latin letter is left in any label but the ones the IR carries (PDF, API).
+        const own = labels(r.output).join('').replace(/PDF|API/g, '');
+        expect(own).not.toMatch(/[A-Za-z]/);
+        for (const word of ['start', 'end', 'fork', 'join']) expect(r.output.replace(/%% id: \w+/g, '')).not.toContain(`"${word}"`);
+        expect((await mermaid.parse(r.output)).diagramType).toBe('flowchart-v2');
+      });
+
+      it('stands the bars upright in a left-to-right diagram', async () => {
+        for (const direction of ['LR', 'RL']) {
+          const r = await emit({ ...ja, direction }, 'mermaid', { mermaidStable: true });
+          expect(r.output).toContain('n8[["#emsp;<br/>#emsp;<br/>#emsp;"]]');
+          expect(r.output).toContain('n9[["#emsp;<br/>#emsp;<br/>#emsp;"]]');
+          expect((await mermaid.parse(r.output)).diagramType).toBe('flowchart-v2');
+        }
+      });
+
+      it('leaves a decision and a merge as they were, and paints nothing in the swimlane form', async () => {
+        const ir = loadFixture('activity', 'valid-two-lanes');
+        const stable = await emit(ir, 'mermaid', { mermaidStable: true });
+        // Only control nodes are painted: one style line for each initial, final, fork and join.
+        const painted = (ir.controls ?? []).filter((c) => ['initial', 'final', 'fork', 'join'].includes(c.kind)).length;
+        expect(stable.output.split('\n').filter((l) => l.startsWith('  style '))).toHaveLength(painted);
+        const beta = await emit(ja, 'mermaid');
+        expect(beta.output).not.toContain('style ');
+        expect(beta.output).toContain('@{ shape: fork }');
+      });
     });
   });
 
