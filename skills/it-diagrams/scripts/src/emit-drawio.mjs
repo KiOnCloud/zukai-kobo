@@ -1,6 +1,6 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
 import { layoutGraph, measureNode, measureDecision, measureLabel, measureLabelBelow, LABEL_PAD } from './layout-graph.mjs';
-import { layoutSequence } from './layout-sequence.mjs';
+import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
 import { longestLine, displayLength } from './text-metrics.mjs';
 
@@ -186,7 +186,9 @@ export const STYLE = {
   frameTabLabel: 'text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;',
   frameSeparator: 'line;strokeWidth=1;dashed=1;html=1;',
   frameSeparatorLabel: 'text;html=1;align=left;verticalAlign=middle;spacingLeft=5;resizable=0;fillColor=#ffffff;strokeColor=none;',
-  sequenceNote: 'shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;',
+  // The spacing draws the room the layout counted when it sized the note: the text wraps
+  // inside it, off the left border and short of the folded corner (draw.io adds 2 px itself).
+  sequenceNote: `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=${NOTE_FOLD};spacingLeft=${NOTE_PAD.left - 2};spacingRight=${NOTE_PAD.right - 2};`,
 };
 
 const CIRCLE = 30;

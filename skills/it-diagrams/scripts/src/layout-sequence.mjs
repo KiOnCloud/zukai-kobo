@@ -7,8 +7,9 @@
  * section separator and block end gets a row of its own, so frame labels never sit on top of
  * message labels, and a block that opens right after another has closed starts below a gap,
  * so each frame keeps its own border. Notes take the gap next to their lifeline instead of
- * overlapping the next one. A final pass reports any text boxes that still overlap, so the
- * agent can tell the user.
+ * overlapping the next one, and are as tall as their wrapped text needs, so the rows below a
+ * long note move down. A final pass reports any text boxes that still overlap, so the agent
+ * can tell the user.
  */
 
 import { longestLine } from './text-metrics.mjs';
@@ -27,12 +28,22 @@ export const SEQUENCE_METRICS = {
   blockCloseHeight: 16,
   blockGap: 12,
   noteHeight: 36,
-  noteRowHeight: 48,
+  noteRowGap: 12,
   activationWidth: 10,
   frameInset: 16,
   charWidth: 7,
   labelHeight: 16,
 };
+
+/** The folded corner of a note: how far it cuts into the top and the right side of the box. */
+export const NOTE_FOLD = 14;
+/**
+ * Clear space between a note's border and its text. On the left it is the padding every node
+ * label keeps. On the right it is the fold plus 4 px, so a first line that fills the note
+ * stops short of the folded corner. The height below counts it and the emitter draws it as
+ * label spacing, so draw.io wraps the text at the width the height was measured for.
+ */
+export const NOTE_PAD = { left: LABEL_PAD, right: NOTE_FOLD + 4 };
 
 const textWidth = (text, m) => Math.ceil(longestLine(text) * m.charWidth) + 12;
 const lineCount = (text) => String(text).split(/\r\n?|\n/).length;
@@ -103,10 +114,38 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
   for (const b of blocks) b.depth = blocks.filter((o) => o !== b && o.start <= b.start && b.end <= o.end).length;
   const maxDepth = blocks.reduce((d, b) => Math.max(d, b.depth), 0);
 
-  // Rows.
+  // Notes sit in the gap beside their lifeline; a two-participant note spans both. A note is
+  // `noteHeight` tall for one line and grows by a line height for every line its text wraps
+  // to at the padded width, so the text stays inside the top and bottom borders. Its y
+  // follows from its row.
   const notes = ir.notes ?? [];
+  const noteBoxes = new Map();
+  for (const note of notes) {
+    const first = participants.get(note.participants[0]);
+    let left;
+    let width;
+    if (note.participants.length === 2) {
+      const second = participants.get(note.participants[1]);
+      left = Math.min(first.centerX, second.centerX) - 20;
+      width = Math.abs(second.centerX - first.centerX) + 40;
+    } else if ((note.position ?? 'right') === 'left') {
+      width = Math.min(gapLeft(first.index) - 24, 220);
+      left = first.centerX - 12 - width;
+    } else if (note.position === 'over') {
+      width = Math.min(gapRight(first.index) - 24, 220);
+      left = first.centerX - width / 2;
+    } else {
+      width = Math.min(gapRight(first.index) - 24, 220);
+      left = first.centerX + 12;
+    }
+    const lines = wrapText(note.label, width - NOTE_PAD.left - NOTE_PAD.right).lines;
+    noteBoxes.set(note.id, { x: left, y: 0, width, height: m.noteHeight + m.labelHeight * (lines - 1) });
+  }
+  const noteRow = (note) => ({ type: 'note', id: note.id, height: noteBoxes.get(note.id).height + m.noteRowGap });
+
+  // Rows.
   const rows = [];
-  for (const note of notes) if (note.after === undefined) rows.push({ type: 'note', id: note.id, height: m.noteRowHeight });
+  for (const note of notes) if (note.after === undefined) rows.push(noteRow(note));
   ir.messages.forEach((msg, i) => {
     for (const b of [...blocks].sort(outerFirst)) {
       const k = b.sections.findIndex((s, si) => si > 0 && s.start === i);
@@ -119,7 +158,7 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     for (const b of opening) rows.push({ type: 'block-open', block: b.id, height: m.blockOpenHeight });
     // A label of several lines (a `ref` adds one) stands above its arrow, so its row grows.
     rows.push({ type: 'message', id: msg.id, height: m.rowPitch + m.labelHeight * (lineCount(msg.label) - 1) });
-    for (const note of notes) if (note.after === msg.id) rows.push({ type: 'note', id: note.id, height: m.noteRowHeight });
+    for (const note of notes) if (note.after === msg.id) rows.push(noteRow(note));
     for (const b of blocks.filter((b) => b.end === i).sort(innerFirst)) rows.push({ type: 'block-close', block: b.id, height: m.blockCloseHeight });
   });
   let y = m.topMargin + m.headerHeight + m.rowPitch / 2;
@@ -132,6 +171,7 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
   for (const p of participants.values()) p.height = totalHeight - m.topMargin;
   const rowOf = (type, key) => rows.find((r) => r.type === type && (type === 'message' || type === 'note' ? r.id === key : r.block === key));
   const messageY = (id) => rowOf('message', id).y;
+  for (const [id, box] of noteBoxes) box.y = rowOf('note', id).y - box.height / 2;
 
   // Activations: a sync call activates the target until a return from it to the caller. A
   // return inside one branch of an alt or par does not end the call for the other branches:
@@ -161,30 +201,6 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     }
   });
   for (const a of open) activations.push({ id: a.id, participant: a.participant, startY: a.startY, endY: a.startY + m.rowPitch });
-
-  // Notes sit in the gap beside their lifeline; a two-participant note spans both.
-  const noteBoxes = new Map();
-  for (const note of notes) {
-    const row = rowOf('note', note.id);
-    const first = participants.get(note.participants[0]);
-    let left;
-    let width;
-    if (note.participants.length === 2) {
-      const second = participants.get(note.participants[1]);
-      left = Math.min(first.centerX, second.centerX) - 20;
-      width = Math.abs(second.centerX - first.centerX) + 40;
-    } else if ((note.position ?? 'right') === 'left') {
-      width = Math.min(gapLeft(first.index) - 24, 220);
-      left = first.centerX - 12 - width;
-    } else if (note.position === 'over') {
-      width = Math.min(gapRight(first.index) - 24, 220);
-      left = first.centerX - width / 2;
-    } else {
-      width = Math.min(gapRight(first.index) - 24, 220);
-      left = first.centerX + 12;
-    }
-    noteBoxes.set(note.id, { x: left, y: row.y - m.noteHeight / 2, width, height: m.noteHeight });
-  }
 
   // Frames span the participants their messages touch, the notes attached to those
   // messages, and the rows from header to close.

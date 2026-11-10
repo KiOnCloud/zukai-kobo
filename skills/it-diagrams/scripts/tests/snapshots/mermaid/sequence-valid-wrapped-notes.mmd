@@ -1,0 +1,24 @@
+---
+title: "Order lookup"
+---
+sequenceDiagram
+  %% id: web
+  participant n1 as Web shop
+  %% id: api
+  participant n2@{ "type" : "control" } as Order service
+  %% id: db
+  participant n3@{ "type" : "database" } as Order database
+  %% id: m1
+  n1->>n2: GET /orders/#123;id#125;
+  %% id: n1
+  Note over n1,n2: Cache key is the order id plus the tenant prefix
+  %% id: m2
+  n2->>n3: SELECT order
+  %% id: m3
+  n3-->>n2: order row
+  %% id: n2
+  Note over n2,n3: Rows older than two years are read from the archive schema instead of the live one
+  %% id: m4
+  n2-->>n1: 200 OK (order JSON)
+  %% id: n3
+  Note over n1,n2: Response is gzip compressed when the client sends Accept-Encoding gzip and the body is larger than 1 KB

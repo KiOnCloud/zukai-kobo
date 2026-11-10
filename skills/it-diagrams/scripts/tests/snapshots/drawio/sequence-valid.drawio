@@ -37,10 +37,10 @@
         <mxCell id="login-with-password:act-m1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="login-with-password:web">
           <mxGeometry x="55" y="114" width="10" height="480" as="geometry"/>
         </mxCell>
-        <mxCell id="login-with-password:n1" value="Rate limited per IP" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;" vertex="1" parent="1">
+        <mxCell id="login-with-password:n1" value="Rate limited per IP" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;spacingLeft=10;spacingRight=16;" vertex="1" parent="1">
           <mxGeometry x="335" y="240" width="173" height="36" as="geometry"/>
         </mxCell>
-        <mxCell id="login-with-password:n2" value="Hash: argon2id" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;" vertex="1" parent="1">
+        <mxCell id="login-with-password:n2" value="Hash: argon2id" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;spacingLeft=10;spacingRight=16;" vertex="1" parent="1">
           <mxGeometry x="500" y="448" width="220" height="36" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:m1" value="Submit credentials" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:user" target="login-with-password:web">

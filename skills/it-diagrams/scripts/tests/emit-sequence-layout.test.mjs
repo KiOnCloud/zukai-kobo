@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { emit } from '../src/pipeline.mjs';
-import { layoutSequence, SEQUENCE_METRICS } from '../src/layout-sequence.mjs';
-import { LABEL_PAD } from '../src/layout-graph.mjs';
+import { layoutSequence, SEQUENCE_METRICS, NOTE_FOLD, NOTE_PAD } from '../src/layout-sequence.mjs';
+import { LABEL_PAD, wrapText } from '../src/layout-graph.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
 import { loadFixture, scriptsDir } from './helpers.mjs';
 import { loadPlaywright } from '../src/preview.mjs';
@@ -164,6 +164,100 @@ describe('combined fragments of a sequence diagram in draw.io', () => {
         if (f === g) continue;
         for (const y of frameEdges(f)) for (const other of frameEdges(g)) expect(Math.abs(y - other), `${ir.title}: ${f.id} / ${g.id}`).toBeGreaterThanOrEqual(M.blockGap);
       }
+    }
+  });
+});
+
+/** draw.io keeps 2 px between a shape and its text, plus the style's `spacingLeft` / `spacingRight`. */
+const notePad = (cell) => Object.fromEntries(['Left', 'Right'].map((side) => [side.toLowerCase(), 2 + Number(cell.style.match(new RegExp(`spacing${side}=(\\d+)`))?.[1] ?? 0)]));
+const noteIr = (label, note = {}) => ({
+  schemaVersion: 1, kind: 'sequence', title: 'Notes',
+  participants: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }, { id: 'c', label: 'C' }],
+  messages: [{ id: 'm1', from: 'a', to: 'b', label: 'call' }, { id: 'm2', from: 'b', to: 'c', label: 'call' }],
+  notes: [{ id: 'n1', label, participants: ['b'], after: 'm1', ...note }],
+});
+
+describe('notes of a sequence diagram in draw.io', () => {
+  it('keeps the text of a note off its side borders and short of the folded corner', async () => {
+    const ir = loadFixture('sequence', 'valid-wrapped-notes');
+    const { r, cells } = await sequenceCells(ir);
+    expect(r.warnings).toEqual([]);
+    expect(NOTE_PAD).toEqual({ left: LABEL_PAD, right: NOTE_FOLD + 4 });
+    for (const n of ir.notes) {
+      const cell = cells.find((c) => c.id === `sq:${n.id}`);
+      expect(cell.style, n.id).toContain(`size=${NOTE_FOLD};`);
+      expect(notePad(cell), n.id).toEqual(NOTE_PAD);
+    }
+  });
+
+  it('makes a note as tall as its wrapped text, and moves the rows below it down', async () => {
+    const ir = loadFixture('sequence', 'valid-wrapped-notes');
+    const { box } = await sequenceCells(ir);
+    const L = layoutSequence(ir);
+    const lines = {};
+    for (const n of ir.notes) {
+      const b = box(n.id);
+      expect(b.width, n.id).toBe(220);
+      lines[n.id] = wrapText(n.label, b.width - NOTE_PAD.left - NOTE_PAD.right).lines;
+      expect(b.height, n.id).toBe(M.noteHeight + M.labelHeight * (lines[n.id] - 1));
+      // The note stands in the middle of a row of its own, which is taller by the same amount.
+      const row = L.rows.find((x) => x.type === 'note' && x.id === n.id);
+      expect(row.height, n.id).toBe(b.height + M.noteRowGap);
+      expect(b.y + b.height / 2, n.id).toBe(row.y);
+    }
+    expect(lines).toEqual({ n1: 2, n2: 4, n3: 5 });
+    // The next arrow is a note row and a message row below the arrow the note follows.
+    expect(L.messageY('m2') - L.messageY('m1')).toBe(box('n1').height + M.noteRowGap + M.rowPitch);
+    expect(L.messageY('m4') - L.messageY('m3')).toBe(box('n2').height + M.noteRowGap + M.rowPitch);
+    const lifeline = box('web');
+    expect(lifeline.y + lifeline.height).toBeGreaterThan(box('n3').y + box('n3').height);
+  });
+
+  it('keeps a one-line note at the base height, and measures a one-lifeline note at its own width', () => {
+    const short = layoutSequence(noteIr('Timeout 10 s'));
+    expect(short.notes.get('n1').height).toBe(M.noteHeight);
+    expect(short.rows.find((row) => row.type === 'note').height).toBe(M.noteHeight + M.noteRowGap);
+    const label = 'Retried three times with a growing delay before the order is marked as failed';
+    for (const position of ['left', 'right', 'over']) {
+      const L = layoutSequence(noteIr(label, { position }));
+      const b = L.notes.get('n1');
+      // Beside one lifeline a note is narrower than between two, so the same text takes more lines.
+      expect(b.width, position).toBe(156);
+      const lines = wrapText(label, b.width - NOTE_PAD.left - NOTE_PAD.right).lines;
+      expect(lines, position).toBeGreaterThan(wrapText(label, 220 - NOTE_PAD.left - NOTE_PAD.right).lines);
+      expect(b.height, position).toBe(M.noteHeight + M.labelHeight * (lines - 1));
+    }
+    // A note placed before the first message has a row of its own height too.
+    const first = noteIr(label);
+    delete first.notes[0].after;
+    const L = layoutSequence(first);
+    expect(L.rows[0]).toMatchObject({ type: 'note', height: L.notes.get('n1').height + M.noteRowGap });
+    expect(L.warnings).toEqual([]);
+  });
+
+  it.skipIf(!pw)('renders each note in Chromium inside the box it was sized for', async () => {
+    const fixture = loadFixture('sequence', 'valid-wrapped-notes');
+    // Capitals and digits are the widest text a note is likely to hold.
+    const wide = noteIr('RETRY POLICY: MAX 3 ATTEMPTS, THEN MOVE THE MESSAGE TO THE DEAD LETTER QUEUE AND RAISE ALERT 4021');
+    const notes = [fixture, wide].flatMap((ir) => {
+      const L = layoutSequence(ir);
+      return ir.notes.map((n) => ({ label: n.label, ...L.notes.get(n.id) }));
+    });
+    const browser = await pw.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.setContent(`<body style="font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.2">${notes.map((n, i) => `<div id="n${i}" style="width:${n.width - NOTE_PAD.left - NOTE_PAD.right}px;white-space:normal;overflow-wrap:normal">${n.label}</div>`).join('')}</body>`);
+      const rendered = await page.evaluate((count) => Array.from({ length: count }, (_, i) => {
+        const el = document.getElementById(`n${i}`);
+        return { height: el.getBoundingClientRect().height, overflow: el.scrollWidth - el.clientWidth };
+      }), notes.length);
+      rendered.forEach((got, i) => {
+        // draw.io centres the text, so half of what the box has left stands above and below it.
+        expect((notes[i].height - got.height) / 2, notes[i].label).toBeGreaterThanOrEqual(8);
+        expect(got.overflow, notes[i].label).toBeLessThanOrEqual(0);
+      });
+    } finally {
+      await browser.close();
     }
   });
 });

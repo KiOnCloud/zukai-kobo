@@ -126,7 +126,7 @@ moving shapes by hand, so the IR stays the source of truth.
 | sequence participant | `umlLifeline` with a plain head, 120 px wide or as wide as the longest word of its label needs; `actor` adds a stick figure above the head, `boundary`, `control`, `entity` and `database` show the kind as a `«stereotype»` line above the label (draw.io's robustness glyphs were tried and read as stray arrows) |
 | sequence message | horizontal edge between lifelines: filled arrow (sync), open arrow (async), dashed open arrow (return); self-messages loop out to the right and back with both ends anchored on the lifeline's centre line |
 | sequence block | `umlFrame` behind the messages it covers, wide enough for the notes attached to them, 12 px below a frame that ends just before it; its tab text and each `else` / `and` label are opaque cells drawn above lifelines and activations |
-| sequence note | note shape on the row after the message it follows |
+| sequence note | note shape on the row after the message it follows; its text keeps 12 px from the left border and 18 px from the right one, clear of the 14 px folded corner, and the note is as tall as the lines its text wraps to |
 | sequence activation | starts at a sync call and ends at the return to the caller; a return inside one branch of an `alt` or `par` keeps the activation open to the last message of that participant in the block |
 | sequence message label | white background, so a lifeline it spans does not cut the text |
 | activity lane | full-height coloured `swimlane` column (lanes side by side in IR order, header and body tints from a fixed palette); rows follow the flow order, nodes of a lane sit in its column, flows are routed through the row gaps and lane gutters on separate tracks per target, ordered so branches do not cross, and flows into one node merge into a trunk; a merge fed by long flows down a lane gutter sits on that gutter's side of its row-mates, and a node whose next step is in another lane sits on that lane's side of them; a long edge runs straight down its own column when that column is free, else along the lane edge that no cross-lane flow cuts; a crossing that lanes force is reported as a `layout:` warning |
@@ -181,7 +181,9 @@ across re-runs.
   the base width, and the gap widens until every message label fits between the lifelines
   it spans. Every message, note, block
   header, `else`/`and` separator and block end has a row of its own (40, 48, 34, 30 and 16 px),
-  so frame labels never sit on message labels. A block that opens right after another has
+  so frame labels never sit on message labels. A note is 36 px tall for one line and 16 px
+  taller for every further line its text takes at 7 px per character inside the padded width;
+  its row grows with it, so everything below a long note moves down. A block that opens right after another has
   closed starts 12 px lower, so the bottom edge of one frame and the top edge of the next
   stay two lines; nested frames and a frame after a separator are already apart. Notes take
   the gap beside their lifeline. A
