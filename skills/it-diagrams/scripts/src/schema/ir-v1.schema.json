@@ -69,6 +69,11 @@
       },
       "uniqueItems": true
     },
+    "ref": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+      "description": "Diagram id of the sub-diagram that details this element (its IR file name without .ir.json)"
+    },
     "direction": {
       "type": "string",
       "enum": [
@@ -186,9 +191,7 @@
                 ]
               },
               "ref": {
-                "type": "string",
-                "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
-                "description": "Slug of another diagram file that details this step"
+                "$ref": "#/$defs/ref"
               }
             }
           }
@@ -330,6 +333,9 @@
                   "async",
                   "return"
                 ]
+              },
+              "ref": {
+                "$ref": "#/$defs/ref"
               }
             }
           }
@@ -473,6 +479,9 @@
               },
               "children": {
                 "$ref": "#/$defs/idList"
+              },
+              "ref": {
+                "$ref": "#/$defs/ref"
               }
             }
           }
@@ -574,6 +583,9 @@
                     }
                   }
                 }
+              },
+              "ref": {
+                "$ref": "#/$defs/ref"
               }
             }
           }
@@ -732,6 +744,9 @@
                     }
                   }
                 }
+              },
+              "ref": {
+                "$ref": "#/$defs/ref"
               }
             }
           }
@@ -826,6 +841,9 @@
                   "client",
                   "external"
                 ]
+              },
+              "ref": {
+                "$ref": "#/$defs/ref"
               }
             }
           }
@@ -943,9 +961,7 @@
                 "$ref": "#/$defs/id"
               },
               "ref": {
-                "type": "string",
-                "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
-                "description": "Slug of another diagram file that details this step"
+                "$ref": "#/$defs/ref"
               }
             }
           }

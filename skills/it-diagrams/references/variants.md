@@ -66,7 +66,7 @@ node "<skill-dir>/scripts/bin/cli.mjs" relabel <run-folder>/<run-slug>.drawio --
 Write the map from the IR: one key per element id whose label changes, `<diagram id>:title`
 for each page title, and `<diagram id>:<ir id>` to address one page of a bundle (the same
 key also covers that diagram's copy on the canvas page). The CLI keeps a leading
-`«stereotype»` line and a bold title; the `↳ <sub-diagram>` line of a step with `ref` takes
+`«stereotype»` line and a bold title; the `↳ <sub-diagram>` line of an element with `ref` takes
 the target page's new title when the map renames it, so translate every page title. Cells
 the author copied by hand in draw.io have generated ids and cannot be found by key: the CLI
 gives them the translation of any replaced cell with the same source text (`byText` in the

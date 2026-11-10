@@ -20,25 +20,25 @@ function expectedFeatures() {
       ...enumOf(def('sequence').participants.items.properties.kind).map((k) => `participant.kind.${k}`),
       ...enumOf(def('sequence').messages.items.properties.kind).map((k) => `message.kind.${k}`),
       ...enumOf(def('sequence').blocks.items.properties.kind).map((k) => `block.kind.${k}`),
-      'note',
+      'note', 'message.ref',
     ],
     state: [
       ...enumOf(def('state').states.items.properties.kind).map((k) => `state.kind.${k}`),
-      'composite.depth.gt2', 'transition.guard', 'transition.action',
+      'composite.depth.gt2', 'transition.guard', 'transition.action', 'state.ref',
     ],
     er: [
       'attribute.key.pk', 'attribute.key.fk', 'attribute.comment',
       ...enumOf(def('er').relations.items.properties.fromCardinality).map((c) => `relation.cardinality.${c}`),
-      'relation.nonIdentifying',
+      'relation.nonIdentifying', 'entity.ref',
     ],
     class: [
       'stereotype', 'member.visibility', 'method.params',
       ...enumOf(def('class').relations.items.properties.kind).map((k) => `relation.kind.${k}`),
-      'relation.cardinality',
+      'relation.cardinality', 'class.ref',
     ],
     architecture: [
       ...enumOf(def('architecture').components.items.properties.kind).map((k) => `component.kind.${k}`),
-      'boundary', 'boundary.nested', 'connection.label', 'connection.bidirectional',
+      'boundary', 'boundary.nested', 'connection.label', 'connection.bidirectional', 'component.ref',
     ],
     activity: [
       'lane', 'action.ref',

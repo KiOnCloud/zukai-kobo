@@ -27,7 +27,7 @@ export function enumerateFeatures(ir) {
     }
     case 'sequence': {
       list(ir, 'participants').forEach((p, i) => use(`participant.kind.${p.kind ?? 'participant'}`, `/participants/${i}`, p.id));
-      list(ir, 'messages').forEach((m, i) => use(`message.kind.${m.kind ?? 'sync'}`, `/messages/${i}`, m.id));
+      list(ir, 'messages').forEach((m, i) => { use(`message.kind.${m.kind ?? 'sync'}`, `/messages/${i}`, m.id); if (m.ref) use('message.ref', `/messages/${i}`, m.id); });
       list(ir, 'blocks').forEach((b, i) => use(`block.kind.${b.kind}`, `/blocks/${i}`, b.id));
       list(ir, 'notes').forEach((n, i) => use('note', `/notes/${i}`, n.id));
       break;
@@ -46,6 +46,7 @@ export function enumerateFeatures(ir) {
       states.forEach((s, i) => {
         use(`state.kind.${s.kind ?? 'simple'}`, `/states/${i}`, s.id);
         if ((s.kind ?? 'simple') === 'composite' && depth(s.id) >= 2) use('composite.depth.gt2', `/states/${i}`, s.id);
+        if (s.ref) use('state.ref', `/states/${i}`, s.id);
       });
       list(ir, 'transitions').forEach((t, i) => {
         if (t.guard) use('transition.guard', `/transitions/${i}`, t.id);
@@ -55,6 +56,7 @@ export function enumerateFeatures(ir) {
     }
     case 'er': {
       list(ir, 'entities').forEach((e, i) => {
+        if (e.ref) use('entity.ref', `/entities/${i}`, e.id);
         (e.attributes ?? []).forEach((a, j) => {
           if (a.key === 'pk' || a.key === 'fk') use(`attribute.key.${a.key}`, `/entities/${i}/attributes/${j}`, e.id);
           if (a.comment) use('attribute.comment', `/entities/${i}/attributes/${j}`, e.id);
@@ -70,6 +72,7 @@ export function enumerateFeatures(ir) {
     case 'class': {
       list(ir, 'classes').forEach((c, i) => {
         if (c.stereotype) use('stereotype', `/classes/${i}`, c.id);
+        if (c.ref) use('class.ref', `/classes/${i}`, c.id);
         if ((c.attributes ?? []).some((a) => a.visibility) || (c.methods ?? []).some((m) => m.visibility)) use('member.visibility', `/classes/${i}`, c.id);
         if ((c.methods ?? []).some((m) => m.params)) use('method.params', `/classes/${i}`, c.id);
       });
@@ -80,7 +83,7 @@ export function enumerateFeatures(ir) {
       break;
     }
     case 'architecture': {
-      list(ir, 'components').forEach((c, i) => use(`component.kind.${c.kind ?? 'service'}`, `/components/${i}`, c.id));
+      list(ir, 'components').forEach((c, i) => { use(`component.kind.${c.kind ?? 'service'}`, `/components/${i}`, c.id); if (c.ref) use('component.ref', `/components/${i}`, c.id); });
       const boundaries = list(ir, 'boundaries');
       const boundaryIds = new Set(boundaries.map((b) => b.id));
       boundaries.forEach((b, i) => {

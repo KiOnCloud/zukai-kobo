@@ -30,6 +30,9 @@ export function emitMermaid(ir, options = {}) {
     if (options.refs) warnings.push({ path, message: `ref "${ref}" is not in this bundle: the step shows the slug`, hint: 'bundle the referenced diagram too, or fix the ref' });
     return `↳ ${ref}`;
   };
+  // An element that a sub-diagram details shows that diagram on a second label line (FigJam
+  // labels have no line break, so there it follows on the same line).
+  t.withRef = (text, ref, path) => (ref ? `${text}${profile === 'figjam' ? ' ' : '<br/>'}${t.label(t.refText(ref, path))}` : text);
   switch (ir.kind) {
     case 'flowchart': emitFlowchart(ir, emit, t); break;
     case 'sequence': emitSequence(ir, emit, t, options.stable === true); break;
@@ -87,7 +90,7 @@ function emitFlowchart(ir, emit, t) {
 
   const nodeLine = (n) => {
     const id = ids.get(n.id);
-    const text = n.ref ? `${t.label(n.label, pathOf.get(n.id))}${t.profile === 'figjam' ? ' ' : '<br/>'}${t.label(t.refText(n.ref, refPathOf.get(n.id)))}` : t.label(n.label, pathOf.get(n.id));
+    const text = t.withRef(t.label(n.label, pathOf.get(n.id)), n.ref, refPathOf.get(n.id));
     const label = `"${text}"`;
     if (n.ref) return `${id}[[${label}]]`;
     switch (n.shape ?? 'process') {
@@ -189,7 +192,7 @@ function emitSequence(ir, emit, t, stable) {
       depth++;
     }
     emit(idComment(indent(), m.id));
-    emit(`${indent()}${ids.get(m.from)}${MESSAGE_ARROW[m.kind ?? 'sync']}${ids.get(m.to)}: ${t.label(m.label, `/messages/${i}/label`)}`);
+    emit(`${indent()}${ids.get(m.from)}${MESSAGE_ARROW[m.kind ?? 'sync']}${ids.get(m.to)}: ${t.withRef(t.label(m.label, `/messages/${i}/label`), m.ref, `/messages/${i}/ref`)}`);
     notes.forEach((n, ni) => {
       if (n.after === m.id) {
         emit(idComment(indent(), n.id));
@@ -210,6 +213,7 @@ function emitState(ir, emit, t) {
   const states = ir.states;
   const byId = new Map(states.map((s) => [s.id, s]));
   const pathOf = new Map(states.map((s, i) => [s.id, `/states/${i}/label`]));
+  const text = (s) => t.withRef(t.label(s.label, pathOf.get(s.id)), s.ref, pathOf.get(s.id).replace(/label$/, 'ref'));
   for (const s of states) ids.add(s.id);
   const kindOf = (id) => byId.get(id)?.kind ?? 'simple';
   const parentOf = new Map();
@@ -275,11 +279,11 @@ function emitState(ir, emit, t) {
       if (kind === 'initial' || kind === 'final') continue; // rendered as [*] by their transitions
       emit(idComment(indent, id));
       if (isComposite(id)) {
-        emit(`${indent}state "${t.label(s.label, pathOf.get(id))}" as ${ids.get(id)} {`);
+        emit(`${indent}state "${text(s)}" as ${ids.get(id)} {`);
         emitScope(id, indent + '  ');
         emit(`${indent}}`);
       } else {
-        emit(`${indent}state "${t.label(s.label, pathOf.get(id))}" as ${ids.get(id)}`);
+        emit(`${indent}state "${text(s)}" as ${ids.get(id)}`);
       }
     }
     ir.transitions.forEach((tr, i) => {
@@ -306,7 +310,7 @@ function emitEr(ir, emit, t, stable) {
   ir.entities.forEach((e, i) => {
     ids.add(e.id);
     emit(idComment('  ', e.id));
-    const head = `  ${ids.get(e.id)}["${t.label(e.label, `/entities/${i}/label`)}"]`;
+    const head = `  ${ids.get(e.id)}["${t.withRef(t.label(e.label, `/entities/${i}/label`), e.ref, `/entities/${i}/ref`)}"]`;
     const attrs = e.attributes ?? [];
     if (attrs.length === 0) {
       emit(head);
@@ -340,7 +344,7 @@ function emitClass(ir, emit, t) {
   ir.classes.forEach((c, i) => {
     ids.add(c.id);
     emit(idComment('  ', c.id));
-    const head = `  class ${ids.get(c.id)}["${t.label(c.label, `/classes/${i}/label`)}"]`;
+    const head = `  class ${ids.get(c.id)}["${t.withRef(t.label(c.label, `/classes/${i}/label`), c.ref, `/classes/${i}/ref`)}"]`;
     const members = [];
     if (c.stereotype) {
       const st = identifierToken(c.stereotype, '-');
@@ -470,8 +474,10 @@ function emitArchitecture(ir, emit, t, plan) {
   for (const b of boundaries) for (const c of b.children) parent.set(c, b.id);
   for (const b of boundaries) ids.add(b.id);
   for (const c of ir.components) ids.add(c.id);
+  // architecture-beta labels are one plain line, so a ref follows the label on that line.
   const label = (el, path) => {
-    const r = architectureLabel(el.label);
+    const text = el.ref ? `${el.label} ${t.refText(el.ref, path.replace(/label$/, 'ref'))}` : el.label;
+    const r = architectureLabel(text);
     if (r.altered) t.warnings.push({ path, message: `label of "${el.id}" contains characters architecture-beta cannot show; written as "${r.label}"` });
     return r.label;
   };
@@ -507,7 +513,7 @@ function emitArchitectureAsFlowchart(ir, emit, t) {
   const flow = {
     ...ir,
     kind: 'flowchart',
-    nodes: ir.components.map((c) => ({ id: c.id, label: c.label, shape: c.kind ?? 'service' })),
+    nodes: ir.components.map((c) => ({ id: c.id, label: c.label, shape: c.kind ?? 'service', ref: c.ref })),
     edges: ir.connections.map((c) => ({ id: c.id, from: c.from, to: c.to, label: c.label, bidirectional: c.bidirectional === true })),
     groups: boundaries,
   };
@@ -519,7 +525,7 @@ function emitArchitectureAsFlowchart(ir, emit, t) {
   for (const g of boundaries) for (const c of g.children) parent.set(c, g.id);
   const nodeById = new Map(flow.nodes.map((n) => [n.id, n]));
   const groupById = new Map(boundaries.map((g) => [g.id, g]));
-  const nodeLine = (n, i) => `${ids.get(n.id)}${shape[n.shape](`"${t.label(n.label, `/components/${i}/label`)}"`)}`;
+  const nodeLine = (n, i) => `${ids.get(n.id)}${shape[n.shape](`"${t.withRef(t.label(n.label, `/components/${i}/label`), n.ref, `/components/${i}/ref`)}"`)}`;
   const emitGroup = (g, indent) => {
     emit(idComment(indent, g.id));
     emit(`${indent}subgraph ${ids.get(g.id)}["${t.label(g.label, `/boundaries/${boundaries.indexOf(g)}/label`)}"]`);
@@ -583,7 +589,7 @@ function emitActivity(ir, emit, t, stable) {
     ir.actions.forEach((a, i) => {
       if (a.lane !== laneId) return;
       const text = t.label(a.label, `/actions/${i}/label`);
-      out.push({ id: a.id, line: a.ref ? `${ids.get(a.id)}[["${text}<br/>${t.label(t.refText(a.ref, `/actions/${i}/ref`))}"]]` : `${ids.get(a.id)}["${text}"]` });
+      out.push({ id: a.id, line: a.ref ? `${ids.get(a.id)}[["${t.withRef(text, a.ref, `/actions/${i}/ref`)}"]]` : `${ids.get(a.id)}["${text}"]` });
     });
     controls.forEach((c, i) => { if ((c.lane ?? null) === laneId) out.push({ id: c.id, line: controlLine(c, i) }); });
     return out;

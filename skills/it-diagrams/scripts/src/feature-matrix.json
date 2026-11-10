@@ -166,6 +166,11 @@
             "status": "degraded",
             "note": "FigJam drops sequence Note statements; the note is left out"
           }
+        },
+        "message.ref": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
         }
       }
     },
@@ -216,6 +221,11 @@
           "mermaid": "supported",
           "drawio": "supported",
           "figjam": "supported"
+        },
+        "state.ref": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
         }
       }
     },
@@ -262,6 +272,11 @@
           "figjam": "supported"
         },
         "relation.nonIdentifying": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "entity.ref": {
           "mermaid": "supported",
           "drawio": "supported",
           "figjam": "supported"
@@ -324,6 +339,11 @@
           "figjam": "supported"
         },
         "relation.cardinality": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "class.ref": {
           "mermaid": "supported",
           "drawio": "supported",
           "figjam": "supported"
@@ -401,6 +421,11 @@
             "status": "degraded",
             "note": "flowchart edges are one-way; the label gains \"(both ways)\""
           }
+        },
+        "component.ref": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
         }
       }
     },

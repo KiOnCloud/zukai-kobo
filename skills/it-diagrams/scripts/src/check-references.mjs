@@ -204,6 +204,9 @@ function checkState(ir, err) {
     if (kind !== 'initial' && kind !== 'final' && (typeof s.label !== 'string' || s.label.length === 0)) {
       err(`/states/${i}`, `state "${s.id}" needs a label`, 'only initial and final states may omit the label');
     }
+    if ((kind === 'initial' || kind === 'final') && s.ref !== undefined) {
+      err(`/states/${i}/ref`, `state "${s.id}" is ${kind === 'initial' ? 'an initial' : 'a final'} state and cannot carry a ref`, 'initial and final states are drawn as circles without a label; put the ref on the state the sub-diagram details');
+    }
     if (kind !== 'composite' && Array.isArray(s.children) && s.children.length > 0) {
       err(`/states/${i}/children`, `state "${s.id}" has children but its kind is "${kind}"`, 'set kind to "composite" or remove children');
     }

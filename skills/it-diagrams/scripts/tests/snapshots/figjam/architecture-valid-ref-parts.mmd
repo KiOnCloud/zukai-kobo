@@ -1,0 +1,11 @@
+flowchart LR
+  %% id: web
+  n1(("Back office ↳ order-sync-02-store"))
+  %% id: api
+  n2["Order API ↳ order-sync-01-load"]
+  %% id: db
+  n3[("Orders DB")]
+  %% id: c1
+  n1 -->|"HTTPS"| n2
+  %% id: c2
+  n2 -->|"SQL"| n3

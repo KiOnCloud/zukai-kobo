@@ -1,0 +1,16 @@
+---
+title: "Orders (main)"
+---
+erDiagram
+  direction LR
+  %% id: customer
+  n1["CUSTOMER<br/>↳ order-sync-01-load"] {
+    int id PK
+  }
+  %% id: order
+  n2["ORDER"] {
+    int id PK
+    int customer_id FK
+  }
+  %% id: r1
+  n1 ||--o{ n2 : "places"

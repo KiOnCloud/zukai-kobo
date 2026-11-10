@@ -104,11 +104,11 @@ async function emitDrawioPage(ir, options = {}) {
   let cells;
   switch (ir.kind) {
     case 'flowchart': cells = await emitFlowchart(ir, cid, refs, warnings); break;
-    case 'state': cells = await emitState(ir, cid); break;
-    case 'er': cells = await emitEr(ir, cid, warnings); break;
-    case 'class': cells = await emitClass(ir, cid, warnings); break;
-    case 'architecture': cells = await emitArchitecture(ir, cid); break;
-    case 'sequence': cells = emitSequence(ir, cid, warnings); break;
+    case 'state': cells = await emitState(ir, cid, refs, warnings); break;
+    case 'er': cells = await emitEr(ir, cid, warnings, refs); break;
+    case 'class': cells = await emitClass(ir, cid, warnings, refs); break;
+    case 'architecture': cells = await emitArchitecture(ir, cid, refs, warnings); break;
+    case 'sequence': cells = emitSequence(ir, cid, warnings, refs); break;
     case 'activity': cells = await emitActivity(ir, cid, warnings, refs); break;
     default: throw new Error(`unknown kind "${ir.kind}"`);
   }
@@ -332,7 +332,8 @@ function graphCells(cid, layout, { containers, nodes, edges }, warnings = []) {
     if (c.parent) emitContainer(containers.find((x) => x.id === c.parent));
     emitted.add(c.id);
     const box = layout.containers.get(c.id);
-    cells.push(vertex({ id: cid(c.id), value: htmlLabel(c.label), style: c.style, ...box, parent: c.parent ? cid(c.parent) : '1' }));
+    const style = c.headerHeight ? c.style.replace(/startSize=\d+;/, `startSize=${c.headerHeight};`) : c.style;
+    cells.push(vertex({ id: cid(c.id), value: htmlLabel(c.label), style, ...box, parent: c.parent ? cid(c.parent) : '1', link: c.link }));
   };
   for (const c of containers) emitContainer(c);
   for (const n of nodes) {
@@ -455,11 +456,10 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   return graphCells(cid, layout, { containers, nodes, edges });
 }
 
-async function emitState(ir, cid) {
+async function emitState(ir, cid, refs, warnings) {
   const kindOf = (s) => s.kind ?? 'simple';
   const composites = ir.states.filter((s) => kindOf(s) === 'composite');
   const parent = parentMap(composites);
-  const containers = composites.map((s) => ({ id: s.id, label: s.label, parent: parent.get(s.id), style: STYLE.composite }));
   const label = (t) => {
     const head = [t.event, t.guard ? `[${t.guard}]` : ''].filter(Boolean).join(' ');
     return [head, t.action ? `/ ${t.action}` : ''].filter(Boolean).join(' ');
@@ -468,17 +468,23 @@ async function emitState(ir, cid) {
   // ELK reserves no room for the loop drawn beside a state, so the state asks for it.
   const loopExtra = new Map();
   for (const e of edges) if (e.from === e.to) loopExtra.set(e.from, Math.max(loopExtra.get(e.from) ?? 0, selfLoopExtra(e.label)));
+  const shown = new Map(ir.states.map((s, i) => [s.id, refLabel(s.label, s.ref, refs, `/states/${i}/ref`, warnings)]));
+  const containers = composites.map((s) => ({ id: s.id, label: shown.get(s.id).label, link: shown.get(s.id).link, parent: parent.get(s.id), style: STYLE.composite, headerHeight: 30 + 16 * (shown.get(s.id).label.split('\n').length - 1) }));
   const nodes = ir.states.filter((s) => kindOf(s) !== 'composite').map((s) => {
     const kind = kindOf(s);
-    const size = kind === 'initial' || kind === 'final' ? { width: CIRCLE, height: CIRCLE } : measureNode(s.label);
+    const circle = kind === 'initial' || kind === 'final';
+    const { label, link } = circle ? { label: '' } : shown.get(s.id);
+    const size = circle ? { width: CIRCLE, height: CIRCLE } : measureNode(label);
     const extra = loopExtra.get(s.id) ?? 0;
-    return { id: s.id, label: kind === 'initial' || kind === 'final' ? '' : s.label, parent: parent.get(s.id), style: STYLE[kind] ?? STYLE.state, width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
+    return { id: s.id, label, link, parent: parent.get(s.id), style: STYLE[kind] ?? STYLE.state, width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
   });
   const layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction });
   return graphCells(cid, layout, { containers, nodes, edges });
 }
 
 const ROW = 26;
+/** What each line after the first adds to a table header (a stereotype, the title of a ref). */
+const HEADER_LINE = 20;
 
 /** A table-like node (ER entity, class) with one child row per line; rows stack from the header. */
 const ROW_LINE = 14;
@@ -490,7 +496,7 @@ export function rowHeight(text, width) {
   return ROW + ROW_LINE * (lines - 1);
 }
 
-function tableNode(id, header, rows, { headerHeight = ROW } = {}) {
+function tableNode(id, header, rows, { headerHeight = ROW, link } = {}) {
   const longest = Math.max(longestLine(header), ...rows.map((r) => longestLine(r.text ?? '')), 1);
   const width = Math.min(TABLE_MAX_WIDTH, Math.max(160, Math.ceil(7 * longest) + 24));
   const heightOf = (r) => (r.separator ? 8 : rowHeight(r.text, width));
@@ -506,7 +512,7 @@ function tableNode(id, header, rows, { headerHeight = ROW } = {}) {
       ? vertex({ id: `${parentId}:sep-${i}`, value: '', style: STYLE.separator, x: 0, y: rowY, width, height: 8, parent: parentId })
       : vertex({ id: `${parentId}:row-${i}`, value: htmlLabel(r.text), style: STYLE.row, x: 0, y: rowY, width, height: h, parent: parentId }));
   });
-  return { id, label: header, style: `${STYLE.table}startSize=${headerHeight};`, width, height, children, headerHeight, rowTops };
+  return { id, label: header, link, style: `${STYLE.table}startSize=${headerHeight};`, width, height, children, headerHeight, rowTops };
 }
 
 const ER_ARROW = { one: 'ERmandOne', 'zero-one': 'ERzeroToOne', many: 'ERzeroToMany', 'one-many': 'ERoneToMany' };
@@ -544,12 +550,15 @@ const ER_ANCHOR_PITCH = 20;
  * the real end points and its channels and crossing avoidance hold in the output. Header
  * bands grow by 20 px per extra anchor, so two markers on one side never stack.
  */
-async function emitEr(ir, cid, warnings) {
+async function emitEr(ir, cid, warnings, refs) {
   const rowsOf = (e) => (e.attributes ?? []).map((a) => {
     const key = a.key === 'pk' ? 'PK ' : a.key === 'fk' ? 'FK ' : '';
     return { text: `${key}${a.name}: ${a.type}${a.comment ? ` (${a.comment})` : ''}` };
   });
-  const buildNodes = (headerHeights) => ir.entities.map((e) => tableNode(e.id, e.label, rowsOf(e), { headerHeight: headerHeights.get(e.id) ?? ROW }));
+  // A ref adds a title line to the header, which keeps that room on top of its anchor band.
+  const shown = new Map(ir.entities.map((e, i) => [e.id, refLabel(e.label, e.ref, refs, `/entities/${i}/ref`, warnings)]));
+  const refRoom = (e) => (e.ref ? HEADER_LINE : 0);
+  const buildNodes = (headerHeights) => ir.entities.map((e) => tableNode(e.id, shown.get(e.id).label, rowsOf(e), { headerHeight: (headerHeights.get(e.id) ?? ROW) + refRoom(e), link: shown.get(e.id).link }));
   const edgeStyle = (r) => `${STYLE.erEdge}startArrow=${ER_ARROW[r.fromCardinality]};startFill=0;endArrow=${ER_ARROW[r.toCardinality]};endFill=0;${r.identifying === false ? 'dashed=1;' : ''}`;
   const edges = ir.relations.map((r) => ({ id: r.id, from: r.from, to: r.to, label: r.label, style: edgeStyle(r) }));
   const spacing = { nodeNode: 60, layer: 80 };
@@ -672,13 +681,13 @@ const CLASS_EDGE = {
   dependency: { style: 'endArrow=open;endFill=0;dashed=1;', reverse: false, from: 0, to: 10 },
 };
 
-async function emitClass(ir, cid, warnings) {
-  const nodes = ir.classes.map((c) => {
+async function emitClass(ir, cid, warnings, refs) {
+  const nodes = ir.classes.map((c, i) => {
     const attrs = (c.attributes ?? []).map((a) => ({ text: `${a.visibility ? VISIBILITY[a.visibility] : ''}${a.name}${a.type ? `: ${a.type}` : ''}` }));
     const methods = (c.methods ?? []).map((m) => ({ text: `${m.visibility ? VISIBILITY[m.visibility] : ''}${m.name}(${m.params ?? ''})${m.returns ? `: ${m.returns}` : ''}` }));
     const rows = attrs.length && methods.length ? [...attrs, { separator: true }, ...methods] : [...attrs, ...methods];
-    const header = c.stereotype ? `«${c.stereotype}»\n${c.label}` : c.label;
-    return tableNode(c.id, header, rows, { headerHeight: c.stereotype ? ROW + 20 : ROW });
+    const { label: header, link } = refLabel(c.stereotype ? `«${c.stereotype}»\n${c.label}` : c.label, c.ref, refs, `/classes/${i}/ref`, warnings);
+    return tableNode(c.id, header, rows, { headerHeight: ROW + HEADER_LINE * (header.split('\n').length - 1), link });
   });
   const edges = ir.relations.map((r, i) => {
     const def = CLASS_EDGE[r.kind];
@@ -696,7 +705,7 @@ async function emitClass(ir, cid, warnings) {
 /** The stick figure of a client; its label is drawn below it. */
 const ACTOR = { width: 40, height: 60 };
 
-async function emitArchitecture(ir, cid) {
+async function emitArchitecture(ir, cid, refs, warnings) {
   const parent = parentMap(ir.boundaries ?? []);
   const containers = (ir.boundaries ?? []).map((b) => ({ id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container }));
   const kindOf = (c) => c.kind ?? 'service';
@@ -705,25 +714,30 @@ async function emitArchitecture(ir, cid) {
   // centre. Clients that share a parent get one width, so their figures line up, and both
   // sides are even, so the centre the edges leave from is a whole pixel.
   const even = (v) => 2 * Math.ceil(v / 2);
-  const below = new Map(ir.components.filter((c) => kindOf(c) === 'client').map((c) => [c.id, measureLabelBelow(c.label)]));
+  const shown = new Map(ir.components.map((c, i) => [c.id, refLabel(c.label, c.ref, refs, `/components/${i}/ref`, warnings)]));
+  const below = new Map(ir.components.filter((c) => kindOf(c) === 'client').map((c) => [c.id, measureLabelBelow(shown.get(c.id).label)]));
   const actorWidth = new Map();
   for (const [id, b] of below) actorWidth.set(parent.get(id), Math.max(actorWidth.get(parent.get(id)) ?? ACTOR.width, even(b.width)));
   const nodes = ir.components.map((c) => {
     const kind = kindOf(c);
-    const node = { id: c.id, label: c.label, parent: parent.get(c.id), style: STYLE[kind] };
+    const { label, link } = shown.get(c.id);
+    const node = { id: c.id, label, link, parent: parent.get(c.id), style: STYLE[kind] };
     if (kind === 'client') {
       const b = below.get(c.id);
       return { ...node, style: `${STYLE.client}labelWidth=${b.wrap};`, width: actorWidth.get(node.parent), height: even(ACTOR.height + b.height), drawWidth: ACTOR.width, drawHeight: ACTOR.height };
     }
-    return { ...node, ...(kind === 'database' || kind === 'cache' ? measureNode(c.label, { baseHeight: 70 }) : measureNode(c.label)) };
+    return { ...node, ...(kind === 'database' || kind === 'cache' ? measureNode(label, { baseHeight: 70 }) : measureNode(label)) };
   });
   const edges = ir.connections.map((c) => ({ id: c.id, from: c.from, to: c.to, label: c.label, style: `${STYLE.flowEdge}${c.bidirectional ? 'startArrow=classic;startFill=1;' : ''}` }));
   const layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing: { nodeNode: 50, layer: 80 } });
   return graphCells(cid, layout, { containers, nodes, edges });
 }
 
-function emitSequence(ir, cid, warnings) {
-  const L = layoutSequence(ir);
+function emitSequence(ir, cid, warnings, refs) {
+  // A message that a sub-diagram details shows that diagram on a second label line and links
+  // to its page; the layout sees the label as drawn, so the row makes room for the line.
+  const shown = new Map(ir.messages.map((msg, i) => [msg.id, refLabel(msg.label, msg.ref, refs, `/messages/${i}/ref`, warnings)]));
+  const L = layoutSequence({ ...ir, messages: ir.messages.map((msg) => ({ ...msg, label: shown.get(msg.id).label })) });
   const m = L.metrics;
   warnings.push(...L.warnings);
   const cells = [];
@@ -757,6 +771,7 @@ function emitSequence(ir, cid, warnings) {
     cells.push(vertex({ id: cid(n.id), value: htmlLabel(n.label), style: STYLE.sequenceNote, ...box }));
   }
   for (const msg of ir.messages) {
+    const { label, link } = shown.get(msg.id);
     const y = L.messageY(msg.id);
     const from = L.participants.get(msg.from);
     const to = L.participants.get(msg.to);
@@ -766,11 +781,11 @@ function emitSequence(ir, cid, warnings) {
       // would otherwise attach the arrow head on the far side and draw it across the line.
       const x = from.centerX + 50;
       const anchors = `exitX=0.5;exitY=0;exitDx=0;exitDy=${y - 10 - from.y};exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=${y + 10 - from.y};entryPerimeter=0;`;
-      cells.push(edge({ id: cid(msg.id), value: htmlLabel(msg.label), style: `${STYLE.selfMessage}${anchors}`, source: cid(msg.from), target: cid(msg.to), points: [{ x, y: y - 10 }, { x, y: y + 10 }] }));
+      cells.push(edge({ id: cid(msg.id), value: htmlLabel(label), style: `${STYLE.selfMessage}${anchors}`, source: cid(msg.from), target: cid(msg.to), points: [{ x, y: y - 10 }, { x, y: y + 10 }], link }));
       continue;
     }
     const style = kind === 'return' ? STYLE.returnMessage : kind === 'async' ? STYLE.asyncMessage : STYLE.syncMessage;
-    cells.push(edge({ id: cid(msg.id), value: htmlLabel(msg.label), style, source: cid(msg.from), target: cid(msg.to), points: [{ x: (from.centerX + to.centerX) / 2, y }] }));
+    cells.push(edge({ id: cid(msg.id), value: htmlLabel(label), style, source: cid(msg.from), target: cid(msg.to), points: [{ x: (from.centerX + to.centerX) / 2, y }], link }));
   }
   cells.push(...onTop);
   return cells;

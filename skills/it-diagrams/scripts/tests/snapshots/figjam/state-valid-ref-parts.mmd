@@ -1,0 +1,23 @@
+stateDiagram-v2
+  direction TB
+  %% id: new
+  state "New" as n2
+  %% id: paying
+  state "Paying ↳ order-sync-01-load" as n3
+  %% id: fulfil
+  state "Fulfilment ↳ order-sync-02-store" as n4 {
+    %% id: picking
+    state "Picking" as n5
+    %% id: shipped
+    state "Shipped" as n6
+    %% id: t4
+    n5 --> n6 : handed over
+  }
+  %% id: t1
+  [*] --> n2
+  %% id: t2
+  n2 --> n3 : checkout
+  %% id: t3
+  n3 --> n5 : paid
+  %% id: t5
+  n6 --> [*]

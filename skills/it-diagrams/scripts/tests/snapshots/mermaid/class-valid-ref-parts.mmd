@@ -1,0 +1,16 @@
+---
+title: "Order domain (main)"
+---
+classDiagram
+  direction TB
+  %% id: order
+  class n1["Order<br/>↳ order-sync-01-load"] {
+    string id
+  }
+  %% id: rule
+  class n2["IPriceRule<br/>↳ order-sync-02-store"] {
+    <<interface>>
+    apply(order: Order)
+  }
+  %% id: r1
+  n1 ..> n2 : priced by

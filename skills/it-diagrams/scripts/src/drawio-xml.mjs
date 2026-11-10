@@ -54,9 +54,20 @@ export function pageLink(diagramId) {
   return `data:page/id,${diagramId}`;
 }
 
-export function edge({ id, value, style, source, target, points = [], parent = '1', sourcePoint, targetPoint }) {
+/** An edge cell. With `link` it is wrapped in a `UserObject`, as a linked vertex is. */
+export function edge({ id, value, style, source, target, points = [], parent = '1', sourcePoint, targetPoint, link }) {
+  const ends = `edge="1" parent="${xmlAttr(parent)}" source="${xmlAttr(source)}" target="${xmlAttr(target)}"`;
+  if (link) {
+    const inner = edge({ id, value, style, source, target, points, parent, sourcePoint, targetPoint });
+    return [
+      `<UserObject label="${xmlAttr(value ?? '')}" link="${xmlAttr(link)}" id="${xmlAttr(id)}">`,
+      `  <mxCell style="${xmlAttr(style)}" ${ends}>`,
+      ...inner.slice(1).map((l) => `  ${l}`),
+      '</UserObject>',
+    ];
+  }
   const lines = [
-    `<mxCell id="${xmlAttr(id)}" value="${xmlAttr(value ?? '')}" style="${xmlAttr(style)}" edge="1" parent="${xmlAttr(parent)}" source="${xmlAttr(source)}" target="${xmlAttr(target)}">`,
+    `<mxCell id="${xmlAttr(id)}" value="${xmlAttr(value ?? '')}" style="${xmlAttr(style)}" ${ends}>`,
     '  <mxGeometry relative="1" as="geometry">',
   ];
   if (sourcePoint) lines.push(`    <mxPoint x="${num(sourcePoint.x)}" y="${num(sourcePoint.y)}" as="sourcePoint"/>`);

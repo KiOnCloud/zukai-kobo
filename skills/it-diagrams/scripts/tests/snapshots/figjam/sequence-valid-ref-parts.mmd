@@ -1,0 +1,20 @@
+sequenceDiagram
+  %% id: job
+  participant n1 as Sync job
+  %% id: svc
+  participant n2 as Order service
+  %% id: db
+  participant n3 as Orders DB
+  %% id: m1
+  n1->>n2: loadOrders(request) ↳ order-sync-01-load
+  %% id: m2
+  n2-->>n1: orders
+  %% id: b1
+  opt any orders
+    %% id: m3
+    n1->>n1: mergeChanges(orders) ↳ order-sync-02-store
+    %% id: m4
+    n1->>n3: save(orders)
+    %% id: m5
+    n3-->>n1: saved
+  end

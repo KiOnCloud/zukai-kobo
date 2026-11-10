@@ -1,6 +1,6 @@
 {
   "name": "it-diagrams-scripts",
-  "version": "0.1.41",
+  "version": "0.1.42",
   "private": true,
   "license": "MIT",
   "description": "Validator and emitters for the it-diagrams skill. Consumers use the committed bundle; these dependencies are only needed to rebuild or test.",

@@ -69,8 +69,10 @@ Writes every diagram of the run into one file (one heading and one fenced `merma
 first. Every IR is validated before anything is written; errors and warnings carry the
 `diagram` id they belong to. Individual files in `mermaid/` stay the reusable copies.
 
-Inside the bundle a step with `ref` shows the referenced diagram's title (`↳ <title>`), the
-same text as the draw.io bundle, so the two files read alike. Mermaid gets no link: Markdown
+Inside the bundle an element with `ref` (a node, an action, a message, a state, a component,
+a class or an entity) shows the referenced diagram's title (`↳ <title>`) on a second label
+line, the same text as the draw.io bundle, so the two files read alike; an
+`architecture-beta` label has no line break, so there the title follows on the same line. Mermaid gets no link: Markdown
 renderers such as GitHub strip `click` directives, and the sub-diagram is the next heading
 in the same file anyway. A `ref` the bundle does not hold keeps the slug and the CLI warns.
 A single `emit` always shows the slug. `--canvas` is refused for this target: the document

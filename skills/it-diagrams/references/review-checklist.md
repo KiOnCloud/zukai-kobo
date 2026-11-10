@@ -32,8 +32,9 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 ## Structure (read the IR)
 
 8. One main diagram covers the whole feature at the chosen scope; parts exist only under
-   `detailed` and are referenced with `ref`; nothing in the request is missing and nothing
-   outside it was added.
+   `detailed` and are referenced with `ref` on the element they detail (a step, a message,
+   a state, a component, a class or an entity), never by an id written into a label;
+   nothing in the request is missing and nothing outside it was added.
 9. No degenerate control: a merge or join with one incoming flow, a decision or fork with
    one outgoing flow, a node nothing reaches, a branch that never ends.
 10. In `scout` mode the diagram contains only what the code does, with the source files in

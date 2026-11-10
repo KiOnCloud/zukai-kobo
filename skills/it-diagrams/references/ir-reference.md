@@ -47,6 +47,13 @@ Rules that apply everywhere:
   Never nest element objects. A child belongs to at most one container; containment never
   loops.
 - Every `from`, `to`, child and block reference must name an existing element.
+- `ref` ties an element of a main diagram to the sub-diagram that details it (scope
+  `detailed`). Every kind has one element that carries it: a flowchart node, an activity
+  action, a sequence message, a state, an architecture component, a class, an ER entity. The
+  value is the diagram id of the part: its IR file name without `.ir.json`. The element
+  shows `↳ <title of the part>` as a second label line in a bundle (the id alone in a single
+  emit), and in draw.io it links to the part's page. No other element takes `ref`; never
+  write a part's id into a label instead.
 - Do not put credentials, connection strings or tokens in labels or notes. The emitter scans
   for them and warns; the FigJam target refuses to send them.
 
@@ -89,7 +96,7 @@ Collections: `participants` (at least one), `messages` (in time order), `blocks`
 | Element | Fields |
 |---|---|
 | participant | `id`, `label`, `kind`: `participant` (default), `actor`, `database`, `boundary`, `control`, `entity` |
-| message | `id`, `from`, `to`, `label`, `kind`: `sync` (default), `async`, `return` |
+| message | `id`, `from`, `to`, `label`, `kind`: `sync` (default), `async`, `return`; `ref`: diagram id of the sub-diagram that details what this call does (its IR file name without `.ir.json`); the label gets the part's title as a second line above the arrow |
 | block | `id`, `kind`: `alt`, `opt`, `loop`, `par`; `label`; `messages`: ids of every message inside the first section; `branches` (only `alt` and `par`): `[{ "label", "messages" }]` for each `else` or `and` section |
 | note | `id`, `label`, `participants`: one id (`position`: `left`, `right` (default), `over`) or two ids (always over both); `after`: the message id it follows, omit to place it first |
 
@@ -126,7 +133,7 @@ Collections: `states` (at least one), `transitions`.
 
 | Element | Fields |
 |---|---|
-| state | `id`, `label` (required unless kind is `initial` or `final`), `kind`: `simple` (default), `initial`, `final`, `composite`; `children` (composite only): state ids |
+| state | `id`, `label` (required unless kind is `initial` or `final`), `kind`: `simple` (default), `initial`, `final`, `composite`; `children` (composite only): state ids; `ref` (not on `initial` or `final`): diagram id of the sub-diagram that details this state (its IR file name without `.ir.json`), shown as a second label line |
 | transition | `id`, `from`, `to`, `event`, `guard`, `action` (all three optional; rendered as `event [guard] / action`) |
 
 Put an `initial` and a `final` state inside a composite when its inner flow has a start and
@@ -162,7 +169,7 @@ Collections: `entities` (at least one), `relations`.
 
 | Element | Fields |
 |---|---|
-| entity | `id`, `label`, `attributes`: `[{ "name", "type", "key": "pk" / "fk" / "none", "comment" }]` |
+| entity | `id`, `label`, `attributes`: `[{ "name", "type", "key": "pk" / "fk" / "none", "comment" }]`; `ref`: diagram id of the sub-diagram that details this entity's area (its IR file name without `.ir.json`), shown as a second header line |
 | relation | `id`, `from`, `to`, `label`, `fromCardinality`, `toCardinality`: `one`, `zero-one`, `many`, `one-many`; `identifying` (default `true`); `fromAttribute`, `toAttribute`: attribute names the draw.io line is anchored to (default: the one FK whose name contains the other entity, else the header) |
 
 Attribute names are unique within an entity. Types such as `decimal(10,2)` are fine.
@@ -193,7 +200,7 @@ Collections: `classes` (at least one), `relations`.
 
 | Element | Fields |
 |---|---|
-| class | `id`, `label`, `stereotype` (for example `interface`, `abstract`, `service`), `attributes`: `[{ "name", "type", "visibility" }]`, `methods`: `[{ "name", "params", "returns", "visibility" }]` |
+| class | `id`, `label`, `stereotype` (for example `interface`, `abstract`, `service`), `attributes`: `[{ "name", "type", "visibility" }]`, `methods`: `[{ "name", "params", "returns", "visibility" }]`; `ref`: diagram id of the sub-diagram that details this class (its IR file name without `.ir.json`), shown as a header line under the name |
 | relation | `id`, `from`, `to`, `kind`: `inheritance`, `realization`, `composition`, `aggregation`, `association`, `dependency`; `label`, `fromCardinality`, `toCardinality` (free text such as `1`, `0..*`) |
 
 `visibility` is `public`, `private`, `protected` or `package`. `from` is the source of the
@@ -225,7 +232,7 @@ Collections: `components` (at least one), `boundaries` (optional), `connections`
 
 | Element | Fields |
 |---|---|
-| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external` |
+| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external`; `ref`: diagram id of the sub-diagram that details this component (its IR file name without `.ir.json`), shown as a second label line |
 | boundary | `id`, `label`, `children`: component or boundary ids (a deployment unit, network or team boundary) |
 | connection | `id`, `from`, `to`, `label` (protocol or purpose), `bidirectional` (default `false`) |
 

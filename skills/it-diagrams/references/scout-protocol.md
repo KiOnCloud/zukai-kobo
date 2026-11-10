@@ -26,8 +26,13 @@ writes the file and runs the closing contract from `SKILL.md`.
 - Respect the scope the user chose in `SKILL.md`. `overview`: the main diagram only, about
   15 elements, sub-flows collapsed into one step each, decisive rules lifted into the main
   diagram, and a note listing what was collapsed. `detailed`: the main diagram plus one
-  sub-diagram per sub-flow that deserves its own picture, each collapsed step carrying `ref`
-  to its part, each part complete on its own. Never produce parts without the main diagram.
+  sub-diagram per sub-flow that deserves its own picture, each collapsed element carrying
+  `ref` to its part, each part complete on its own. The element is the one the part details:
+  a flowchart node, an activity action, a sequence message (the call whose callee the part
+  follows), a state, an architecture component, a class or an ER entity; `ir-reference.md`
+  has the field for each kind. Put the part's id in `ref` only, never in a label, so the
+  reader sees the part's title and a page link instead of a slug. Never produce parts
+  without the main diagram.
 - Redact. Never copy connection strings, keys, tokens, hostnames with credentials, or
   personal data into labels or notes. Use placeholders such as `<db>` or `<api key>`. The
   CLI's secret scan is the backstop, not the policy.

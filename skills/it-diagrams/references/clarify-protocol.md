@@ -26,7 +26,9 @@ because it asks questions.
 sub-flow (payment, notification, retry) into one step, record in `meta.notes` what it hides,
 and lift any decisive rule of that sub-flow into the main diagram. Under `detailed` draft the
 main diagram first, then one sub-diagram per sub-flow worth its own picture, and set `ref` on
-the main diagram's collapsed step to the part's slug.
+the main diagram's collapsed element to the part's slug: the step of a flowchart or activity
+diagram, the message of a sequence diagram, the state, component, class or entity of the
+other kinds (`ir-reference.md` lists the field per kind).
 
 ## Choosing the kind
 

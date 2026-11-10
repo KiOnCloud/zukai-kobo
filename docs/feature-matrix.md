@@ -45,6 +45,7 @@ For each diagram kind, target and feature the value is one of:
 | `block.kind.loop` | supported | supported | supported |
 | `block.kind.par` | supported | supported | supported |
 | `note` | supported | supported | degraded (FigJam drops sequence Note statements; the note is left out) |
+| `message.ref` | supported | supported | supported |
 
 ## state
 
@@ -58,6 +59,7 @@ For each diagram kind, target and feature the value is one of:
 | `composite.depth.gt2` | degraded (composite states nested deeper than two levels are flattened into their level-2 ancestor) | supported | degraded (composite states nested deeper than two levels are flattened into their level-2 ancestor) |
 | `transition.guard` | supported | supported | supported |
 | `transition.action` | supported | supported | supported |
+| `state.ref` | supported | supported | supported |
 
 ## er
 
@@ -72,6 +74,7 @@ For each diagram kind, target and feature the value is one of:
 | `relation.cardinality.many` | supported | supported | supported |
 | `relation.cardinality.one-many` | supported | supported | supported |
 | `relation.nonIdentifying` | supported | supported | supported |
+| `entity.ref` | supported | supported | supported |
 
 ## class
 
@@ -88,6 +91,7 @@ For each diagram kind, target and feature the value is one of:
 | `relation.kind.association` | supported | supported | supported |
 | `relation.kind.dependency` | supported | supported | supported |
 | `relation.cardinality` | supported | supported | supported |
+| `class.ref` | supported | supported | supported |
 
 ## architecture
 
@@ -104,6 +108,7 @@ For each diagram kind, target and feature the value is one of:
 | `boundary.nested` | supported | supported | supported |
 | `connection.label` | degraded (architecture-beta edges have no labels; the label is dropped) | supported | supported |
 | `connection.bidirectional` | supported | supported | degraded (flowchart edges are one-way; the label gains "(both ways)") |
+| `component.ref` | supported | supported | supported |
 
 ## activity
 

@@ -31,8 +31,9 @@ Writes every diagram of the run into one file (one named page per diagram, each 
 first. Every IR is validated before anything is written; errors and warnings carry the
 `diagram` id they belong to. Individual files in `drawio/` stay the reusable copies.
 
-Inside the bundle a step with `ref` shows the referenced diagram's title (`↳ <title>`) and
-is a draw.io page link: clicking it opens that page. The diagram id a `ref` names is the IR
+Inside the bundle an element with `ref` (a flowchart node, an activity action, a sequence
+message, a state, an architecture component, a class or an ER entity) shows the referenced
+diagram's title (`↳ <title>`) and is a draw.io page link: clicking it opens that page. The diagram id a `ref` names is the IR
 file name without `.ir.json`, so `ref: "login-01-mfa"` resolves when
 `source/login-01-mfa.ir.json` is in the bundle. A `ref` the bundle does not hold keeps the
 slug text, gets no link, and the CLI warns (`ref "<slug>" is not in this bundle`). A single
@@ -132,6 +133,7 @@ moving shapes by hand, so the IR stays the source of truth.
 | activity control `initial` / `final` / `decision` / `merge` / `fork` / `join` | UML start and end circles / rhombus with the question, sized so it stays inside the slanted edges / small rhombus / thin filled bars (horizontal for `TB`, vertical for `LR`) |
 | edge label | child cell of the edge (`edgeLabel`, not connectable), so it moves with the edge |
 | node or action with `ref` | subroutine shape; in a bundle the label's second line is the target title and the cell is a `UserObject` with `link="data:page/id,<page id>"`, draw.io's page link |
+| message, state, component, class or entity with `ref` | keeps its own shape; the title line and the page link are the same as for a node. A message's row grows by one label line, so the title stands above its own arrow, and the linked edge is a `UserObject` around the edge cell; a class, entity or composite state header grows by one line |
 
 Cell ids are `<diagram-slug>:<ir-id>`; derived cells add a suffix such as `:label`, `:row-0`
 or `:actor`. Page ids in a bundle are the diagram ids, so links between pages stay stable

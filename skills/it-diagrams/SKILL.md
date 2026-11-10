@@ -82,10 +82,13 @@ feature, and they differ in how sub-flows are handled:
   diagram as its own decision or step so the reader sees it without opening anything else.
 - `detailed`: the main diagram `<slug>` plus one sub-diagram `<slug>-NN-<part>` per sub-flow
   worth its own picture. The main diagram stays readable (about 15 to 20 elements); each
-  collapsed step carries `ref: "<slug>-NN-<part>"` so the emitters draw it as a subroutine;
-  in the combined file the step shows the sub-diagram's title and, in draw.io, links to its
-  page. Each sub-diagram's title names the step it details. Report the main diagram first,
-  then its parts.
+  collapsed element carries `ref: "<slug>-NN-<part>"`. Every kind has one element for it: a
+  flowchart node or an activity action (drawn as a subroutine), a sequence message (the call
+  whose inside the part shows), a state, an architecture component, a class, an ER entity.
+  In the combined file that element shows the sub-diagram's title as a second label line
+  and, in draw.io, links to its page. Never tie a part to the main diagram any other way: no
+  part id in a label, no note. Each sub-diagram's title names the element it details. Report
+  the main diagram first, then its parts.
 
 Never produce parts without a main diagram, and never split under `overview`.
 

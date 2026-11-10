@@ -1,0 +1,14 @@
+---
+title: "Order platform (main)"
+---
+architecture-beta
+  %% id: web
+  service n1(internet)[Back office ↳ order-sync-02-store]
+  %% id: api
+  service n2(server)[Order API ↳ order-sync-01-load]
+  %% id: db
+  service n3(database)[Orders DB]
+  %% id: c1
+  n1:R --> L:n2
+  %% id: c2
+  n2:R --> L:n3

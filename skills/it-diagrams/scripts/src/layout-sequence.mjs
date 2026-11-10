@@ -30,6 +30,7 @@ export const SEQUENCE_METRICS = {
 };
 
 const textWidth = (text, m) => Math.ceil(longestLine(text) * m.charWidth) + 12;
+const lineCount = (text) => String(text).split(/\r\n?|\n/).length;
 
 /**
  * @param {object} ir validated sequence IR
@@ -97,13 +98,15 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
       if (k > 0) rows.push({ type: 'section', block: b.id, section: k, height: m.sectionHeight });
     }
     for (const b of blocks.filter((b) => b.start === i).sort(outerFirst)) rows.push({ type: 'block-open', block: b.id, height: m.blockOpenHeight });
-    rows.push({ type: 'message', id: msg.id, height: m.rowPitch });
+    // A label of several lines (a `ref` adds one) stands above its arrow, so its row grows.
+    rows.push({ type: 'message', id: msg.id, height: m.rowPitch + m.labelHeight * (lineCount(msg.label) - 1) });
     for (const note of notes) if (note.after === msg.id) rows.push({ type: 'note', id: note.id, height: m.noteRowHeight });
     for (const b of blocks.filter((b) => b.end === i).sort(innerFirst)) rows.push({ type: 'block-close', block: b.id, height: m.blockCloseHeight });
   });
   let y = m.topMargin + m.headerHeight + m.rowPitch / 2;
   for (const row of rows) {
-    row.y = y + row.height / 2;
+    // The arrow of a message keeps half a row pitch below it; extra label lines go above.
+    row.y = row.type === 'message' ? y + row.height - m.rowPitch / 2 : y + row.height / 2;
     y += row.height;
   }
   const totalHeight = y + m.bottomMargin;
@@ -201,7 +204,8 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     const to = participants.get(msg.to);
     const w = textWidth(msg.label, m);
     const mid = msg.from === msg.to ? from.centerX + 60 + w / 2 : (from.centerX + to.centerX) / 2;
-    boxes.push({ what: `label of message "${msg.id}"`, x: mid - w / 2, y: messageY(msg.id) - m.labelHeight - 2, width: w, height: m.labelHeight });
+    const h = m.labelHeight * lineCount(msg.label);
+    boxes.push({ what: `label of message "${msg.id}"`, x: mid - w / 2, y: messageY(msg.id) - h - 2, width: w, height: h });
   }
   const warnings = [];
   for (let i = 0; i < boxes.length; i++) {

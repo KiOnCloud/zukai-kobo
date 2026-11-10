@@ -114,9 +114,13 @@ the same layout transposed. ELK is still used for the other graph kinds.
 the page-level cells (vertices and edge waypoints with parent `1`) are shifted so the content
 starts below a fixed title band, while children of lanes and containers keep their relative
 coordinates. `--canvas` reuses the same placement to lay several diagrams side by side on one
-extra first page. Steps with `ref` resolve against the bundle's diagram ids to the target's
+extra first page. Elements with `ref` resolve against the bundle's diagram ids to the target's
 title and a draw.io page link (`data:page/id,<page id>`, which needs a `UserObject` wrapper
-around the cell); outside a bundle they keep the slug.
+around the cell); outside a bundle they keep the slug. Every kind has one element that takes
+`ref` (flowchart node, activity action, sequence message, state, architecture component,
+class, ER entity), so the `detailed` scope links a main diagram to its parts whatever the
+kind; the schema shares one `$defs/ref` and the matrix has one `<element>.ref` feature per
+kind.
 
 ## Graph kinds in draw.io
 
