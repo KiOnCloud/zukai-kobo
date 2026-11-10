@@ -932,52 +932,81 @@ async function nearSide(layout, { nodes, edges }, arrange) {
 }
 
 /**
- * Write the label of each connection that enters the frames from outside beside the stretch
- * of its line that lies before the outermost frame. The layout engine gives a label a layer
- * of its own between the two ends, which pushes a client a further 96 px away from the
- * frames it calls into; that stretch of line is free anyway, so the label stands there and
- * the layout keeps the client at the usual distance.
- * @returns {string|undefined} the id of the first connection whose label has no room there
- *   (the line bends first, the stretch is too short, or something stands beside it)
+ * Write the label of each connection beside its own line. The layout engine gives a label a
+ * layer of its own between the two ends, 96 px of extra room for every labelled connection
+ * between two components; in a diagram of icons joined by straight lines that room is
+ * already there along the line, so the label is placed on it and the layout keeps the
+ * components at their usual distance.
+ *
+ * A label stands at the middle of a stretch of the longest segment of its line: above or
+ * below a horizontal stretch, left or right of a vertical one. A stretch ends where the line
+ * crosses the border of a frame, so a label never lies across a border. The place must be
+ * free: no component or name, no other label, no other line, no corner icon of a frame.
+ * @returns {string|undefined} the id of the first connection whose label has no such place;
+ *   the caller hands that label back to the layout engine and lays out again
  */
-function placeEntryLabels(layout, entries, { containers, nodes, edges, direction }) {
+function placeLineLabels(layout, own, { containers, nodes, edges }) {
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
-  const sideways = acrossIsVertical(direction);
   const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const within = (a, b) => a.x >= b.x && a.y >= b.y && a.x + a.width <= b.x + b.width && a.y + a.height <= b.y + b.height;
   const boxes = nodes.filter((n) => layout.nodes.has(n.id)).map((n) => absoluteBox(n.id, layout, parentOf));
-  const frames = containers.filter((c) => c.parent === undefined).map((c) => absoluteBox(c.id, layout, parentOf));
-  const others = [];
+  const frames = containers.map((c) => ({ box: absoluteBox(c.id, layout, parentOf), icon: c.title && !c.title.centred }));
+  const corners = frames.filter((f) => f.icon).map((f) => ({ x: f.box.x, y: f.box.y, width: AWS_GROUP_ICON, height: AWS_GROUP_ICON }));
+  const pathOf = (e) => { const r = layout.edges.get(e.id); return r?.start && r?.end ? [r.start, ...(r.points ?? []), r.end] : undefined; };
+  const lines = [];
+  const labels = [];
   for (const e of edges) {
-    const r = layout.edges.get(e.id);
-    if (!r?.start || !r?.end) continue;
-    const path = [r.start, ...(r.points ?? []), r.end];
-    if (!entries.has(e.id)) for (let i = 1; i < path.length; i++) others.push({ x: Math.min(path[i - 1].x, path[i].x) - 1, y: Math.min(path[i - 1].y, path[i].y) - 1, width: Math.abs(path[i].x - path[i - 1].x) + 2, height: Math.abs(path[i].y - path[i - 1].y) + 2 });
-    if (e.label && r.label && !entries.has(e.id)) others.push(r.label);
+    const path = pathOf(e);
+    if (!path) continue;
+    for (let i = 1; i < path.length; i++) lines.push({ id: e.id, x: Math.min(path[i - 1].x, path[i].x) - 1, y: Math.min(path[i - 1].y, path[i].y) - 1, width: Math.abs(path[i].x - path[i - 1].x) + 2, height: Math.abs(path[i].y - path[i - 1].y) + 2 });
+    const label = layout.edges.get(e.id).label;
+    if (e.label && label && !own.has(e.id)) labels.push(label);
   }
   for (const e of edges) {
-    if (!entries.has(e.id)) continue;
-    const r = layout.edges.get(e.id);
-    const a = r.start;
-    const b = (r.points ?? [])[0] ?? r.end;
-    let outer;
-    for (let p = parentOf.get(e.to); p; p = parentOf.get(p)) outer = p;
-    const frame = absoluteBox(outer, layout, parentOf);
+    if (!own.has(e.id)) continue;
+    const path = pathOf(e);
+    if (!path) return e.id;
     const text = { width: Math.ceil(widestLine(e.label)) + 8, height: 16 * String(e.label).split(/\r\n?|\n/).length };
-    let box;
-    if (sideways) {
-      // A horizontal first stretch that reaches the frame; the label stands above it.
-      const edgeX = a.x < frame.x ? frame.x : frame.x + frame.width;
-      if (Math.abs(a.y - b.y) > 0.5 || Math.abs(b.x - a.x) < Math.abs(edgeX - a.x) || Math.abs(edgeX - a.x) < text.width + 16) return e.id;
-      box = { x: (a.x + edgeX - text.width) / 2, y: a.y - text.height - 4, width: text.width, height: text.height };
-    } else {
-      // A vertical first stretch that reaches the frame; the label stands to its left.
-      const edgeY = a.y < frame.y ? frame.y : frame.y + frame.height;
-      if (Math.abs(a.x - b.x) > 0.5 || Math.abs(b.y - a.y) < Math.abs(edgeY - a.y) || Math.abs(edgeY - a.y) < text.height + 16) return e.id;
-      box = { x: a.x - 6 - text.width, y: (a.y + edgeY - text.height) / 2, width: text.width, height: text.height };
+    let longest;
+    for (let i = 1; i < path.length; i++) {
+      const length = Math.abs(path[i].x - path[i - 1].x) + Math.abs(path[i].y - path[i - 1].y);
+      if (!longest || length > longest.length) longest = { a: path[i - 1], b: path[i], length };
     }
-    if (boxes.some((n) => hit(box, n)) || frames.some((f) => hit(box, f)) || others.some((o) => hit(box, o))) return e.id;
-    r.label = box;
-    others.push(box);
+    const flat = Math.abs(longest.a.y - longest.b.y) < 0.5;
+    const along = flat ? 'x' : 'y';
+    const from = Math.min(longest.a[along], longest.b[along]);
+    const to = Math.max(longest.a[along], longest.b[along]);
+    const at = flat ? longest.a.y : longest.a.x;
+    // Where the segment crosses a frame border, and the stretches between those points.
+    const cuts = [from, to];
+    for (const { box } of frames) {
+      const spans = flat ? at > box.y && at < box.y + box.height : at > box.x && at < box.x + box.width;
+      if (!spans) continue;
+      for (const edgeAt of flat ? [box.x, box.x + box.width] : [box.y, box.y + box.height]) if (edgeAt > from && edgeAt < to) cuts.push(edgeAt);
+    }
+    cuts.sort((p, q) => p - q);
+    const need = (flat ? text.width : text.height) + 12;
+    const stretches = cuts.slice(1).map((end, i) => ({ start: cuts[i], end })).filter((s) => s.end - s.start >= need).sort((p, q) => (q.end - q.start) - (p.end - p.start));
+    let placed;
+    for (const s of stretches) {
+      const mid = (s.start + s.end) / 2;
+      const options = flat
+        ? [{ x: mid - text.width / 2, y: at - text.height - 4 }, { x: mid - text.width / 2, y: at + 4 }]
+        : [{ x: at - 6 - text.width, y: mid - text.height / 2 }, { x: at + 6, y: mid - text.height / 2 }];
+      for (const o of options) {
+        const box = { ...o, width: text.width, height: text.height };
+        if (boxes.some((n) => hit(box, n)) || labels.some((l) => hit(box, l)) || corners.some((c) => hit(box, c))) continue;
+        if (lines.some((l) => hit(box, l))) continue;
+        // Not across the border of a frame: wholly inside it or wholly outside.
+        if (frames.some((f) => hit(box, f.box) && !within(box, f.box))) continue;
+        placed = box;
+        break;
+      }
+      if (placed) break;
+    }
+    if (!placed) return e.id;
+    layout.edges.get(e.id).label = placed;
+    labels.push(placed);
   }
   return undefined;
 }
@@ -1087,7 +1116,7 @@ function asideCandidates(nodes, edges) {
 }
 
 /** Room between the outermost frame and a system placed beside it, when its connection has no label. */
-const ASIDE_GAP = 80;
+const ASIDE_GAP = 64;
 /** Where a layout starts on both axes (ELK's default padding). */
 const ASIDE_ORIGIN = 12;
 
@@ -1135,7 +1164,7 @@ function placeBeside(layout, aside, { containers, nodes, edges, direction }) {
     for (let p = caller.parent; p; p = parentOf.get(p)) around.add(p);
     const outer = frames.find((f) => around.has(f.id) && parentOf.get(f.id) === undefined).box;
     const text = e.label ? { width: Math.ceil(widestLine(e.label)) + 8, height: 16 * String(e.label).split(/\r\n?|\n/).length } : { width: 0, height: 0 };
-    const gap = Math.max(ASIDE_GAP, (vertical ? text.width : text.height) + 40);
+    const gap = Math.max(ASIDE_GAP, (vertical ? text.width : text.height) + 24);
     const options = [];
     for (const side of vertical ? ['right', 'left'] : ['bottom', 'top']) {
       // A store stands under its user in a left-to-right diagram: no line leaves that way.
@@ -1234,12 +1263,8 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
   // The ports of a figure depend on the sides its connections use, so they are worked out
   // afresh for every arrangement that is tried.
-  // The labelled connections that enter the frames from a component outside them.
-  const entries = new Set();
-  if (usesAws) {
-    const frameOf = new Map(nodes.map((n) => [n.id, n.parent]));
-    for (const e of edges) if (e.label && e.from !== e.to && frameOf.get(e.from) === undefined && frameOf.get(e.to) !== undefined) { entries.add(e.id); e.labelPlacedByCaller = true; }
-  }
+  // In an AWS diagram each label is placed beside its own line after the layout (placeLineLabels).
+  if (usesAws) for (const e of edges) if (e.label && e.from !== e.to) e.labelPlacedByCaller = true;
   const stores = usesAws ? attachStores(nodes, edges, ir.direction) : new Map();
   const aside = usesAws ? asideCandidates(nodes, edges) : new Map();
   const laidOut = () => ({ nodes: nodes.filter((n) => !aside.has(n.id) && !stores.has(n.id)), edges: edges.filter((e) => !aside.has(e.to) && !stores.has(e.to)) });
@@ -1257,10 +1282,10 @@ async function emitArchitecture(ir, cid, refs, warnings) {
       placeStores(base, stores, { containers, nodes, direction: ir.direction });
       const failed = placeBeside(base, aside, { containers, nodes, edges, direction: ir.direction });
       if (failed !== undefined) { aside.delete(failed); base = await arrange(); continue; }
-      // A label with no room before the frames goes back to the layout engine.
-      const crowded = placeEntryLabels(base, entries, { containers, nodes, edges, direction: ir.direction });
+      // A label with no free place beside its line goes back to the layout engine.
+      const own = new Set(edges.filter((e) => e.labelPlacedByCaller && !aside.has(e.to) && !stores.has(e.to)).map((e) => e.id));
+      const crowded = placeLineLabels(base, own, { containers, nodes, edges });
       if (crowded === undefined) return base;
-      entries.delete(crowded);
       delete edges.find((e) => e.id === crowded).labelPlacedByCaller;
       base = await arrange();
     }

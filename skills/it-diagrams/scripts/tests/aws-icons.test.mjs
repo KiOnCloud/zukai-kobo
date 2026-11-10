@@ -646,9 +646,7 @@ describe('AWS architecture diagrams against the plain architecture diagrams of t
     const smallest = Math.min(...aws.map((m) => m.connections));
     const comparable = framed(plain).filter((m) => m.connections >= smallest);
     expect(comparable.length).toBeGreaterThanOrEqual(4);
-    // A system placed beside the frames widens the drawing for the sake of a straight
-    // connection, so the AWS diagrams may stay up to 15 % under the plain ones here, no more.
-    expect(mean(aws, 'pageFill')).toBeGreaterThanOrEqual(0.85 * mean(comparable, 'pageFill'));
+    expect(mean(aws, 'pageFill')).toBeGreaterThanOrEqual(mean(comparable, 'pageFill'));
     expect(mean(framed(aws), 'leastFilledFrame')).toBeGreaterThanOrEqual(0.95 * mean(framed(plain), 'leastFilledFrame'));
   });
 });
