@@ -472,6 +472,18 @@ describe('AWS icons and group frames in draw.io', () => {
     }
   });
 
+  it('writes a label inside a tinted frame on the colour of that frame, and any other label on white', async () => {
+    const { cells } = await drawn(loadFixture('architecture', 'valid-aws'));
+    const style = (id) => cells.find((c) => c.id === `a:${id}:label`).style;
+    const subnet = /fillColor=(#[0-9A-Fa-f]{6});/.exec(awsGroup('aws:private_subnet').style)[1];
+    // API to Aurora and API to the cache both run inside the private subnet.
+    expect(style('c5')).toContain(`labelBackgroundColor=${subnet};`);
+    expect(style('c6')).toContain(`labelBackgroundColor=${subnet};`);
+    // Browser to CloudFront lies outside every frame; CloudFront to S3 in a frame without a fill.
+    expect(style('c1')).not.toContain('labelBackgroundColor');
+    expect(style('c2')).not.toContain('labelBackgroundColor');
+  });
+
   it('keeps a client as near the frames with a label on its connection as without one', async () => {
     const groups = ['aws:aws_account', 'aws:region', 'aws:vpc', 'aws:public_subnet'];
     const make = (direction, label) => ({

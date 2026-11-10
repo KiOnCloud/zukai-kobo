@@ -455,7 +455,7 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
         cells.push(edge({ id: cid(e.id), value: '', style, source: cid(e.from), target: cid(e.to), points: own.points }));
         if (e.label) {
           const placed = own.label ? labelGeometry([own.start, ...own.points, own.end], own.label, e.label) : { position: 0, offset: { x: 0, y: 0 }, align: 'center' };
-          cells.push(edgeLabel({ id: `${cid(e.id)}:label`, value: htmlLabel(e.label), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
+          cells.push(edgeLabel({ id: `${cid(e.id)}:label`, background: e.labelBackground, value: htmlLabel(e.label), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
         }
         continue;
       }
@@ -480,7 +480,7 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
       const style = `${waypointStyle(e.style)}exitX=${sx};exitY=${round(exitY)};exitDx=0;exitDy=0;entryX=${sx};entryY=${round(entryY)};entryDx=0;entryDy=0;`;
       cells.push(edge({ id: cid(e.id), value: '', style, source: cid(e.from), target: cid(e.to), points }));
       // Text anchored at the loop's outer side, aligned away from it: a fixed 4 px gap, whatever the text width.
-      if (e.label) cells.push(edgeLabel({ id: `${cid(e.id)}:label`, value: htmlLabel(e.label), parent: cid(e.id), position: 0, offset: { x: dir * LABEL_GAP, y: 0 }, align: dir > 0 ? 'left' : 'right' }));
+      if (e.label) cells.push(edgeLabel({ id: `${cid(e.id)}:label`, background: e.labelBackground, value: htmlLabel(e.label), parent: cid(e.id), position: 0, offset: { x: dir * LABEL_GAP, y: 0 }, align: dir > 0 ? 'left' : 'right' }));
       continue;
     }
     const route = layout.edges.get(e.id) ?? { points: [] };
@@ -490,7 +490,7 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
     cells.push(edge({ id: cid(e.id), value: '', style, source: cid(e.from), target: cid(e.to), points }));
     if (e.label) {
       const placed = route.label && route.start && route.end ? labelGeometry([route.start, ...points, route.end], route.label, e.label) : { position: 0, offset: { x: 0, y: 0 }, align: 'center' };
-      cells.push(edgeLabel({ id: `${cid(e.id)}:label`, value: htmlLabel(e.label), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
+      cells.push(edgeLabel({ id: `${cid(e.id)}:label`, background: e.labelBackground, value: htmlLabel(e.label), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
     }
     for (const l of e.endLabels ?? []) {
       const placed = endLabelGeometry(route.start && route.end ? [route.start, ...points, route.end] : [{ x: 0, y: 0 }, { x: 0, y: 1 }], l.end, l.value, e.markers?.[l.end] ?? 0, blocked);
@@ -1271,6 +1271,26 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   }
   if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a connection crosses the title of an AWS group frame; no free place was found for it along the top of the frame', hint: 'set "direction" to "LR" or shorten the boundary label' });
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
+  // draw.io writes an edge label on a white patch. Inside a tinted frame (a subnet) the patch
+  // takes the colour of the frame, so the label hides its line without showing as a box.
+  if (usesAws) {
+    const parentOf = new Map(containers.map((c) => [c.id, c.parent]));
+    const depth = (id) => { let d = 0; for (let p = parentOf.get(id); p; p = parentOf.get(p)) d++; return d; };
+    const framed = containers.map((c) => ({ c, box: absoluteBox(c.id, layout, parentOf), depth: depth(c.id) })).sort((a, b) => b.depth - a.depth);
+    const byId = new Map(containers.map((c) => [c.id, c]));
+    for (const e of edges) {
+      const label = e.label ? layout.edges.get(e.id)?.label : undefined;
+      if (!label) continue;
+      const x = label.x + label.width / 2;
+      const y = label.y + label.height / 2;
+      const inner = framed.find((f) => x >= f.box.x && x <= f.box.x + f.box.width && y >= f.box.y && y <= f.box.y + f.box.height);
+      // The innermost frame around the label that has a fill is what shows behind it.
+      for (let c = inner?.c; c; c = byId.get(c.parent)) {
+        const fill = /(?:^|;)fillColor=(#[0-9A-Fa-f]{6});/.exec(c.style)?.[1];
+        if (fill) { e.labelBackground = fill; break; }
+      }
+    }
+  }
   return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
 }
 

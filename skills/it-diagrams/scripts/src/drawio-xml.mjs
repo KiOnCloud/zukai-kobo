@@ -85,7 +85,7 @@ export function edge({ id, value, style, source, target, points = [], parent = '
  * A label that stays attached to its edge. `position` runs from -1 (source end) to 1 (target
  * end); 0 is the midpoint. `offset` nudges the label in pixels.
  */
-export function edgeLabel({ id, value, parent, position = 0, offset = { x: 0, y: 0 }, align = 'center', style = `edgeLabel;html=1;align=${align};verticalAlign=middle;resizable=0;points=[];` }) {
+export function edgeLabel({ id, value, parent, position = 0, offset = { x: 0, y: 0 }, align = 'center', background, style = `edgeLabel;html=1;align=${align};verticalAlign=middle;resizable=0;points=[];${background ? `labelBackgroundColor=${background};` : ''}` }) {
   return [
     `<mxCell id="${xmlAttr(id)}" value="${xmlAttr(value)}" style="${xmlAttr(style)}" vertex="1" connectable="0" parent="${xmlAttr(parent)}">`,
     `  <mxGeometry x="${num(position)}" y="0" relative="1" as="geometry">`,

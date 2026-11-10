@@ -89,7 +89,7 @@
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-platform-on-aws:c5:label" value="SQL" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform-on-aws:c5">
+        <mxCell id="order-platform-on-aws:c5:label" value="SQL" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E6F6F7;" vertex="1" connectable="0" parent="order-platform-on-aws:c5">
           <mxGeometry x="0" y="0" relative="1" as="geometry">
             <mxPoint x="4" y="0" as="offset"/>
           </mxGeometry>
@@ -98,7 +98,7 @@
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-platform-on-aws:c6:label" value="cache" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform-on-aws:c6">
+        <mxCell id="order-platform-on-aws:c6:label" value="cache" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E6F6F7;" vertex="1" connectable="0" parent="order-platform-on-aws:c6">
           <mxGeometry x="0" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
