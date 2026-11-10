@@ -5,31 +5,31 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="order-lifecycle-main:fulfil" value="Fulfilment&lt;br&gt;↳ order-sync-02-store" style="swimlane;whiteSpace=wrap;html=1;startSize=46;rounded=1;arcSize=10;" vertex="1" parent="1">
-          <mxGeometry x="12" y="479" width="187" height="222" as="geometry"/>
+          <mxGeometry x="12" y="479" width="177" height="222" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle-main:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="104" y="12" width="30" height="30" as="geometry"/>
+          <mxGeometry x="94" y="12" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle-main:new" value="New" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="59" y="102" width="120" height="40" as="geometry"/>
+          <mxGeometry x="49" y="102" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle-main:paying" value="Paying&lt;br&gt;↳ order-sync-01-load" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="37" y="278" width="164" height="60" as="geometry"/>
+          <mxGeometry x="36" y="278" width="145" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle-main:picking" value="Picking" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-lifecycle-main:fulfil">
-          <mxGeometry x="47" y="66" width="120" height="40" as="geometry"/>
+          <mxGeometry x="37" y="66" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle-main:shipped" value="Shipped" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-lifecycle-main:fulfil">
-          <mxGeometry x="47" y="162" width="120" height="40" as="geometry"/>
+          <mxGeometry x="37" y="162" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle-main:done" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="104" y="766" width="30" height="30" as="geometry"/>
+          <mxGeometry x="94" y="766" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle-main:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle-main:start" target="order-lifecycle-main:new">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle-main:t2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle-main:new" target="order-lifecycle-main:paying">
+        <mxCell id="order-lifecycle-main:t2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.503;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle-main:new" target="order-lifecycle-main:paying">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -38,7 +38,7 @@
             <mxPoint x="-4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle-main:t3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle-main:paying" target="order-lifecycle-main:picking">
+        <mxCell id="order-lifecycle-main:t3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.503;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle-main:paying" target="order-lifecycle-main:picking">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>

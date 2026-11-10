@@ -4,10 +4,10 @@
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
-        <mxCell id="pay-with-retries:b1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=179;height=20;" vertex="1" parent="1">
+        <mxCell id="pay-with-retries:b1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=145;height=20;" vertex="1" parent="1">
           <mxGeometry x="244" y="200" width="684" height="178" as="geometry"/>
         </mxCell>
-        <mxCell id="pay-with-retries:b2" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=130;height=20;" vertex="1" parent="1">
+        <mxCell id="pay-with-retries:b2" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=105;height=20;" vertex="1" parent="1">
           <mxGeometry x="64" y="390" width="332" height="160" as="geometry"/>
         </mxCell>
         <mxCell id="pay-with-retries:b2:sep-1" value="" style="line;strokeWidth=1;dashed=1;html=1;" vertex="1" connectable="0" parent="1">
@@ -70,13 +70,13 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="pay-with-retries:b1:tab" value="loop up to 3 attempts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="245" y="201" width="171" height="18" as="geometry"/>
+          <mxGeometry x="245" y="201" width="137" height="18" as="geometry"/>
         </mxCell>
         <mxCell id="pay-with-retries:b2:tab" value="alt authorized" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="65" y="391" width="122" height="18" as="geometry"/>
+          <mxGeometry x="65" y="391" width="97" height="18" as="geometry"/>
         </mxCell>
         <mxCell id="pay-with-retries:b2:sep-label-1" value="else declined after 3 attempts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=5;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="64" y="469" width="242" height="20" as="geometry"/>
+          <mxGeometry x="64" y="469" width="189" height="20" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>

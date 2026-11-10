@@ -40,16 +40,18 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
 
   it('issue 39: measures a decision with label spacing at its wrap width, so a question that no longer fits the diamond is reported', async () => {
     const r = await emit(loadFixture('activity', 'valid-long-decision'), 'drawio', { diagramId: 'upload' });
-    // Two lines of up to 206 px fit the 336 x 80 diamond; a third does not, nor does one line wider than the diamond at its height.
+    // Two lines of up to 164 px fit the 264 x 80 diamond; a third does not, nor does one line wider than the diamond at its height.
     const same = relabelDrawio(r.output, { ok: 'Type is PDF or PNG and size is under the limit?' });
     expect(same.warnings).toEqual([]);
     const third = relabelDrawio(r.output, { ok: 'Type is PDF or PNG and the size is under the configured limit?' });
     expect(third.warnings).toHaveLength(1);
-    expect(third.warnings[0].message).toMatch(/wraps to 3 lines in a 336x80 diamond that holds 2/);
+    expect(third.warnings[0].message).toMatch(/wraps to 3 lines in a 264x80 diamond that holds 2/);
     const plain = await emit(loadFixture('activity', 'valid-two-lanes'), 'drawio', { diagramId: 'returns' });
-    const oneLine = relabelDrawio(plain.output, { eligible: 'All items stocked?' });
+    // 97 px fit the 113 px the diamond has at the height of one line; 117 px do not.
+    expect(relabelDrawio(plain.output, { eligible: 'All items stocked?' }).warnings).toEqual([]);
+    const oneLine = relabelDrawio(plain.output, { eligible: 'Are all items in stock?' });
     expect(oneLine.warnings).toHaveLength(1);
-    expect(oneLine.warnings[0].message).toMatch(/needs about 126 px in a 140x80 diamond that holds 113 px on one line/);
+    expect(oneLine.warnings[0].message).toMatch(/needs about 117 px in a 140x80 diamond that holds 113 px on one line/);
     const twoLines = relabelDrawio(plain.output, { eligible: 'Are all the items in stock?' });
     expect(twoLines.warnings[0].message).toMatch(/wraps to 2 lines in a 140x80 diamond that holds 0 at that width/);
     const longer = relabelDrawio(r.output, { ok: 'Is the file a PDF or a PNG, and is its size under the limit configured for the tenant and the folder?' });
@@ -146,7 +148,7 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
       const out = relabelDrawio(r.output, { 'fit:a1': '倉庫の在庫を確認して出荷を作成する\n配送業者へ連絡して集荷を依頼する\n在庫がない場合は注文を保留にする' });
       expect(out.warnings).toHaveLength(1);
       expect(out.warnings[0].path).toBe('fit:a1');
-      expect(out.warnings[0].message).toMatch(/wraps to 6 lines .* on pages canvas, fit$/);
+      expect(out.warnings[0].message).toMatch(/wraps to 9 lines .* on pages canvas, fit$/);
     });
 
     it('15: untouched is grouped by text, skips labels without letters and texts in $keep', async () => {

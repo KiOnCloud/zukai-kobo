@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emit } from '../src/pipeline.mjs';
 import { emitDrawio, slugify } from '../src/emit-drawio.mjs';
 import { xmlAttr, htmlLabel, vertex } from '../src/drawio-xml.mjs';
-import { measureNode, measureDecision, wrapText, wrappedLines } from '../src/layout-graph.mjs';
+import { measureNode, measureDecision, wrapText, wrappedLines, LABEL_PAD } from '../src/layout-graph.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
 import { loadFixture, validFixtures, scriptsDir } from './helpers.mjs';
 import { loadPlaywright } from '../src/preview.mjs';
@@ -24,12 +24,103 @@ describe('drawio-xml', () => {
   });
 
   it('issue 32: grows the height by one line per wrapped line at the width cap', () => {
-    // 33 characters are 231 px, which fits one 236 px text line at the 260 px cap.
-    const heights = [1, 2, 3, 4, 5].map((n) => measureNode('x'.repeat(33 * n)).height);
+    // "nnnn" is 26.7 px and a space 3.3 px: seven words are 207 px and fit one 236 px text
+    // line at the 260 px cap, an eighth (237 px) does not.
+    const words = (n) => Array(n).fill('nnnn').join(' ');
+    const heights = [1, 2, 3, 4, 5].map((n) => measureNode(words(7 * n)).height);
     for (let i = 1; i < heights.length; i++) expect(heights[i] - heights[i - 1]).toBe(20);
     expect(heights[0]).toBe(40);
+    expect(measureNode(words(8))).toEqual({ width: 260, height: 60 });
     expect(wrappedLines('a\nb', 260)).toBe(2);
     expect(measureNode('short').height).toBe(40);
+  });
+
+  describe('issue 52: a box is as tall as the lines draw.io renders', () => {
+    const ir = loadFixture('flowchart', 'valid-hand-broken-lines');
+    const sizes = async () => {
+      const r = await emit(ir, 'drawio', { diagramId: 'g' });
+      expect(r.ok).toBe(true);
+      expect(r.warnings).toEqual([]);
+      const { cells } = checkDrawioStructure(r.output);
+      return Object.fromEntries(ir.nodes.map((n) => [n.id, cellBounds(cells.find((c) => c.id === `g:${n.id}`))]));
+    };
+
+    it('counts a hand-broken line once when it fits the text area of the box', async () => {
+      const box = await sizes();
+      // Three lines of 225, 233 and 111 px in the 236 px text area of a 260 px box: 40 + 2 x 20.
+      expect(box.collect).toMatchObject({ width: 260, height: 80 });
+      // Two lines of 213 and 193 px: the box is as wide as the wider one needs, and one line taller than a single line.
+      expect(box.render.height).toBe(60);
+      expect(box.render.width).toBeGreaterThanOrEqual(Math.ceil(213.4) + 2 * LABEL_PAD);
+      expect(box.render.width).toBeLessThanOrEqual(260);
+      expect(box.short).toMatchObject({ width: 120, height: 40 });
+    });
+
+    it('measures a line by its glyphs: narrow letters take less room than capitals', () => {
+      // 30 characters each; at a flat 7 px both were 210 px.
+      expect(measureNode('illicit little filter utility').width).toBeLessThan(measureNode('MAXIMUM WARNING DOWNLOAD COUNT').width - 80);
+      // A line of capitals that a flat 7 px called 182 px is 189 px wide and gets the room for it.
+      expect(measureNode('AVAILABLE TO PROMISE CHECK').width).toBeGreaterThanOrEqual(189 + 2 * LABEL_PAD);
+    });
+
+    it('sizes a subroutine for the text area between its side bars', async () => {
+      // draw.io wraps the label of a subroutine at 80 % of its width, less 2 px a side.
+      const label = 'Approve and send label\n↳ return-request-label';
+      const plain = measureNode(label);
+      const sub = measureNode(label, { pad: 2, share: 0.1 });
+      expect(sub.width).toBeGreaterThan(plain.width);
+      expect(wrapText(label, 0.8 * sub.width - 4).lines).toBe(2);
+      expect(sub.height).toBe(60);
+      const r = await emit(loadFixture('activity', 'valid-two-lanes'), 'drawio', { diagramId: 'g' });
+      const approve = checkDrawioStructure(r.output).cells.find((c) => c.id === 'g:approve');
+      expect(approve.style).toContain('shape=process');
+      expect(cellBounds(approve)).toMatchObject(sub);
+    });
+
+    it('breaks a long line at its words, as draw.io does, and never inside one', () => {
+      const para = 'Collect orders created from 00:00 to 23:59 of the previous day, excluding test accounts and cancelled orders';
+      expect(wrappedLines(para, 260)).toBe(3);
+      // One unbreakable word overflows on its line instead of wrapping, so it adds no height.
+      expect(measureNode('x'.repeat(100))).toEqual({ width: 260, height: 40 });
+    });
+
+    it.skipIf(!pw)('renders every node label of every fixture in Chromium on the lines its box was sized for, or one fewer', async () => {
+      // The labelled node shapes that are 40 px tall for one line and 20 px taller for each further one,
+      // and the subroutine, whose label draw.io wraps between its side bars.
+      const plain = /^(rounded=1;)?whiteSpace=wrap;html=1;(arcSize=30;)?(dashed=1;)?spacingLeft=10;spacingRight=10;$/;
+      const subroutine = /^shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;$/;
+      const boxes = [];
+      for (const f of validFixtures()) {
+        const r = await emit(f.ir, 'drawio', { diagramId: 'g' });
+        for (const c of checkDrawioStructure(r.output).cells) {
+          if (c.vertex !== '1' || !c.value || !(plain.test(c.style ?? '') || subroutine.test(c.style ?? ''))) continue;
+          const b = cellBounds(c);
+          boxes.push({ at: `${f.kind}/${f.name} ${c.id}`, html: c.value, ...b, wrap: subroutine.test(c.style) ? Math.round(0.8 * b.width - 4 + 2) : b.width - 24 + 2 });
+        }
+      }
+      expect(boxes.length).toBeGreaterThan(100);
+      const browser = await pw.chromium.launch();
+      try {
+        const page = await browser.newPage();
+        // draw.io wraps a label at the box less its spacing (10 + 2 px a side), plus 2 px.
+        await page.setContent(`<body style="font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.2">${boxes.map((b, i) => `<div id="b${i}" style="width:${b.wrap}px;white-space:normal;overflow-wrap:normal">${b.html}</div>`).join('')}</body>`);
+        const rendered = await page.evaluate((count) => Array.from({ length: count }, (_, i) => Math.round(document.getElementById(`b${i}`).getBoundingClientRect().height / 14.4)), boxes.length);
+        let exact = 0;
+        boxes.forEach((b, i) => {
+          const counted = (b.height - 40) / 20 + 1;
+          expect(Number.isInteger(counted), b.at).toBe(true);
+          expect(counted, b.at).toBeGreaterThanOrEqual(rendered[i]);
+          expect(counted, b.at).toBeLessThanOrEqual(rendered[i] + 1);
+          if (counted === rendered[i]) exact++;
+        });
+        // The count is one too many only where the browser breaks a line at a hyphen or a slash, which the wrap here does not.
+        expect(exact / boxes.length).toBeGreaterThan(0.95);
+        const tall = boxes.filter((b) => b.at.startsWith('flowchart/valid-hand-broken-lines'));
+        expect(tall.map((b) => (b.height - 40) / 20 + 1)).toEqual(tall.map((b) => rendered[boxes.indexOf(b)]));
+      } finally {
+        await browser.close();
+      }
+    });
   });
 
   describe('issue 39: a decision label stays inside the rhombus', () => {
@@ -40,16 +131,23 @@ describe('drawio-xml', () => {
     };
 
     it('wraps words like a browser: at spaces, between CJK characters, never inside a word', () => {
-      expect(wrapText('Type is PDF or PNG and size is under the configured limit?', 160)).toEqual({ lines: 3, widest: 154 });
-      expect(wrapText('a\nb', 300)).toEqual({ lines: 2, widest: 7 });
-      expect(wrapText('Supercalifragilistic?', 50)).toEqual({ lines: 1, widest: 147 });
+      // 314 px on one line; the first 30 characters are 157 px, the rest 153 px.
+      const type = wrapText('Type is PDF or PNG and size is under the configured limit?', 160);
+      expect(type.lines).toBe(2);
+      expect(type.widest).toBeCloseTo(157.4, 1);
+      expect(wrapText('Type is PDF or PNG and size is under the configured limit?', 157).lines).toBe(3);
+      expect(wrapText('a\nb', 300).lines).toBe(2);
+      expect(wrapText('a\nb', 300).widest).toBeCloseTo(6.7, 1);
+      const word = wrapText('Supercalifragilistic?', 50);
+      expect(word.lines).toBe(1);
+      expect(word.widest).toBeCloseTo(103.4, 1);
       expect(wrapText('在庫はありますか？', 60).lines).toBe(3);
     });
 
     it('keeps the plain size for a short question and grows only as far as the inscribed rectangle needs', () => {
       expect(measureDecision('File found?')).toEqual({ width: 140, height: 80, spacing: 0 });
       expect(measureDecision('Sync or async?')).toEqual({ width: 140, height: 80, spacing: 0 });
-      // 20 characters are 140 px: too wide for the 114 px the 140 x 80 rhombus has at the line's height.
+      // 127 px, and the room for it: too wide for the 114 px the 140 x 80 rhombus has at the line's height.
       const wide = measureDecision('Amount over 500 EUR?');
       expect(wide.height).toBe(80);
       expect(wide.width).toBeGreaterThan(140);
@@ -94,28 +192,49 @@ describe('drawio-xml', () => {
   });
 
   describe('issue 40: a wrapped question takes balanced lines, so draw.io does not strand its last token', () => {
-    // draw.io wraps the label at width - 4 - 2 * spacing. The width heuristic is generous, so a
-    // line the model fills nearly to that width leaves draw.io room for one more token: it then
-    // breaks at the last chance it finds, a hyphen inside "0-5", and "5?" stands alone.
+    // draw.io wraps the label at width - 4 - 2 * spacing. It breaks a line at more places than
+    // the wrap here: on a line that is nearly full it breaks at the last chance it finds, a
+    // hyphen inside "0-5", and "5?" stands alone.
     const wrapWidth = ({ width, spacing }) => width - 4 - 2 * spacing;
+    const ranged = ['Are all conditions present and is the office type in the range 0-5?', 'Are all the conditions present and is the priority level 0-5?'];
 
-    it('wraps the question of the report into two lines of about half the text each', () => {
+    it('keeps the question of the report on one line, inside the rhombus', () => {
+      // 209 px: it fits the plain box on one line, so it is not wrapped and nothing can be stranded.
       const label = 'Conditions present and office type 0-5?';
       const d = measureDecision(label);
-      expect(d).toEqual({ width: 224, height: 80, spacing: 40 });
+      expect(d).toEqual({ width: 270, height: 80, spacing: 0 });
       const block = wrapText(label, wrapWidth(d));
-      expect(block).toEqual({ lines: 2, widest: 140 });
-      // No narrower wrap keeps two lines, so neither line is a nearly full one with a remainder after it.
-      expect(wrapText(label, block.widest - 1).lines).toBe(3);
+      expect(block.lines).toBe(1);
+      expect(block.widest / d.width + 15 / d.height).toBeLessThanOrEqual(1);
+    });
+
+    it('wraps a longer question with a range into two lines of about half the text each', () => {
+      for (const label of ranged) {
+        const d = measureDecision(label);
+        expect(d.spacing, label).toBeGreaterThan(0);
+        const block = wrapText(label, wrapWidth(d));
+        expect(block.lines, label).toBe(2);
+        const whole = wrapText(label, 10_000).widest;
+        expect(block.widest, label).toBeLessThan(0.56 * whole);
+        // No narrower wrap keeps two lines, so neither line is a nearly full one with a remainder after it.
+        expect(wrapText(label, block.widest - 1).lines, label).toBe(3);
+        // The wrap width leaves the widest line the room of a renderer that draws it a little wider.
+        expect(wrapWidth(d), label).toBeGreaterThanOrEqual(block.widest * 1.03);
+        expect(wrapText(label, wrapWidth(d) * 1.03).lines, label).toBe(2);
+      }
     });
 
     it('wraps every multi-line question at the narrowest width that keeps its line count', () => {
-      for (const q of ['Conditions present and priority level 0-5?', 'Type is PDF or PNG and size is under the configured limit?', 'Is the configured retention period of the tenant exceeded for this document?', '在庫はありますか？それとも入荷待ちですか？']) {
+      for (const q of [...ranged, 'Type is PDF or PNG and size is under the configured limit?', 'Is the configured retention period of the tenant exceeded for this document?', '在庫はありますか？それとも入荷待ちですか？']) {
         const d = measureDecision(q);
         const block = wrapText(q, wrapWidth(d));
         expect(block.lines, q).toBeGreaterThan(1);
-        // Any wrap narrower than the widest line takes more lines: the lines are as balanced as the line count allows.
-        expect(wrapText(q, Math.ceil(block.widest) - 1).lines, q).toBeGreaterThan(block.lines);
+        // The narrowest width at which the question still takes that many lines, by bisection.
+        let least = 1;
+        for (let hi = 2000; least < hi;) { const mid = Math.floor((least + hi) / 2); if (wrapText(q, mid).lines <= block.lines) hi = mid; else least = mid + 1; }
+        // draw.io wraps at that width plus the room a wider rendering needs and no more, so the lines are as balanced as the line count allows.
+        expect(wrapWidth(d), q).toBeGreaterThanOrEqual(least);
+        expect(wrapWidth(d), q).toBeLessThanOrEqual(Math.ceil(least * 1.04) + 2);
         expect(block.widest / d.width + (block.lines * 15) / d.height, q).toBeLessThanOrEqual(1 + 1e-9);
       }
     });
@@ -125,12 +244,12 @@ describe('drawio-xml', () => {
       expect(r.ok).toBe(true);
       expect(r.warnings).toEqual([]);
       const d = checkDrawioStructure(r.output).cells.find((c) => c.id === 'ticket-triage:d');
-      expect(d.style).toBe('rhombus;whiteSpace=wrap;html=1;spacingLeft=40;spacingRight=40;');
-      expect(cellBounds(d)).toMatchObject({ width: 224, height: 80 });
+      expect(d.style).toBe('rhombus;whiteSpace=wrap;html=1;');
+      expect(cellBounds(d)).toMatchObject({ width: 270, height: 80 });
     });
 
-    it.skipIf(!pw)('renders in Chromium as two lines at the emitted wrap width, with the value range on one line', async () => {
-      const labels = ['Conditions present and office type 0-5?', 'Conditions present and priority level 0-5?'];
+    it.skipIf(!pw)('renders in Chromium on the lines counted, with the value range on one line', async () => {
+      const labels = ['Conditions present and office type 0-5?', ...ranged];
       const browser = await pw.chromium.launch();
       try {
         const page = await browser.newPage();
@@ -153,11 +272,11 @@ describe('drawio-xml', () => {
           lines.push(text.data.slice(start).trim());
           return lines;
         }), labels.length);
-        for (const lines of rendered) {
-          expect(lines).toHaveLength(2);
-          expect(lines[1]).toMatch(/0-5\?$/);
-          expect(lines[0].endsWith('-')).toBe(false);
-        }
+        rendered.forEach((lines, i) => {
+          expect(lines, labels[i]).toHaveLength(i === 0 ? 1 : 2);
+          expect(lines.at(-1), labels[i]).toMatch(/0-5\?$/);
+          expect(lines[0].endsWith('-'), labels[i]).toBe(false);
+        });
       } finally {
         await browser.close();
       }
@@ -166,8 +285,8 @@ describe('drawio-xml', () => {
 
   it('measures nodes with the clamp rule', () => {
     expect(measureNode('ab')).toEqual({ width: 120, height: 40 });
-    // 100 characters wrap to three lines at the 260 px cap, so the box grows by two line heights.
-    expect(measureNode('x'.repeat(100))).toEqual({ width: 260, height: 80 });
+    // Twenty words of 30 px a word with its space wrap to three lines at the 260 px cap, so the box grows by two line heights.
+    expect(measureNode(Array(20).fill('nnnn').join(' '))).toEqual({ width: 260, height: 80 });
     expect(measureNode('one\ntwo\nthree', { extraRows: 2 })).toEqual({ width: 120, height: 116 });
   });
 });

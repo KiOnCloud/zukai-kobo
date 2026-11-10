@@ -168,13 +168,16 @@ describe('preview', () => {
 
   it.skipIf(drawioRenderers.length === 0).each(drawioRenderers)('issue 36: a diagram just over the cap is one image at a lower scale, not slivers (%s)', async (renderer) => {
     const file = await emitTo(SHOP_ER, `shop-er-${renderer}`);
-    const r = await preview(file, { out: join(dir, `shop-er-${renderer}.png`), maxPx: 1600, renderer });
+    // A cap at 85 % of the long side with its border: the diagram is just over it, far from the scale of 0.6 where tiling starts.
+    const extent = drawioExtent(readFileSync(file, 'utf8'));
+    const maxPx = Math.round(0.85 * (Math.max(extent.width, extent.height) + 40));
+    const r = await preview(file, { out: join(dir, `shop-er-${renderer}.png`), maxPx, renderer });
     expect(r.ok, JSON.stringify(r.errors)).toBe(true);
     expect(r.tiled).toBe(false);
     expect(r.files).toHaveLength(1);
     expect(r.scale).toBeGreaterThanOrEqual(0.6);
     expect(r.scale).toBeLessThan(1);
-    expect(Math.max(...Object.values(pngSize(r.out)))).toBeLessThanOrEqual(1600);
+    expect(Math.max(...Object.values(pngSize(r.out)))).toBeLessThanOrEqual(maxPx);
   }, 180_000);
 
   it('issue 36: tile frames split the long axis evenly with the asked overlap and never exceed the cap', () => {

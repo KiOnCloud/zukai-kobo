@@ -12,7 +12,7 @@
  * can tell the user.
  */
 
-import { longestLine } from './text-metrics.mjs';
+import { widestLine } from './text-metrics.mjs';
 import { wrapText, LABEL_PAD } from './layout-graph.mjs';
 
 export const SEQUENCE_METRICS = {
@@ -31,7 +31,6 @@ export const SEQUENCE_METRICS = {
   noteRowGap: 12,
   activationWidth: 10,
   frameInset: 16,
-  charWidth: 7,
   labelHeight: 16,
 };
 
@@ -45,7 +44,8 @@ export const NOTE_FOLD = 14;
  */
 export const NOTE_PAD = { left: LABEL_PAD, right: NOTE_FOLD + 4 };
 
-const textWidth = (text, m) => Math.ceil(longestLine(text) * m.charWidth) + 12;
+/** Room for a label that does not wrap: its widest line and 6 px on each side. */
+const textWidth = (text) => Math.ceil(widestLine(text)) + 12;
 const lineCount = (text) => String(text).split(/\r\n?|\n/).length;
 
 /**
@@ -80,7 +80,7 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
   const gaps = Array.from({ length: Math.max(n - 1, 0) }, (_, i) => (widths[i] + widths[i + 1]) / 2 + m.minGap);
   const spanning = ir.messages
     .filter((msg) => msg.from !== msg.to)
-    .map((msg) => ({ lo: Math.min(index.get(msg.from), index.get(msg.to)), hi: Math.max(index.get(msg.from), index.get(msg.to)), need: textWidth(msg.label, m) + 24 }))
+    .map((msg) => ({ lo: Math.min(index.get(msg.from), index.get(msg.to)), hi: Math.max(index.get(msg.from), index.get(msg.to)), need: textWidth(msg.label) + 24 }))
     .sort((a, b) => (a.hi - a.lo) - (b.hi - b.lo));
   for (const s of spanning) {
     const span = gaps.slice(s.lo, s.hi).reduce((sum, g) => sum + g, 0);
@@ -254,7 +254,7 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     const bottom = closeRow.y + closeRow.height / 2;
     const sections = b.sections.map((s, k) => {
       const rowY = k === 0 ? top : rows.find((r) => r.type === 'section' && r.block === b.id && r.section === k).y;
-      return { label: s.label, y: rowY, width: textWidth(s.label, m) + 8 };
+      return { label: s.label, y: rowY, width: textWidth(s.label) + 8 };
     });
     return { id: b.id, x: left, y: top, width: right - left, height: bottom - top, tabWidth: sections[0].width, sections, depth: b.depth };
   });
@@ -269,7 +269,7 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
   for (const msg of ir.messages) {
     const from = participants.get(msg.from);
     const to = participants.get(msg.to);
-    const w = textWidth(msg.label, m);
+    const w = textWidth(msg.label);
     const mid = msg.from === msg.to ? from.centerX + 60 + w / 2 : (from.centerX + to.centerX) / 2;
     const h = m.labelHeight * lineCount(msg.label);
     boxes.push({ what: `label of message "${msg.id}"`, x: mid - w / 2, y: messageY(msg.id) - h - 2, width: w, height: h });

@@ -5,13 +5,13 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="orders-main:customer" value="CUSTOMER&lt;br&gt;↳ order-sync-01-load" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=46;" vertex="1" parent="1">
-          <mxGeometry x="12" y="64" width="164" height="72" as="geometry"/>
+          <mxGeometry x="12" y="64" width="160" height="72" as="geometry"/>
         </mxCell>
         <mxCell id="orders-main:customer:row-0" value="PK id: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="orders-main:customer">
-          <mxGeometry x="0" y="46" width="164" height="26" as="geometry"/>
+          <mxGeometry x="0" y="46" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="orders-main:order" value="ORDER" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="387" y="12" width="160" height="78" as="geometry"/>
+          <mxGeometry x="376" y="12" width="160" height="78" as="geometry"/>
         </mxCell>
         <mxCell id="orders-main:order:row-0" value="PK id: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="orders-main:order">
           <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>

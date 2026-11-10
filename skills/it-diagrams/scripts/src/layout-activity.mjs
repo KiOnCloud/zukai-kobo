@@ -10,7 +10,7 @@
  * computed top-to-bottom and transposed for left-to-right flows.
  */
 
-import { longestLine } from './text-metrics.mjs';
+import { widestLine } from './text-metrics.mjs';
 
 /** Minimum distance between a straight branch's guard and the sibling run it leaves below. */
 const GUARD_CLEAR = 12;
@@ -583,7 +583,7 @@ function sharedPrefix(p, q) {
  * draw.io edge-label geometry (relative position along the path plus a pixel offset).
  */
 function labelCandidates(s, t, e, guard, trunkLen = 0) {
-  const width = Math.ceil(longestLine(guard) * 7) + 12;
+  const width = Math.ceil(widestLine(guard)) + 12;
   const height = 16;
   const start = { x: s.x + e.exit.x * s.width, y: s.y + e.exit.y * s.height };
   const end = { x: t.x + e.entry.x * t.width, y: t.y + e.entry.y * t.height };

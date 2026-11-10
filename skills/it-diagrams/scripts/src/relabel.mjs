@@ -1,6 +1,7 @@
 import { inflateRawSync } from 'node:zlib';
 import { htmlLabel } from './drawio-xml.mjs';
-import { displayLength } from './text-metrics.mjs';
+import { widestLine } from './text-metrics.mjs';
+import { wrapText } from './layout-graph.mjs';
 
 /**
  * Replace labels in an emitted .drawio file while keeping every id and every geometry, so a
@@ -21,8 +22,8 @@ import { displayLength } from './text-metrics.mjs';
  * `$keep` list are the same in every language and are left out of that list.
  *
  * Boxes are not resized. A new label is reported as a `layout:` warning when, by the same
- * width heuristic the emitters use (CJK characters at 1.75 Latin widths, which matches
- * draw.io's 12 px font within a few percent), it wraps to more lines than the box's height
+ * text widths and word wrap the emitters use (the glyph widths of draw.io's 12 px font,
+ * CJK characters at full width), it wraps to more lines than the box's height
  * holds and than the old label took, has an unbreakable word wider than the box, or exceeds
  * a non-wrapping box; a label drawn below its shape (an actor's name) is measured at its own
  * wrap width against the lines the old label took. A cell and its copies (the canvas page) give one warning naming the
@@ -196,13 +197,11 @@ function joinLabel({ bold, stereotype, main, ref }) {
   return bold ? `<b>${body}</b>` : body;
 }
 
-const CHAR = 7;
-const wrappedLines = (text, usable) => text.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil((CHAR * displayLength(l)) / usable)), 0);
-// The longest unbreakable run: browsers break between CJK characters, so a word with wide
+const wrappedLines = (text, usable) => wrapText(text, usable).lines;
+// The widest unbreakable run: browsers break between CJK characters, so a word with wide
 // characters only counts its longest run of narrow ones (or one wide character).
-const WIDE_CHAR = /[\u1100-\u115F\u2E80-\u303E\u3041-\u33FF\u3400-\u4DBF\u4E00-\u9FFF\uA000-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]|[\u{20000}-\u{3FFFF}]/u;
-const unbreakable = (word) => (WIDE_CHAR.test(word) ? Math.max(2, ...word.split(WIDE_CHAR).map(displayLength)) : displayLength(word));
-const widestWord = (text) => Math.max(...text.split(/\s+/).map(unbreakable), 0) * CHAR;
+const widestWord = (text) => wrapText(text, 1).widest;
+const widest = (text) => Math.ceil(widestLine(text));
 
 /**
  * draw.io wraps text inside the shape minus its 2 px spacing (and minus any `spacingLeft` /
@@ -225,8 +224,8 @@ function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus
   if (wraps && rhombus) {
     const block = (text) => {
       const lines = wrappedLines(text, usable);
-      const widest = Math.min(usable, Math.ceil(Math.max(...text.split('\n').map(displayLength), 1) * CHAR));
-      return { lines, widest, fill: widest / width + (lines * LINE) / height };
+      const block = Math.min(usable, widest(text));
+      return { lines, widest: block, fill: block / width + (lines * LINE) / height };
     };
     const now = block(newText);
     if (now.fill <= 1 || now.fill <= block(oldText).fill) return undefined;
@@ -240,7 +239,7 @@ function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus
     if (lines > capacity && lines > wrappedLines(oldText, usable)) return `the new label wraps to ${lines} lines in a ${width}x${height} box that holds ${capacity}`;
     return undefined;
   }
-  const need = Math.ceil(Math.max(...newText.split('\n').map(displayLength), 1) * CHAR) + TEXT_INSET;
+  const need = widest(newText) + TEXT_INSET;
   return need > width ? `the new label needs about ${need} px in a ${width} px box that does not wrap` : undefined;
 }
 
@@ -252,7 +251,7 @@ function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus
  */
 function checkFitBelow(oldText, newText, width, wraps) {
   if (!wraps) {
-    const need = (text) => Math.ceil(Math.max(...text.split('\n').map(displayLength), 1) * CHAR);
+    const need = widest;
     return need(newText) > Math.max(need(oldText), width) ? `the new label needs about ${need(newText)} px below its shape, where the old one took ${need(oldText)} px` : undefined;
   }
   if (widestWord(newText) > width && widestWord(oldText) <= width) return `a word of the new label is wider than the ${width} px the label below the shape wraps at`;

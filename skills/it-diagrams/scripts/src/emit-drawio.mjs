@@ -1,8 +1,8 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
-import { layoutGraph, measureNode, measureDecision, measureLabel, measureLabelBelow, LABEL_PAD } from './layout-graph.mjs';
+import { layoutGraph, measureNode, measureDecision, measureLabelBelow, wrapText, LABEL_PAD } from './layout-graph.mjs';
 import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
-import { longestLine, displayLength } from './text-metrics.mjs';
+import { widestLine, roomFor, safeWidth } from './text-metrics.mjs';
 
 /**
  * Emit an uncompressed .drawio file with individually editable shapes. Graph-shaped kinds
@@ -135,6 +135,11 @@ const SLANT = 20;
 const SHAPE_PAD = { io: SLANT / 2 + LABEL_PAD, queue: SLANT / 2 + LABEL_PAD };
 const padOf = (shape) => SHAPE_PAD[shape] ?? LABEL_PAD;
 /**
+ * The text area of a shape for `measureNode`. A subroutine's side bars take a tenth of its
+ * width each, and draw.io wraps its label between them with 2 px of its own on each side.
+ */
+const textArea = (shape) => (shape === 'subroutine' ? { pad: 2, share: 0.1 } : { pad: padOf(shape) });
+/**
  * Label spacing that draws the room `measureNode` counted on each side of a node's text.
  * draw.io keeps 2 px of its own, so the rest is added: the text wraps `pad` px inside the
  * box and a full line touches neither the border nor an arrowhead on it.
@@ -147,7 +152,7 @@ export const STYLE = {
   terminal: `rounded=1;whiteSpace=wrap;html=1;${labelPad('terminal')}`,
   decision: 'rhombus;whiteSpace=wrap;html=1;',
   io: `shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;size=${SLANT};${labelPad('io')}`,
-  // The side bars of a subroutine already bound its label, a tenth of the width in from each side.
+  // The side bars of a subroutine already bound its label, a tenth of the width in from each side (see textArea).
   subroutine: 'shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;',
   note: `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;${labelPad('note')}`,
   container: 'swimlane;whiteSpace=wrap;html=1;startSize=30;',
@@ -225,7 +230,7 @@ const waypointStyle = (style) => style.replace(/edgeStyle=[^;]*;/, '').replace(/
 /** A decision's rhombus style, with the label spacing that wraps a long question inside the diamond. */
 const decisionStyle = (size) => (size.spacing > 0 ? `${STYLE.decision}spacingLeft=${size.spacing};spacingRight=${size.spacing};` : STYLE.decision);
 
-const selfLoopLabelWidth = (label) => Math.ceil(longestLine(label) * 5.6) + 4;
+const selfLoopLabelWidth = (label) => Math.ceil(widestLine(label)) + 4;
 const selfLoopExtra = (label) => SELF_LOOP_OUT + (label ? selfLoopLabelWidth(label) + 12 : 0) + 10;
 /**
  * Room beside each node for the loops the emitter draws on its right or left: the widest of
@@ -333,7 +338,7 @@ function markerBox(path, length) {
 function endLabelGeometry(path, end, text, clear, blocked) {
   const fromEnd = end === 'from' ? path : [...path].reverse();
   const at = fromEnd[0];
-  const width = Math.ceil(7 * longestLine(text));
+  const width = Math.ceil(widestLine(text));
   const { gap, side, height, step, reach } = END_LABEL;
   const candidates = [];
   for (let along = clear + gap; along <= clear + gap + reach; along += step) {
@@ -507,7 +512,7 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   const nodes = ir.nodes.map((n, i) => {
     const shape = n.ref ? 'subroutine' : (n.shape ?? 'process');
     const { label, link } = refLabel(n.label, n.ref, refs, `/nodes/${i}/ref`, warnings);
-    const size = shape === 'decision' ? measureDecision(label) : measureNode(label, { pad: padOf(shape) });
+    const size = shape === 'decision' ? measureDecision(label) : measureNode(label, textArea(shape));
     const extra = loopExtra.get(n.id) ?? 0;
     return { id: n.id, label, link, parent: parent.get(n.id), style: shape === 'decision' ? decisionStyle(size) : STYLE[shape], width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
   });
@@ -558,18 +563,22 @@ const HEADER_LINE = 20;
 const ROW_LINE = 14;
 const TABLE_MAX_WIDTH = 300;
 
-/** Height of one table row: a line that is wider than the box wraps, and the row grows with it. */
+/**
+ * Height of one table row: a line that is wider than the row wraps at its words, and the row
+ * grows with it. A row keeps 6 px on each side of its text and clips what does not fit, so
+ * the lines are counted at the width that is sure to hold them.
+ */
 export function rowHeight(text, width) {
-  const lines = Math.max(1, Math.ceil((7 * longestLine(text ?? '')) / Math.max(width - 8, 1)));
+  const lines = wrapText(text ?? '', Math.max(safeWidth(width - 12), 1)).lines;
   return ROW + ROW_LINE * (lines - 1);
 }
 
-/** Lines a title takes in a header of the given width: its own line breaks plus word wrap. */
-const headerLines = (text, width) => String(text).split(/\r\n?|\n/).reduce((n, line) => n + Math.max(1, Math.ceil((7 * displayLength(line)) / Math.max(width - 8, 1))), 0);
+/** Lines a bold title takes in a header of the given width: its own line breaks plus word wrap. */
+const headerLines = (text, width) => wrapText(text, Math.max(safeWidth(width - 8), 1), { bold: true }).lines;
 
 function tableNode(id, header, rows, { headerHeight: minHeaderHeight = ROW, link } = {}) {
-  const longest = Math.max(longestLine(header), ...rows.map((r) => longestLine(r.text ?? '')), 1);
-  const width = Math.min(TABLE_MAX_WIDTH, Math.max(160, Math.ceil(7 * longest) + 24));
+  const widest = Math.max(widestLine(header, { bold: true }), ...rows.map((r) => widestLine(r.text ?? '')));
+  const width = Math.min(TABLE_MAX_WIDTH, Math.max(160, roomFor(widest) + 24));
   // The header grows with its lines as a row does: a stereotype, the title of a ref, and
   // any of them that is wider than the table and wraps.
   const headerHeight = Math.max(minHeaderHeight, ROW + HEADER_LINE * (headerLines(header, width) - 1));
@@ -921,7 +930,7 @@ async function emitActivity(ir, cid, warnings, refs) {
   const sizes = [
     ...ir.actions.map((a, i) => {
       const { label, link } = refLabel(a.label, a.ref, refs, `/actions/${i}/ref`, warnings);
-      return { id: a.id, lane: a.lane, ...measureNode(label), style: a.ref ? STYLE.subroutine : STYLE.terminal, label, link };
+      return { id: a.id, lane: a.lane, ...measureNode(label, textArea(a.ref ? 'subroutine' : 'terminal')), style: a.ref ? STYLE.subroutine : STYLE.terminal, label, link };
     }),
     ...(ir.controls ?? []).map((c) => {
       const base = { id: c.id, lane: c.lane, label: '' };

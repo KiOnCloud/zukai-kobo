@@ -50,7 +50,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-reject-branch-next-to-merged-bra:fr:label" value="unsupported" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fr">
-          <mxGeometry x="0.25" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.27" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -67,7 +67,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-reject-branch-next-to-merged-bra:fi0:label" value="A" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fi0">
-          <mxGeometry x="0.24" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.23" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -85,7 +85,7 @@
         </mxCell>
         <mxCell id="routing-reject-branch-next-to-merged-bra:fi1:label" value="B" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fi1">
           <mxGeometry x="0.62" y="0" relative="1" as="geometry">
-            <mxPoint x="15.5" y="0" as="offset"/>
+            <mxPoint x="16.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-reject-branch-next-to-merged-bra:fo1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:a-B" target="routing-reject-branch-next-to-merged-bra:d-next">
@@ -101,7 +101,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-reject-branch-next-to-merged-bra:fi2:label" value="C" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fi2">
-          <mxGeometry x="0.53" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.52" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -119,7 +119,7 @@
         </mxCell>
         <mxCell id="routing-reject-branch-next-to-merged-bra:fy:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="routing-reject-branch-next-to-merged-bra:fy">
           <mxGeometry x="0.45" y="0" relative="1" as="geometry">
-            <mxPoint x="22.5" y="0" as="offset"/>
+            <mxPoint x="21.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="routing-reject-branch-next-to-merged-bra:fn" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="routing-reject-branch-next-to-merged-bra:d-next" target="routing-reject-branch-next-to-merged-bra:a-end">

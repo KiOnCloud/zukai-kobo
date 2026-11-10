@@ -51,9 +51,13 @@ order, direction, note placement). The image is the agent's working copy, not a 
 (draw.io's viewer page or the Mermaid library) into a local Chromium through Playwright; the
 diagram itself is rendered locally. draw.io desktop, when installed, renders offline. The
 renderers are not bundled and not required; the step reports why it was skipped. All size
-heuristics share `text-metrics.mjs`, which counts CJK and full-width characters as 1.75
-Latin widths (7 px each), the ratio Chromium renders at draw.io's 12 px font; a test checks
-it against a browser measurement when Playwright is present. A decision's rhombus is sized
+heuristics share `text-metrics.mjs`, which measures a line by its glyphs in draw.io's
+default font (the advance widths of Helvetica and Helvetica Bold at 12 px, CJK and
+full-width characters at full width, a letter with diacritics as its base letter), and
+`wrapText` in `layout-graph.mjs`, which breaks a text into lines where a browser does. Tests
+check both against Chromium when Playwright is present: the widths within a pixel short and
+3 % over, the line count of every node label of every fixture against the box it was sized
+for. A decision's rhombus is sized
 against its inscribed rectangle rather than its box, wrapping a long question into balanced
 lines and adding label spacing so draw.io wraps inside the diamond (see the draw.io target
 reference).

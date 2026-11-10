@@ -5,37 +5,37 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="invoice-download:client" value="Client" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="268" height="818" as="geometry"/>
+          <mxGeometry x="40" y="40" width="249" height="798" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:api" value="Billing API" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#dae8fc;swimlaneFillColor=#f0f6ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="308" y="40" width="542" height="818" as="geometry"/>
+          <mxGeometry x="289" y="40" width="465" height="798" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:store" value="Invoice store" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="850" y="40" width="350" height="818" as="geometry"/>
+          <mxGeometry x="754" y="40" width="350" height="798" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:ask" value="Request an invoice PDF" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:client">
-          <mxGeometry x="30" y="160" width="178" height="40" as="geometry"/>
+          <mxGeometry x="30" y="160" width="159" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:lookup" value="Find the invoice file by number and version" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:store">
-          <mxGeometry x="30" y="260" width="260" height="60" as="geometry"/>
+          <mxGeometry x="30" y="260" width="260" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:missing" value="Return 'invoice not found'" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:api">
-          <mxGeometry x="276" y="558" width="206" height="40" as="geometry"/>
+          <mxGeometry x="240" y="538" width="165" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:stream" value="Send the PDF to the client" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:api">
-          <mxGeometry x="30" y="558" width="206" height="40" as="geometry"/>
+          <mxGeometry x="30" y="538" width="170" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:save" value="Save the PDF" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="invoice-download:client">
-          <mxGeometry x="59" y="658" width="120" height="40" as="geometry"/>
+          <mxGeometry x="49.5" y="638" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="invoice-download:client">
-          <mxGeometry x="104" y="70" width="30" height="30" as="geometry"/>
+          <mxGeometry x="94.5" y="70" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:found" value="File found?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="invoice-download:api">
-          <mxGeometry x="309" y="380" width="140" height="80" as="geometry"/>
+          <mxGeometry x="252.5" y="360" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="invoice-download:client">
-          <mxGeometry x="104" y="758" width="30" height="30" as="geometry"/>
+          <mxGeometry x="94.5" y="738" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-download:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoice-download:start" target="invoice-download:ask">
           <mxGeometry relative="1" as="geometry">
@@ -44,16 +44,16 @@
         <mxCell id="invoice-download:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoice-download:ask" target="invoice-download:lookup">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="159" y="270"/>
-              <mxPoint x="1010" y="270"/>
+              <mxPoint x="149.5" y="270"/>
+              <mxPoint x="914" y="270"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="invoice-download:f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoice-download:lookup" target="invoice-download:found">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1010" y="390"/>
-              <mxPoint x="687" y="390"/>
+              <mxPoint x="914" y="370"/>
+              <mxPoint x="611.5" y="370"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -69,29 +69,29 @@
         <mxCell id="invoice-download:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoice-download:missing" target="invoice-download:end">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="687" y="768"/>
-              <mxPoint x="159" y="768"/>
+              <mxPoint x="611.5" y="748"/>
+              <mxPoint x="149.5" y="748"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="invoice-download:f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoice-download:found" target="invoice-download:stream">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="687" y="522"/>
-              <mxPoint x="441" y="522"/>
+              <mxPoint x="611.5" y="502"/>
+              <mxPoint x="404" y="502"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="invoice-download:f6:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="invoice-download:f6">
-          <mxGeometry x="0.42" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.35" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="invoice-download:f7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoice-download:stream" target="invoice-download:save">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="441" y="668"/>
-              <mxPoint x="159" y="668"/>
+              <mxPoint x="404" y="648"/>
+              <mxPoint x="149.5" y="648"/>
             </Array>
           </mxGeometry>
         </mxCell>

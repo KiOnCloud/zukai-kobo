@@ -5,22 +5,22 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="ticket-triage:desk" value="Help desk" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="430" height="498" as="geometry"/>
+          <mxGeometry x="40" y="40" width="445" height="498" as="geometry"/>
         </mxCell>
         <mxCell id="ticket-triage:esc" value="Escalate" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="ticket-triage:desk">
           <mxGeometry x="30" y="338" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="ticket-triage:close" value="Close the ticket" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="ticket-triage:desk">
-          <mxGeometry x="190" y="338" width="136" height="40" as="geometry"/>
+          <mxGeometry x="190" y="338" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="ticket-triage:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="ticket-triage:desk">
-          <mxGeometry x="243" y="70" width="30" height="30" as="geometry"/>
+          <mxGeometry x="235" y="70" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="ticket-triage:d" value="Conditions present and office type 0-5?" style="rhombus;whiteSpace=wrap;html=1;spacingLeft=40;spacingRight=40;" vertex="1" parent="ticket-triage:desk">
-          <mxGeometry x="146" y="160" width="224" height="80" as="geometry"/>
+        <mxCell id="ticket-triage:d" value="Conditions present and office type 0-5?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="ticket-triage:desk">
+          <mxGeometry x="115" y="160" width="270" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="ticket-triage:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="ticket-triage:desk">
-          <mxGeometry x="159" y="438" width="30" height="30" as="geometry"/>
+          <mxGeometry x="155" y="438" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="ticket-triage:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:start" target="ticket-triage:d">
           <mxGeometry relative="1" as="geometry">
@@ -29,13 +29,13 @@
         <mxCell id="ticket-triage:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:d" target="ticket-triage:esc">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="298" y="302"/>
+              <mxPoint x="290" y="302"/>
               <mxPoint x="130" y="302"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="ticket-triage:f2:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="ticket-triage:f2">
-          <mxGeometry x="0.24" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.23" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -52,15 +52,15 @@
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="130" y="448"/>
-              <mxPoint x="214" y="448"/>
+              <mxPoint x="210" y="448"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="ticket-triage:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:close" target="ticket-triage:end">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="298" y="448"/>
-              <mxPoint x="214" y="448"/>
+              <mxPoint x="290" y="448"/>
+              <mxPoint x="210" y="448"/>
             </Array>
           </mxGeometry>
         </mxCell>

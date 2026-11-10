@@ -8,28 +8,28 @@
           <mxGeometry x="40" y="40" width="220" height="818" as="geometry"/>
         </mxCell>
         <mxCell id="return-request:support" value="Support" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#dae8fc;swimlaneFillColor=#f0f6ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="260" y="40" width="451" height="818" as="geometry"/>
+          <mxGeometry x="260" y="40" width="430" height="818" as="geometry"/>
         </mxCell>
         <mxCell id="return-request:request" value="Request return" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="return-request:customer">
-          <mxGeometry x="34" y="160" width="122" height="40" as="geometry"/>
+          <mxGeometry x="35" y="160" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="return-request:review" value="Review request" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="return-request:support">
-          <mxGeometry x="258.5" y="260" width="122" height="40" as="geometry"/>
+          <mxGeometry x="240" y="260" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="return-request:approve" value="Approve and send label&lt;br&gt;↳ return-request-label" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="return-request:support">
-          <mxGeometry x="30" y="538" width="178" height="60" as="geometry"/>
+          <mxGeometry x="30" y="538" width="170" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="return-request:reject" value="Explain rejection" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="return-request:support">
-          <mxGeometry x="248" y="548" width="143" height="40" as="geometry"/>
+          <mxGeometry x="240" y="548" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="return-request:ship" value="Ship item back" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="return-request:customer">
-          <mxGeometry x="34" y="658" width="122" height="40" as="geometry"/>
+          <mxGeometry x="35" y="658" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="return-request:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="return-request:customer">
           <mxGeometry x="80" y="70" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="return-request:eligible" value="Eligible?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="return-request:support">
-          <mxGeometry x="249.5" y="360" width="140" height="80" as="geometry"/>
+          <mxGeometry x="230" y="360" width="140" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="return-request:done" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="return-request:customer">
           <mxGeometry x="80" y="758" width="30" height="30" as="geometry"/>
@@ -42,7 +42,7 @@
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="135" y="270"/>
-              <mxPoint x="579.5" y="270"/>
+              <mxPoint x="560" y="270"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -53,13 +53,13 @@
         <mxCell id="return-request:f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="return-request:eligible" target="return-request:approve">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="579.5" y="502"/>
-              <mxPoint x="379" y="502"/>
+              <mxPoint x="560" y="502"/>
+              <mxPoint x="375" y="502"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="return-request:f4:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="return-request:f4">
-          <mxGeometry x="0.33" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.3" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -75,7 +75,7 @@
         <mxCell id="return-request:f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="return-request:approve" target="return-request:ship">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="379" y="668"/>
+              <mxPoint x="375" y="668"/>
               <mxPoint x="135" y="668"/>
             </Array>
           </mxGeometry>
@@ -87,7 +87,7 @@
         <mxCell id="return-request:f8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="return-request:reject" target="return-request:done">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="579.5" y="768"/>
+              <mxPoint x="560" y="768"/>
               <mxPoint x="135" y="768"/>
             </Array>
           </mxGeometry>

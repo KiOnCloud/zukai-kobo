@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "flowchart",
+  "title": "Nightly report",
+  "direction": "TB",
+  "meta": {
+    "source": "clarify",
+    "notes": [
+      "layout repro: labels whose lines the author broke by hand, each of which fits one line of its box"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "label": "Scheduler fires at 02:00",
+      "shape": "terminal"
+    },
+    {
+      "id": "collect",
+      "label": "Collect orders created from 00:00 to 23:59\nof the previous day, excluding test accounts\nand cancelled orders"
+    },
+    {
+      "id": "short",
+      "label": "Collect orders"
+    },
+    {
+      "id": "render",
+      "label": "Render the report as PDF and CSV files\nand upload both to the shared folder"
+    },
+    {
+      "id": "done",
+      "label": "Report ready",
+      "shape": "terminal"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "start",
+      "to": "collect"
+    },
+    {
+      "id": "e2",
+      "from": "collect",
+      "to": "short"
+    },
+    {
+      "id": "e3",
+      "from": "short",
+      "to": "render"
+    },
+    {
+      "id": "e4",
+      "from": "render",
+      "to": "done"
+    }
+  ]
+}

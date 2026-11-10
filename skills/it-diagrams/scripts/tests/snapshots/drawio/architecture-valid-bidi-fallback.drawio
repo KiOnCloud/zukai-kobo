@@ -4,23 +4,23 @@
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
-        <mxCell id="triangle-with-a-two-way-link:web" value="Web client" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=78;" vertex="1" parent="1">
-          <mxGeometry x="31" y="40" width="40" height="60" as="geometry"/>
+        <mxCell id="triangle-with-a-two-way-link:web" value="Web client" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=65;" vertex="1" parent="1">
+          <mxGeometry x="26" y="40" width="40" height="60" as="geometry"/>
         </mxCell>
-        <mxCell id="triangle-with-a-two-way-link:mob" value="Mobile app" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=78;" vertex="1" parent="1">
-          <mxGeometry x="31" y="172" width="40" height="60" as="geometry"/>
+        <mxCell id="triangle-with-a-two-way-link:mob" value="Mobile app" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=67;" vertex="1" parent="1">
+          <mxGeometry x="26" y="172" width="40" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:gw" value="API gateway" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="170" y="57" width="120" height="40" as="geometry"/>
+          <mxGeometry x="160" y="57" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:a" value="Order service" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="370" y="12" width="120" height="40" as="geometry"/>
+          <mxGeometry x="360" y="12" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:b" value="Catalog service" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="570" y="38" width="129" height="40" as="geometry"/>
+          <mxGeometry x="560" y="38" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:cache" value="Cache" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="779" y="56" width="120" height="70" as="geometry"/>
+          <mxGeometry x="760" y="56" width="120" height="70" as="geometry"/>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.325;entryDx=0;entryDy=0;" edge="1" parent="1" source="triangle-with-a-two-way-link:web" target="triangle-with-a-two-way-link:gw">
           <mxGeometry relative="1" as="geometry">
@@ -29,53 +29,53 @@
         <mxCell id="triangle-with-a-two-way-link:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.675;entryDx=0;entryDy=0;" edge="1" parent="1" source="triangle-with-a-two-way-link:mob" target="triangle-with-a-two-way-link:gw">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="115" y="202"/>
-              <mxPoint x="115" y="84"/>
+              <mxPoint x="105" y="202"/>
+              <mxPoint x="105" y="84"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="triangle-with-a-two-way-link:gw" target="triangle-with-a-two-way-link:a">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="315" y="67"/>
-              <mxPoint x="315" y="32"/>
+              <mxPoint x="305" y="67"/>
+              <mxPoint x="305" y="32"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.675;entryDx=0;entryDy=0;" edge="1" parent="1" source="triangle-with-a-two-way-link:gw" target="triangle-with-a-two-way-link:b">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="515" y="77"/>
-              <mxPoint x="515" y="65"/>
+              <mxPoint x="505" y="77"/>
+              <mxPoint x="505" y="65"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.325;entryDx=0;entryDy=0;" edge="1" parent="1" source="triangle-with-a-two-way-link:a" target="triangle-with-a-two-way-link:b">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="515" y="32"/>
-              <mxPoint x="515" y="51"/>
+              <mxPoint x="505" y="32"/>
+              <mxPoint x="505" y="51"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;startArrow=classic;startFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.329;entryDx=0;entryDy=0;" edge="1" parent="1" source="triangle-with-a-two-way-link:b" target="triangle-with-a-two-way-link:cache">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="724" y="58"/>
-              <mxPoint x="724" y="79"/>
+              <mxPoint x="705" y="58"/>
+              <mxPoint x="705" y="79"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;startArrow=classic;startFill=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.671;entryDx=0;entryDy=0;" edge="1" parent="1" source="triangle-with-a-two-way-link:gw" target="triangle-with-a-two-way-link:cache">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="315" y="87"/>
-              <mxPoint x="315" y="103"/>
+              <mxPoint x="305" y="87"/>
+              <mxPoint x="305" y="103"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="triangle-with-a-two-way-link:c7:label" value="warm" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="triangle-with-a-two-way-link:c7">
-          <mxGeometry x="-0.38" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.37" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>

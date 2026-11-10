@@ -1,0 +1,19 @@
+flowchart TB
+  %% id: start
+  n1(["Scheduler fires at 02:00"])
+  %% id: collect
+  n2["Collect orders created from 00:00 to 23:59 of the previous day, excluding test accounts and cancelled orders"]
+  %% id: short
+  n3["Collect orders"]
+  %% id: render
+  n4["Render the report as PDF and CSV files and upload both to the shared folder"]
+  %% id: done
+  n5(["Report ready"])
+  %% id: e1
+  n1 --> n2
+  %% id: e2
+  n2 --> n3
+  %% id: e3
+  n3 --> n4
+  %% id: e4
+  n4 --> n5

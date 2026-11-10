@@ -26,34 +26,34 @@
           <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:pricing" value="PricingService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="46" y="12" width="220" height="52" as="geometry"/>
+          <mxGeometry x="60" y="12" width="178" height="52" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:pricing:row-0" value="price(order: Order): decimal" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:pricing">
-          <mxGeometry x="0" y="26" width="220" height="26" as="geometry"/>
+          <mxGeometry x="0" y="26" width="178" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:rule" value="«interface»&lt;br&gt;IPriceRule" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=46;" vertex="1" parent="1">
-          <mxGeometry x="377" y="276" width="178" height="72" as="geometry"/>
+          <mxGeometry x="341" y="276" width="160" height="72" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:rule:row-0" value="apply(line: OrderLine)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:rule">
-          <mxGeometry x="0" y="46" width="178" height="26" as="geometry"/>
+          <mxGeometry x="0" y="46" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:discount" value="DiscountRule" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="359" y="144" width="178" height="52" as="geometry"/>
+          <mxGeometry x="325" y="144" width="160" height="52" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:discount:row-0" value="apply(line: OrderLine)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:discount">
-          <mxGeometry x="0" y="26" width="178" height="26" as="geometry"/>
+          <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:tax" value="TaxRule" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="597" y="144" width="178" height="52" as="geometry"/>
+          <mxGeometry x="545" y="144" width="160" height="52" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:tax:row-0" value="apply(line: OrderLine)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:tax">
-          <mxGeometry x="0" y="26" width="178" height="26" as="geometry"/>
+          <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:promo" value="PromoRule" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="835" y="144" width="178" height="52" as="geometry"/>
+          <mxGeometry x="765" y="144" width="160" height="52" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:promo:row-0" value="apply(line: OrderLine)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:promo">
-          <mxGeometry x="0" y="26" width="178" height="26" as="geometry"/>
+          <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-domain:r1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamondThin;startFill=1;startSize=24;endArrow=none;exitX=0.331;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:order" target="order-domain:line">
           <mxGeometry relative="1" as="geometry">
@@ -87,17 +87,17 @@
             <mxPoint x="5" y="-14" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain:r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamondThin;startFill=1;startSize=24;endArrow=none;exitX=0.668;exitY=1;exitDx=0;exitDy=0;entryX=0.202;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:pricing" target="order-domain:rule">
+        <mxCell id="order-domain:r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamondThin;startFill=1;startSize=24;endArrow=none;exitX=0.669;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:pricing" target="order-domain:rule">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="193" y="221"/>
-              <mxPoint x="413" y="221"/>
+              <mxPoint x="179" y="221"/>
+              <mxPoint x="373" y="221"/>
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain:r3:label" value="ordered rules" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r3">
-          <mxGeometry x="-0.01" y="0" relative="1" as="geometry">
-            <mxPoint x="0" y="-12" as="offset"/>
+        <mxCell id="order-domain:r3:label" value="ordered rules" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r3">
+          <mxGeometry x="-0.48" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="order-domain:r3:from-card" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r3">
@@ -105,32 +105,32 @@
             <mxPoint x="5" y="38" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain:r3:to-card" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r3">
+        <mxCell id="order-domain:r3:to-card" value="0..*" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r3">
           <mxGeometry x="1" y="0" relative="1" as="geometry">
-            <mxPoint x="-5" y="-14" as="offset"/>
+            <mxPoint x="5" y="-14" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain:r4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=16;endFill=0;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.399;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:discount" target="order-domain:rule">
+        <mxCell id="order-domain:r4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=16;endFill=0;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.4;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:discount" target="order-domain:rule">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain:r5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=16;endFill=0;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.601;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:tax" target="order-domain:rule">
+        <mxCell id="order-domain:r5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=16;endFill=0;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.6;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:tax" target="order-domain:rule">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="686" y="221"/>
-              <mxPoint x="484" y="221"/>
+              <mxPoint x="625" y="221"/>
+              <mxPoint x="437" y="221"/>
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain:r6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=16;endFill=0;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.798;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:promo" target="order-domain:rule">
+        <mxCell id="order-domain:r6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=16;endFill=0;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:promo" target="order-domain:rule">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="924" y="241"/>
-              <mxPoint x="519" y="241"/>
+              <mxPoint x="845" y="241"/>
+              <mxPoint x="469" y="241"/>
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain:r7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;dashed=1;exitX=0.332;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:pricing" target="order-domain:order">
+        <mxCell id="order-domain:r7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;dashed=1;exitX=0.331;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:pricing" target="order-domain:order">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>

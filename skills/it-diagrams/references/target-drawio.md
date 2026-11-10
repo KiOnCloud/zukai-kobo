@@ -141,12 +141,23 @@ across re-runs.
 
 ## Layout rules
 
-- Node size: width is 7 px per character of the longest label line plus 24, clamped to
-  120 to 260 px; height is 40 plus 20 per extra line; tables add 26 px per row. The
-  heuristic lives in one function (`measureNode` in `scripts/src/layout-graph.mjs`), so
-  tune it there if Japanese or very long labels wrap badly. Labels wrap inside the shape
-  (`whiteSpace=wrap`), and the height grows by one line height per wrapped line at the
-  clamped width, so a long label gets a taller box instead of spilling onto its arrows.
+- Node size: width is the widest label line plus 4 % of room and 24 px of padding, clamped
+  to 120 to 260 px; height is 40 plus 20 per extra line; tables add 26 px per row. The rule
+  lives in one function (`measureNode` in `scripts/src/layout-graph.mjs`). Labels wrap
+  inside the shape (`whiteSpace=wrap`), and the height grows by one line height per wrapped
+  line at the clamped width, so a long label gets a taller box instead of spilling onto its
+  arrows.
+- Text width: a line is measured by its glyphs in draw.io's default font, Helvetica at
+  12 px (`scripts/src/text-metrics.mjs`): `i` is 2.7 px, `n` 6.7 px, `W` 11.3 px, a CJK or
+  full-width character 12.3 px, a letter with diacritics as wide as its base letter, bold
+  headers by the bold face. A text is broken into lines where draw.io breaks it, at spaces
+  and between CJK characters, never inside a word (`wrapText`), so a line the author broke
+  by hand counts once when it fits and a box is as tall as the lines draw.io renders. A box
+  cut to one line gets 4 % more than the measured width, because renderers differ from the
+  font's own widths by a few percent; the lines of a box at the width cap are counted
+  without that margin, since a line that wraps after all still has room in the box. A long
+  word without a space (a URL, an identifier) does not wrap in draw.io: it stays on its
+  line and runs over the box, so break it by hand or shorten it.
 - Label padding: the 24 px are 12 px of clear space on each side of the text (`LABEL_PAD`),
   and the node styles draw them as `spacingLeft=10;spacingRight=10;` on top of draw.io's own
   2 px. The text therefore wraps at the width its height was measured for, and a line that
@@ -154,8 +165,9 @@ across re-runs.
   parallelogram (`io`) and a hexagon (`queue`) are narrower than their box by a 20 px slant
   (`size=20`), so their text keeps 22 px on each side and their box is 20 px wider for the
   same label. A cylinder's side walls are straight, so it keeps the 12 px. A subroutine has
-  no extra spacing: draw.io already bounds its label by the side bars. Decisions are sized
-  by the next rule.
+  no extra spacing: draw.io already bounds its label by the side bars, which take a tenth
+  of the width each, so its box is a quarter wider than its text. Decisions are sized by
+  the next rule.
 - Decision size: a rhombus is narrower than its box everywhere but the centre line, so its
   question is measured against the inscribed rectangle (a block `a` x `b` fits a `w` x `h`
   rhombus when `a/w + b/h <= 1`). The question takes the line count draw.io gives it in the
@@ -163,11 +175,11 @@ across re-runs.
   balanced; when the rhombus that holds that block would be wider than 340 px, the question
   takes one more line, and so on until the rhombus fits the cap or a line would be narrower
   than 100 px. A question on several lines gets `spacingLeft` / `spacingRight` so draw.io
-  wraps it at the block's width. Balanced lines matter because the width heuristic is
-  generous: at a wrap width that leaves one line nearly full, draw.io fits a little more on
-  it and breaks at the last chance it finds, which can be a hyphen inside a value such as
-  `0-5`, stranding the rest on its own line. The minimum stays 140 x 80 (`measureDecision`,
-  same file).
+  wraps it at the block's width plus the 4 % of room. Balanced lines matter because draw.io
+  breaks a line at more places than the wrap here: at a wrap width that leaves one line
+  nearly full it breaks at the last chance it finds, which can be a hyphen inside a value
+  such as `0-5`, stranding the rest on its own line. The minimum stays 140 x 80
+  (`measureDecision`, same file).
 - ELK options: layered algorithm, direction from the IR, orthogonal edge routing,
   `hierarchyHandling=INCLUDE_CHILDREN` for edges that cross containers, root-relative
   edge coordinates. Node spacing 40, layer spacing 60 (60 and 80 for ER and class).
@@ -176,13 +188,13 @@ across re-runs.
   auto-stacked by draw.io (no `childLayout` on lanes), so ELK's placement is kept.
 - Sequence grid: a lifeline's head is 120 px wide, and wider when a word of its label
   needs it: the head wraps a label at spaces but cannot break a word (a class or method
-  name), so it grows to that word at 7 px per character plus 12 px on each side. Two
+  name), so it grows to the measured width of that word plus 12 px on each side. Two
   neighbouring heads keep 60 px between them, which is 180 px from lifeline to lifeline at
   the base width, and the gap widens until every message label fits between the lifelines
   it spans. Every message, note, block
   header, `else`/`and` separator and block end has a row of its own (40, 48, 34, 30 and 16 px),
   so frame labels never sit on message labels. A note is 36 px tall for one line and 16 px
-  taller for every further line its text takes at 7 px per character inside the padded width;
+  taller for every further line its text takes when wrapped at its words inside the padded width;
   its row grows with it, so everything below a long note moves down. A block that opens right after another has
   closed starts 12 px lower, so the bottom edge of one frame and the top edge of the next
   stay two lines; nested frames and a frame after a separator are already apart. Notes take

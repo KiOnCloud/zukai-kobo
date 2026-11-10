@@ -4,14 +4,14 @@
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
-        <mxCell id="login-with-password:b1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=172;height=20;" vertex="1" parent="1">
-          <mxGeometry x="64" y="490" width="532" height="240" as="geometry"/>
+        <mxCell id="login-with-password:b1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=149;height=20;" vertex="1" parent="1">
+          <mxGeometry x="64" y="490" width="512" height="240" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:b1:sep-1" value="" style="line;strokeWidth=1;dashed=1;html=1;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="64" y="619" width="532" height="1" as="geometry"/>
+          <mxGeometry x="64" y="619" width="512" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="login-with-password:b2" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=179;height=20;" vertex="1" parent="1">
-          <mxGeometry x="48" y="160" width="744" height="586" as="geometry"/>
+        <mxCell id="login-with-password:b2" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=140;height=20;" vertex="1" parent="1">
+          <mxGeometry x="48" y="160" width="724" height="586" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:user" value="User" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
           <mxGeometry x="80" y="100" width="120" height="726" as="geometry"/>
@@ -20,13 +20,13 @@
           <mxGeometry x="125" y="50" width="30" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:web" value="Web app" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
-          <mxGeometry x="263" y="100" width="120" height="726" as="geometry"/>
+          <mxGeometry x="260" y="100" width="120" height="726" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:auth" value="&lt;i&gt;«control»&lt;/i&gt;&lt;br&gt;Auth service" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
-          <mxGeometry x="460" y="100" width="120" height="726" as="geometry"/>
+          <mxGeometry x="440" y="100" width="120" height="726" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:db" value="&lt;i&gt;«database»&lt;/i&gt;&lt;br&gt;User DB" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
-          <mxGeometry x="640" y="100" width="120" height="726" as="geometry"/>
+          <mxGeometry x="620" y="100" width="120" height="726" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:act-m3" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="login-with-password:db">
           <mxGeometry x="55" y="242" width="10" height="40" as="geometry"/>
@@ -38,90 +38,90 @@
           <mxGeometry x="55" y="114" width="10" height="480" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:n1" value="Rate limited per IP" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;spacingLeft=10;spacingRight=16;" vertex="1" parent="1">
-          <mxGeometry x="335" y="240" width="173" height="36" as="geometry"/>
+          <mxGeometry x="332" y="240" width="156" height="36" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:n2" value="Hash: argon2id" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;spacingLeft=10;spacingRight=16;" vertex="1" parent="1">
-          <mxGeometry x="500" y="448" width="220" height="36" as="geometry"/>
+          <mxGeometry x="480" y="448" width="220" height="36" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:m1" value="Submit credentials" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:user" target="login-with-password:web">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="231.5" y="214"/>
+              <mxPoint x="230" y="214"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m2" value="POST /login" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:web" target="login-with-password:auth">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="421.5" y="302"/>
+              <mxPoint x="410" y="302"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m3" value="SELECT user by email" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:auth" target="login-with-password:db">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="610" y="342"/>
+              <mxPoint x="590" y="342"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m4" value="user row" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:db" target="login-with-password:auth">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="610" y="382"/>
+              <mxPoint x="590" y="382"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m5" value="Verify password hash" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=312;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=332;entryPerimeter=0;" edge="1" parent="1" source="login-with-password:auth" target="login-with-password:auth">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="570" y="412"/>
-              <mxPoint x="570" y="432"/>
+              <mxPoint x="550" y="412"/>
+              <mxPoint x="550" y="432"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m6" value="200 session token" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:auth" target="login-with-password:web">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="421.5" y="544"/>
+              <mxPoint x="410" y="544"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m7" value="Redirect to dashboard" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:web" target="login-with-password:user">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="231.5" y="584"/>
+              <mxPoint x="230" y="584"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m8" value="401 invalid credentials" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:auth" target="login-with-password:web">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="421.5" y="654"/>
+              <mxPoint x="410" y="654"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m9" value="Show error" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:web" target="login-with-password:user">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="231.5" y="694"/>
+              <mxPoint x="230" y="694"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m10" value="Audit login attempt" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:web" target="login-with-password:auth">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="421.5" y="766"/>
+              <mxPoint x="410" y="766"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:b1:tab" value="alt password matches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="65" y="491" width="164" height="18" as="geometry"/>
+          <mxGeometry x="65" y="491" width="141" height="18" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:b1:sep-label-1" value="else password wrong" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=5;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="64" y="609" width="165" height="20" as="geometry"/>
+          <mxGeometry x="64" y="609" width="145" height="20" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:b2:tab" value="loop until 3 attempts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="49" y="161" width="171" height="18" as="geometry"/>
+          <mxGeometry x="49" y="161" width="132" height="18" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>

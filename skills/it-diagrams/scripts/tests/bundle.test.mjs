@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { textWidth, roomFor } from '../src/text-metrics.mjs';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -73,7 +74,7 @@ describe('bundle', () => {
       expect(r.output).not.toContain('↳ return-request-label');
       expect(r.warnings.filter((w) => w.diagram === 'returns' && w.path.endsWith('/ref'))).toEqual([]);
       // The box is measured from the final text, so the title line fits.
-      expect(Number(approve.mxGeometry.width)).toBeGreaterThanOrEqual(7 * 'Approve and send label'.length + 24);
+      expect(Number(approve.mxGeometry.width)).toBeGreaterThanOrEqual(roomFor(textWidth('Approve and send label')) + 24);
     });
 
     it('keeps the slug, adds no link and warns when the target is not bundled', async () => {

@@ -1,13 +1,12 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
-import { longestLine, displayLength } from './text-metrics.mjs';
+import { textWidth, widestLine, isWide, roomFor } from './text-metrics.mjs';
 
 /**
  * Graph layout through elkjs (layered algorithm) for every kind except sequence. ELK never
- * measures text, so node and label sizes are estimated here, in one place, with a
- * character-width heuristic.
+ * measures text, so node and label sizes are estimated here, in one place, from the glyph
+ * widths in text-metrics.mjs and a word wrap that breaks lines where a browser does.
  */
 
-const CHAR_WIDTH = 7;
 const LINE_HEIGHT = 20;
 const ROW_HEIGHT = 18;
 
@@ -21,30 +20,36 @@ export const LABEL_PAD = 12;
 
 /** Lines a text takes in a box of the given width: explicit breaks plus word wrap at the text area, `pad` px in from each side. */
 export function wrappedLines(label, width, pad = LABEL_PAD) {
-  const usable = Math.max(width - 2 * pad, CHAR_WIDTH);
-  return String(label).split(/\r\n?|\n/).reduce((n, line) => n + Math.max(1, Math.ceil((CHAR_WIDTH * displayLength(line)) / usable)), 0);
+  return wrapText(label, Math.max(width - 2 * pad, 1)).lines;
 }
 
 /**
  * Size of a node from its label and the number of extra rows (attributes, members). The
- * width grows with the longest line up to `maxWidth`; past that the text wraps, and the
+ * width grows with the widest line up to `maxWidth`; past that the text wraps, and the
  * height grows by one line height per wrapped line, so a long label never spills over the
- * box onto its arrows. `pad` is the room kept on each side of the text: more than the
- * default for a shape whose outline is narrower than its box.
+ * box onto its arrows. The lines are counted as draw.io breaks them, at the words, so a
+ * line the author broke by hand counts once when it fits and the box is as tall as its
+ * text needs. `pad` is the room kept on each side of the text: more than the default for a
+ * shape whose outline is narrower than its box. `share` is the part of the width a shape
+ * takes from the text on each side on top of that, such as the side bars of a subroutine.
  */
-export function measureNode(label, { extraRows = 0, minWidth = 120, maxWidth = 260, baseHeight = 40, pad = LABEL_PAD } = {}) {
-  const longest = longestLine(label);
-  const width = Math.min(maxWidth, Math.max(minWidth, Math.ceil(CHAR_WIDTH * longest) + 2 * pad));
-  const height = baseHeight + LINE_HEIGHT * (wrappedLines(label, width, pad) - 1) + ROW_HEIGHT * extraRows;
+export function measureNode(label, { extraRows = 0, minWidth = 120, maxWidth = 260, baseHeight = 40, pad = LABEL_PAD, share = 0 } = {}) {
+  const across = 1 - 2 * share;
+  const width = Math.min(maxWidth, Math.max(minWidth, Math.ceil((roomFor(widestLine(label)) + 2 * pad) / across)));
+  const lines = wrapText(label, Math.max(width * across - 2 * pad, 1)).lines;
+  const height = baseHeight + LINE_HEIGHT * (lines - 1) + ROW_HEIGHT * extraRows;
   return { width, height };
 }
 
 /**
  * Greedy word wrap at a width in px, as a browser does: lines break at spaces and between
  * East Asian characters, never inside a word, so a word wider than the line stands alone;
- * explicit line breaks are kept. Returns the line count and the widest line in px.
+ * explicit line breaks are kept. Returns the line count and the widest line in px; `bold`
+ * measures the text in the bold face of headers and titles.
  */
-export function wrapText(label, width) {
+export function wrapText(label, width, { bold = false } = {}) {
+  const px = (text) => textWidth(text, { bold });
+  const blank = px(' ');
   let lines = 0;
   let widest = 0;
   for (const para of String(label).split(/\r\n?|\n/)) {
@@ -53,19 +58,19 @@ export function wrapText(label, width) {
     let space = false;
     const flush = () => {
       if (word === '') return;
-      tokens.push({ px: CHAR_WIDTH * displayLength(word), space });
+      tokens.push({ px: px(word), space });
       word = '';
       space = false;
     };
     for (const ch of para) {
       if (/\s/.test(ch)) { flush(); space = true; }
-      else if (displayLength(ch) > 1) { flush(); tokens.push({ px: CHAR_WIDTH * displayLength(ch), space }); space = false; }
+      else if (isWide(ch)) { flush(); tokens.push({ px: px(ch), space }); space = false; }
       else word += ch;
     }
     flush();
     let line = 0;
     for (const t of tokens) {
-      const gap = line > 0 && t.space ? CHAR_WIDTH : 0;
+      const gap = line > 0 && t.space ? blank : 0;
       if (line > 0 && line + gap + t.px > width) { widest = Math.max(widest, line); lines++; line = t.px; }
       else line += gap + t.px;
     }
@@ -127,11 +132,12 @@ function balancedBlock(label, lines, upper) {
  * question on several lines gets `spacingLeft` and `spacingRight` so draw.io wraps it at
  * the block's width instead of the box's.
  *
- * Balanced lines matter because the width heuristic is generous (7 px a character against
- * about 5.6 px rendered): at a wrap width that leaves one line nearly full, draw.io fits a
- * little more on it and breaks at the last opportunity it finds, which can be a hyphen
- * inside a value such as `0-5`, leaving an orphan on the next line. With both lines about
- * half the text, the slack is far too small to move a whole line.
+ * Balanced lines matter because draw.io breaks a line at more places than this wrap does: at
+ * a wrap width that leaves one line nearly full it breaks at the last opportunity it finds,
+ * which can be a hyphen inside a value such as `0-5`, leaving an orphan on the next line.
+ * With both lines about half the text, no line is near enough to full for that. The block
+ * gets the room of `roomFor` on top of its widest line, so a renderer that draws the text a
+ * little wider still fits each line.
  * @returns {{width:number, height:number, spacing:number}} spacing in px per side, 0 for none
  */
 export function measureDecision(label) {
@@ -142,12 +148,13 @@ export function measureDecision(label) {
   for (let lines = wrapText(label, natural).lines; lines <= most; lines++) {
     const block = balancedBlock(label, lines, natural);
     if (pick && block.widest < DECISION_MIN_WRAP) break;
-    const box = rhombusFor(block.widest, block.lines * TEXT_LINE);
-    if (!pick || box.width < pick.box.width) pick = { block, box };
+    const room = roomFor(block.widest);
+    const box = rhombusFor(room, block.lines * TEXT_LINE);
+    if (!pick || box.width < pick.box.width) pick = { block, box, room };
     if (box.width <= DECISION_MAX_WIDTH) break;
   }
-  const { block, box } = pick;
-  const spacing = block.lines > 1 ? Math.max(0, Math.floor((box.width - block.widest) / 2) - 2) : 0;
+  const { block, box, room } = pick;
+  const spacing = block.lines > 1 ? Math.max(0, Math.floor((box.width - room) / 2) - 2) : 0;
   return { width: box.width, height: box.height, spacing };
 }
 
@@ -156,9 +163,8 @@ export function measureDecision(label) {
  * as the name under an actor figure. Such a label does not wrap at the shape, so it is given
  * a wrap width of its own (the `labelWidth` style) of at most `maxWidth`, narrowed to the
  * widest line of a balanced wrap; a word wider than that stands alone and sets the width.
- * The estimate is generous for mixed-case text (7 px a character against about 5.6 px
- * rendered), and the wrap width keeps 8 px of slack on top, so draw.io rarely needs more
- * lines than counted; a name in capitals or wide glyphs can still take one more.
+ * The wrap width keeps 8 px of slack on top of the widest line, 5 % of the cap, so draw.io
+ * rarely needs more lines than counted.
  * @returns {{width:number, height:number, wrap:number}} the block below the shape and the
  *   width its text wraps at, in px
  */
@@ -170,8 +176,7 @@ export function measureLabelBelow(label, { maxWidth = 160 } = {}) {
 
 export function measureLabel(text) {
   const lines = String(text).split(/\r\n?|\n/);
-  const longest = longestLine(text);
-  return { width: Math.ceil(CHAR_WIDTH * longest) + 8, height: 16 * lines.length };
+  return { width: Math.ceil(widestLine(text)) + 8, height: 16 * lines.length };
 }
 
 const ELK_DIRECTION = { TB: 'DOWN', BT: 'UP', LR: 'RIGHT', RL: 'LEFT' };

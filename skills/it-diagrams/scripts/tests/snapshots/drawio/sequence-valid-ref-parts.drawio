@@ -4,7 +4,7 @@
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
-        <mxCell id="order-sync:b1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=130;height=20;" vertex="1" parent="1">
+        <mxCell id="order-sync:b1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=109;height=20;" vertex="1" parent="1">
           <mxGeometry x="64" y="256" width="512" height="186" as="geometry"/>
         </mxCell>
         <mxCell id="order-sync:job" value="&lt;i&gt;«control»&lt;/i&gt;&lt;br&gt;Sync job" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
@@ -59,7 +59,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="order-sync:b1:tab" value="opt any orders" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="65" y="257" width="122" height="18" as="geometry"/>
+          <mxGeometry x="65" y="257" width="101" height="18" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>
