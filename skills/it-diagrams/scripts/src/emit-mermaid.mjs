@@ -6,13 +6,15 @@ import { encodeLabel, encodeInline, encodeMember, identifierToken, architectureL
  * applied here; the matrix checker owns their warnings. This emitter only warns about label
  * text it had to alter for a syntax that accepts no encoding.
  *
- * Profiles: `mermaid` (default) writes standard Mermaid 12 text with a front matter title.
- * `figjam` writes the subset Figma's generate_diagram accepts: no front matter, labels with
- * no entity codes, HTML or line breaks, sequence notes dropped, architecture rendered as a
- * flowchart with boundaries as subgraphs.
+ * Profiles: `mermaid` (default) writes standard Mermaid 12 text with a front matter title
+ * (swimlane-beta takes none: the renderer draws it over the lane headers). `figjam` writes
+ * the subset Figma's generate_diagram accepts: no front matter, labels with no entity codes,
+ * HTML or line breaks, sequence notes dropped, architecture rendered as a flowchart with
+ * boundaries as subgraphs.
  * @param {object} ir validated IR
  * @param {{ profile?: 'mermaid' | 'figjam', stable?: boolean }} [options] `stable` renders activity
- *   diagrams as a plain flowchart instead of swimlane-beta
+ *   diagrams as a plain flowchart instead of swimlane-beta, and leaves out the syntax that
+ *   needs Mermaid 11 (typed sequence participants, the erDiagram direction line)
  * @returns {{ output: string, warnings: Array<{ path: string, message: string }> }}
  */
 export function emitMermaid(ir, options = {}) {
@@ -32,7 +34,7 @@ export function emitMermaid(ir, options = {}) {
     case 'flowchart': emitFlowchart(ir, emit, t); break;
     case 'sequence': emitSequence(ir, emit, t, options.stable === true); break;
     case 'state': emitState(ir, emit, t); break;
-    case 'er': emitEr(ir, emit, t); break;
+    case 'er': emitEr(ir, emit, t, options.stable === true); break;
     case 'class': emitClass(ir, emit, t); break;
     case 'architecture': {
       // architecture-beta places services by the sides its edges name; a graph the grid planner
@@ -49,7 +51,10 @@ export function emitMermaid(ir, options = {}) {
     case 'activity': emitActivity(ir, emit, t, options.stable === true); break;
     default: throw new Error(`unknown kind "${ir.kind}"`);
   }
-  const head = profile === 'figjam' ? '' : frontMatter(ir.title);
+  // swimlane-beta puts its lane header row where Mermaid draws a front-matter title, so the
+  // two overlap; that form goes out without a title (emitActivity reports it).
+  const swimlane = ir.kind === 'activity' && options.stable !== true;
+  const head = profile === 'figjam' || swimlane ? '' : frontMatter(ir.title);
   return { output: head + lines.join('\n') + '\n', warnings };
 }
 
@@ -289,9 +294,15 @@ function emitState(ir, emit, t) {
 const ER_LEFT = { one: '||', 'zero-one': '|o', many: '}o', 'one-many': '}|' };
 const ER_RIGHT = { one: '||', 'zero-one': 'o|', many: 'o{', 'one-many': '|{' };
 
-function emitEr(ir, emit, t) {
+function emitEr(ir, emit, t, stable) {
   const ids = safeIds();
   emit('erDiagram');
+  // erDiagram reads a direction line in current Mermaid; the stable form and FigJam's parser
+  // are not known to, and there the default top-to-bottom layout stands in for another one.
+  if (ir.direction) {
+    if (!stable && t.profile !== 'figjam') emit(`  direction ${ir.direction}`);
+    else if (ir.direction !== 'TB') t.warnings.push({ path: '/direction', message: `direction "${ir.direction}" is not written for ${stable ? 'the stable Mermaid form' : 'FigJam'}: the erDiagram direction line needs a current Mermaid renderer, so the diagram is laid out top to bottom` });
+  }
   ir.entities.forEach((e, i) => {
     ids.add(e.id);
     emit(idComment('  ', e.id));
@@ -552,6 +563,7 @@ function emitActivity(ir, emit, t, stable) {
     t.warnings.push({ path: '/kind', message: 'activity emitted in stable flowchart form: lanes are plain subgraphs, fork and join are labelled bars, initial and final are circles; swimlane semantics are lost' });
     emit(`flowchart ${direction}`);
   } else {
+    t.warnings.push({ path: '/title', message: 'the title is not written into the swimlane-beta text: Mermaid draws a front-matter title over the lane header row; the heading of the bundle carries it, and --mermaid-stable or --to drawio draw it' });
     emit(`swimlane-beta ${direction}`);
   }
   const controlLine = (c, i) => {

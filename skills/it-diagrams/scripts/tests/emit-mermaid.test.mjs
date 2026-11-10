@@ -77,6 +77,32 @@ describe('emitMermaid', () => {
     expect(shop.warnings.filter((w) => w.feature === 'connection.label')).toEqual([]);
   });
 
+  it('writes the direction of an ER diagram, as it does for state and class', async () => {
+    const ir = loadFixture('er', 'valid-fk-anchors');
+    expect(ir.direction).toBe('LR');
+    const r = await emit(ir, 'mermaid');
+    expect(r.output.split('\n').slice(3, 5)).toEqual(['erDiagram', '  direction LR']);
+    expect(r.warnings).toEqual([]);
+    const plain = await emit({ ...ir, direction: undefined }, 'mermaid');
+    expect(plain.output).not.toContain('direction');
+  });
+
+  it('drops the ER direction line where the renderer may not read it, with a warning unless it is the default', async () => {
+    const ir = loadFixture('er', 'valid-fk-anchors');
+    for (const [target, options, who] of [['mermaid', { mermaidStable: true }, 'the stable Mermaid form'], ['figjam', {}, 'FigJam']]) {
+      const r = await emit(ir, target, options);
+      expect(r.ok).toBe(true);
+      expect(r.output).not.toContain('direction');
+      const w = r.warnings.filter((x) => x.path === '/direction');
+      expect(w).toHaveLength(1);
+      expect(w[0].message).toContain(`direction "LR" is not written for ${who}`);
+      expect(w[0].message).toContain('top to bottom');
+      const tb = await emit({ ...ir, direction: 'TB' }, target, options);
+      expect(tb.output).not.toContain('direction');
+      expect(tb.warnings.filter((x) => x.path === '/direction')).toEqual([]);
+    }
+  });
+
   it('returns validation errors instead of output for an invalid document', async () => {
     const r = await emit(loadFixture('flowchart', 'invalid-missing-edge-target'), 'mermaid');
     expect(r.ok).toBe(false);

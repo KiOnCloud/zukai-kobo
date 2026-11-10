@@ -1,6 +1,6 @@
 {
   "name": "it-diagrams",
-  "version": "0.1.38",
+  "version": "0.1.39",
   "description": "Turn clarified requirements, source code or a raw idea into a validated JSON diagram model and emit Mermaid, draw.io or FigJam (sequence, flowchart, state, ER, class, architecture).",
   "author": { "name": "KiOnCloud" },
   "license": "MIT",

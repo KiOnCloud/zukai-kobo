@@ -1,7 +1,8 @@
 # Target: Mermaid
 
 Emits Mermaid text for every v1 kind: `flowchart`, `sequenceDiagram`, `stateDiagram-v2`,
-`erDiagram`, `classDiagram` and `architecture-beta`, with a YAML front matter title.
+`erDiagram`, `classDiagram` and `architecture-beta`, with a YAML front matter title
+(`swimlane-beta`, the form of an activity diagram, is the one exception: see below).
 
 ## Run
 
@@ -47,6 +48,16 @@ Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
   verified). With `--mermaid-stable` the output is a plain `flowchart` whose subgraphs stand
   in for lanes and whose fork and join are labelled bars; the warning says which form was
   used and what it loses. Offer `--to drawio` for a real swimlane diagram.
+- the `swimlane-beta` text carries no title. Mermaid draws a front-matter title where
+  `swimlane-beta` puts its lane header row, so the title would sit on top of the lane names
+  (and, with lanes as rows, inside the first lane). The emit warns at `/title`; the combined
+  file shows the title as the heading above the block, and the `--mermaid-stable` flowchart
+  form keeps it. A picture without a title is therefore expected for this form, not a defect
+  of the IR.
+- `direction` is written for an `erDiagram` as it is for state and class diagrams. With
+  `--mermaid-stable`, and in the figjam profile, the line is left out because older parsers
+  may reject it; the diagram is then laid out top to bottom and, unless the IR asked for
+  `TB`, the emit warns at `/direction`.
 
 ## Combined file for a run
 
@@ -91,7 +102,8 @@ described in `SKILL.md` before reporting.
 Write next to the IR with the `.mmd` extension unless the user named a path, and also print
 the text in a fenced `mermaid` block so the user can paste it into Markdown, a wiki page, a
 GitHub or GitLab comment, or https://mermaid.live. The front matter (`---` / `title:` /
-`---`) is part of the diagram and is accepted by every Mermaid renderer from version 10.
+`---`) is part of the diagram and is accepted by every Mermaid renderer from version 10;
+a `swimlane-beta` text has none, so say the title in the line above its block.
 
 ## What the text contains
 
@@ -106,8 +118,10 @@ GitHub or GitLab comment, or https://mermaid.live. The front matter (`---` / `ti
 
 The text targets Mermaid 12 (the test suite parses every output with Mermaid 12.3).
 `architecture-beta` and typed sequence participants need Mermaid 11 or newer; the other
-kinds render on Mermaid 10 as well. If a user's renderer is older, pass `--mermaid-stable`
-or offer `--to drawio`.
+kinds render on Mermaid 10 as well. The `direction` line of an `erDiagram` is read by
+Mermaid 12.3; Mermaid's documentation does not say which version introduced it, so treat it
+as needing a current renderer. If a user's renderer is older, pass `--mermaid-stable` or
+offer `--to drawio`.
 
 Class members use Mermaid's own notation, type first (`+int Quantity`, `+find() Order`),
 while draw.io writes UML order (`+Quantity: int`, `+find(): Order`). Both come from the same

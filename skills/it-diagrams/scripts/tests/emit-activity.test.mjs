@@ -28,10 +28,26 @@ describe('activity kind', () => {
       expect(r.output).toContain('@{ shape: sm-circ }');
       expect(r.output).toContain('@{ shape: fr-circ }');
       expect(r.output).toContain('-->|"yes"|');
-      expect(r.warnings.map((w) => w.feature ?? w.stage)).toEqual(['kind']);
+      expect(r.warnings.map((w) => w.feature ?? w.stage)).toEqual(['kind', 'emit']);
       expect(r.warnings[0].message).toContain('swimlane-beta');
       expect((await mermaid.parse(r.output)).diagramType).toBe('swimlane');
       await expect(r.output).toMatchFileSnapshot('snapshots/mermaid/activity-valid-fork-join.mmd');
+    });
+
+    it('writes no front-matter title for swimlane-beta, which would be drawn over the lane headers, and says so', async () => {
+      const ir = loadFixture('activity', 'valid-decision-handoff-left');
+      const r = await emit(ir, 'mermaid');
+      expect(r.output.startsWith('swimlane-beta TB\n')).toBe(true);
+      expect(r.output).not.toContain('title:');
+      expect(r.output).not.toContain(ir.title);
+      const w = r.warnings.filter((x) => x.stage === 'emit');
+      expect(w).toHaveLength(1);
+      expect(w[0].path).toBe('/title');
+      expect(w[0].message).toMatch(/title is not written into the swimlane-beta text.*lane header row/);
+      // The stable flowchart form lays the title out above its subgraphs, so it keeps it.
+      const stable = await emit(ir, 'mermaid', { mermaidStable: true });
+      expect(stable.output.startsWith(`---\ntitle: ${JSON.stringify(ir.title)}\n---\nflowchart TB\n`)).toBe(true);
+      expect(stable.warnings.some((x) => x.path === '/title')).toBe(false);
     });
 
     it('emits a stable flowchart with --mermaid-stable, warns about what was lost, and parses', async () => {
