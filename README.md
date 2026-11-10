@@ -216,8 +216,7 @@ cd skills/draw/scripts && npm ci && npm test
 
 The CLI bundle in `skills/draw/scripts/bin/` is committed; rebuild it with `npm run build`
 after changing anything under `src/`. A test fails when the committed bundle drifts from the
-sources. The original plan and research are in
-[plans/261104-1501-it-diagrams-plugin/plan.md](plans/261104-1501-it-diagrams-plugin/plan.md).
+sources.
 
 ## Status
 
