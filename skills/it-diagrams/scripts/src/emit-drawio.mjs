@@ -106,7 +106,7 @@ async function emitDrawioPage(ir, options = {}) {
     case 'flowchart': cells = await emitFlowchart(ir, cid, refs, warnings); break;
     case 'state': cells = await emitState(ir, cid); break;
     case 'er': cells = await emitEr(ir, cid, warnings); break;
-    case 'class': cells = await emitClass(ir, cid); break;
+    case 'class': cells = await emitClass(ir, cid, warnings); break;
     case 'architecture': cells = await emitArchitecture(ir, cid); break;
     case 'sequence': cells = emitSequence(ir, cid, warnings); break;
     case 'activity': cells = await emitActivity(ir, cid, warnings, refs); break;
@@ -231,6 +231,80 @@ function labelGeometry(path, label, text) {
 }
 const LABEL_GAP = 4;
 
+/**
+ * An end label starts `gap` px past the end marker and sits `side` px beside the line; when
+ * that place is taken it moves along the line in `step`s, up to `reach` px further.
+ */
+const END_LABEL = { gap: 6, side: 5, height: 16, step: 10, reach: 30 };
+/** Half the width of an end marker (diamond, triangle), which labels stay clear of. */
+const MARKER_HALF_WIDTH = 8;
+
+/** The point `distance` px along a polyline from its first point, with the axis and sense of the segment it lies on. */
+function pointAlong(path, distance) {
+  let left = distance;
+  let last = { point: path[0], vertical: true, dir: 1 };
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1];
+    const b = path[i];
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    if (length < 0.5) continue;
+    const vertical = Math.abs(b.y - a.y) >= Math.abs(b.x - a.x);
+    const t = Math.min(left, length) / length;
+    last = { point: { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) }, vertical, dir: Math.sign(vertical ? b.y - a.y : b.x - a.x) };
+    if (left <= length) return last;
+    left -= length;
+  }
+  return last;
+}
+
+/** The box an end marker of the given length covers at the first point of a path. */
+function markerBox(path, length) {
+  const { vertical, dir } = pointAlong(path, 1);
+  const at = path[0];
+  return vertical
+    ? { x: at.x - MARKER_HALF_WIDTH, y: dir > 0 ? at.y : at.y - length, width: 2 * MARKER_HALF_WIDTH, height: length }
+    : { x: dir > 0 ? at.x : at.x - length, y: at.y - MARKER_HALF_WIDTH, width: length, height: 2 * MARKER_HALF_WIDTH };
+}
+
+/**
+ * Where a label that belongs to one end of an edge (a class cardinality) goes: just past the
+ * marker of that end, beside the line. draw.io anchors such a label at the end point
+ * (relative position -1 or 1) and adds an absolute pixel offset, so the place does not move
+ * with the length of the path as a fraction of it would. The text is aligned away from its
+ * anchor, so only the side it starts on has to be exact. The label follows the line, round a
+ * bend when the first segment is shorter than the marker and the text; at each step both
+ * sides are candidates, the right of a vertical segment and above a horizontal one first. The
+ * first box that is free according to `blocked` wins, and `free` is false when none is.
+ * @param {Array<{x:number,y:number}>} path the edge as drawn, source end first
+ * @param {'from'|'to'} end
+ * @param {number} clear length of the marker at that end, in px along the line
+ */
+function endLabelGeometry(path, end, text, clear, blocked) {
+  const fromEnd = end === 'from' ? path : [...path].reverse();
+  const at = fromEnd[0];
+  const width = Math.ceil(7 * longestLine(text));
+  const { gap, side, height, step, reach } = END_LABEL;
+  const candidates = [];
+  for (let along = clear + gap; along <= clear + gap + reach; along += step) {
+    const { point, vertical, dir } = pointAlong(fromEnd, along);
+    for (const s of vertical ? [1, -1] : [-1, 1]) {
+      candidates.push(vertical
+        ? {
+          offset: { x: point.x - at.x + s * side, y: point.y - at.y + (dir * height) / 2 },
+          align: s > 0 ? 'left' : 'right',
+          box: { x: s > 0 ? point.x + side : point.x - side - width, y: dir > 0 ? point.y : point.y - height, width, height },
+        }
+        : {
+          offset: { x: point.x - at.x, y: point.y - at.y + s * (height / 2 + side) },
+          align: dir > 0 ? 'left' : 'right',
+          box: { x: dir > 0 ? point.x : point.x - width, y: point.y + s * (height / 2 + side) - height / 2, width, height },
+        });
+    }
+  }
+  const pick = candidates.find((c) => !blocked(c.box));
+  return { position: end === 'from' ? -1 : 1, ...(pick ?? candidates[0]), free: pick !== undefined };
+}
+
 /** Absolute box of a node or container whose layout coordinates are relative to its parent chain. */
 function absoluteBox(id, layout, parentOf) {
   const box = layout.nodes.get(id) ?? layout.containers.get(id);
@@ -244,7 +318,7 @@ function absoluteBox(id, layout, parentOf) {
   return { x, y, width: box.width, height: box.height };
 }
 
-function graphCells(cid, layout, { containers, nodes, edges }) {
+function graphCells(cid, layout, { containers, nodes, edges }, warnings = []) {
   const cells = [];
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
   const emitted = new Set();
@@ -285,6 +359,18 @@ function graphCells(cid, layout, { containers, nodes, edges }) {
     if (route?.start) noteSide(e.from, anchor(e.from, route.start));
     if (route?.end) noteSide(e.to, anchor(e.to, route.end));
   }
+  // What an end label must stay clear of: every node, every routed line, every end marker and
+  // every label placed so far (the labels ELK placed, then the end labels as they are added).
+  const routed = edges.filter((e) => e.from !== e.to && layout.edges.get(e.id)?.start && layout.edges.get(e.id)?.end)
+    .map((e) => { const r = layout.edges.get(e.id); return { id: e.id, path: [r.start, ...(r.points ?? []), r.end], label: e.label ? r.label : undefined, markers: e.markers ?? {} }; });
+  const taken = [...nodes.map((n) => drawBox(n, absoluteBox(n.id, layout, parentOf))), ...routed.map((r) => r.label).filter(Boolean)];
+  for (const r of routed) {
+    if (r.markers.from > 0) taken.push(markerBox(r.path, r.markers.from));
+    if (r.markers.to > 0) taken.push(markerBox([...r.path].reverse(), r.markers.to));
+  }
+  const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const onLine = (box, a, b) => overlaps(box, { x: Math.min(a.x, b.x) - 1, y: Math.min(a.y, b.y) - 1, width: Math.abs(a.x - b.x) + 2, height: Math.abs(a.y - b.y) + 2 });
+  const blocked = (box) => taken.some((t) => overlaps(box, t)) || routed.some((r) => r.path.some((p, i) => i > 0 && onLine(box, r.path[i - 1], p)));
   for (const e of edges) {
     if (e.from === e.to) {
       // Self-loop: out of one side, along it, and back in, on a side no other edge uses there;
@@ -320,8 +406,11 @@ function graphCells(cid, layout, { containers, nodes, edges }) {
       const placed = route.label && route.start && route.end ? labelGeometry([route.start, ...points, route.end], route.label, e.label) : { position: 0, offset: { x: 0, y: 0 }, align: 'center' };
       cells.push(edgeLabel({ id: `${cid(e.id)}:label`, value: htmlLabel(e.label), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
     }
-    for (const [suffix, value, position] of e.endLabels ?? []) {
-      cells.push(edgeLabel({ id: `${cid(e.id)}:${suffix}`, value: htmlLabel(value), parent: cid(e.id), position, offset: { x: 0, y: -10 } }));
+    for (const l of e.endLabels ?? []) {
+      const placed = endLabelGeometry(route.start && route.end ? [route.start, ...points, route.end] : [{ x: 0, y: 0 }, { x: 0, y: 1 }], l.end, l.value, e.markers?.[l.end] ?? 0, blocked);
+      taken.push(placed.box);
+      if (!placed.free) warnings.push({ path: l.path, message: `layout: ${l.what} has no free place beside its line; it may sit on a neighbouring line or label`, hint: 'reorder the elements or change the direction so the lines at that end are further apart' });
+      cells.push(edgeLabel({ id: `${cid(e.id)}:${l.suffix}`, value: htmlLabel(l.value), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
     }
   }
   return cells;
@@ -557,16 +646,17 @@ async function emitEr(ir, cid, warnings) {
 
 const VISIBILITY = { public: '+', private: '-', protected: '#', package: '~' };
 
+/** `from` and `to` are the lengths of the markers at the two ends, which a cardinality starts past. */
 const CLASS_EDGE = {
-  inheritance: { style: 'endArrow=block;endSize=16;endFill=0;', reverse: false },
-  realization: { style: 'endArrow=block;endSize=16;endFill=0;dashed=1;', reverse: false },
-  composition: { style: 'startArrow=diamondThin;startFill=1;startSize=24;endArrow=none;', reverse: false },
-  aggregation: { style: 'startArrow=diamondThin;startFill=0;startSize=24;endArrow=none;', reverse: false },
-  association: { style: 'endArrow=open;endFill=0;', reverse: false },
-  dependency: { style: 'endArrow=open;endFill=0;dashed=1;', reverse: false },
+  inheritance: { style: 'endArrow=block;endSize=16;endFill=0;', reverse: false, from: 0, to: 16 },
+  realization: { style: 'endArrow=block;endSize=16;endFill=0;dashed=1;', reverse: false, from: 0, to: 16 },
+  composition: { style: 'startArrow=diamondThin;startFill=1;startSize=24;endArrow=none;', reverse: false, from: 24, to: 0 },
+  aggregation: { style: 'startArrow=diamondThin;startFill=0;startSize=24;endArrow=none;', reverse: false, from: 24, to: 0 },
+  association: { style: 'endArrow=open;endFill=0;', reverse: false, from: 0, to: 10 },
+  dependency: { style: 'endArrow=open;endFill=0;dashed=1;', reverse: false, from: 0, to: 10 },
 };
 
-async function emitClass(ir, cid) {
+async function emitClass(ir, cid, warnings) {
   const nodes = ir.classes.map((c) => {
     const attrs = (c.attributes ?? []).map((a) => ({ text: `${a.visibility ? VISIBILITY[a.visibility] : ''}${a.name}${a.type ? `: ${a.type}` : ''}` }));
     const methods = (c.methods ?? []).map((m) => ({ text: `${m.visibility ? VISIBILITY[m.visibility] : ''}${m.name}(${m.params ?? ''})${m.returns ? `: ${m.returns}` : ''}` }));
@@ -574,15 +664,17 @@ async function emitClass(ir, cid) {
     const header = c.stereotype ? `«${c.stereotype}»\n${c.label}` : c.label;
     return tableNode(c.id, header, rows, { headerHeight: c.stereotype ? ROW + 20 : ROW });
   });
-  const edges = ir.relations.map((r) => {
+  const edges = ir.relations.map((r, i) => {
     const def = CLASS_EDGE[r.kind];
     const endLabels = [];
-    if (r.fromCardinality) endLabels.push(['from-card', r.fromCardinality, -0.8]);
-    if (r.toCardinality) endLabels.push(['to-card', r.toCardinality, 0.8]);
-    return { id: r.id, from: r.from, to: r.to, label: r.label, style: `${STYLE.classEdge}${def.style}`, endLabels };
+    for (const end of ['from', 'to']) {
+      const value = r[`${end}Cardinality`];
+      if (value) endLabels.push({ suffix: `${end}-card`, value, end, path: `/relations/${i}/${end}Cardinality`, what: `cardinality "${value}" of relation "${r.id}" at "${r[end]}"` });
+    }
+    return { id: r.id, from: r.from, to: r.to, label: r.label, style: `${STYLE.classEdge}${def.style}`, endLabels, markers: { from: def.from, to: def.to } };
   });
   const layout = await layoutGraph({ nodes, edges, direction: ir.direction, spacing: { nodeNode: 60, layer: 80 } });
-  return graphCells(cid, layout, { containers: [], nodes, edges });
+  return graphCells(cid, layout, { containers: [], nodes, edges }, warnings);
 }
 
 async function emitArchitecture(ir, cid) {

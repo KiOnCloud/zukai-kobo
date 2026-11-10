@@ -135,14 +135,14 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain-and-persistence:r4:from-card" value="1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain-and-persistence:r4">
-          <mxGeometry x="-0.8" y="0" relative="1" as="geometry">
-            <mxPoint x="0" y="-10" as="offset"/>
+        <mxCell id="order-domain-and-persistence:r4:from-card" value="1" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain-and-persistence:r4">
+          <mxGeometry x="-1" y="0" relative="1" as="geometry">
+            <mxPoint x="-15" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain-and-persistence:r4:to-card" value="1..*" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain-and-persistence:r4">
-          <mxGeometry x="0.8" y="0" relative="1" as="geometry">
-            <mxPoint x="0" y="-10" as="offset"/>
+        <mxCell id="order-domain-and-persistence:r4:to-card" value="1..*" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain-and-persistence:r4">
+          <mxGeometry x="1" y="0" relative="1" as="geometry">
+            <mxPoint x="5" y="-14" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="order-domain-and-persistence:r5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;exitX=0.6;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain-and-persistence:order" target="order-domain-and-persistence:status">
@@ -193,14 +193,14 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain-and-persistence:r10:from-card" value="1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain-and-persistence:r10">
-          <mxGeometry x="-0.8" y="0" relative="1" as="geometry">
-            <mxPoint x="0" y="-10" as="offset"/>
+        <mxCell id="order-domain-and-persistence:r10:from-card" value="1" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain-and-persistence:r10">
+          <mxGeometry x="-1" y="0" relative="1" as="geometry">
+            <mxPoint x="-5" y="38" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-domain-and-persistence:r10:to-card" value="0..*" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain-and-persistence:r10">
-          <mxGeometry x="0.8" y="0" relative="1" as="geometry">
-            <mxPoint x="0" y="-10" as="offset"/>
+        <mxCell id="order-domain-and-persistence:r10:to-card" value="0..*" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain-and-persistence:r10">
+          <mxGeometry x="1" y="0" relative="1" as="geometry">
+            <mxPoint x="5" y="-14" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="order-domain-and-persistence:r11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;dashed=1;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain-and-persistence:order" target="order-domain-and-persistence:paid">

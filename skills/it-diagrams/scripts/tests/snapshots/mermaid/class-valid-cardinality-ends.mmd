@@ -1,0 +1,53 @@
+---
+title: "Order domain"
+---
+classDiagram
+  direction TB
+  %% id: order
+  class n1["Order"] {
+    string id
+    decimal total
+  }
+  %% id: line
+  class n2["OrderLine"] {
+    int qty
+  }
+  %% id: shipment
+  class n3["Shipment"] {
+    string carrier
+  }
+  %% id: pricing
+  class n4["PricingService"] {
+    price(order: Order) decimal
+  }
+  %% id: rule
+  class n5["IPriceRule"] {
+    <<interface>>
+    apply(line: OrderLine)
+  }
+  %% id: discount
+  class n6["DiscountRule"] {
+    apply(line: OrderLine)
+  }
+  %% id: tax
+  class n7["TaxRule"] {
+    apply(line: OrderLine)
+  }
+  %% id: promo
+  class n8["PromoRule"] {
+    apply(line: OrderLine)
+  }
+  %% id: r1
+  n1 "1" *-- "1..*" n2
+  %% id: r2
+  n1 "1" *-- "0..1" n3
+  %% id: r3
+  n4 "1" *-- "0..*" n5 : ordered rules
+  %% id: r4
+  n5 <|.. n6
+  %% id: r5
+  n5 <|.. n7
+  %% id: r6
+  n5 <|.. n8
+  %% id: r7
+  n4 ..> n1 : reads

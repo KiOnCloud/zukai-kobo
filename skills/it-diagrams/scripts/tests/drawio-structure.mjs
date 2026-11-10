@@ -66,3 +66,51 @@ export function cellBounds(cell) {
   const g = cell.mxGeometry ?? {};
   return { x: Number(g.x ?? 0), y: Number(g.y ?? 0), width: Number(g.width ?? 0), height: Number(g.height ?? 0) };
 }
+
+/** Absolute bounds of every vertex (children are relative to their parent chain). */
+export function absoluteBounds(cells) {
+  const byId = new Map(cells.map((c) => [c.id, c]));
+  const abs = new Map();
+  const of = (c) => {
+    if (abs.has(c.id)) return abs.get(c.id);
+    const b = cellBounds(c);
+    const parent = byId.get(c.parent);
+    abs.set(c.id, parent && parent.vertex === '1' ? { ...b, x: b.x + of(parent).x, y: b.y + of(parent).y } : b);
+    return abs.get(c.id);
+  };
+  for (const c of cells) if (c.vertex === '1') of(c);
+  return abs;
+}
+
+const styleNumber = (style, key) => Number(style.match(new RegExp(`${key}=(-?[\\d.]+)`))?.[1] ?? 0);
+
+/**
+ * Every edge as draw.io draws it: the exit anchor on the source box (with its pixel offset),
+ * the waypoints, the entry anchor on the box the edge ends at. Keyed by cell id.
+ */
+export function edgePaths(cells, abs = absoluteBounds(cells)) {
+  const paths = new Map();
+  for (const c of cells) {
+    if (c.edge !== '1') continue;
+    const end = (box, prefix) => ({
+      x: box.x + styleNumber(c.style, `${prefix}X`) * box.width + styleNumber(c.style, `${prefix}Dx`),
+      y: box.y + styleNumber(c.style, `${prefix}Y`) * box.height + styleNumber(c.style, `${prefix}Dy`),
+    });
+    const waypoints = (c.mxGeometry?.Array?.mxPoint ?? []).map((p) => ({ x: Number(p.x), y: Number(p.y) }));
+    paths.set(c.id, [end(abs.get(c.source), 'exit'), ...waypoints, end(abs.get(c.target), 'entry')]);
+  }
+  return paths;
+}
+
+/**
+ * Box of a label anchored at one end of its edge (relative x of -1 or 1 plus an absolute
+ * offset), at the width draw.io renders the text (about 5.6 px a character).
+ */
+export function endLabelBox(cell, path) {
+  const at = Number(cell.mxGeometry.x) < 0 ? path[0] : path.at(-1);
+  const offset = cell.mxGeometry.mxPoint[0];
+  const width = cell.value.replace(/<[^>]+>/g, '').length * 5.6 + 4;
+  const x = at.x + Number(offset.x);
+  const align = cell.style.match(/align=(\w+)/)?.[1] ?? 'center';
+  return { x: align === 'left' ? x : align === 'right' ? x - width : x - width / 2, y: at.y + Number(offset.y) - 8, width, height: 16 };
+}
