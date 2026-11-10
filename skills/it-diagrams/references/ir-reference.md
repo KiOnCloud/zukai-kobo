@@ -236,6 +236,14 @@ Collections: `components` (at least one), `boundaries` (optional), `connections`
 | boundary | `id`, `label`, `children`: component or boundary ids (a deployment unit, network or team boundary); `group` (optional): an AWS group frame, `aws:<name>` |
 | connection | `id`, `from`, `to`, `label` (protocol or purpose), `bidirectional` (default `false`) |
 
+A connection runs the way the request or the data moves, and the layout follows it: `from`
+is the component that starts the exchange, `to` the one that receives it (browser to API,
+API to database, API to third-party system). Through a queue, topic or stream the message
+moves from the producer to the queue and from the queue to the consumer, so write producer
+to queue and queue to consumer, also when the consumer polls: "the worker consumes the
+queue" is `from` the queue `to` the worker. A reply is not a second connection; use
+`bidirectional` only when either side starts exchanges.
+
 ```json
 {
   "schemaVersion": 1, "kind": "architecture", "title": "Order platform", "direction": "LR",

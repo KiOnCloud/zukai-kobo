@@ -151,8 +151,8 @@ boundary that is an AWS construct (`"group": "aws:vpc"`). Copy the value from th
 never write one from memory: the names are draw.io's, not the service abbreviations
 (`aws:identity_and_access_management`, not `aws:iam`), and an unknown name fails validation
 with the nearest names as a hint. A component with no matching icon (the customer's own
-system, a third party) keeps its generic shape, and `kind` stays on every component: it is
-what Mermaid and FigJam draw, with a warning that the icons were lost. Either
+system, a third party) keeps its generic shape. `kind` keeps its meaning beside `icon` (the default is `service`):
+it is what Mermaid and FigJam draw, with a warning that the icons were lost. Either
 direction works: a frame title steps aside when a connection enters its frame from above.
 Skip the icons when the user asks for a vendor-neutral picture.
 

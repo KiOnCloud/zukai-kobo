@@ -14,7 +14,10 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
    the viewer lacks that stencil, which is reported, not passed.
 3. Frames, groups and lanes enclose exactly their members; each action sits in the lane of
    the actor that performs it; the reading order (top to bottom or left to right) matches
-   the order in the IR.
+   the order in the IR. One exception is intended and is not a finding: in an AWS
+   architecture diagram a system outside the frames that is only called from inside them
+   stands at the nearer end of the frames, so its arrow may point against the reading
+   order (`target-drawio.md`).
 4. Every CLI warning that starts with `layout:` is resolved or explicitly accepted.
 
 ## Wording (read the IR)

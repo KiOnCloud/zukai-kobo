@@ -110,7 +110,7 @@ when the request hints at them.
 |---|---|---|
 | components | Which deployable units, data stores, queues, caches, clients and external systems exist? | none; required |
 | boundaries | How are they grouped (cloud account, VPC, region, team, on-premise)? | no boundaries |
-| connections | Which component talks to which, over what (HTTPS, SQL, queue, gRPC)? | none; required |
+| connections | Which component talks to which, over what (HTTPS, SQL, queue, gRPC)? Write each the way the request or message moves (`ir-reference.md`, architecture): producer to queue, queue to consumer | none; required |
 | direction | Is any connection two-way? | all one-way |
 | AWS icons (optional) | Does it run on AWS, and which AWS service is each component (Lambda, ECS, RDS, SQS)? Which boundaries are an account, region, VPC, Availability Zone or subnet? | asked only when AWS is mentioned or the stack is unknown and the target is drawio; AWS services named in the request get their icon without asking (`SKILL.md`, AWS icons) |
 | scope (optional) | Current state or target state? | current state; recorded in `meta.notes` |
