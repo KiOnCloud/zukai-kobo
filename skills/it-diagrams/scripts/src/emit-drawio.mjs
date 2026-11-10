@@ -886,12 +886,45 @@ function placeGroupTitles(layout, { containers, nodes, edges }) {
 /** The style of a group frame with its title moved `offset` px in from the frame's left side. */
 const titleAt = (style, offset) => (/spacingLeft=\d+;/.test(style) ? style.replace(/spacingLeft=\d+;/, `spacingLeft=${offset};`) : `${style}align=left;spacingLeft=${offset};`);
 
+/**
+ * Put a component that stands outside every frame on the nearer side of the frames it talks
+ * to. The layout places a component after everything that calls it, so an outside system
+ * called from the middle of a frame lands beyond the far end of that frame, and its
+ * connection runs past every component in between. Each such component (outside all frames,
+ * connected only to components inside frames, and only called or only calling) is tried on
+ * the other side; the arrangement is kept when its connections come out at least a fifth
+ * shorter. The arrow still points the way the IR says.
+ */
+async function nearSide(layout, { nodes, edges }, arrange) {
+  const inFrame = new Map(nodes.map((n) => [n.id, n.parent !== undefined]));
+  const lengthOf = (l, own) => own.reduce((sum, e) => {
+    const r = l.edges.get(e.id);
+    if (!r?.start || !r?.end) return sum;
+    const path = [r.start, ...(r.points ?? []), r.end];
+    return sum + path.slice(1).reduce((s, p, i) => s + Math.abs(p.x - path[i].x) + Math.abs(p.y - path[i].y), 0);
+  }, 0);
+  const outside = nodes.filter((n) => !inFrame.get(n.id)).slice(0, 8);
+  for (const n of outside) {
+    const own = edges.filter((e) => e.from !== e.to && (e.from === n.id || e.to === n.id));
+    if (own.length === 0) continue;
+    const oneWay = own.every((e) => e.to === n.id) || own.every((e) => e.from === n.id);
+    if (!oneWay || !own.every((e) => inFrame.get(e.from === n.id ? e.to : e.from))) continue;
+    for (const e of own) e.layoutReversed = true;
+    const tried = await arrange();
+    if (lengthOf(tried, own) < 0.8 * lengthOf(layout, own)) { layout = tried; continue; }
+    for (const e of own) delete e.layoutReversed;
+  }
+  // The ports on the nodes belong to the last arrangement tried; restore the kept one.
+  return arrange();
+}
+
 async function emitArchitecture(ir, cid, refs, warnings) {
   const parent = parentMap(ir.boundaries ?? []);
   const containers = (ir.boundaries ?? []).map((b) => {
     const group = awsGroup(b.group);
     return { id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container, ...(group ? awsGroupContainer(group, b.label) : {}) };
   });
+  const usesAws = containers.some((c) => c.title) || ir.components.some((c) => awsIcon(c.icon));
   const kindOf = (c) => c.kind ?? 'service';
   // A figure with its label below it: the stick figure of a client, or an AWS service icon.
   const figureOf = (c) => {
@@ -922,8 +955,16 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   });
   const edges = ir.connections.map((c) => ({ id: c.id, from: c.from, to: c.to, label: c.label, style: `${STYLE.flowEdge}${c.bidirectional ? 'startArrow=classic;startFill=1;' : ''}` }));
   const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
-  let layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
-  if (below.size > 0 && clientPorts(layout, { containers, nodes, edges })) layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
+  // The ports of a figure depend on the sides its connections use, so they are worked out
+  // afresh for every arrangement that is tried.
+  const arrange = async () => {
+    for (const n of nodes) delete n.ports;
+    for (const e of edges) { delete e.fromPort; delete e.toPort; }
+    const first = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
+    return below.size > 0 && clientPorts(first, { containers, nodes, edges }) ? layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing }) : first;
+  };
+  let layout = await arrange();
+  if (usesAws) layout = await nearSide(layout, { nodes, edges }, arrange);
   // A wider frame moves the lines, so the titles are placed again after each new layout.
   let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
   for (let round = 0; unplaced && round < 6; round++) {

@@ -217,7 +217,9 @@ const elk = () => (elkInstance ??= new ELK());
  * @param {Array<{id:string,width:number,height:number,parent?:string}>} input.nodes
  * @param {Array<{id:string,parent?:string,headerHeight?:number,minWidth?:number}>} input.containers
  *   `minWidth` keeps a container at least that wide, for a title that must fit on one line
- * @param {Array<{id:string,from:string,to:string,label?:string}>} input.edges
+ * @param {Array<{id:string,from:string,to:string,label?:string,layoutReversed?:boolean}>} input.edges
+ *   `layoutReversed` places the ends of an edge in the opposite order along the flow; the
+ *   returned route still runs from `from` to `to`
  * @param {string} [input.direction]
  * @param {{nodeNode?:number, layer?:number, edgeEdge?:number, selfLoop?:number}} [input.spacing]
  * @returns {Promise<{ nodes: Map<string,{x,y,width,height}>, containers: Map<string,{x,y,width,height}>, edges: Map<string,{points:Array<{x,y}>}> }>}
@@ -282,8 +284,10 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     children: build(null),
     edges: edges.map((e) => ({
       id: e.id,
-      sources: [e.fromPort ?? e.from],
-      targets: [e.toPort ?? e.to],
+      // An edge laid out against its direction: the layout sees it run from `to` to `from`,
+      // which puts the two ends in the opposite order along the flow; the route is turned back below.
+      sources: [e.layoutReversed ? (e.toPort ?? e.to) : (e.fromPort ?? e.from)],
+      targets: [e.layoutReversed ? (e.fromPort ?? e.from) : (e.toPort ?? e.to)],
       labels: e.label ? [{ text: e.label, ...measureLabel(e.label) }] : [],
     })),
   };
@@ -304,16 +308,20 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
   };
   walk(laid.children);
   const edgeOut = new Map();
+  const reversedIds = new Set(edges.filter((e) => e.layoutReversed).map((e) => e.id));
   for (const e of laid.edges ?? []) {
     const points = [];
     for (const s of e.sections ?? []) for (const p of s.bendPoints ?? []) points.push({ x: p.x, y: p.y });
     const first = e.sections?.[0];
     const last = e.sections?.at(-1);
     const lbl = e.labels?.[0];
+    const start = first?.startPoint ? { x: first.startPoint.x, y: first.startPoint.y } : undefined;
+    const end = last?.endPoint ? { x: last.endPoint.x, y: last.endPoint.y } : undefined;
+    const reversed = reversedIds.has(e.id);
     edgeOut.set(e.id, {
-      points,
-      start: first?.startPoint ? { x: first.startPoint.x, y: first.startPoint.y } : undefined,
-      end: last?.endPoint ? { x: last.endPoint.x, y: last.endPoint.y } : undefined,
+      points: reversed ? points.reverse() : points,
+      start: reversed ? end : start,
+      end: reversed ? start : end,
       // ELK's label box, absolute; the emitter turns it into draw.io's relative label geometry.
       label: lbl && lbl.x !== undefined ? { x: lbl.x, y: lbl.y, width: lbl.width, height: lbl.height } : undefined,
     });

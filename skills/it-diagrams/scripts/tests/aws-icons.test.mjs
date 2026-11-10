@@ -346,6 +346,55 @@ describe('AWS icons and group frames in draw.io', () => {
     }
   });
 
+  it('puts a system outside the frames on their nearer side, with the arrow still pointing the way the IR says', async () => {
+    // The tax API is called by the second component of a six-component chain: the start of
+    // the flow is the near end, the far end lies four components further on.
+    const chain = {
+      schemaVersion: 1, kind: 'architecture', title: 'T',
+      components: [
+        { id: 'users', label: 'Users', kind: 'client' }, { id: 'alb', label: 'Load balancer', icon: 'aws:elastic_load_balancing' },
+        { id: 'api', label: 'Invoice API', icon: 'aws:fargate' }, { id: 'db', label: 'Database', kind: 'database', icon: 'aws:rds' },
+        { id: 'queue', label: 'Queue', kind: 'queue', icon: 'aws:sqs' }, { id: 'fn', label: 'Renderer', icon: 'aws:lambda' },
+        { id: 'bucket', label: 'Bucket', kind: 'database', icon: 'aws:s3' }, { id: 'tax', label: 'Tax rate API', kind: 'external' },
+      ],
+      boundaries: [
+        { id: 'region', label: 'Region', group: 'aws:region', children: ['vpc', 'queue', 'fn', 'bucket'] },
+        { id: 'vpc', label: 'VPC', group: 'aws:vpc', children: ['alb', 'api', 'db'] },
+      ],
+      connections: [
+        { id: 'c1', from: 'users', to: 'alb' }, { id: 'c2', from: 'alb', to: 'api' }, { id: 'c3', from: 'api', to: 'db' },
+        { id: 'c4', from: 'api', to: 'tax', label: 'gets tax rates' }, { id: 'c5', from: 'api', to: 'queue' },
+        { id: 'c6', from: 'queue', to: 'fn' }, { id: 'c7', from: 'fn', to: 'bucket' },
+      ],
+    };
+    // A connection that leaves a figure downwards starts under its name, on the figure's column.
+    const onBox = (pt, box) => pt.x >= box.x - 0.5 && pt.x <= box.x + box.width + 0.5 && pt.y >= box.y - 0.5 && pt.y <= box.y + box.height + 60;
+    const before = { LR: (a, b) => a.x + a.width <= b.x, TB: (a, b) => a.y + a.height <= b.y, RL: (a, b) => a.x >= b.x + b.width, BT: (a, b) => a.y >= b.y + b.height };
+    for (const direction of ['LR', 'TB', 'RL', 'BT']) {
+      const { r, abs, cellOf, paths } = await drawn({ ...chain, direction });
+      expect(r.warnings, direction).toEqual([]);
+      expect(before[direction](abs.get('a:tax'), abs.get('a:region')), `${direction}: at the start of the flow`).toBe(true);
+      expect([cellOf('c4').source, cellOf('c4').target], direction).toEqual(['a:api', 'a:tax']);
+      const path = paths.get('a:c4');
+      expect(onBox(path[0], abs.get('a:api')), `${direction}: starts at the API`).toBe(true);
+      expect(onBox(path.at(-1), abs.get('a:tax')), `${direction}: ends at the tax API`).toBe(true);
+    }
+    // In every direction of the larger sample the arrow keeps its ends too, whichever side was shorter.
+    for (const direction of ['LR', 'TB', 'RL', 'BT']) {
+      const { abs, cellOf, paths } = await drawn(withDirection(loadFixture('architecture', 'valid-aws'), direction));
+      expect([cellOf('c9').source, cellOf('c9').target], direction).toEqual(['a:api', 'a:psp']);
+      expect(onBox(paths.get('a:c9')[0], abs.get('a:api')), direction).toBe(true);
+      expect(onBox(paths.get('a:c9').at(-1), abs.get('a:psp')), direction).toBe(true);
+    }
+  });
+
+  it('leaves a system outside the frames where the flow puts it when that is already the short way', async () => {
+    const ir = { schemaVersion: 1, kind: 'architecture', title: 'T', direction: 'LR', components: [{ id: 'u', label: 'User', kind: 'client' }, { id: 'api', label: 'API', icon: 'aws:lambda' }, { id: 'ext', label: 'Partner', kind: 'external' }], boundaries: [{ id: 'vpc', label: 'VPC', group: 'aws:vpc', children: ['api'] }], connections: [{ id: 'c1', from: 'u', to: 'api' }, { id: 'c2', from: 'api', to: 'ext' }] };
+    const { abs } = await drawn(ir);
+    expect(abs.get('a:ext').x).toBeGreaterThanOrEqual(abs.get('a:vpc').x + abs.get('a:vpc').width);
+    expect(abs.get('a:u').x + abs.get('a:u').width).toBeLessThanOrEqual(abs.get('a:vpc').x);
+  });
+
   it('lines up the figures of one frame on a centre line', async () => {
     const { figures } = await drawn(withDirection(loadFixture('architecture', 'valid-aws'), 'TB'));
     const centre = (id) => { const f = figures.find((x) => x.id === id).figure; return f.x + f.width / 2; };

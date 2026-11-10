@@ -200,8 +200,11 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    draw.io desktop or Playwright is available, exit 1 with a hint otherwise. The cap keeps
    the longest side at 1600 px so the reviewer can open the image; a very tall or wide
    diagram comes back as tiles, all listed under `files` in the JSON output, and the
-   reviewer gets every file. The PNG is the reviewer's working copy, never an output for
-   the user. Then
+   reviewer gets every file. When the labels in the PNG are too small to read (a long
+   left-to-right diagram scaled down to the cap), run `preview` again with a larger
+   `--max-px` and review that image; `preview` without `--out` writes to the same path each
+   time, so the earlier image is replaced. The PNG is the reviewer's working copy, never an
+   output for the user. Then
    have the diagrams reviewed against `references/review-checklist.md`: in Claude Code spawn
    the `diagram-reviewer` agent with the IR paths, the PNG paths and the CLI warnings; in
    other runtimes read the checklist and review as a separate, explicit step in the
