@@ -1,6 +1,6 @@
 import { inflateRawSync } from 'node:zlib';
 import { htmlLabel } from './drawio-xml.mjs';
-import { widestLine } from './text-metrics.mjs';
+import { widestLine, safeWidth } from './text-metrics.mjs';
 import { wrapText } from './layout-graph.mjs';
 
 /**
@@ -218,11 +218,16 @@ const LINE = 15;
  * a text block only inside its inscribed rectangle: a block a x b fits a w x h diamond when
  * a/w + b/h <= 1, so the check uses that inequality, with the same grace for a text that
  * fits no worse than the old one. Returns the problem or undefined.
+ *
+ * The emitter already keeps a question off the slanted sides with `spacingLeft` and
+ * `spacingRight`, so the diamond's text wraps at its width minus that spacing and nothing
+ * else comes off: a line fits when it is no wider than that with the room of `roomFor` on
+ * top (`safeWidth`). That is a little inside the frame draw.io wraps in, 2 px less than the
+ * width minus the spacing, so a line counted as fitting stays on its line there.
  */
 function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus = false, bars = false } = {}) {
-  // A subroutine keeps its label between its side bars, which take a tenth of the width each.
-  const usable = Math.max((bars ? 0.8 * width : width) - spacing - (bars ? 4 : TEXT_INSET), 1);
   if (wraps && rhombus) {
+    const usable = Math.max(safeWidth(width - spacing), 1);
     const block = (text) => {
       const lines = wrappedLines(text, usable);
       const block = Math.min(usable, widest(text));
@@ -230,9 +235,11 @@ function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus
     };
     const now = block(newText);
     if (now.fill <= 1 || now.fill <= block(oldText).fill) return undefined;
-    if (now.lines === 1) return `the new label needs about ${now.widest} px in a ${width}x${height} diamond that holds ${Math.floor(width * (1 - LINE / height))} px on one line`;
+    if (now.lines === 1) return `the new label needs about ${Math.ceil(now.widest)} px in a ${width}x${height} diamond that holds ${Math.floor(width * (1 - LINE / height))} px on one line`;
     return `the new label wraps to ${now.lines} lines in a ${width}x${height} diamond that holds ${Math.floor((height * (1 - usable / width)) / LINE)} at that width`;
   }
+  // A subroutine keeps its label between its side bars, which take a tenth of the width each.
+  const usable = Math.max((bars ? 0.8 * width : width) - spacing - (bars ? 4 : TEXT_INSET), 1);
   if (wraps) {
     if (widestWord(newText) > usable && widestWord(oldText) <= usable) return `a word of the new label is wider than the box (${width}x${height})`;
     const lines = wrappedLines(newText, usable);

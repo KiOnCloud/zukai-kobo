@@ -7,8 +7,12 @@ import { join } from 'node:path';
 import { deflateRawSync } from 'node:zlib';
 import { emit, bundle } from '../src/pipeline.mjs';
 import { relabelDrawio } from '../src/relabel.mjs';
+import { loadPlaywright } from '../src/preview.mjs';
+import { textWidth } from '../src/text-metrics.mjs';
 import { checkDrawioStructure } from './drawio-structure.mjs';
 import { loadFixture, scriptsDir } from './helpers.mjs';
+
+const pw = loadPlaywright(scriptsDir);
 
 const geometries = (xml) => xml.match(/<mxGeometry[^>]*>|<mxPoint[^>]*>/g);
 const ids = (xml) => [...xml.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
@@ -73,6 +77,52 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
     expect(longer.warnings).toHaveLength(1);
     expect(longer.warnings[0].path).toBe('upload:ok');
     expect(longer.warnings[0].message).toMatch(/wraps to \d+ lines/);
+  });
+
+  describe('issue 54: a decision with label spacing is wrapped at the width that spacing leaves', () => {
+    const reminder = () => ({ schemaVersion: 1, kind: 'activity', title: 'Invoice reminder', direction: 'TB', lanes: [{ id: 'billing', label: 'Billing' }], actions: [{ id: 'send', label: 'Send a reminder', lane: 'billing' }, { id: 'wait', label: 'Wait', lane: 'billing' }], controls: [{ id: 'start', kind: 'initial', lane: 'billing' }, { id: 'check', kind: 'decision', label: 'Never reminded or\nover 30 days ago?', lane: 'billing' }, { id: 'end', kind: 'final', lane: 'billing' }], flows: [{ id: 'f1', from: 'start', to: 'check' }, { id: 'f2', from: 'check', to: 'send', guard: 'yes' }, { id: 'f3', from: 'check', to: 'wait', guard: 'no' }, { id: 'f4', from: 'send', to: 'end' }, { id: 'f5', from: 'wait', to: 'end' }] });
+    // Lines of 102.7 and 100.1 px: wider than the old ones, and still inside the 108 px the spacing leaves with the room of `roomFor`.
+    const fits = 'Never reminded, or\nover a month ago?';
+    // A second line of 113.4 px, which draw.io breaks.
+    const third = 'Never reminded, or\nover one month ago?';
+    const emitted = async () => {
+      const r = await emit(reminder(), 'drawio', { diagramId: 'dec' });
+      const cell = checkDrawioStructure(r.output).cells.find((c) => c.id === 'dec:check');
+      return { xml: r.output, cell, width: Number(cell.mxGeometry.width), height: Number(cell.mxGeometry.height) };
+    };
+
+    it('gives no warning for a label whose lines fit, and one for a line that wraps to a third', async () => {
+      const { xml, cell, width, height } = await emitted();
+      expect(cell.style).toBe('rhombus;whiteSpace=wrap;html=1;spacingLeft=30;spacingRight=30;');
+      expect({ width, height }).toEqual({ width: 168, height: 80 });
+      expect(relabelDrawio(xml, { check: fits }).warnings).toEqual([]);
+      // The same words without the break wrap at the same place.
+      expect(relabelDrawio(xml, { check: fits.replace('\n', ' ') }).warnings).toEqual([]);
+      const out = relabelDrawio(xml, { check: third });
+      expect(out.warnings).toHaveLength(1);
+      expect(out.warnings[0].message).toMatch(/wraps to 3 lines in a 168x80 diamond that holds 2 at that width/);
+      // 106.7 px is under the 108 px but not with the room on top: draw.io, whose text frame is 106 px wide here, breaks it.
+      const near = 'Never reminded, orr\nover a month ago?';
+      expect(textWidth(near.split('\n')[0])).toBeLessThan(width - 60);
+      expect(relabelDrawio(xml, { check: near }).warnings[0].message).toMatch(/wraps to 3 lines/);
+    });
+
+    it.skipIf(!pw)('counts the lines Chromium draws in the frame draw.io gives the label', async () => {
+      const { xml, width } = await emitted();
+      // draw.io's frame: the width less the label spacing and its own 2 px on each side, plus the 2 px its SVG text frame adds.
+      const frame = width - 60 - 4 + 2;
+      const labels = [fits, third];
+      const browser = await pw.chromium.launch();
+      try {
+        const page = await browser.newPage();
+        await page.setContent(`<body style="font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.2">${labels.map((l, i) => `<div style="width:${frame}px;white-space:normal"><span id="d${i}">${l.replace('\n', '<br>')}</span></div>`).join('')}</body>`);
+        const lines = await page.evaluate((count) => Array.from({ length: count }, (_, i) => new Set([...document.getElementById(`d${i}`).getClientRects()].filter((r) => r.width > 0).map((r) => Math.round(r.top))).size), labels.length);
+        expect(lines).toEqual([2, 3]);
+        expect(labels.map((l) => relabelDrawio(xml, { check: l }).warnings.length)).toEqual([0, 1]);
+      } finally {
+        await browser.close();
+      }
+    });
   });
 
   it('keeps stereotypes on sequence heads and bold titles in a bundle, and addresses one page with a prefix', async () => {
