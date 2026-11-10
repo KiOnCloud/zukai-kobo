@@ -5,8 +5,10 @@
  * needs, and the gap between two neighbours grows so that every message label fits between
  * the lifelines it spans. Rows: every message, note, block header,
  * section separator and block end gets a row of its own, so frame labels never sit on top of
- * message labels. Notes take the gap next to their lifeline instead of overlapping the next
- * one. A final pass reports any text boxes that still overlap, so the agent can tell the user.
+ * message labels, and a block that opens right after another has closed starts below a gap,
+ * so each frame keeps its own border. Notes take the gap next to their lifeline instead of
+ * overlapping the next one. A final pass reports any text boxes that still overlap, so the
+ * agent can tell the user.
  */
 
 import { longestLine } from './text-metrics.mjs';
@@ -23,6 +25,7 @@ export const SEQUENCE_METRICS = {
   blockOpenHeight: 34,
   sectionHeight: 30,
   blockCloseHeight: 16,
+  blockGap: 12,
   noteHeight: 36,
   noteRowHeight: 48,
   activationWidth: 10,
@@ -109,7 +112,11 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
       const k = b.sections.findIndex((s, si) => si > 0 && s.start === i);
       if (k > 0) rows.push({ type: 'section', block: b.id, section: k, height: m.sectionHeight });
     }
-    for (const b of blocks.filter((b) => b.start === i).sort(outerFirst)) rows.push({ type: 'block-open', block: b.id, height: m.blockOpenHeight });
+    // A block that opens right where another has closed would draw its top edge on that
+    // block's bottom edge, and the two frames would read as one; a gap row keeps both lines.
+    const opening = blocks.filter((b) => b.start === i).sort(outerFirst);
+    if (opening.length > 0 && rows.at(-1)?.type === 'block-close') rows.push({ type: 'gap', height: m.blockGap });
+    for (const b of opening) rows.push({ type: 'block-open', block: b.id, height: m.blockOpenHeight });
     // A label of several lines (a `ref` adds one) stands above its arrow, so its row grows.
     rows.push({ type: 'message', id: msg.id, height: m.rowPitch + m.labelHeight * (lineCount(msg.label) - 1) });
     for (const note of notes) if (note.after === msg.id) rows.push({ type: 'note', id: note.id, height: m.noteRowHeight });

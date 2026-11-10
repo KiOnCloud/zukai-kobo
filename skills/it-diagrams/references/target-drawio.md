@@ -125,7 +125,7 @@ moving shapes by hand, so the IR stays the source of truth.
 | architecture component `service` / `database` / `queue` / `cache` / `client` / `external` | rounded rectangle / cylinder / hexagon / dashed cylinder / actor figure / dashed rounded rectangle; parallel connections leave 20 px apart and each label sits where the layout engine placed it on its own edge. A `client` is a 40 x 60 figure with its name below it: the name wraps at its own width (`labelWidth`, at most 160 px, balanced lines), and the layout reserves the figure plus that block, so a boundary frame contains the name and the next actor starts below it. Clients in one boundary share a centre line. The layout runs twice for a diagram with clients: the first pass shows which side of a client each connection uses, the second gives those ends fixed ports within the figure's extent, evenly spaced. A connection from the side therefore attaches to the figure, several of them apart from each other, and one that leaves downwards starts under the name on the figure's own column (a pixel offset with `exitPerimeter=0`), never through it |
 | sequence participant | `umlLifeline` with a plain head, 120 px wide or as wide as the longest word of its label needs; `actor` adds a stick figure above the head, `boundary`, `control`, `entity` and `database` show the kind as a `«stereotype»` line above the label (draw.io's robustness glyphs were tried and read as stray arrows) |
 | sequence message | horizontal edge between lifelines: filled arrow (sync), open arrow (async), dashed open arrow (return); self-messages loop out to the right and back with both ends anchored on the lifeline's centre line |
-| sequence block | `umlFrame` behind the messages it covers, wide enough for the notes attached to them; its tab text and each `else` / `and` label are opaque cells drawn above lifelines and activations |
+| sequence block | `umlFrame` behind the messages it covers, wide enough for the notes attached to them, 12 px below a frame that ends just before it; its tab text and each `else` / `and` label are opaque cells drawn above lifelines and activations |
 | sequence note | note shape on the row after the message it follows |
 | sequence activation | starts at a sync call and ends at the return to the caller; a return inside one branch of an `alt` or `par` keeps the activation open to the last message of that participant in the block |
 | sequence message label | white background, so a lifeline it spans does not cut the text |
@@ -181,7 +181,10 @@ across re-runs.
   the base width, and the gap widens until every message label fits between the lifelines
   it spans. Every message, note, block
   header, `else`/`and` separator and block end has a row of its own (40, 48, 34, 30 and 16 px),
-  so frame labels never sit on message labels. Notes take the gap beside their lifeline. A
+  so frame labels never sit on message labels. A block that opens right after another has
+  closed starts 12 px lower, so the bottom edge of one frame and the top edge of the next
+  stay two lines; nested frames and a frame after a separator are already apart. Notes take
+  the gap beside their lifeline. A
   sync message activates the target until the matching return. Frames inset 16 px per
   nesting level. After placement the emitter checks every label and note box for overlaps and
   reports each one as a `layout:` warning.

@@ -103,3 +103,67 @@ describe('participant headers of a sequence diagram in draw.io', () => {
     }
   });
 });
+
+/** The horizontal lines of a frame: its top and bottom edge. */
+const frameEdges = (f) => [f.y, f.y + f.height];
+
+describe('combined fragments of a sequence diagram in draw.io', () => {
+  it('opens a frame below a gap when another frame has just closed, so each keeps its own border', async () => {
+    const ir = loadFixture('sequence', 'valid-invoice-export');
+    const { r, box } = await sequenceCells(ir);
+    expect(r.warnings).toEqual([]);
+    const [b1, b2, b3] = ['b1', 'b2', 'b3'].map(box);
+    expect(b2.y - (b1.y + b1.height)).toBe(M.blockGap);
+    expect(b3.y - (b2.y + b2.height)).toBe(M.blockGap);
+    expect(M.blockGap).toBeGreaterThanOrEqual(10);
+    // The rows between the two arrows: the close of one block, the gap, the header of the next, the message.
+    const L = layoutSequence(ir);
+    expect(L.messageY('m3') - L.messageY('m2')).toBe(M.blockCloseHeight + M.blockGap + M.blockOpenHeight + M.rowPitch);
+    expect(L.rows.filter((row) => row.type === 'gap')).toHaveLength(2);
+  });
+
+  it('adds no gap where frames are nested or a branch separator stands between them', () => {
+    const ir = {
+      schemaVersion: 1, kind: 'sequence', title: 'Nested',
+      participants: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }],
+      messages: ['m1', 'm2', 'm3', 'm4', 'm5'].map((id) => ({ id, from: 'a', to: 'b', label: id })),
+      blocks: [
+        // The alt opens together with its first inner block and closes together with its last one.
+        { id: 'outer', kind: 'alt', label: 'ok', messages: ['m1', 'm2'], branches: [{ label: 'failed', messages: ['m3', 'm4'] }] },
+        { id: 'first', kind: 'opt', label: 'x', messages: ['m1'] },
+        // An inner block ends the first branch and another starts the second: the separator is between them.
+        { id: 'last', kind: 'opt', label: 'y', messages: ['m2'] },
+        { id: 'next', kind: 'opt', label: 'z', messages: ['m3'] },
+        { id: 'tail', kind: 'loop', label: 'w', messages: ['m4'] },
+        { id: 'after', kind: 'opt', label: 'v', messages: ['m5'] },
+      ],
+    };
+    const L = layoutSequence(ir);
+    const types = L.rows.map((row) => (row.type === 'message' ? row.id : `${row.type}${row.block ? `:${row.block}` : ''}`));
+    expect(types).toEqual([
+      'block-open:outer', 'block-open:first', 'm1', 'block-close:first',
+      'gap', 'block-open:last', 'm2', 'block-close:last',
+      'section:outer', 'block-open:next', 'm3', 'block-close:next',
+      'gap', 'block-open:tail', 'm4', 'block-close:tail', 'block-close:outer',
+      'gap', 'block-open:after', 'm5', 'block-close:after',
+    ]);
+    expect(L.warnings).toEqual([]);
+  });
+
+  it('never draws an edge of one frame within the gap of an edge of another, in any fixture', async () => {
+    const nested = {
+      schemaVersion: 1, kind: 'sequence', title: 'Rows',
+      participants: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }, { id: 'c', label: 'C' }],
+      messages: ['m1', 'm2', 'm3', 'm4'].map((id, i) => ({ id, from: i % 2 ? 'b' : 'a', to: i % 2 ? 'c' : 'b', label: id })),
+      blocks: [{ id: 'o', kind: 'loop', label: 'all', messages: ['m1', 'm2'] }, { id: 'i1', kind: 'opt', label: 'p', messages: ['m1'] }, { id: 'i2', kind: 'opt', label: 'q', messages: ['m2'] }, { id: 's1', kind: 'opt', label: 'r', messages: ['m3'] }, { id: 's2', kind: 'par', label: 's', messages: ['m4'] }],
+    };
+    for (const ir of [nested, ...['valid', 'valid-loop-note-alt', 'valid-invoice-export', 'valid-ref-parts', 'valid-participant-kinds'].map((name) => loadFixture('sequence', name))]) {
+      const { box } = await sequenceCells(ir);
+      const frames = (ir.blocks ?? []).map((b) => ({ id: b.id, ...box(b.id) }));
+      for (const f of frames) for (const g of frames) {
+        if (f === g) continue;
+        for (const y of frameEdges(f)) for (const other of frameEdges(g)) expect(Math.abs(y - other), `${ir.title}: ${f.id} / ${g.id}`).toBeGreaterThanOrEqual(M.blockGap);
+      }
+    }
+  });
+});
