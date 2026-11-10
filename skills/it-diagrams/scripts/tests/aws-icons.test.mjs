@@ -484,6 +484,45 @@ describe('AWS icons and group frames in draw.io', () => {
     expect(style('c2')).not.toContain('labelBackgroundColor');
   });
 
+  it('writes no connection label across a frame border, on a component, a name or another label', async () => {
+    // Where draw.io puts a label: its place along the drawn line, moved by its offset.
+    const labelBox = (cell, path, text) => {
+      const lengths = path.slice(1).map((p, i) => Math.abs(p.x - path[i].x) + Math.abs(p.y - path[i].y));
+      const total = lengths.reduce((s, l) => s + l, 0);
+      let along = ((Number(cell.mxGeometry.x) + 1) / 2) * total;
+      let i = 0;
+      while (i < lengths.length - 1 && along > lengths[i]) along -= lengths[i++];
+      const t = lengths[i] === 0 ? 0 : along / lengths[i];
+      const at = { x: path[i].x + t * (path[i + 1].x - path[i].x), y: path[i].y + t * (path[i + 1].y - path[i].y) };
+      const offset = cell.mxGeometry.mxPoint?.[0] ?? { x: 0, y: 0 };
+      const width = text.length * 6.2 + 4;
+      const align = /align=(left|right|center)/.exec(cell.style)[1];
+      const x = at.x + Number(offset.x) - (align === 'center' ? width / 2 : align === 'right' ? width : 0);
+      return { x, y: at.y + Number(offset.y) - 8, width, height: 16 };
+    };
+    const long = structuredClone(loadFixture('architecture', 'valid-aws-invoicing'));
+    long.connections = long.connections.map((c) => (c.id === 'alb-to-api' ? { ...c, label: 'container api:8080' } : c));
+    for (const ir of [loadFixture('architecture', 'valid-aws'), loadFixture('architecture', 'valid-aws-zones'), loadFixture('architecture', 'valid-aws-invoicing'), long]) for (const direction of ['LR', 'TB', 'RL', 'BT']) {
+      const { cells, abs, figures, paths } = await drawn({ ...structuredClone(ir), direction });
+      const where = `${ir.title} ${direction}`;
+      const boxes = [];
+      for (const c of ir.connections) {
+        const cell = cells.find((x) => x.id === `a:${c.id}:label`);
+        if (!cell) continue;
+        const box = labelBox(cell, paths.get(`a:${c.id}`), c.label);
+        boxes.push({ id: c.id, box });
+        for (const b of ir.boundaries.filter((x) => x.group)) {
+          const frame = abs.get(`a:${b.id}`);
+          const inside = contains(frame, box);
+          expect(inside || !intersects(box, frame), `${where}: label of ${c.id} across the border of ${b.id}`).toBe(true);
+        }
+        for (const part of ir.components) expect(intersects(box, abs.get(`a:${part.id}`)), `${where}: label of ${c.id} on ${part.id}`).toBe(false);
+        for (const f of figures) expect(intersects(box, f.label), `${where}: label of ${c.id} on the name of ${f.id}`).toBe(false);
+      }
+      for (const a of boxes) for (const b of boxes) if (a !== b) expect(intersects(a.box, b.box), `${where}: labels of ${a.id} and ${b.id}`).toBe(false);
+    }
+  });
+
   it('keeps a client as near the frames with a label on its connection as without one', async () => {
     const groups = ['aws:aws_account', 'aws:region', 'aws:vpc', 'aws:public_subnet'];
     const make = (direction, label) => ({

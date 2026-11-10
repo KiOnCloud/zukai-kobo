@@ -54,7 +54,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="order-platform-on-aws:c1:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform-on-aws:c1">
-          <mxGeometry x="-0.12" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.06" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -72,7 +72,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="order-platform-on-aws:c3:label" value="/api" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform-on-aws:c3">
-          <mxGeometry x="-0.43" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.29" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -81,7 +81,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="order-platform-on-aws:c4:label" value="HTTP" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform-on-aws:c4">
-          <mxGeometry x="0" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.01" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
@@ -112,7 +112,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="order-platform-on-aws:c7:label" value="order placed" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E6F6F7;" vertex="1" connectable="0" parent="order-platform-on-aws:c7">
-          <mxGeometry x="0.06" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.11" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>

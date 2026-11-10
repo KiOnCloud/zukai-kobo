@@ -489,7 +489,13 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
     if (route.start && route.end && !/exitX=/.test(style)) style += anchorStyle('exit', anchor(e.from, route.start)) + anchorStyle('entry', anchor(e.to, route.end));
     cells.push(edge({ id: cid(e.id), value: '', style, source: cid(e.from), target: cid(e.to), points }));
     if (e.label) {
-      const placed = route.label && route.start && route.end ? labelGeometry([route.start, ...points, route.end], route.label, e.label) : { position: 0, offset: { x: 0, y: 0 }, align: 'center' };
+      // draw.io measures a label's place along the line as it draws it, from one shape to the
+      // other. A line that ends at a figure with its name below starts at the figure, not at
+      // the edge of the layout box; where a label must not move off its place (beside a frame
+      // border) it is measured on that line.
+      const drawnEnd = (id, pt) => { const a = anchor(id, pt); const b = drawBox(nodeOf(id) ?? {}, absoluteBox(id, layout, parentOf)); return { x: b.x + a.x * b.width + a.dx, y: b.y + a.y * b.height + a.dy }; };
+      const line = route.start && route.end ? (e.labelOnDrawnLine ? [drawnEnd(e.from, route.start), ...points, drawnEnd(e.to, route.end)] : [route.start, ...points, route.end]) : undefined;
+      const placed = route.label && line ? labelGeometry(line, route.label, e.label) : { position: 0, offset: { x: 0, y: 0 }, align: 'center' };
       cells.push(edgeLabel({ id: `${cid(e.id)}:label`, background: e.labelBackground, value: htmlLabel(e.label), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
     }
     for (const l of e.endLabels ?? []) {
@@ -1264,7 +1270,7 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   // The ports of a figure depend on the sides its connections use, so they are worked out
   // afresh for every arrangement that is tried.
   // In an AWS diagram each label is placed beside its own line after the layout (placeLineLabels).
-  if (usesAws) for (const e of edges) if (e.label && e.from !== e.to) e.labelPlacedByCaller = true;
+  if (usesAws) for (const e of edges) if (e.label && e.from !== e.to) { e.labelPlacedByCaller = true; e.labelOnDrawnLine = true; }
   const stores = usesAws ? attachStores(nodes, edges, ir.direction) : new Map();
   const aside = usesAws ? asideCandidates(nodes, edges) : new Map();
   const laidOut = () => ({ nodes: nodes.filter((n) => !aside.has(n.id) && !stores.has(n.id)), edges: edges.filter((e) => !aside.has(e.to) && !stores.has(e.to)) });
