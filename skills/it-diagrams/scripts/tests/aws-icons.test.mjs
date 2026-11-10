@@ -8,7 +8,7 @@ import { validateIr } from '../src/validate-ir.mjs';
 import { emit } from '../src/pipeline.mjs';
 import { measureLabelBelow } from '../src/layout-graph.mjs';
 import { checkDrawioStructure, absoluteBounds, edgePaths } from './drawio-structure.mjs';
-import { loadFixture, scriptsDir } from './helpers.mjs';
+import { loadFixture, validFixtures, scriptsDir } from './helpers.mjs';
 
 // A short excerpt in the layout of draw.io's Sidebar-AWS4.js: two palettes that share a
 // service, the groups palette, and the retired palette with its colour helper.
@@ -577,5 +577,64 @@ describe('AWS icons on the targets that cannot draw them', () => {
   it('drawio: no warning', async () => {
     const r = await emit(loadFixture('architecture', 'valid-aws'), 'drawio');
     expect(r.warnings).toEqual([]);
+  });
+});
+
+/**
+ * The same measures on any architecture diagram: how many bends a connection has, whether a
+ * line runs through a component or its name that it does not belong to, and how much of a
+ * frame its members fill.
+ */
+async function layoutMeasures(ir) {
+  const { r, cells, abs, paths } = await drawn(ir);
+  const parts = ir.components.map((c) => {
+    const cell = cells.find((x) => x.id === `a:${c.id}`);
+    const box = abs.get(cell.id);
+    const wrap = /labelWidth=(\d+)/.exec(cell.style)?.[1];
+    return { id: cell.id, box, name: wrap ? { x: box.x + box.width / 2 - wrap / 2, y: box.y + box.height, width: Number(wrap), height: measureLabelBelow(c.label).height } : undefined };
+  });
+  let bends = 0;
+  let through = 0;
+  for (const [id, path] of paths) {
+    bends += path.length - 2;
+    const line = cells.find((c) => c.id === id);
+    for (let i = 1; i < path.length; i++) {
+      const seg = segmentBox(path[i - 1], path[i]);
+      const thick = { ...seg, width: seg.width + 0.6, height: seg.height + 0.6 };
+      const inside = (b) => thick.x < b.x + b.width - 0.5 && b.x < thick.x + thick.width - 0.5 && thick.y < b.y + b.height - 0.5 && b.y < thick.y + thick.height - 0.5;
+      for (const part of parts) if (part.id !== line.source && part.id !== line.target && (inside(part.box) || (part.name && inside(part.name)))) through++;
+    }
+  }
+  const fills = (ir.boundaries ?? []).map((b) => {
+    const frame = abs.get(`a:${b.id}`);
+    return b.children.reduce((sum, k) => sum + abs.get(`a:${k}`).width * abs.get(`a:${k}`).height, 0) / (frame.width * frame.height);
+  });
+  return { warnings: r.warnings.length, bendsPerConnection: bends / Math.max(1, paths.size), through, leastFilledFrame: fills.length ? Math.min(...fills) : undefined };
+}
+
+describe('AWS architecture diagrams against the plain architecture diagrams of this repository', () => {
+  it('are drawn no worse on the same measures, sideways and downwards', async () => {
+    const architecture = validFixtures().filter((f) => f.kind === 'architecture');
+    const usesAws = (ir) => ir.components.some((c) => c.icon) || (ir.boundaries ?? []).some((b) => b.group);
+    const measured = [];
+    for (const { name, ir } of architecture) for (const direction of ['LR', 'TB']) {
+      measured.push({ name, direction, aws: usesAws(ir), ...(await layoutMeasures({ ...structuredClone(ir), direction })) });
+    }
+    const plain = measured.filter((m) => !m.aws);
+    const aws = measured.filter((m) => m.aws);
+    expect(aws.length).toBeGreaterThanOrEqual(6);
+    expect(plain.length).toBeGreaterThanOrEqual(10);
+    const mean = (list, key) => list.reduce((s, m) => s + m[key], 0) / list.length;
+    const framed = (list) => list.filter((m) => m.leastFilledFrame !== undefined);
+    // No line through a component or a name it does not belong to, and no layout warning: as in the plain diagrams.
+    for (const m of measured) {
+      expect(m.through, `${m.name} ${m.direction}`).toBe(0);
+      expect(m.warnings, `${m.name} ${m.direction}`).toBe(0);
+    }
+    // Connections bend no more than in the plain diagrams, on average.
+    expect(mean(aws, 'bendsPerConnection')).toBeLessThanOrEqual(mean(plain, 'bendsPerConnection'));
+    // No AWS frame is emptier than the emptiest frame of a plain diagram.
+    const emptiestPlain = Math.min(...framed(plain).map((m) => m.leastFilledFrame));
+    for (const m of framed(aws)) expect(m.leastFilledFrame, `${m.name} ${m.direction}`).toBeGreaterThanOrEqual(emptiestPlain);
   });
 });

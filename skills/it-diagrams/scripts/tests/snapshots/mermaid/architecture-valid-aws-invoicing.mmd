@@ -1,0 +1,44 @@
+---
+title: "Invoicing system on AWS (current state)"
+---
+architecture-beta
+  %% id: account
+  group n1(cloud)[AWS account]
+  %% id: region
+  group n2(cloud)[ap-northeast-1] in n1
+  %% id: vpc
+  group n3(cloud)[VPC] in n2
+  %% id: public-subnet
+  group n4(cloud)[Public subnet] in n3
+  %% id: private-subnet
+  group n5(cloud)[Private subnet] in n3
+  %% id: users
+  service n6(internet)[Users]
+  %% id: alb
+  service n7(server)[Application Load Balancer] in n4
+  %% id: invoice-api
+  service n8(server)[Invoice API (ECS on Fargate)] in n5
+  %% id: invoice-db
+  service n9(database)[RDS PostgreSQL] in n5
+  %% id: tax-rate-api
+  service n10(cloud)[Third-party tax rate API]
+  %% id: invoice-queue
+  service n11(server)[SQS queue] in n2
+  %% id: pdf-lambda
+  service n12(server)[Lambda function] in n2
+  %% id: pdf-bucket
+  service n13(database)[S3 bucket] in n2
+  %% id: users-to-alb
+  n6:B --> T:n7
+  %% id: alb-to-api
+  n7:B --> T:n8
+  %% id: api-to-db
+  n8:B --> T:n9
+  %% id: api-to-tax
+  n8:R --> L:n10
+  %% id: api-to-queue
+  n8:L --> R:n11
+  %% id: queue-to-lambda
+  n11:B --> T:n12
+  %% id: lambda-to-bucket
+  n12:B --> T:n13

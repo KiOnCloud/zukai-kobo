@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Invoicing system on AWS (current state)",
+  "direction": "TB",
+  "meta": {
+    "source": "clarify",
+    "audience": "technical",
+    "notes": [
+      "Scope: current state",
+      "All connections are one-way",
+      "The Lambda function has no VPC configuration, so it is drawn in the region, outside the VPC",
+      "The Lambda function renders the PDF before storing it in the S3 bucket"
+    ]
+  },
+  "components": [
+    {
+      "id": "users",
+      "label": "Users",
+      "kind": "client"
+    },
+    {
+      "id": "alb",
+      "label": "Application Load Balancer",
+      "icon": "aws:elastic_load_balancing"
+    },
+    {
+      "id": "invoice-api",
+      "label": "Invoice API (ECS on Fargate)",
+      "icon": "aws:fargate"
+    },
+    {
+      "id": "invoice-db",
+      "label": "RDS PostgreSQL",
+      "kind": "database",
+      "icon": "aws:rds"
+    },
+    {
+      "id": "tax-rate-api",
+      "label": "Third-party tax rate API",
+      "kind": "external"
+    },
+    {
+      "id": "invoice-queue",
+      "label": "SQS queue",
+      "kind": "queue",
+      "icon": "aws:sqs"
+    },
+    {
+      "id": "pdf-lambda",
+      "label": "Lambda function",
+      "icon": "aws:lambda"
+    },
+    {
+      "id": "pdf-bucket",
+      "label": "S3 bucket",
+      "kind": "database",
+      "icon": "aws:s3"
+    }
+  ],
+  "boundaries": [
+    {
+      "id": "account",
+      "label": "AWS account",
+      "group": "aws:aws_account",
+      "children": [
+        "region"
+      ]
+    },
+    {
+      "id": "region",
+      "label": "ap-northeast-1",
+      "group": "aws:region",
+      "children": [
+        "vpc",
+        "invoice-queue",
+        "pdf-lambda",
+        "pdf-bucket"
+      ]
+    },
+    {
+      "id": "vpc",
+      "label": "VPC",
+      "group": "aws:vpc",
+      "children": [
+        "public-subnet",
+        "private-subnet"
+      ]
+    },
+    {
+      "id": "public-subnet",
+      "label": "Public subnet",
+      "group": "aws:public_subnet",
+      "children": [
+        "alb"
+      ]
+    },
+    {
+      "id": "private-subnet",
+      "label": "Private subnet",
+      "group": "aws:private_subnet",
+      "children": [
+        "invoice-api",
+        "invoice-db"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "users-to-alb",
+      "from": "users",
+      "to": "alb",
+      "label": "HTTPS"
+    },
+    {
+      "id": "alb-to-api",
+      "from": "alb",
+      "to": "invoice-api",
+      "label": "forwards requests"
+    },
+    {
+      "id": "api-to-db",
+      "from": "invoice-api",
+      "to": "invoice-db",
+      "label": "reads and writes"
+    },
+    {
+      "id": "api-to-tax",
+      "from": "invoice-api",
+      "to": "tax-rate-api",
+      "label": "gets tax rates (HTTPS)"
+    },
+    {
+      "id": "api-to-queue",
+      "from": "invoice-api",
+      "to": "invoice-queue",
+      "label": "invoice issued"
+    },
+    {
+      "id": "queue-to-lambda",
+      "from": "invoice-queue",
+      "to": "pdf-lambda",
+      "label": "invoice issued"
+    },
+    {
+      "id": "lambda-to-bucket",
+      "from": "pdf-lambda",
+      "to": "pdf-bucket",
+      "label": "stores rendered PDF"
+    }
+  ]
+}

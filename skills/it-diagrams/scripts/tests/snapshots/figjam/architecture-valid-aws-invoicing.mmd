@@ -1,0 +1,46 @@
+flowchart TB
+  %% id: users
+  n1(("Users"))
+  %% id: tax-rate-api
+  n5>"Third-party tax rate API"]
+  %% id: account
+  subgraph n9["AWS account"]
+    %% id: region
+    subgraph n10["ap-northeast-1"]
+      %% id: vpc
+      subgraph n11["VPC"]
+        %% id: public-subnet
+        subgraph n12["Public subnet"]
+          %% id: alb
+          n2["Application Load Balancer"]
+        end
+        %% id: private-subnet
+        subgraph n13["Private subnet"]
+          %% id: invoice-api
+          n3["Invoice API (ECS on Fargate)"]
+          %% id: invoice-db
+          n4[("RDS PostgreSQL")]
+        end
+      end
+      %% id: invoice-queue
+      n6[["SQS queue"]]
+      %% id: pdf-lambda
+      n7["Lambda function"]
+      %% id: pdf-bucket
+      n8[("S3 bucket")]
+    end
+  end
+  %% id: users-to-alb
+  n1 -->|"HTTPS"| n2
+  %% id: alb-to-api
+  n2 -->|"forwards requests"| n3
+  %% id: api-to-db
+  n3 -->|"reads and writes"| n4
+  %% id: api-to-tax
+  n3 -->|"gets tax rates (HTTPS)"| n5
+  %% id: api-to-queue
+  n3 -->|"invoice issued"| n6
+  %% id: queue-to-lambda
+  n6 -->|"invoice issued"| n7
+  %% id: lambda-to-bucket
+  n7 -->|"stores rendered PDF"| n8
