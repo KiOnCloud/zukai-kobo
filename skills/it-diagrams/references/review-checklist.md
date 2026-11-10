@@ -10,14 +10,15 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 1. Every arrow starts and ends at the intended elements and points the right way; branch
    arrows leave a decision at its tip and share one trunk when they head the same way.
 2. No label overlaps another label, a frame, a note or a shape; nothing is cut off or
-   outside the page. An AWS icon shows its picture: an empty coloured or white square means
+   outside the page. No connection runs through a component name or a frame title. An AWS icon shows its picture: an empty coloured or white square means
    the viewer lacks that stencil, which is reported, not passed.
 3. Frames, groups and lanes enclose exactly their members; each action sits in the lane of
    the actor that performs it; the reading order (top to bottom or left to right) matches
    the order in the IR. One exception is intended and is not a finding: in an AWS
-   architecture diagram a system outside the frames that is only called from inside them
-   stands at the nearer end of the frames, so its arrow may point against the reading
-   order (`target-drawio.md`).
+   architecture diagram a system outside the frames that a component inside them calls
+   stands beside the frames, level with its caller, or at the nearer end of the frames when
+   it has several callers, so its arrow may run across or against the reading order
+   (`target-drawio.md`).
 4. Every CLI warning that starts with `layout:` is resolved or explicitly accepted.
 
 ## Wording (read the IR)

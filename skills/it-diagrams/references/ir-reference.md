@@ -242,7 +242,9 @@ API to database, API to third-party system). Through a queue, topic or stream th
 moves from the producer to the queue and from the queue to the consumer, so write producer
 to queue and queue to consumer, also when the consumer polls: "the worker consumes the
 queue" is `from` the queue `to` the worker. A reply is not a second connection; use
-`bidirectional` only when either side starts exchanges.
+`bidirectional` only when either side starts exchanges. `label` is optional: write the
+protocol or the purpose when the request or the code states it, and leave it out rather
+than guess one.
 
 ```json
 {

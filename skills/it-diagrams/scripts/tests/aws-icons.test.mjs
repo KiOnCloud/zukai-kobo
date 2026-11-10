@@ -299,8 +299,10 @@ describe('AWS icons and group frames in draw.io', () => {
   });
 
   it('leaves a title in its usual place when nothing crosses it', async () => {
+    // Only the private subnet has a line through the top where its title stands (the one to the payment provider).
     const { cellOf } = await drawn(loadFixture('architecture', 'valid-aws'));
-    for (const id of ['cloud', 'region', 'vpc', 'public', 'private']) expect(cellOf(id).style, id).toContain('spacingLeft=30;');
+    for (const id of ['cloud', 'region', 'vpc', 'public']) expect(cellOf(id).style, id).toContain('spacingLeft=30;');
+    expect(cellOf('private').style).not.toContain('spacingLeft=30;');
   });
 
   it('keeps every member inside its frame, below the title, in every direction', async () => {
@@ -346,50 +348,96 @@ describe('AWS icons and group frames in draw.io', () => {
     }
   });
 
-  it('puts a system outside the frames on their nearer side, with the arrow still pointing the way the IR says', async () => {
-    // The tax API is called by the second component of a six-component chain: the start of
-    // the flow is the near end, the far end lies four components further on.
-    const chain = {
-      schemaVersion: 1, kind: 'architecture', title: 'T',
-      components: [
-        { id: 'users', label: 'Users', kind: 'client' }, { id: 'alb', label: 'Load balancer', icon: 'aws:elastic_load_balancing' },
-        { id: 'api', label: 'Invoice API', icon: 'aws:fargate' }, { id: 'db', label: 'Database', kind: 'database', icon: 'aws:rds' },
-        { id: 'queue', label: 'Queue', kind: 'queue', icon: 'aws:sqs' }, { id: 'fn', label: 'Renderer', icon: 'aws:lambda' },
-        { id: 'bucket', label: 'Bucket', kind: 'database', icon: 'aws:s3' }, { id: 'tax', label: 'Tax rate API', kind: 'external' },
-      ],
-      boundaries: [
-        { id: 'region', label: 'Region', group: 'aws:region', children: ['vpc', 'queue', 'fn', 'bucket'] },
-        { id: 'vpc', label: 'VPC', group: 'aws:vpc', children: ['alb', 'api', 'db'] },
-      ],
-      connections: [
-        { id: 'c1', from: 'users', to: 'alb' }, { id: 'c2', from: 'alb', to: 'api' }, { id: 'c3', from: 'api', to: 'db' },
-        { id: 'c4', from: 'api', to: 'tax', label: 'gets tax rates' }, { id: 'c5', from: 'api', to: 'queue' },
-        { id: 'c6', from: 'queue', to: 'fn' }, { id: 'c7', from: 'fn', to: 'bucket' },
-      ],
-    };
-    // A connection that leaves a figure downwards starts under its name, on the figure's column.
-    const onBox = (pt, box) => pt.x >= box.x - 0.5 && pt.x <= box.x + box.width + 0.5 && pt.y >= box.y - 0.5 && pt.y <= box.y + box.height + 60;
-    const before = { LR: (a, b) => a.x + a.width <= b.x, TB: (a, b) => a.y + a.height <= b.y, RL: (a, b) => a.x >= b.x + b.width, BT: (a, b) => a.y >= b.y + b.height };
-    for (const direction of ['LR', 'TB', 'RL', 'BT']) {
-      const { r, abs, cellOf, paths } = await drawn({ ...chain, direction });
-      expect(r.warnings, direction).toEqual([]);
-      expect(before[direction](abs.get('a:tax'), abs.get('a:region')), `${direction}: at the start of the flow`).toBe(true);
-      expect([cellOf('c4').source, cellOf('c4').target], direction).toEqual(['a:api', 'a:tax']);
-      const path = paths.get('a:c4');
-      expect(onBox(path[0], abs.get('a:api')), `${direction}: starts at the API`).toBe(true);
-      expect(onBox(path.at(-1), abs.get('a:tax')), `${direction}: ends at the tax API`).toBe(true);
-    }
-    // In every direction of the larger sample the arrow keeps its ends too, whichever side was shorter.
-    for (const direction of ['LR', 'TB', 'RL', 'BT']) {
-      const { abs, cellOf, paths } = await drawn(withDirection(loadFixture('architecture', 'valid-aws'), direction));
-      expect([cellOf('c9').source, cellOf('c9').target], direction).toEqual(['a:api', 'a:psp']);
-      expect(onBox(paths.get('a:c9')[0], abs.get('a:api')), direction).toBe(true);
-      expect(onBox(paths.get('a:c9').at(-1), abs.get('a:psp')), direction).toBe(true);
+  // A tax API called by the second component of a chain that runs on for four more.
+  const chain = {
+    schemaVersion: 1, kind: 'architecture', title: 'T',
+    components: [
+      { id: 'users', label: 'Users', kind: 'client' }, { id: 'alb', label: 'Load balancer', icon: 'aws:elastic_load_balancing' },
+      { id: 'api', label: 'Invoice API', icon: 'aws:fargate' }, { id: 'db', label: 'Database', kind: 'database', icon: 'aws:rds' },
+      { id: 'queue', label: 'Queue', kind: 'queue', icon: 'aws:sqs' }, { id: 'fn', label: 'Renderer', icon: 'aws:lambda' },
+      { id: 'bucket', label: 'Bucket', kind: 'database', icon: 'aws:s3' }, { id: 'tax', label: 'Tax rate API', kind: 'external' },
+    ],
+    boundaries: [
+      { id: 'region', label: 'Region', group: 'aws:region', children: ['vpc', 'queue', 'fn', 'bucket'] },
+      { id: 'vpc', label: 'VPC', group: 'aws:vpc', children: ['alb', 'api', 'db'] },
+    ],
+    connections: [
+      { id: 'c1', from: 'users', to: 'alb' }, { id: 'c2', from: 'alb', to: 'api' }, { id: 'c3', from: 'api', to: 'db' },
+      { id: 'c4', from: 'api', to: 'tax', label: 'gets tax rates' }, { id: 'c5', from: 'api', to: 'queue' },
+      { id: 'c6', from: 'queue', to: 'fn' }, { id: 'c7', from: 'fn', to: 'bucket' },
+    ],
+  };
+  // A connection that leaves a figure downwards starts under its name, on the figure's column.
+  const onBox = (pt, box) => pt.x >= box.x - 0.5 && pt.x <= box.x + box.width + 0.5 && pt.y >= box.y - 0.5 && pt.y <= box.y + box.height + 60;
+
+  it('puts a system that one component calls beside the frames, level with its caller, on one straight line', async () => {
+    for (const sample of [chain, loadFixture('architecture', 'valid-aws')]) for (const direction of ['LR', 'TB', 'RL', 'BT']) {
+      const ir = { ...structuredClone(sample), direction };
+      const [edgeId, caller, system, outer] = sample === chain ? ['c4', 'api', 'tax', 'region'] : ['c9', 'api', 'psp', 'cloud'];
+      const where = `${ir.title} ${direction}`;
+      const { r, abs, cellOf, figures, paths } = await drawn(ir);
+      expect(r.warnings, where).toEqual([]);
+      expect([cellOf(edgeId).source, cellOf(edgeId).target], where).toEqual([`a:${caller}`, `a:${system}`]);
+      // One straight line across the flow, from the caller to the system.
+      const path = paths.get(`a:${edgeId}`);
+      expect(path, where).toHaveLength(2);
+      const across = direction === 'TB' || direction === 'BT' ? 'y' : 'x';
+      expect(Math.abs(path[0][across] - path[1][across]), `${where}: straight`).toBeLessThan(0.5);
+      expect(onBox(path[0], abs.get(`a:${caller}`)), `${where}: starts at the caller`).toBe(true);
+      expect(onBox(path[1], abs.get(`a:${system}`)), `${where}: ends at the system`).toBe(true);
+      // The system stands outside the outermost frame, and the line runs through no other component or name.
+      const box = abs.get(`a:${system}`);
+      expect(intersects(box, abs.get(`a:${outer}`)), `${where}: outside the frames`).toBe(false);
+      const line = segmentBox(path[0], path[1]);
+      for (const c of ir.components) {
+        if (c.id === caller || c.id === system) continue;
+        expect(intersects(line, abs.get(`a:${c.id}`)), `${where}: line through ${c.id}`).toBe(false);
+        expect(intersects(box, abs.get(`a:${c.id}`)), `${where}: system on ${c.id}`).toBe(false);
+      }
+      for (const f of figures) if (f.id !== caller) expect(intersects(line, f.label), `${where}: line through the name of ${f.id}`).toBe(false);
+      // It runs along no stretch of another connection.
+      for (const [id, other] of paths) {
+        if (id === `a:${edgeId}`) continue;
+        for (let i = 1; i < other.length; i++) {
+          const seg = segmentBox(other[i - 1], other[i]);
+          const parallel = across === 'y' ? seg.height < 0.5 : seg.width < 0.5;
+          if (parallel) expect(intersects({ x: line.x - 5, y: line.y - 5, width: line.width + 10, height: line.height + 10 }, { ...seg, width: seg.width + 0.1, height: seg.height + 0.1 }), `${where}: along ${id}`).toBe(false);
+        }
+      }
     }
   });
 
-  it('leaves a system outside the frames where the flow puts it when that is already the short way', async () => {
-    const ir = { schemaVersion: 1, kind: 'architecture', title: 'T', direction: 'LR', components: [{ id: 'u', label: 'User', kind: 'client' }, { id: 'api', label: 'API', icon: 'aws:lambda' }, { id: 'ext', label: 'Partner', kind: 'external' }], boundaries: [{ id: 'vpc', label: 'VPC', group: 'aws:vpc', children: ['api'] }], connections: [{ id: 'c1', from: 'u', to: 'api' }, { id: 'c2', from: 'api', to: 'ext' }] };
+  it('keeps a system with several callers, or one that calls in, in the flow', async () => {
+    const two = structuredClone(chain);
+    two.connections.push({ id: 'c8', from: 'fn', to: 'tax' });
+    const { r, paths } = await drawn({ ...two, direction: 'LR' });
+    expect(r.warnings).toEqual([]);
+    expect(paths.get('a:c4').length + paths.get('a:c8').length).toBeGreaterThan(4);
+    const caller = structuredClone(chain);
+    caller.connections = caller.connections.map((c) => (c.id === 'c4' ? { ...c, from: 'tax', to: 'api' } : c));
+    const drawnCaller = await drawn({ ...caller, direction: 'LR' });
+    // A system that calls in stands where the flow starts, before the frames.
+    expect(drawnCaller.abs.get('a:tax').x + drawnCaller.abs.get('a:tax').width).toBeLessThanOrEqual(drawnCaller.abs.get('a:region').x);
+  });
+
+  it('puts a system with several callers at the nearer end of the frames, with the arrows still pointing the way the IR says', async () => {
+    const two = structuredClone(chain);
+    two.connections.push({ id: 'c8', from: 'alb', to: 'tax' });
+    const before = { LR: (a, b) => a.x + a.width <= b.x, TB: (a, b) => a.y + a.height <= b.y, RL: (a, b) => a.x >= b.x + b.width, BT: (a, b) => a.y >= b.y + b.height };
+    for (const direction of ['LR', 'TB', 'RL', 'BT']) {
+      const { r, abs, cellOf, paths } = await drawn({ ...two, direction });
+      expect(r.warnings, direction).toEqual([]);
+      expect(before[direction](abs.get('a:tax'), abs.get('a:region')), `${direction}: at the start of the flow`).toBe(true);
+      for (const [id, from] of [['c4', 'api'], ['c8', 'alb']]) {
+        expect([cellOf(id).source, cellOf(id).target], direction).toEqual([`a:${from}`, 'a:tax']);
+        expect(onBox(paths.get(`a:${id}`)[0], abs.get(`a:${from}`)), `${direction}: ${id} starts at ${from}`).toBe(true);
+        expect(onBox(paths.get(`a:${id}`).at(-1), abs.get('a:tax')), `${direction}: ${id} ends at the tax API`).toBe(true);
+      }
+    }
+  });
+
+  it('leaves a system outside the frames where the flow puts it when it has a figure of its own', async () => {
+    const ir = { schemaVersion: 1, kind: 'architecture', title: 'T', direction: 'LR', components: [{ id: 'u', label: 'User', kind: 'client' }, { id: 'api', label: 'API', icon: 'aws:lambda' }, { id: 'ext', label: 'Partner', kind: 'client' }], boundaries: [{ id: 'vpc', label: 'VPC', group: 'aws:vpc', children: ['api'] }], connections: [{ id: 'c1', from: 'u', to: 'api' }, { id: 'c2', from: 'api', to: 'ext' }] };
     const { abs } = await drawn(ir);
     expect(abs.get('a:ext').x).toBeGreaterThanOrEqual(abs.get('a:vpc').x + abs.get('a:vpc').width);
     expect(abs.get('a:u').x + abs.get('a:u').width).toBeLessThanOrEqual(abs.get('a:vpc').x);

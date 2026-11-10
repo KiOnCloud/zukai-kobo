@@ -100,7 +100,12 @@ frames (`SKILL.md`, AWS icons; names in `aws-icons.md`): a Terraform `aws_*` res
 CloudFormation or SAM `AWS::*` type, a CDK construct or an AWS SDK client names the service
 of a component; `aws_vpc`, `aws_subnet` (public when its route table has an internet
 gateway route), the provider region and the account give the frames. Set an icon only for a
-service the files name; a host name that merely looks like AWS is not evidence.
+service the files name; a host name that merely looks like AWS is not evidence. Do not add
+a caller the files do not define: a public load balancer with no client in the code has no
+incoming connection, and `meta.omitted` says so. Supporting resources (`aws-icons.md`,
+Choosing) are listed in `meta.omitted` too, in one entry. Label a connection with the
+protocol only when the files state it (a port alone is not a protocol); otherwise with the
+call the code makes, or leave the label out.
 
 ## Output
 

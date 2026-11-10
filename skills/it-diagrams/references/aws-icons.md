@@ -10,10 +10,17 @@ A service with no entry here keeps its generic shape: leave `icon` out.
 ## Choosing
 
 - Frames nest from the outside in: AWS Cloud or account, region, VPC, Availability Zone or
-  subnet. Draw only the levels the request or the code names; one outer frame is enough.
+  subnet. Draw only the levels the request or the code names. The outermost frame is
+  `aws:aws_account` when an account is named or several accounts are shown, else
+  `aws:aws_cloud`; never both around the same content. Add `aws:region` inside it only
+  when the region is named.
 - A service that runs outside the VPC (S3, SQS, SNS, DynamoDB, a Lambda function without a
   VPC configuration, CloudFront, Route 53) goes in the region or the outer frame, not in a
   subnet.
+- Supporting resources are not components: an internet or NAT gateway, a route table, an
+  IAM role, a target group, a subnet group, an ECS cluster or task definition. Leave them
+  out (a subnet with a route to an internet gateway is simply the public subnet) unless
+  the user asks for the network or permission detail.
 - A VPC, a subnet or a security group is a frame (`group`), not a component: `aws:vpc` is
   also in the icon list, for the rare diagram that shows the VPC service as one box.
 - Containers on Fargate take `aws:fargate`, on EC2 instances `aws:ecs`; a Kubernetes

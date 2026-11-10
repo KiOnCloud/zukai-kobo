@@ -924,6 +924,132 @@ async function nearSide(layout, { nodes, edges }, arrange) {
   return arrange();
 }
 
+/**
+ * The components that can stand beside the frames instead of at an end of the flow: a plain
+ * box outside every frame whose one connection comes from a component inside a frame (a
+ * third-party API that one service calls).
+ * @returns {Map<string, object>} component id to its connection
+ */
+function asideCandidates(nodes, edges) {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const out = new Map();
+  for (const n of nodes) {
+    if (n.parent !== undefined || n.drawWidth !== undefined) continue;
+    const own = edges.filter((e) => e.from === n.id || e.to === n.id);
+    if (own.length !== 1 || own[0].to !== n.id || own[0].from === n.id) continue;
+    if (byId.get(own[0].from)?.parent === undefined) continue;
+    out.set(n.id, own[0]);
+  }
+  return out;
+}
+
+/** Room between the outermost frame and a system placed beside it, when its connection has no label. */
+const ASIDE_GAP = 80;
+/** Where a layout starts on both axes (ELK's default padding). */
+const ASIDE_ORIGIN = 12;
+
+/**
+ * Place each system of `aside` beside the frames, level with the component that calls it,
+ * and join the two with one straight line across the flow: to the left or right of the
+ * frames in a top-down diagram, below or above them in a left-to-right one. The layout
+ * engine can only put such a system at an end of the flow, before or after all the frames,
+ * and its connection then runs along the flow past everything in between.
+ *
+ * A side is usable when the line runs through nothing but the frames around the caller: no
+ * other component or its name, no frame the caller is not in, no label, no stretch of
+ * another connection running the same way, and the system and its label have free room.
+ * Of the usable sides the one with the fewest crossed connections wins, then the shorter.
+ * The placement is written into `layout`.
+ * @returns {string|undefined} the id of the first system with no usable side, or undefined
+ */
+function placeBeside(layout, aside, { containers, nodes, edges, direction }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  // Whether the flow runs down or up the page; the systems then stand to the left or right.
+  const vertical = !acrossIsVertical(direction);
+  const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const grow = (box, d) => ({ x: box.x - d, y: box.y - d, width: box.width + 2 * d, height: box.height + 2 * d });
+  // What is drawn so far: the laid-out components, the routed connections and their labels.
+  const placedNodes = nodes.filter((n) => layout.nodes.has(n.id) && !aside.has(n.id)).map((n) => ({ id: n.id, box: absoluteBox(n.id, layout, parentOf) }));
+  const frames = containers.map((c) => ({ id: c.id, box: absoluteBox(c.id, layout, parentOf) }));
+  const segments = [];
+  const labels = [];
+  for (const e of edges) {
+    if (aside.has(e.to)) continue;
+    const r = layout.edges.get(e.id);
+    if (!r?.start || !r?.end) continue;
+    const path = [r.start, ...(r.points ?? []), r.end];
+    for (let i = 1; i < path.length; i++) segments.push({ a: path[i - 1], b: path[i] });
+    if (e.label && r.label) labels.push(r.label);
+  }
+  const taken = [];
+  for (const [id, e] of aside) {
+    const node = byId.get(id);
+    const caller = byId.get(e.from);
+    const whole = absoluteBox(e.from, layout, parentOf);
+    const figure = drawBox(caller, whole);
+    const around = new Set();
+    for (let p = caller.parent; p; p = parentOf.get(p)) around.add(p);
+    const outer = frames.find((f) => around.has(f.id) && parentOf.get(f.id) === undefined).box;
+    const text = e.label ? { width: Math.ceil(widestLine(e.label)) + 8, height: 16 * String(e.label).split(/\r\n?|\n/).length } : { width: 0, height: 0 };
+    const gap = Math.max(ASIDE_GAP, (vertical ? text.width : text.height) + 40);
+    const options = [];
+    for (const side of vertical ? ['right', 'left'] : ['bottom', 'top']) {
+      let start; let end; let box; let label;
+      if (vertical) {
+        const y = Math.round(figure.y + figure.height / 2);
+        const x = side === 'right' ? outer.x + outer.width + gap : outer.x - gap - node.width;
+        box = { x, y: y - node.height / 2, width: node.width, height: node.height };
+        start = { x: side === 'right' ? figure.x + figure.width : figure.x, y };
+        end = { x: side === 'right' ? x : x + node.width, y };
+        const mid = side === 'right' ? outer.x + outer.width + gap / 2 : outer.x - gap / 2;
+        label = { x: mid - text.width / 2, y: y - text.height - 4, width: text.width, height: text.height };
+      } else {
+        const x = Math.round(figure.x + figure.width / 2);
+        const y = side === 'bottom' ? outer.y + outer.height + gap : outer.y - gap - node.height;
+        box = { x: x - node.width / 2, y, width: node.width, height: node.height };
+        // Downwards the line starts under the caller's name, as every line leaving a figure that way does.
+        start = { x, y: side === 'bottom' ? whole.y + whole.height : figure.y };
+        end = { x, y: side === 'bottom' ? y : y + node.height };
+        const mid = side === 'bottom' ? outer.y + outer.height + gap / 2 : outer.y - gap / 2;
+        label = { x: x + 6, y: mid - text.height / 2, width: text.width, height: text.height };
+      }
+      const line = { x: Math.min(start.x, end.x), y: Math.min(start.y, end.y), width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) };
+      const lane = grow(line, 10);
+      const things = [box, ...(e.label ? [label] : [])];
+      if (placedNodes.some((n) => n.id !== e.from && (hit(lane, n.box) || things.some((b) => hit(grow(b, 10), n.box))))) continue;
+      if (frames.some((f) => (!around.has(f.id) && hit(lane, f.box)) || things.some((b) => hit(grow(b, 10), f.box)))) continue;
+      if (labels.some((l) => hit(lane, l) || things.some((b) => hit(b, l)))) continue;
+      if (taken.some((b) => hit(lane, b) || things.some((x) => hit(grow(x, 10), b)))) continue;
+      // Another connection may cross the line, not run along it.
+      const along = (s) => (vertical ? Math.abs(s.a.y - s.b.y) < 0.5 : Math.abs(s.a.x - s.b.x) < 0.5);
+      const boxOf = (s) => ({ x: Math.min(s.a.x, s.b.x), y: Math.min(s.a.y, s.b.y), width: Math.abs(s.a.x - s.b.x), height: Math.abs(s.a.y - s.b.y) });
+      const touching = segments.filter((s) => hit(lane, grow(boxOf(s), 0.5)));
+      if (touching.some(along)) continue;
+      if (segments.some((s) => things.some((b) => hit(b, grow(boxOf(s), 0.5))))) continue;
+      options.push({ start, end, box, label, crossed: touching.length, length: line.width + line.height });
+    }
+    if (options.length === 0) return id;
+    options.sort((p, q) => p.crossed - q.crossed || p.length - q.length);
+    const best = options[0];
+    layout.nodes.set(id, best.box);
+    layout.edges.set(e.id, { start: best.start, end: best.end, points: [], label: e.label ? best.label : undefined });
+    taken.push(best.box, ...(e.label ? [best.label] : []), { x: Math.min(best.start.x, best.end.x) - 10, y: Math.min(best.start.y, best.end.y) - 10, width: Math.abs(best.end.x - best.start.x) + 20, height: Math.abs(best.end.y - best.start.y) + 20 });
+  }
+  // A system above or to the left of the frames lies before the origin of the layout: move
+  // the whole drawing so that it starts at the usual margin again.
+  const placed = [...aside].flatMap(([id, e]) => [layout.nodes.get(id), ...(e.label ? [layout.edges.get(e.id).label] : [])]);
+  const dx = Math.max(0, ASIDE_ORIGIN - Math.min(ASIDE_ORIGIN, ...placed.map((b) => b.x)));
+  const dy = Math.max(0, ASIDE_ORIGIN - Math.min(ASIDE_ORIGIN, ...placed.map((b) => b.y)));
+  if (dx || dy) {
+    const move = (pt) => { if (pt) { pt.x += dx; pt.y += dy; } };
+    // Children are positioned relative to their frame, so only what lies on the page itself moves.
+    for (const [id, box] of [...layout.nodes, ...layout.containers]) if (parentOf.get(id) === undefined) move(box);
+    for (const r of layout.edges.values()) { move(r.start); move(r.end); move(r.label); for (const pt of r.points ?? []) move(pt); }
+  }
+  return undefined;
+}
+
 async function emitArchitecture(ir, cid, refs, warnings) {
   const parent = parentMap(ir.boundaries ?? []);
   const containers = (ir.boundaries ?? []).map((b) => {
@@ -963,18 +1089,34 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
   // The ports of a figure depend on the sides its connections use, so they are worked out
   // afresh for every arrangement that is tried.
+  const aside = usesAws ? asideCandidates(nodes, edges) : new Map();
+  const laidOut = () => ({ nodes: nodes.filter((n) => !aside.has(n.id)), edges: edges.filter((e) => !aside.has(e.to)) });
   const arrange = async () => {
-    for (const n of nodes) delete n.ports;
-    for (const e of edges) { delete e.fromPort; delete e.toPort; }
-    const first = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
-    return below.size > 0 && clientPorts(first, { containers, nodes, edges }) ? layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing }) : first;
+    const g = laidOut();
+    for (const n of g.nodes) delete n.ports;
+    for (const e of g.edges) { delete e.fromPort; delete e.toPort; }
+    const first = await layoutGraph({ ...g, containers, direction: ir.direction, spacing });
+    return below.size > 0 && clientPorts(first, { containers, ...g }) ? layoutGraph({ ...g, containers, direction: ir.direction, spacing }) : first;
   };
-  let layout = await arrange();
-  if (usesAws) layout = await nearSide(layout, { nodes, edges }, arrange);
+  // A system beside the frames is placed after the layout of everything else. One that has no
+  // free place there goes back into the layout, which then runs again without it set aside.
+  const placeAside = async (base) => {
+    for (;;) {
+      const failed = placeBeside(base, aside, { containers, nodes, edges, direction: ir.direction });
+      if (failed === undefined) return base;
+      aside.delete(failed);
+      base = await arrange();
+    }
+  };
+  let layout = await placeAside(await arrange());
+  if (usesAws) {
+    const g = laidOut();
+    layout = await placeAside(await nearSide(layout, g, arrange));
+  }
   // A wider frame moves the lines, so the titles are placed again after each new layout.
   let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
   for (let round = 0; unplaced && round < 6; round++) {
-    layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
+    layout = await placeAside(await layoutGraph({ ...laidOut(), containers, direction: ir.direction, spacing }));
     unplaced = placeGroupTitles(layout, { containers, nodes, edges });
   }
   if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a connection crosses the title of an AWS group frame; no free place was found for it along the top of the frame', hint: 'set "direction" to "LR" or shorten the boundary label' });

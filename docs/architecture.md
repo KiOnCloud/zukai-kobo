@@ -161,7 +161,10 @@ Table rows grow with wrapped text.
 An architecture component drawn as a figure with its name below (a `client`, or a component
 with an AWS `icon`) has a layout box that holds the figure and the name; the figure is drawn
 at the top centre of that box, and a second layout pass gives its connections fixed ports
-within the figure's extent. In a diagram with AWS icons or frames, `nearSide` then tries each component that stands
+within the figure's extent. In a diagram with AWS icons or frames, a plain component outside the frames with one
+connection, from a component inside a frame, is left out of the ELK graph and placed by
+`placeBeside` next to the outermost frame, level with its caller, on one straight line; it
+goes back into the graph when neither side is free. `nearSide` then tries each component that stands
 outside every frame on the other end of the flow (`layoutReversed` on its edges) and keeps
 the arrangement whose connections are at least a fifth shorter. After the layout, the title of each AWS group frame is placed on a
 stretch of the frame's top that no connection crosses, and a frame without one is widened
