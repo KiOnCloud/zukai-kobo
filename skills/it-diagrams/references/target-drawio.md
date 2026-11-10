@@ -127,7 +127,7 @@ moving shapes by hand, so the IR stays the source of truth.
 | sequence message | horizontal edge between lifelines: filled arrow (sync), open arrow (async), dashed open arrow (return); self-messages loop out to the right and back with both ends anchored on the lifeline's centre line |
 | sequence block | `umlFrame` behind the messages it covers, wide enough for the notes attached to them, 12 px below a frame that ends just before it; its tab text and each `else` / `and` label are opaque cells drawn above lifelines and activations |
 | sequence note | note shape on the row after the message it follows; its text keeps 12 px from the left border and 18 px from the right one, clear of the 14 px folded corner, and the note is as tall as the lines its text wraps to |
-| sequence activation | starts at a sync call and ends at the return to the caller; a return inside one branch of an `alt` or `par` keeps the activation open to the last message of that participant in the block |
+| sequence activation | starts at a sync call and ends at the return to the caller; a return inside one branch of an `alt` or `par` keeps the activation open to the last message of that participant in the block; a return in a block the call is not in (an early exit in an `opt`, a reply in one branch) leaves it open while the participant goes on working, up to its next return to the caller |
 | sequence message label | white background, so a lifeline it spans does not cut the text |
 | activity lane | full-height coloured `swimlane` column (lanes side by side in IR order, header and body tints from a fixed palette); rows follow the flow order, nodes of a lane sit in its column, flows are routed through the row gaps and lane gutters on separate tracks per target, ordered so branches do not cross, and flows into one node merge into a trunk; a merge fed by long flows down a lane gutter sits on that gutter's side of its row-mates, and a node whose next step is in another lane sits on that lane's side of them; a long edge runs straight down its own column when that column is free, else along the lane edge that no cross-lane flow cuts; a crossing that lanes force is reported as a `layout:` warning |
 | activity control `initial` / `final` / `decision` / `merge` / `fork` / `join` | UML start and end circles / rhombus with the question, sized so it stays inside the slanted edges / small rhombus / thin filled bars (horizontal for `TB`, vertical for `LR`) |
@@ -187,7 +187,12 @@ across re-runs.
   closed starts 12 px lower, so the bottom edge of one frame and the top edge of the next
   stay two lines; nested frames and a frame after a separator are already apart. Notes take
   the gap beside their lifeline. A
-  sync message activates the target until the matching return. Frames inset 16 px per
+  sync message activates the target until the matching return. A return that lies in a
+  block, or in a branch of one, which the call is not in is taken on one path only, so the
+  bar stays open after it for as long as the participant sends messages or gets returns: it
+  ends at the next return to the caller, or at the participant's last message when no return
+  follows. It ends at that conditional return when nothing follows it or the participant is
+  called again first, and never later than the end of a block the call is in. Frames inset 16 px per
   nesting level. After placement the emitter checks every label and note box for overlaps and
   reports each one as a `layout:` warning.
 

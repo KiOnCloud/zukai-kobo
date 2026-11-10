@@ -261,3 +261,78 @@ describe('notes of a sequence diagram in draw.io', () => {
     }
   });
 });
+
+/** A sequence IR from `[from, to, kind]` rows; the messages are m1, m2, ... in order. */
+const calls = (rows, blocks = []) => ({
+  schemaVersion: 1, kind: 'sequence', title: 'Calls',
+  participants: ['a', 'b', 'x'].map((id) => ({ id, label: id.toUpperCase() })),
+  messages: rows.map(([from, to, kind], i) => ({ id: `m${i + 1}`, from, to, label: `m${i + 1}`, ...(kind ? { kind } : {}) })),
+  blocks,
+});
+const opt = (id, ...messages) => ({ id, kind: 'opt', label: id, messages });
+const alt = (id, first, second) => ({ id, kind: 'alt', label: id, messages: first, branches: [{ label: 'else', messages: second }] });
+
+/** Each activation as the message it starts at and the message it ends at (null: a call that never returns). */
+async function spans(ir) {
+  const r = await emit(ir, 'drawio', { diagramId: 'sq' });
+  expect(r.ok, JSON.stringify(r.errors)).toBe(true);
+  const L = layoutSequence(ir);
+  const at = (y) => ir.messages.find((msg) => L.messageY(msg.id) === y)?.id ?? null;
+  return Object.fromEntries(L.activations.map((a) => [a.id.replace('act-', ''), `${a.participant} ${at(a.startY)}..${at(a.endY)}`]));
+}
+
+describe('activations of a sequence diagram in draw.io', () => {
+  it('keeps the bar open past an early return in an opt, to the last return to the caller', async () => {
+    const ir = loadFixture('sequence', 'valid-invoice-export');
+    const { r, cells } = await sequenceCells(ir);
+    expect(r.warnings).toEqual([]);
+    // The database never answers in this diagram, so its bar keeps the height of one row.
+    expect(await spans(ir)).toMatchObject({ m1: 'builder m1..m8', m3: 'store m3..m5', m6: 'store m6..m7' });
+    expect(cellBounds(cells.find((c) => c.id === 'sq:act-m4')).height).toBe(M.rowPitch);
+    // One bar on the builder's lifeline, and every message the builder sends or gets starts or ends on it.
+    const L = layoutSequence(ir);
+    const bars = cells.filter((c) => c.parent === 'sq:builder' && c.id.startsWith('sq:act-'));
+    expect(bars.map((c) => c.id)).toEqual(['sq:act-m1']);
+    const bar = cellBounds(bars[0]);
+    const top = L.participants.get('builder').y + bar.y;
+    for (const msg of ir.messages.filter((x) => x.from === 'builder' || x.to === 'builder')) {
+      expect(L.messageY(msg.id), msg.id).toBeGreaterThanOrEqual(top);
+      expect(L.messageY(msg.id), msg.id).toBeLessThanOrEqual(top + bar.height);
+    }
+  });
+
+  it('ends at the last message of the participant when no return to the caller follows the block', async () => {
+    const ir = loadFixture('sequence', 'valid-invoice-export');
+    ir.messages = ir.messages.filter((msg) => msg.id !== 'm8');
+    ir.blocks[2] = { id: 'b3', kind: 'opt', label: 'has lines', messages: ['m6', 'm7'] };
+    expect((await spans(ir)).m1).toBe('builder m1..m7');
+    // Work in a later branch of the same block, and a return in the main flow after it.
+    const mainFlow = calls([['a', 'b'], ['b', 'a', 'return'], ['b', 'x'], ['x', 'b', 'return'], ['b', 'a', 'return'], ['b', 'x', 'async']], [alt('k', ['m2'], ['m3', 'm4'])]);
+    expect(await spans(mainFlow)).toEqual({ m1: 'b m1..m5', m3: 'x m3..m4' });
+  });
+
+  it('ends at the conditional return when nothing shows that the call is still running', async () => {
+    // Nothing after the block.
+    expect(await spans(calls([['a', 'b'], ['b', 'a', 'return'], ['a', 'x', 'async']], [opt('k', 'm2')]))).toEqual({ m1: 'b m1..m2' });
+    // The caller calls again: a new activation, not the first one carried on.
+    expect(await spans(calls([['a', 'b'], ['b', 'a', 'return'], ['a', 'b'], ['b', 'x', 'async'], ['b', 'a', 'return']], [opt('k', 'm2')]))).toEqual({ m1: 'b m1..m2', m3: 'b m3..m5' });
+    // A reply in each branch of an alt, then a second call.
+    expect(await spans(calls([['a', 'b'], ['b', 'a', 'return'], ['b', 'a', 'return'], ['a', 'b'], ['b', 'a', 'return']], [alt('k', ['m2'], ['m3'])]))).toEqual({ m1: 'b m1..m3', m4: 'b m4..m5' });
+  });
+
+  it('does not carry an activation past the block its call is in', async () => {
+    // Each pass of the loop calls and gets a reply in one of two branches; the audit after the loop is no part of it.
+    const ir = calls([['a', 'b'], ['b', 'a', 'return'], ['b', 'a', 'return'], ['b', 'x', 'async']], [{ id: 'l', kind: 'loop', label: 'retry', messages: ['m1', 'm2', 'm3'] }, alt('k', ['m2'], ['m3'])]);
+    expect(await spans(ir)).toEqual({ m1: 'b m1..m3' });
+    expect(await spans(loadFixture('sequence', 'valid'))).toMatchObject({ m1: 'web m1..m9', m2: 'auth m2..m8' });
+  });
+
+  it('closes at a return in the block the call is in, as before', async () => {
+    // Call and return side by side, with and without a block around them.
+    expect(await spans(calls([['a', 'b'], ['b', 'a', 'return'], ['b', 'x', 'async']]))).toEqual({ m1: 'b m1..m2' });
+    expect(await spans(calls([['a', 'b'], ['b', 'a', 'return'], ['b', 'x', 'async']], [opt('k', 'm1', 'm2')]))).toEqual({ m1: 'b m1..m2' });
+    // A nested call that returns inside an inner block of the outer call's block.
+    const nested = calls([['a', 'b'], ['b', 'x'], ['x', 'b', 'return'], ['b', 'x'], ['x', 'b', 'return'], ['b', 'a', 'return']], [opt('k', 'm3')]);
+    expect(await spans(nested)).toEqual({ m2: 'x m2..m3', m4: 'x m4..m5', m1: 'b m1..m6' });
+  });
+});

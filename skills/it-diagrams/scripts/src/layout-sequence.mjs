@@ -177,30 +177,62 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
   // return inside one branch of an alt or par does not end the call for the other branches:
   // the activation runs on to the last message the participant sends or receives in that
   // block, so a reply in an else branch still leaves an active lifeline.
-  const activations = [];
+  //
+  // A return in a block, or in a branch of one, that the call itself is not in is taken on
+  // one path only: an early exit in an opt, a reply in one branch of an alt. On the other
+  // path the call is still running, so that return leaves the activation open. It then runs
+  // on over the participant's own work, that is the messages it sends and the returns it
+  // gets, to its next return to the caller. It ends at the conditional return after all when
+  // the participant is called again before it has done anything, since that call starts a
+  // new activation; at the participant's last message when no further return follows; and
+  // never later than the end of a block the call is in.
+  const sectionsAt = (i) => blocks.flatMap((b) => b.sections.map((s, k) => (s.start <= i && i <= s.end ? `${b.index}/${k}` : null)).filter(Boolean));
+  const closed = [];
   const open = [];
+  const close = (a, end) => {
+    open.splice(open.indexOf(a), 1);
+    closed.push({ ...a, endY: messageY(ir.messages[end].id) });
+  };
   ir.messages.forEach((msg, i) => {
     const kind = msg.kind ?? 'sync';
+    for (const a of open.filter((o) => o.last !== undefined && i > o.limit)) close(a, a.last);
+    let returning;
     if (kind === 'return') {
-      const k = open.findLastIndex((a) => a.participant === msg.from && a.caller === msg.to);
-      if (k >= 0) {
-        const a = open.splice(k, 1)[0];
+      returning = open.findLast((a) => a.participant === msg.from && a.caller === msg.to);
+      if (returning) {
         let end = i;
         for (const b of blocks) {
           const section = b.sections.findIndex((s) => s.start <= i && i <= s.end);
           if (section < 0 || section === b.sections.length - 1) continue;
           for (let j = i + 1; j <= b.end; j++) {
             const later = ir.messages[j];
-            if (later.from === a.participant || later.to === a.participant) end = Math.max(end, j);
+            if (later.from === returning.participant || later.to === returning.participant) end = Math.max(end, j);
           }
         }
-        activations.push({ id: a.id, participant: a.participant, startY: a.startY, endY: messageY(ir.messages[end].id) });
+        returning.returned ??= i;
+        const callSections = sectionsAt(returning.call);
+        if (sectionsAt(i).every((key) => callSections.includes(key))) close(returning, end);
+        else Object.assign(returning, { last: Math.max(returning.last ?? 0, end), working: false });
       }
-    } else if (kind === 'sync' && msg.from !== msg.to) {
-      open.push({ id: `act-${msg.id}`, participant: msg.to, caller: msg.from, startY: messageY(msg.id) });
+    }
+    // Activations left open by a conditional return follow what their participant does next.
+    for (const a of open.filter((o) => o.last !== undefined && o !== returning)) {
+      const sends = msg.from === a.participant;
+      const receives = msg.to === a.participant;
+      if ((sends && kind !== 'return') || (receives && kind === 'return')) a.working = true;
+      if (a.working && (sends || receives)) a.last = Math.max(a.last, i);
+      else if (receives && kind === 'sync' && !sends && i > a.last) close(a, a.last);
+    }
+    if (kind === 'sync' && msg.from !== msg.to) {
+      const limit = Math.min(...blocks.filter((b) => b.start <= i && i <= b.end).map((b) => b.end), Infinity);
+      open.push({ id: `act-${msg.id}`, participant: msg.to, caller: msg.from, call: i, limit, startY: messageY(msg.id) });
     }
   });
-  for (const a of open) activations.push({ id: a.id, participant: a.participant, startY: a.startY, endY: a.startY + m.rowPitch });
+  for (const a of open) closed.push({ ...a, endY: a.last === undefined ? a.startY + m.rowPitch : messageY(ir.messages[a.last].id) });
+  // Listed by first return, calls without one last, whenever each activation was settled.
+  const activations = closed
+    .sort((a, b) => (a.returned ?? Infinity) - (b.returned ?? Infinity))
+    .map((a) => ({ id: a.id, participant: a.participant, startY: a.startY, endY: a.endY }));
 
   // Frames span the participants their messages touch, the notes attached to those
   // messages, and the rows from header to close.

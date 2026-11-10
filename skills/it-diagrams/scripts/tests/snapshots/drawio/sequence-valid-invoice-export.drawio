@@ -29,7 +29,7 @@
           <mxGeometry x="752" y="100" width="120" height="624" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-export:act-m1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="invoice-export:builder">
-          <mxGeometry x="109" y="80" width="10" height="74" as="geometry"/>
+          <mxGeometry x="109" y="80" width="10" height="468" as="geometry"/>
         </mxCell>
         <mxCell id="invoice-export:act-m3" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="invoice-export:store">
           <mxGeometry x="67" y="256" width="10" height="80" as="geometry"/>
