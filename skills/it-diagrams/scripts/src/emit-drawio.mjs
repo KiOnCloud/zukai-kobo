@@ -790,8 +790,12 @@ async function emitClass(ir, cid, warnings, refs) {
 
 /** The stick figure of a client; its label is drawn below it. */
 const ACTOR = { width: 40, height: 60 };
-/** An AWS service icon, at the size draw.io's AWS library places it; its label is drawn below it. */
-const AWS_ICON = { width: 78, height: 78 };
+/**
+ * An AWS service icon, at the size draw.io's AWS library places it; its label is drawn below
+ * it. `below` is room under that label: a connection that leaves the icon downwards starts
+ * there, a little clear of the name instead of against its last line.
+ */
+const AWS_ICON = { width: 78, height: 78, below: 6 };
 /**
  * The style draw.io's AWS palette gives a service icon. The colour is not part of the
  * stencil: each service category has its own fill, which the catalog records.
@@ -800,8 +804,10 @@ const AWS_ICON_POINTS = 'points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0]
 const awsIconStyle = (icon) => `sketch=0;${AWS_ICON_POINTS}outlineConnect=0;fontColor=#232F3E;${icon.gradient ? `gradientColor=${icon.gradient};gradientDirection=north;` : ''}fillColor=${icon.fill};strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.${icon.name};`;
 /** The corner icon of an AWS group frame and the gap before its title (the palette's `spacingLeft=30`). */
 const AWS_GROUP_ICON = 30;
-/** Room kept between a frame title and its frame's side, and between a title and a line that crosses the header. */
+/** Room kept between a frame title and its frame's side. */
 const TITLE_GAP = 8;
+/** Room kept between a frame title and a line that crosses the top of its frame. */
+const TITLE_LINE_GAP = 12;
 /**
  * An AWS group frame as a container. The palette's style is kept, with two changes. A frame
  * that is a plain rectangle there (an Availability Zone) gains the container flags the
@@ -855,7 +861,7 @@ function placeGroupTitles(layout, { containers, nodes, edges }) {
     // The stretches of the strip that a line runs through, each with a gap on both sides.
     const taken = lines
       .filter((l) => l.y1 >= frame.y && l.y0 <= frame.y + height && l.x1 >= frame.x && l.x0 <= frame.x + frame.width)
-      .map((l) => [l.x0 - TITLE_GAP, l.x1 + TITLE_GAP])
+      .map((l) => [l.x0 - TITLE_LINE_GAP, l.x1 + TITLE_LINE_GAP])
       .sort((a, b) => a[0] - b[0]);
     const free = [];
     let at = lo;
@@ -949,7 +955,7 @@ async function emitArchitecture(ir, cid, refs, warnings) {
     const figure = figures.get(c.id);
     if (figure) {
       const b = below.get(c.id);
-      return { ...node, style: `${figure.style}labelWidth=${b.wrap};`, width: figureWidth.get(node.parent), height: even(figure.height + b.height), drawWidth: figure.width, drawHeight: figure.height };
+      return { ...node, style: `${figure.style}labelWidth=${b.wrap};`, width: figureWidth.get(node.parent), height: even(figure.height + b.height + (figure.below ?? 0)), drawWidth: figure.width, drawHeight: figure.height };
     }
     return { ...node, ...measureNode(label, { pad: padOf(kind), baseHeight: kind === 'database' || kind === 'cache' ? 70 : 40 }) };
   });
