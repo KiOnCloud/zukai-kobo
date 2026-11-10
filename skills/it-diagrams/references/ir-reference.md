@@ -243,8 +243,10 @@ moves from the producer to the queue and from the queue to the consumer, so writ
 to queue and queue to consumer, also when the consumer polls: "the worker consumes the
 queue" is `from` the queue `to` the worker. A reply is not a second connection; use
 `bidirectional` only when either side starts exchanges. `label` is optional: write the
-protocol or the purpose when the request or the code states it, and leave it out rather
-than guess one.
+protocol or the purpose when the request or the code states it (the request's own verb
+counts: "forwards requests", "stores PDF"), and leave it out rather than guess one. A label
+is read along the arrow, with `from` as its subject: on the connection from a queue to its
+consumer write what the queue delivers ("invoice issued"), not "consumes".
 
 ```json
 {
