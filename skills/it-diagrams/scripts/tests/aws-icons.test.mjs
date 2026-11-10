@@ -456,6 +456,22 @@ describe('AWS icons and group frames in draw.io', () => {
     expect(both.abs.get('a:cache').x).toBeGreaterThan(both.abs.get('a:api').x + 78);
   });
 
+  it('keeps a caller outside the frames where the flow starts, however deep the frames nest', async () => {
+    const groups = ['aws:aws_account', 'aws:region', 'aws:vpc', 'aws:public_subnet'];
+    const before = { LR: (a, b) => a.x + a.width <= b.x, TB: (a, b) => a.y + a.height <= b.y, RL: (a, b) => a.x >= b.x + b.width, BT: (a, b) => a.y >= b.y + b.height };
+    for (const depth of [1, 4]) for (const label of [undefined, 'HTTPS']) for (const direction of ['LR', 'TB', 'RL', 'BT']) {
+      const frames = ['f1', 'f2', 'f3', 'f4'].slice(0, depth);
+      const ir = {
+        schemaVersion: 1, kind: 'architecture', title: 'T', direction,
+        components: [{ id: 'u', label: 'Users', kind: 'client' }, { id: 'a', label: 'Load balancer', icon: 'aws:elastic_load_balancing' }],
+        boundaries: frames.map((f, i) => ({ id: f, label: `Frame ${i}`, group: groups[i], children: [i === depth - 1 ? 'a' : frames[i + 1]] })),
+        connections: [{ id: 'c', from: 'u', to: 'a', ...(label ? { label } : {}) }],
+      };
+      const { abs } = await drawn(ir);
+      expect(before[direction](abs.get('a:u'), abs.get('a:f1')), `depth ${depth} ${label ?? 'no label'} ${direction}`).toBe(true);
+    }
+  });
+
   it('keeps a system with several callers, or one that calls in, in the flow', async () => {
     const two = structuredClone(chain);
     two.connections.push({ id: 'c8', from: 'fn', to: 'tax' });

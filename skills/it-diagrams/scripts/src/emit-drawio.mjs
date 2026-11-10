@@ -896,8 +896,8 @@ const titleAt = (style, offset) => (/spacingLeft=\d+;/.test(style) ? style.repla
  * Put a component that stands outside every frame on the nearer side of the frames it talks
  * to. The layout places a component after everything that calls it, so an outside system
  * called from the middle of a frame lands beyond the far end of that frame, and its
- * connection runs past every component in between. Each such component (outside all frames,
- * connected only to components inside frames, and only called or only calling) is tried on
+ * connection runs past every component in between. Each such component (outside all frames
+ * and only called, by components inside frames) is tried on
  * the other side; the arrangement is kept when its connections come out at least a fifth
  * shorter. The arrow still points the way the IR says.
  */
@@ -913,8 +913,8 @@ async function nearSide(layout, { nodes, edges }, arrange) {
   for (const n of outside) {
     const own = edges.filter((e) => e.from !== e.to && (e.from === n.id || e.to === n.id));
     if (own.length === 0) continue;
-    const oneWay = own.every((e) => e.to === n.id) || own.every((e) => e.from === n.id);
-    if (!oneWay || !own.every((e) => inFrame.get(e.from === n.id ? e.to : e.from))) continue;
+    // Only a system that is called: one that calls in belongs where the flow starts.
+    if (!own.every((e) => e.to === n.id && inFrame.get(e.from))) continue;
     for (const e of own) e.layoutReversed = true;
     const tried = await arrange();
     if (lengthOf(tried, own) < 0.8 * lengthOf(layout, own)) { layout = tried; continue; }
