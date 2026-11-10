@@ -407,6 +407,55 @@ describe('AWS icons and group frames in draw.io', () => {
     }
   });
 
+  it('stands a store beside the component that uses it, so the connection that goes on stays clear of it', async () => {
+    for (const direction of ['LR', 'TB', 'RL', 'BT']) {
+      const { r, abs, cellOf, figures, paths } = await drawn({ ...structuredClone(chain), direction });
+      expect(r.warnings, direction).toEqual([]);
+      const api = figures.find((f) => f.id === 'api');
+      const db = figures.find((f) => f.id === 'db');
+      const centre = (b) => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
+      // Across the flow: under the API on its column when the flow runs sideways, level with it to the right when it runs down or up.
+      if (direction === 'LR' || direction === 'RL') {
+        expect(Math.abs(centre(db.figure).x - centre(api.figure).x), direction).toBeLessThan(1);
+        expect(db.figure.y, direction).toBeGreaterThan(api.label.y + api.label.height);
+      } else {
+        expect(Math.abs(centre(db.figure).y - centre(api.figure).y), direction).toBeLessThan(1);
+        expect(db.figure.x, direction).toBeGreaterThan(api.figure.x + api.figure.width);
+      }
+      // One straight line joins them, from the API to the database.
+      expect([cellOf('c3').source, cellOf('c3').target], direction).toEqual(['a:api', 'a:db']);
+      const line = paths.get('a:c3');
+      expect(line, direction).toHaveLength(2);
+      expect(Math.min(Math.abs(line[0].x - line[1].x), Math.abs(line[0].y - line[1].y)), direction).toBeLessThan(0.5);
+      // Both stay inside their frame, and no other connection comes near the database or its name.
+      for (const box of [db.figure, db.label]) expect(contains(abs.get('a:vpc'), box), `${direction}: db in the VPC`).toBe(true);
+      const around = (b) => ({ x: b.x - 20, y: b.y - 20, width: b.width + 40, height: b.height + 40 });
+      for (const [id, path] of paths) {
+        if (id === 'a:c3') continue;
+        for (let i = 1; i < path.length; i++) {
+          const seg = segmentBox(path[i - 1], path[i]);
+          for (const box of [db.figure, db.label]) expect(intersects(around(box), { ...seg, width: seg.width + 0.1, height: seg.height + 0.1 }), `${direction}: ${id} near db`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('keeps a store in the flow when its user passes nothing on, or when it is not the only one', async () => {
+    // Nothing leaves the API but the line to the database: the database is simply the next step.
+    const only = { schemaVersion: 1, kind: 'architecture', title: 'T', direction: 'LR', components: [{ id: 'api', label: 'API', icon: 'aws:fargate' }, { id: 'db', label: 'DB', kind: 'database', icon: 'aws:rds' }], boundaries: [{ id: 'vpc', label: 'VPC', group: 'aws:vpc', children: ['api', 'db'] }], connections: [{ id: 'c', from: 'api', to: 'db' }] };
+    const one = await drawn(only);
+    expect(one.abs.get('a:db').x).toBeGreaterThan(one.abs.get('a:api').x + 78);
+    // Two stores: the first stands beside the API, the second keeps its place in the flow.
+    const two = structuredClone(chain);
+    two.components.push({ id: 'cache', label: 'Cache', kind: 'cache', icon: 'aws:elasticache' });
+    two.boundaries[1].children.push('cache');
+    two.connections.push({ id: 'c9', from: 'api', to: 'cache' });
+    const both = await drawn({ ...two, direction: 'LR' });
+    expect(both.r.warnings).toEqual([]);
+    expect(Math.abs(both.abs.get('a:db').x - both.abs.get('a:api').x)).toBeLessThan(1);
+    expect(both.abs.get('a:cache').x).toBeGreaterThan(both.abs.get('a:api').x + 78);
+  });
+
   it('keeps a system with several callers, or one that calls in, in the flow', async () => {
     const two = structuredClone(chain);
     two.connections.push({ id: 'c8', from: 'fn', to: 'tax' });

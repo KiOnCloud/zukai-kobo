@@ -248,7 +248,7 @@ function sideLoopRoom(edges, direction) {
  * `drawWidth` (room for a self-loop beside the shape) and, with `drawHeight`, at its top
  * (room for a label below the shape).
  */
-const drawBox = (n, box) => (n.drawWidth === undefined ? box : { ...box, x: box.x + (box.width - n.drawWidth) / 2, width: n.drawWidth, height: n.drawHeight ?? box.height });
+const drawBox = (n, box) => (n.drawWidth === undefined ? box : { ...box, x: box.x + (n.drawX ?? (box.width - n.drawWidth) / 2), width: n.drawWidth, height: n.drawHeight ?? box.height });
 
 /**
  * draw.io geometry (relative position along the path, pixel offset, text alignment) that puts
@@ -925,6 +925,86 @@ async function nearSide(layout, { nodes, edges }, arrange) {
 }
 
 /**
+ * The stores that stand next to the component that uses them: a component with one
+ * connection, from a figure in the same frame that also passes work on to something else.
+ * The layout engine gives every connection a place along the flow, so such a store takes
+ * the next place on its user's row and the connection that goes on has to bend round it,
+ * close by its name. Standing beside its user, across the flow, the store leaves the row
+ * free: below the user in a left-to-right diagram, to its right in a top-down one.
+ *
+ * The user's layout box is enlarged to hold both and the store is left out of the layout;
+ * `placeStores` puts it in afterwards. One store per user: a second one stays in the flow.
+ * @returns {Map<string, {edge:object, user:object}>} store id to its connection and user
+ */
+function attachStores(nodes, edges, direction) {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const sideways = acrossIsVertical(direction);
+  const out = new Map();
+  const users = new Set();
+  for (const store of nodes) {
+    const own = edges.filter((e) => e.from === store.id || e.to === store.id);
+    if (own.length !== 1 || own[0].to !== store.id || own[0].from === store.id) continue;
+    const user = byId.get(own[0].from);
+    if (user.drawWidth === undefined || user.parent !== store.parent || users.has(user.id) || out.has(user.id)) continue;
+    if (!edges.some((e) => e.from === user.id && e.to !== store.id && e.to !== user.id)) continue;
+    const e = own[0];
+    const text = e.label ? { width: Math.ceil(widestLine(e.label)) + 8, height: 16 * String(e.label).split(/\r\n?|\n/).length } : { width: 0, height: 0 };
+    const mine = { width: user.width, height: user.height };
+    if (sideways) {
+      // Below the user, on its column; the label stands to the right of the line between them.
+      const gap = Math.max(STORE_GAP, text.height + 24);
+      user.width = 2 * Math.ceil(Math.max(mine.width, store.width, 2 * (text.width + 10)) / 2);
+      user.height = mine.height + gap + store.height;
+      user.store = { gap, mine, text };
+    } else {
+      // To the right of the user, figure level with figure; the label stands above the line.
+      const gap = Math.max(STORE_GAP, text.width + 24);
+      user.drawX = (mine.width - user.drawWidth) / 2;
+      user.width = mine.width + gap + store.width;
+      user.height = Math.max(mine.height, store.height);
+      user.store = { gap, mine, text };
+    }
+    users.add(user.id);
+    out.set(store.id, { edge: e, user });
+  }
+  return out;
+}
+
+/** Room between a component and the store that stands beside it, when their connection has no label. */
+const STORE_GAP = 50;
+
+/** Write the place of each attached store, and the straight line to it, into `layout`. */
+function placeStores(layout, stores, { containers, nodes, direction }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const sideways = acrossIsVertical(direction);
+  for (const [id, { edge: e, user }] of stores) {
+    const store = byId.get(id);
+    const box = layout.nodes.get(user.id);
+    const abs = absoluteBox(user.id, layout, parentOf);
+    const { gap, mine, text } = user.store;
+    const figure = (n) => ({ width: n.drawWidth ?? n.width, height: n.drawHeight ?? n.height });
+    let place; let start; let end; let label;
+    if (sideways) {
+      place = { x: (user.width - store.width) / 2, y: mine.height + gap };
+      const x = abs.x + user.width / 2;
+      start = { x, y: abs.y + mine.height };
+      end = { x, y: abs.y + place.y };
+      label = { x: x + 6, y: abs.y + mine.height + (gap - text.height) / 2, width: text.width, height: text.height };
+    } else {
+      const top = (figure(user).height - figure(store).height) / 2;
+      place = { x: mine.width + gap, y: top };
+      const y = abs.y + figure(user).height / 2;
+      start = { x: abs.x + user.drawX + user.drawWidth, y };
+      end = { x: abs.x + place.x + (store.width - figure(store).width) / 2, y };
+      label = { x: (start.x + end.x - text.width) / 2, y: y - text.height - 4, width: text.width, height: text.height };
+    }
+    layout.nodes.set(id, { x: box.x + place.x, y: box.y + place.y, width: store.width, height: store.height });
+    layout.edges.set(e.id, { start, end, points: [], label: e.label ? label : undefined });
+  }
+}
+
+/**
  * The components that can stand beside the frames instead of at an end of the flow: a plain
  * box outside every frame whose one connection comes from a component inside a frame (a
  * third-party API that one service calls).
@@ -995,6 +1075,8 @@ function placeBeside(layout, aside, { containers, nodes, edges, direction }) {
     const gap = Math.max(ASIDE_GAP, (vertical ? text.width : text.height) + 40);
     const options = [];
     for (const side of vertical ? ['right', 'left'] : ['bottom', 'top']) {
+      // A store stands under its user in a left-to-right diagram: no line leaves that way.
+      if (side === 'bottom' && caller.store) continue;
       let start; let end; let box; let label;
       if (vertical) {
         const y = Math.round(figure.y + figure.height / 2);
@@ -1089,8 +1171,9 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
   // The ports of a figure depend on the sides its connections use, so they are worked out
   // afresh for every arrangement that is tried.
+  const stores = usesAws ? attachStores(nodes, edges, ir.direction) : new Map();
   const aside = usesAws ? asideCandidates(nodes, edges) : new Map();
-  const laidOut = () => ({ nodes: nodes.filter((n) => !aside.has(n.id)), edges: edges.filter((e) => !aside.has(e.to)) });
+  const laidOut = () => ({ nodes: nodes.filter((n) => !aside.has(n.id) && !stores.has(n.id)), edges: edges.filter((e) => !aside.has(e.to) && !stores.has(e.to)) });
   const arrange = async () => {
     const g = laidOut();
     for (const n of g.nodes) delete n.ports;
@@ -1102,6 +1185,7 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   // free place there goes back into the layout, which then runs again without it set aside.
   const placeAside = async (base) => {
     for (;;) {
+      placeStores(base, stores, { containers, nodes, direction: ir.direction });
       const failed = placeBeside(base, aside, { containers, nodes, edges, direction: ir.direction });
       if (failed === undefined) return base;
       aside.delete(failed);
@@ -1159,7 +1243,7 @@ function clientPorts(layout, { containers, nodes, edges }) {
       const share = (k + 1) / (ends.length + 1);
       const port = {
         id: `${id}:port:${e.id}:${end}`,
-        x: side === 'left' ? 0 : side === 'right' ? n.width - 1 : Math.round((n.width - n.drawWidth) / 2 + n.drawWidth * share) - 0.5,
+        x: side === 'left' ? 0 : side === 'right' ? n.width - 1 : Math.round((n.drawX ?? (n.width - n.drawWidth) / 2) + n.drawWidth * share) - 0.5,
         y: side === 'top' ? 0 : side === 'bottom' ? n.height - 1 : Math.round(n.drawHeight * share) - 0.5,
       };
       n.ports = [...(n.ports ?? []), port];
