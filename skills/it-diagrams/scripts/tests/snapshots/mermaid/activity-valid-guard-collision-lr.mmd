@@ -1,0 +1,62 @@
+swimlane-beta LR
+  %% id: user
+  subgraph n1["User"]
+    %% id: enter
+    n4["Enter custID and custPass"]
+    %% id: pick-office
+    n9["Choose office"]
+    %% id: start
+    n11@{ shape: sm-circ }
+    %% id: retry
+    n14{" "}
+  end
+  %% id: web
+  subgraph n2["Web app"]
+    %% id: submit
+    n5["Submit login-by-staff"]
+    %% id: store
+    n8["Store token and staff info"]
+    %% id: error
+    n10["Show login error"]
+    %% id: one-entity
+    n13{"Only one entity?"}
+    %% id: end
+    n15@{ shape: fr-circ }
+  end
+  %% id: api
+  subgraph n3["Client API"]
+    %% id: verify
+    n6["Verify staff with CK Pass"]
+    %% id: filter
+    n7["Filter active offices"]
+    %% id: has-token
+    n12{"Token and office?"}
+  end
+  %% id: f1
+  n11 --> n14
+  %% id: f2
+  n14 --> n4
+  %% id: f3
+  n4 --> n5
+  %% id: f4
+  n5 --> n6
+  %% id: f5
+  n6 --> n12
+  %% id: f6
+  n12 -->|"yes"| n7
+  %% id: f7
+  n12 -->|"no"| n10
+  %% id: f8
+  n7 --> n8
+  %% id: f9
+  n8 --> n13
+  %% id: f10
+  n13 -->|"yes"| n15
+  %% id: f11
+  n13 -->|"no: show the office list"| n9
+  %% id: f12
+  n9 --> n15
+  %% id: f13
+  n10 -->|"no: report the error, back to the form"| n14
+  %% id: f14
+  n10 -->|"no"| n13

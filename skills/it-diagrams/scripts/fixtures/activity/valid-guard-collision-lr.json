@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "activity",
+  "title": "Corporate login, left to right",
+  "direction": "LR",
+  "meta": { "source": "manual", "notes": ["Regression: a left-to-right diagram draws every node at its own width and height, and keeps long guards beside their lines"] },
+  "lanes": [
+    { "id": "user", "label": "User" },
+    { "id": "web", "label": "Web app" },
+    { "id": "api", "label": "Client API" }
+  ],
+  "actions": [
+    { "id": "enter", "label": "Enter custID and custPass", "lane": "user" },
+    { "id": "submit", "label": "Submit login-by-staff", "lane": "web" },
+    { "id": "verify", "label": "Verify staff with CK Pass", "lane": "api" },
+    { "id": "filter", "label": "Filter active offices", "lane": "api" },
+    { "id": "store", "label": "Store token and staff info", "lane": "web" },
+    { "id": "pick-office", "label": "Choose office", "lane": "user" },
+    { "id": "error", "label": "Show login error", "lane": "web" }
+  ],
+  "controls": [
+    { "id": "start", "kind": "initial", "lane": "user" },
+    { "id": "has-token", "kind": "decision", "label": "Token and office?", "lane": "api" },
+    { "id": "one-entity", "kind": "decision", "label": "Only one entity?", "lane": "web" },
+    { "id": "retry", "kind": "merge", "lane": "user" },
+    { "id": "end", "kind": "final", "lane": "web" }
+  ],
+  "flows": [
+    { "id": "f1", "from": "start", "to": "retry" },
+    { "id": "f2", "from": "retry", "to": "enter" },
+    { "id": "f3", "from": "enter", "to": "submit" },
+    { "id": "f4", "from": "submit", "to": "verify" },
+    { "id": "f5", "from": "verify", "to": "has-token" },
+    { "id": "f6", "from": "has-token", "to": "filter", "guard": "yes" },
+    { "id": "f7", "from": "has-token", "to": "error", "guard": "no" },
+    { "id": "f8", "from": "filter", "to": "store" },
+    { "id": "f9", "from": "store", "to": "one-entity" },
+    { "id": "f10", "from": "one-entity", "to": "end", "guard": "yes" },
+    { "id": "f11", "from": "one-entity", "to": "pick-office", "guard": "no: show the office list" },
+    { "id": "f12", "from": "pick-office", "to": "end" },
+    { "id": "f13", "from": "error", "to": "retry", "guard": "no: report the error, back to the form" },
+    { "id": "f14", "from": "error", "to": "one-entity", "guard": "no" }
+  ]
+}

@@ -115,11 +115,18 @@ either: a horizontal run counts only up to the point where such a flow joins it,
 the segment that leaves the source the guard takes the middle of the part between the
 sibling trunk and that point, so a branch that goes straight down and then turns into a
 shared run is labelled on its own vertical. Left-to-right diagrams are
-the same layout transposed. A guard's text stays horizontal there, so its box enters the
-layout with width and height swapped, its gap to the line follows the drawn direction (6 px
-beside a line, 2 px above or below one), and a gap that holds a guarded fan-out grows with
-the widest guard of that fan-out, whose text lies along the branch. ELK is still used for
-the other graph kinds.
+the same layout transposed: lanes become bands one under the other and rows become columns.
+Only positions are transposed, because draw.io draws a shape and writes a guard the same way
+whatever the direction. `layoutActivity` takes sizes as drawn (a fork or join bar already
+upright) and turns each node and each guard's box on the way in, so the transpose gives every
+node back the width and height it was measured at. A guard then lies along the flow instead
+of across it, which changes four things in such a diagram: its gap to the line follows the
+drawn direction (6 px beside a line, 2 px above or below one); a gap that holds a guarded
+fan-out grows with the widest guard of that fan-out, whose text lies along the branch; the
+places above the stretches that run along the flow (the side of a segment that ends up above
+it) are tried before the ones beside a run across the lanes; and the lane borders are
+obstacles, so a guard beside a gutter run takes the side towards the lane's content. ELK is
+still used for the other graph kinds.
 
 ## Bundled draw.io files
 

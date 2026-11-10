@@ -7,7 +7,9 @@
  * rows use a gutter at the right edge of the source lane, and each gap and gutter is split
  * into tracks so that edges to different targets never share a segment, while edges into
  * one target merge on a shared track and enter it together from the top. Coordinates are
- * computed top-to-bottom and transposed for left-to-right flows.
+ * computed top-to-bottom and transposed for left-to-right flows. Sizes are taken as drawn:
+ * for such a flow every node and every guard's box is turned on the way in, so that the
+ * transpose gives each back the width and height it is drawn at.
  */
 
 import { widestLine } from './text-metrics.mjs';
@@ -42,7 +44,9 @@ export const LANE_PALETTE = [
 
 /**
  * @param {object} ir validated activity IR
- * @param {Array<{id:string,lane?:string,width:number,height:number}>} sizes one entry per action and control
+ * @param {Array<{id:string,lane?:string,width:number,height:number}>} sizes one entry per action and
+ *   control, at the width and height it is drawn at whatever the direction (a fork or join bar
+ *   of a left-to-right diagram is already upright)
  * @param {object} [m]
  * @returns {{ lanes: Array<{id:string,index:number,x:number,y:number,width:number,height:number}>,
  *   nodes: Map<string,{x:number,y:number,width:number,height:number,lane:string,row:number}>,
@@ -52,7 +56,9 @@ export const LANE_PALETTE = [
 export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
   const horizontal = ir.direction === 'LR' || ir.direction === 'RL';
   const laneIndex = new Map(ir.lanes.map((l, i) => [l.id, i]));
-  const byId = new Map(sizes.map((n) => [n.id, { ...n }]));
+  // Sizes arrive as drawn. A left-to-right flow is laid out top-to-bottom and transposed at the
+  // end, so its nodes go in turned: the transpose turns them back to the size they were given.
+  const byId = new Map(sizes.map((n) => [n.id, horizontal ? { ...n, width: n.height, height: n.width } : { ...n }]));
   const order = sizes.map((n) => n.id);
   const out = new Map(order.map((id) => [id, []]));
   const inn = new Map(order.map((id) => [id, []]));
@@ -543,6 +549,11 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
   const obstacles = [...nodes.values()].map((b) => ({ x: b.x - 4, y: b.y - 4, width: b.width + 8, height: b.height + 8 }));
   // The lines of other flows are obstacles too, so a guard never sits on an arrow it does not belong to.
   const lineBoxes = segments.map((sg) => ({ id: sg.id, x: Math.min(sg.a.x, sg.b.x) - 2, y: Math.min(sg.a.y, sg.b.y) - 2, width: Math.abs(sg.a.x - sg.b.x) + 4, height: Math.abs(sg.a.y - sg.b.y) + 4 }));
+  // Written along the flow (a left-to-right diagram), a guard is one line of text deep beside
+  // its line, and that fits between a gutter run and the content of its lane but not between
+  // the run and the lane's border, so there the borders are obstacles as well. Written across
+  // the flow, a guard beside a gutter run reaches over the border whichever side it takes.
+  const borders = horizontal ? lanes.flatMap((l) => [l.x, l.x + l.width].map((bx) => ({ x: bx - 1, y: l.y, width: 2, height: l.height }))) : [];
   const placed = [];
   const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
   for (const f of ir.flows) {
@@ -559,7 +570,7 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
     // shared the same way: a guard there would read as the guard of whatever arrives on it.
     const mergeLen = Math.max(0, ...ir.flows.filter((o) => o.to === f.to && o.from !== f.from).map((o) => sharedSuffix(paths.get(f.id), paths.get(o.id))));
     const candidates = labelCandidates(s, t, e, f.guard, trunkLen, mergeLen, horizontal);
-    const blocked = (box) => obstacles.some((o) => overlaps(box, o)) || placed.some((o) => overlaps(box, o.box)) || lineBoxes.some((o) => o.id !== f.id && overlaps(box, o)) || (trunkBox && overlaps(box, trunkBox));
+    const blocked = (box) => obstacles.some((o) => overlaps(box, o)) || placed.some((o) => overlaps(box, o.box)) || lineBoxes.some((o) => o.id !== f.id && overlaps(box, o)) || borders.some((o) => overlaps(box, o)) || (trunkBox && overlaps(box, trunkBox));
     const pick = candidates.find((c) => !blocked(c.box)) ?? candidates[0];
     if (pick === candidates[0] && blocked(pick.box)) {
       warnings.push({ path: `/flows/${ir.flows.indexOf(f)}/guard`, message: `layout: guard "${f.guard}" of flow "${f.id}" overlaps another label or node; shorten it or reorder the flows` });
@@ -624,6 +635,11 @@ function sharedSuffix(p, q) {
  * long route; each on the right and on the left. Every candidate carries its absolute box
  * (for collision checks) and draw.io edge-label geometry (relative position along the path
  * plus a pixel offset).
+ *
+ * In a left-to-right diagram the order differs, because once transposed the sides of a
+ * segment are above and below a stretch along the flow, where a guard reads best: those
+ * places come first, the side that ends up above the line before the other, and the ones
+ * beside a run across the lanes come last.
  */
 function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0, horizontal = false) {
   const { width, height, sideGap, aboveGap } = guardBox(guard, horizontal);
@@ -639,7 +655,7 @@ function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0, horizontal 
     return d;
   };
   const anchors = [];
-  const out = [];
+  const above = [];
   // Above each horizontal run, just before it turns toward the target: the natural place
   // for a guard, and unambiguous because the arrow it labels is right below it. A run that
   // another flow joins on its way into the target counts only up to that point.
@@ -654,7 +670,7 @@ function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0, horizontal 
     const x = a.x + dir * (run - width / 2 - 8);
     const d = distTo(i - 1) + Math.abs(x - a.x);
     const offset = { x: 0, y: -(height / 2 + aboveGap) };
-    out.push({ position: (2 * d) / total - 1, offset, box: { x: x - width / 2, y: a.y + offset.y - height / 2, width, height } });
+    above.push({ position: (2 * d) / total - 1, offset, box: { x: x - width / 2, y: a.y + offset.y - height / 2, width, height } });
   }
   const push = (pointIndex, dy) => {
     const p = path[pointIndex];
@@ -685,13 +701,14 @@ function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0, horizontal 
       anchors.push({ x: mid.x, y: mid.y, position: (2 * d) / total - 1 });
     }
   }
+  const beside = [];
   for (const a of anchors) {
-    for (const side of [1, -1]) {
+    for (const side of horizontal ? [-1, 1] : [1, -1]) {
       const offset = { x: side * (width / 2 + sideGap), y: 0 };
-      out.push({ position: a.position, offset, box: { x: a.x + offset.x - width / 2, y: a.y - height / 2, width, height } });
+      beside.push({ position: a.position, offset, box: { x: a.x + offset.x - width / 2, y: a.y - height / 2, width, height } });
     }
   }
-  return out;
+  return horizontal ? [...beside, ...above] : [...above, ...beside];
 }
 
 function transpose(r) {

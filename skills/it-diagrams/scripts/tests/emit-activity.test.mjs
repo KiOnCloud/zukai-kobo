@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { emit, bundle } from '../src/pipeline.mjs';
 import { validateIr } from '../src/validate-ir.mjs';
-import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
+import { checkDrawioStructure, cellBounds, absoluteBounds, edgePaths } from './drawio-structure.mjs';
 import { layoutActivity } from '../src/layout-activity.mjs';
 import { measureNode } from '../src/layout-graph.mjs';
 import { widestLine } from '../src/text-metrics.mjs';
-import { loadFixture, loadMermaid } from './helpers.mjs';
+import { loadFixture, loadMermaid, validFixtures } from './helpers.mjs';
 
 describe('activity kind', () => {
   it('rejects an action without a lane, an unknown lane, a bad control kind and bad flows together', () => {
@@ -716,6 +716,126 @@ describe('activity kind', () => {
           const overlap = box.x < line.x + line.width && line.x < box.x + box.width && box.y < line.y + line.height && line.y < box.y + box.height;
           expect(overlap, `guard overlaps ${sg.id}`).toBe(false);
         }
+      });
+    });
+
+    describe('a left-to-right or right-to-left diagram is drawn as it reads', () => {
+      const fixtures = validFixtures().filter((f) => f.kind === 'activity');
+      const drawn = async (ir) => {
+        const r = await emit(ir, 'drawio', { diagramId: 'g' });
+        const { problems, cells } = checkDrawioStructure(r.output);
+        expect(problems).toEqual([]);
+        const abs = absoluteBounds(cells);
+        const paths = edgePaths(cells, abs);
+        const lanes = ir.lanes.map((l) => abs.get(`g:${l.id}`));
+        const nodes = new Map([...ir.actions, ...(ir.controls ?? [])].map((n) => [n.id, abs.get(`g:${n.id}`)]));
+        // The box the layout keeps free for each guard: its text and 6 px on each side, on one
+        // line, centred on the point its edge-label geometry names.
+        const guards = new Map();
+        for (const f of ir.flows.filter((x) => x.guard)) {
+          const label = cells.find((c) => c.id === `g:${f.id}:label`);
+          const path = paths.get(`g:${f.id}`);
+          const lengths = path.slice(1).map((q, i) => Math.abs(q.x - path[i].x) + Math.abs(q.y - path[i].y));
+          let d = ((Number(label.mxGeometry.x) + 1) / 2) * lengths.reduce((a, b) => a + b, 0);
+          let i = 0;
+          while (i < lengths.length - 1 && d > lengths[i]) d -= lengths[i++];
+          const t = lengths[i] ? Math.min(1, d / lengths[i]) : 0;
+          const at = { x: path[i].x + t * (path[i + 1].x - path[i].x), y: path[i].y + t * (path[i + 1].y - path[i].y) };
+          const offset = label.mxGeometry.mxPoint[0];
+          const width = Math.ceil(widestLine(f.guard)) + 12;
+          guards.set(f.id, { x: at.x + Number(offset.x) - width / 2, y: at.y + Number(offset.y) - 8, width, height: 16 });
+        }
+        return { warnings: r.warnings.filter((w) => String(w.message).startsWith('layout:')).map((w) => w.message), lanes, nodes, guards, paths: new Map(ir.flows.map((f) => [f.id, paths.get(`g:${f.id}`)])) };
+      };
+      /** Distance between a box and the nearest segment of an orthogonal path; 0 when they touch. */
+      const distance = (box, path) => Math.min(...path.slice(1).map((q, i) => {
+        const p = path[i];
+        const dx = Math.max(box.x - Math.max(p.x, q.x), 0, Math.min(p.x, q.x) - box.x - box.width);
+        const dy = Math.max(box.y - Math.max(p.y, q.y), 0, Math.min(p.y, q.y) - box.y - box.height);
+        return Math.hypot(dx, dy);
+      }));
+      const overlap = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+      it('draws every node at the width and height it has top-to-bottom, with fork and join bars upright across the flow', async () => {
+        let checked = 0;
+        for (const { name, ir } of fixtures) {
+          const tb = await drawn({ ...ir, direction: 'TB' });
+          for (const direction of ['LR', 'RL']) {
+            const { nodes } = await drawn({ ...ir, direction });
+            for (const [id, box] of nodes) {
+              const kind = (ir.controls ?? []).find((c) => c.id === id)?.kind;
+              const { width, height } = tb.nodes.get(id);
+              const expected = kind === 'fork' || kind === 'join' ? { width: 8, height: 120 } : { width, height };
+              expect({ width: box.width, height: box.height }, `${name} ${direction} ${id}`).toEqual(expected);
+              checked++;
+            }
+          }
+        }
+        expect(checked).toBeGreaterThan(200);
+      });
+
+      it('puts the lanes one under the other, each as long as the flow, and every node inside its own', async () => {
+        const ir = loadFixture('activity', 'valid-guard-collision-lr');
+        expect(ir.direction).toBe('LR');
+        const { lanes, nodes } = await drawn(ir);
+        for (let i = 1; i < lanes.length; i++) {
+          expect(lanes[i].x).toBe(lanes[0].x);
+          expect(lanes[i].width).toBe(lanes[0].width);
+          expect(lanes[i].y).toBeCloseTo(lanes[i - 1].y + lanes[i - 1].height, 5);
+        }
+        for (const n of [...ir.actions, ...ir.controls]) {
+          const box = nodes.get(n.id);
+          const lane = lanes[ir.lanes.findIndex((l) => l.id === n.lane)];
+          // Right of the lane's header, which a left-to-right lane carries on its left.
+          expect(box.x, n.id).toBeGreaterThanOrEqual(lane.x + 40);
+          expect(box.x + box.width, n.id).toBeLessThanOrEqual(lane.x + lane.width);
+          expect(box.y, n.id).toBeGreaterThanOrEqual(lane.y);
+          expect(box.y + box.height, n.id).toBeLessThanOrEqual(lane.y + lane.height);
+        }
+      });
+
+      it('writes every guard beside its own line, off the nodes, the other lines, the other guards and the lane borders', async () => {
+        let checked = 0;
+        for (const { name, ir } of fixtures) {
+          const tb = await drawn({ ...ir, direction: 'TB' });
+          for (const direction of ['LR', 'RL']) {
+            const { warnings, lanes, nodes, guards, paths } = await drawn({ ...ir, direction });
+            // Turning the diagram adds no warning: what the lanes force top-to-bottom, they force here.
+            expect(warnings, `${name} ${direction}`).toEqual(tb.warnings);
+            for (const [id, box] of guards) {
+              const where = `${name} ${direction} guard of ${id}`;
+              const own = distance(box, paths.get(id));
+              expect(own, `${where} off its own line`).toBeGreaterThan(0);
+              expect(own, `${where} next to its own line`).toBeLessThanOrEqual(6);
+              for (const [other, path] of paths) if (other !== id) expect(distance(box, path), `${where} off the line of ${other}`).toBeGreaterThan(0);
+              for (const [node, b] of nodes) expect(overlap(box, b), `${where} off ${node}`).toBe(false);
+              for (const [other, b] of guards) if (other !== id) expect(overlap(box, b), `${where} off the guard of ${other}`).toBe(false);
+              for (const lane of lanes) for (const y of [lane.y, lane.y + lane.height]) expect(box.y < y && y < box.y + box.height, `${where} off a lane border`).toBe(false);
+              checked++;
+            }
+          }
+        }
+        expect(checked).toBeGreaterThan(100);
+      });
+
+      it('keeps a stretch beside a straight branch as long as its guard, past the turn of its sibling', async () => {
+        const base = loadFixture('activity', 'valid-guard-straight');
+        const guard = 'yes: the request is complete and may go on';
+        const ir = { ...base, direction: 'LR', flows: base.flows.map((f) => (f.id === 'f-yes' ? { ...f, guard } : f)) };
+        const { warnings, guards, paths } = await drawn(ir);
+        expect(warnings).toEqual([]);
+        const path = paths.get('f-yes');
+        expect(path).toHaveLength(2);
+        expect(path[0].y).toBe(path[1].y);
+        const box = guards.get('f-yes');
+        // The sibling leaves the shared trunk where its path first turns.
+        const turn = paths.get('f-no')[1].x;
+        expect(box.x - turn).toBeGreaterThanOrEqual(12);
+        expect(path[1].x - (box.x + box.width)).toBeGreaterThanOrEqual(6);
+        // The same guard top-to-bottom needs no more than the usual room: the gap is not longer for it.
+        const tb = await drawn({ ...ir, direction: 'TB' });
+        const short = await drawn({ ...base, direction: 'TB' });
+        expect(tb.paths.get('f-yes')[1].y - tb.paths.get('f-yes')[0].y).toBe(short.paths.get('f-yes')[1].y - short.paths.get('f-yes')[0].y);
       });
     });
 
