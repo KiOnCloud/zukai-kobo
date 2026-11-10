@@ -171,14 +171,18 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
     };
     // A gap whose tracks hold a guarded fan-out keeps extra room below the last track: the
     // branch that goes straight on needs a private stretch below the last split for its guard.
-    const guardRoom = new Set();
+    // In a left-to-right diagram the guard's text lies along that stretch, so the room grows
+    // with the widest guard of the fan-out.
+    const guardRoom = new Map(); // gap index -> extra room
     for (const f of ir.flows) {
       const pl = plans.get(f.id);
       if (!f.guard || pl.type !== 'adjacent') continue;
-      if (ir.flows.some((o) => o !== f && o.from === f.from && plans.get(o.id).type !== 'self')) guardRoom.add(pl.rs);
+      if (!ir.flows.some((o) => o !== f && o.from === f.from && plans.get(o.id).type !== 'self')) continue;
+      const room = horizontal ? Math.max(m.guardRoom, guardBox(f.guard, horizontal).height + GUARD_CLEAR + 6) : m.guardRoom;
+      guardRoom.set(pl.rs, Math.max(guardRoom.get(pl.rs) ?? 0, room));
     }
     const trackSpan = (g) => Math.max(m.rowGapMin, m.trackPitch * ((gapTracks.get(g)?.length ?? 0) + 1));
-    const gapHeight = (g) => trackSpan(g) + (guardRoom.has(g) ? m.guardRoom : 0);
+    const gapHeight = (g) => trackSpan(g) + (guardRoom.get(g) ?? 0);
 
     // Cells per (lane, row).
     const cell = new Map();
@@ -554,7 +558,7 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
     // The tail that flows from other sources run along on their way into the same target is
     // shared the same way: a guard there would read as the guard of whatever arrives on it.
     const mergeLen = Math.max(0, ...ir.flows.filter((o) => o.to === f.to && o.from !== f.from).map((o) => sharedSuffix(paths.get(f.id), paths.get(o.id))));
-    const candidates = labelCandidates(s, t, e, f.guard, trunkLen, mergeLen);
+    const candidates = labelCandidates(s, t, e, f.guard, trunkLen, mergeLen, horizontal);
     const blocked = (box) => obstacles.some((o) => overlaps(box, o)) || placed.some((o) => overlaps(box, o.box)) || lineBoxes.some((o) => o.id !== f.id && overlaps(box, o)) || (trunkBox && overlaps(box, trunkBox));
     const pick = candidates.find((c) => !blocked(c.box)) ?? candidates[0];
     if (pick === candidates[0] && blocked(pick.box)) {
@@ -567,6 +571,21 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
   const width = x + m.leftMargin;
   const result = { lanes, nodes, edges, width, height: height + 2 * m.topMargin, horizontal, warnings };
   return horizontal ? transpose(result) : result;
+}
+
+/**
+ * Extents of a guard's text in the layout's own coordinates, and its gap to a line beside it
+ * (`sideGap`) and to a line below it (`aboveGap`). The text is drawn horizontally whatever
+ * the direction, and a left-to-right diagram is this layout transposed: there the text's
+ * width lies along y and its height across x. The gaps follow the drawing too: 6 px where
+ * text and line end up side by side, 2 px where the text ends up above or below the line.
+ */
+function guardBox(guard, horizontal) {
+  const textWidth = Math.ceil(widestLine(guard)) + 12;
+  const textHeight = 16;
+  return horizontal
+    ? { width: textHeight, height: textWidth, sideGap: 2, aboveGap: 6 }
+    : { width: textWidth, height: textHeight, sideGap: 6, aboveGap: 2 };
 }
 
 /** Length of the colinear prefix two segments share when they start at the same point. */
@@ -606,9 +625,8 @@ function sharedSuffix(p, q) {
  * (for collision checks) and draw.io edge-label geometry (relative position along the path
  * plus a pixel offset).
  */
-function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0) {
-  const width = Math.ceil(widestLine(guard)) + 12;
-  const height = 16;
+function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0, horizontal = false) {
+  const { width, height, sideGap, aboveGap } = guardBox(guard, horizontal);
   const start = { x: s.x + e.exit.x * s.width, y: s.y + e.exit.y * s.height };
   const end = { x: t.x + e.entry.x * t.width, y: t.y + e.entry.y * t.height };
   const path = [start, ...e.points, end];
@@ -635,7 +653,7 @@ function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0) {
     const dir = Math.sign(b.x - a.x);
     const x = a.x + dir * (run - width / 2 - 8);
     const d = distTo(i - 1) + Math.abs(x - a.x);
-    const offset = { x: 0, y: -(height / 2 + 2) };
+    const offset = { x: 0, y: -(height / 2 + aboveGap) };
     out.push({ position: (2 * d) / total - 1, offset, box: { x: x - width / 2, y: a.y + offset.y - height / 2, width, height } });
   }
   const push = (pointIndex, dy) => {
@@ -656,9 +674,9 @@ function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0) {
   // Without that much room a straight branch still takes the middle of what lies below the
   // trunk, and a branch that turns takes the spot right below the trunk.
   else if (e.points.length === 0) push(0, middle(firstLen - trunkLen));
-  else if (trunkLen + 14 + height / 2 <= firstLen) push(0, trunkLen + 14);
+  else if (trunkLen + height + 6 <= firstLen) push(0, trunkLen + height / 2 + 6);
   if (e.points.length > 0) {
-    push(path.length - 2, 14);
+    push(path.length - 2, height / 2 + 6);
     if (e.points.length >= 3) {
       const a = path[2];
       const b = path[3];
@@ -669,7 +687,7 @@ function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0) {
   }
   for (const a of anchors) {
     for (const side of [1, -1]) {
-      const offset = { x: side * (width / 2 + 6), y: 0 };
+      const offset = { x: side * (width / 2 + sideGap), y: 0 };
       out.push({ position: a.position, offset, box: { x: a.x + offset.x - width / 2, y: a.y - height / 2, width, height } });
     }
   }

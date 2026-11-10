@@ -115,7 +115,11 @@ either: a horizontal run counts only up to the point where such a flow joins it,
 the segment that leaves the source the guard takes the middle of the part between the
 sibling trunk and that point, so a branch that goes straight down and then turns into a
 shared run is labelled on its own vertical. Left-to-right diagrams are
-the same layout transposed. ELK is still used for the other graph kinds.
+the same layout transposed. A guard's text stays horizontal there, so its box enters the
+layout with width and height swapped, its gap to the line follows the drawn direction (6 px
+beside a line, 2 px above or below one), and a gap that holds a guarded fan-out grows with
+the widest guard of that fan-out, whose text lies along the branch. ELK is still used for
+the other graph kinds.
 
 ## Bundled draw.io files
 

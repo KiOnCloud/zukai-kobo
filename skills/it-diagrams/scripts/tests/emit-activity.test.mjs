@@ -615,6 +615,83 @@ describe('activity kind', () => {
       });
     });
 
+    describe('a guard in a left-to-right diagram sits beside its own line, where its text is drawn', () => {
+      const { sizesOf } = helpers();
+      // Every guard's text box in drawn coordinates: the text is horizontal whatever the
+      // direction, centred on a point of the routed path plus the label's pixel offset.
+      const drawn = (ir) => {
+        const L = layoutActivity(ir, sizesOf(ir));
+        const paths = new Map();
+        for (const f of ir.flows) {
+          const s = L.nodes.get(f.from); const t = L.nodes.get(f.to); const e = L.edges.get(f.id);
+          paths.set(f.id, [{ x: s.x + e.exit.x * s.width, y: s.y + e.exit.y * s.height }, ...e.points, { x: t.x + e.entry.x * t.width, y: t.y + e.entry.y * t.height }]);
+        }
+        const labels = new Map();
+        for (const f of ir.flows.filter((x) => x.guard)) {
+          const path = paths.get(f.id); const e = L.edges.get(f.id);
+          const lens = path.slice(1).map((p, i) => Math.abs(p.x - path[i].x) + Math.abs(p.y - path[i].y));
+          let d = ((e.label.position + 1) / 2) * lens.reduce((a, b) => a + b, 0);
+          let i = 0;
+          while (i < lens.length - 1 && d > lens[i]) { d -= lens[i]; i += 1; }
+          const k = lens[i] ? d / lens[i] : 0;
+          const anchor = { x: path[i].x + k * (path[i + 1].x - path[i].x), y: path[i].y + k * (path[i + 1].y - path[i].y) };
+          const width = Math.ceil(widestLine(f.guard)) + 12;
+          labels.set(f.id, { guard: f.guard, width, offset: e.label.offset, alongHorizontal: Math.abs(path[i].y - path[i + 1].y) < 0.5, box: { x: anchor.x + e.label.offset.x - width / 2, y: anchor.y + e.label.offset.y - 8, width, height: 16 } });
+        }
+        return { L, paths, labels };
+      };
+      const crosses = (box, path) => path.slice(1).some((b, i) => Math.max(path[i].x, b.x) > box.x && Math.min(path[i].x, b.x) < box.x + box.width && Math.max(path[i].y, b.y) > box.y && Math.min(path[i].y, b.y) < box.y + box.height);
+      const overlap = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      const gapTo = (box, path) => Math.min(...path.slice(1).map((b, i) => Math.hypot(Math.max(box.x - Math.max(path[i].x, b.x), 0, Math.min(path[i].x, b.x) - box.x - box.width), Math.max(box.y - Math.max(path[i].y, b.y), 0, Math.min(path[i].y, b.y) - box.y - box.height))));
+
+      it('offsets a guard by half its height from a horizontal segment and by half its width from a vertical one', () => {
+        for (const direction of ['LR', 'RL']) {
+          const { labels } = drawn({ ...loadFixture('activity', 'valid-guard-collision'), direction });
+          expect(labels.size).toBe(6);
+          for (const [id, l] of labels) {
+            if (l.alongHorizontal) {
+              expect(l.offset.x, `${direction} ${id}`).toBe(0);
+              expect(Math.abs(l.offset.y), `${direction} ${id} is right above or below its line`).toBe(10);
+            } else {
+              expect(l.offset.y, `${direction} ${id}`).toBe(0);
+              expect(Math.abs(l.offset.x), `${direction} ${id} is right beside its line`).toBe(l.width / 2 + 6);
+            }
+          }
+        }
+      });
+
+      it('keeps every guard off the lines, the nodes and the other guards, long or short', () => {
+        for (const name of ['valid-guard-collision', 'valid-guard-shared-bus', 'valid-guard-straight', 'valid-business-fulfilment', 'valid-decision-handoff-left']) {
+          for (const direction of ['LR', 'RL']) {
+            const { L, paths, labels } = drawn({ ...loadFixture('activity', name), direction });
+            expect(L.warnings.filter((w) => w.message.startsWith('layout: guard')), `${name} ${direction}`).toEqual([]);
+            for (const [id, l] of labels) {
+              const where = `${name} ${direction} ${id} "${l.guard}"`;
+              for (const [other, path] of paths) expect(crosses(l.box, path), `${where} is crossed by ${other}`).toBe(false);
+              for (const [node, b] of L.nodes) expect(overlap(l.box, b), `${where} is on ${node}`).toBe(false);
+              for (const [other, o] of labels) if (other !== id) expect(overlap(l.box, o.box), `${where} is on the guard of ${other}`).toBe(false);
+              expect(gapTo(l.box, paths.get(id)), `${where} is next to its own line`).toBeLessThanOrEqual(6);
+            }
+          }
+        }
+      });
+
+      it('gives the straight branch of a decision room for a long guard along its own segment', () => {
+        const ir = { ...loadFixture('activity', 'valid-guard-straight'), direction: 'LR' };
+        const { paths, labels } = drawn(ir);
+        const yes = labels.get('f-yes');
+        const own = paths.get('f-yes');
+        // Drawn left to right: the branch runs straight from the decision to its final node,
+        // and its sibling leaves that line where it turns down or up.
+        expect(own).toHaveLength(2);
+        expect(own[0].y).toBeCloseTo(own[1].y, 5);
+        const turn = paths.get('f-no')[1].x;
+        expect(yes.alongHorizontal).toBe(true);
+        expect(yes.box.x - turn, 'clear of the sibling\'s turn').toBeGreaterThanOrEqual(12);
+        expect(own[1].x - (yes.box.x + yes.box.width), 'clear of the target').toBeGreaterThanOrEqual(6);
+      });
+    });
+
     describe('issue 6: a guard never sits on another flow', () => {
       const { segmentsOf } = helpers();
 
