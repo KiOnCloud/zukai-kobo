@@ -1,0 +1,114 @@
+<mxfile host="it-diagrams" compressed="false" type="device">
+  <diagram id="invoice-export" name="Invoice export">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="invoice-export:b1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=165;height=20;" vertex="1" parent="1">
+          <mxGeometry x="64" y="200" width="386" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:b2" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=214;height=20;" vertex="1" parent="1">
+          <mxGeometry x="298" y="290" width="590" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:b3" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=123;height=20;" vertex="1" parent="1">
+          <mxGeometry x="64" y="460" width="632" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:b3:sep-1" value="" style="line;strokeWidth=1;dashed=1;html=1;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="64" y="589" width="632" height="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:job" value="&lt;i&gt;«control»&lt;/i&gt;&lt;br&gt;ExportJob" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="120" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:builder" value="&lt;i&gt;«control»&lt;/i&gt;&lt;br&gt;InvoiceDocumentBuilderService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="260" y="100" width="228" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:store" value="InvoiceRepository" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="548" y="100" width="144" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:db" value="&lt;i&gt;«database»&lt;/i&gt;&lt;br&gt;Database" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="752" y="100" width="120" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:act-m1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="invoice-export:builder">
+          <mxGeometry x="109" y="80" width="10" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:act-m3" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="invoice-export:store">
+          <mxGeometry x="67" y="244" width="10" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:act-m6" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="invoice-export:store">
+          <mxGeometry x="67" y="414" width="10" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:act-m4" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="invoice-export:db">
+          <mxGeometry x="55" y="284" width="10" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:m1" value="Build(invoiceId)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="invoice-export:job" target="invoice-export:builder">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="257" y="180"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoice-export:m2" value="null" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="invoice-export:builder" target="invoice-export:job">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="257" y="254"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoice-export:m3" value="GetInvoice(invoiceId)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="invoice-export:builder" target="invoice-export:store">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="497" y="344"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoice-export:m4" value="SELECT invoice" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="invoice-export:store" target="invoice-export:db">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="716" y="384"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoice-export:m5" value="invoice" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="invoice-export:store" target="invoice-export:builder">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="497" y="424"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoice-export:m6" value="GetLines(invoiceId)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="invoice-export:builder" target="invoice-export:store">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="497" y="514"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoice-export:m7" value="lines" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="invoice-export:store" target="invoice-export:builder">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="497" y="554"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoice-export:m8" value="document" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="invoice-export:builder" target="invoice-export:job">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="257" y="624"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoice-export:b1:tab" value="opt invoiceId empty" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="65" y="201" width="157" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:b2:tab" value="opt invoice cached = false" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="299" y="291" width="206" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:b3:tab" value="alt has lines" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="65" y="461" width="115" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoice-export:b3:sep-label-1" value="else no lines" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=5;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="64" y="579" width="123" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -123,7 +123,7 @@ moving shapes by hand, so the IR stays the source of truth.
 | ER relation | orthogonal edge with crow's-foot ends (`ERmandOne`, `ERzeroToOne`, `ERzeroToMany`, `ERoneToMany`); non-identifying relations are dashed |
 | class relation | orthogonal edge: hollow triangle (inheritance, dashed for realization), filled or hollow diamond at the whole (composition, aggregation), open arrow (association, dashed for dependency). A cardinality is anchored at its own end of the edge with a pixel offset: it starts 6 px past the end marker (24 px diamond, 16 px triangle, 10 px open arrow) and sits 5 px beside the line, right of a vertical segment or above a horizontal one. When a class, a line, a marker or another label is in the way it takes the other side, then moves along the line in 10 px steps (round a bend when the first segment is short), up to 30 px further; when no place is free the emit reports a `layout:` warning that names the relation |
 | architecture component `service` / `database` / `queue` / `cache` / `client` / `external` | rounded rectangle / cylinder / hexagon / dashed cylinder / actor figure / dashed rounded rectangle; parallel connections leave 20 px apart and each label sits where the layout engine placed it on its own edge. A `client` is a 40 x 60 figure with its name below it: the name wraps at its own width (`labelWidth`, at most 160 px, balanced lines), and the layout reserves the figure plus that block, so a boundary frame contains the name and the next actor starts below it. Clients in one boundary share a centre line. The layout runs twice for a diagram with clients: the first pass shows which side of a client each connection uses, the second gives those ends fixed ports within the figure's extent, evenly spaced. A connection from the side therefore attaches to the figure, several of them apart from each other, and one that leaves downwards starts under the name on the figure's own column (a pixel offset with `exitPerimeter=0`), never through it |
-| sequence participant | `umlLifeline` with a plain head; `actor` adds a stick figure above the head, `boundary`, `control`, `entity` and `database` show the kind as a `«stereotype»` line above the label (draw.io's robustness glyphs were tried and read as stray arrows) |
+| sequence participant | `umlLifeline` with a plain head, 120 px wide or as wide as the longest word of its label needs; `actor` adds a stick figure above the head, `boundary`, `control`, `entity` and `database` show the kind as a `«stereotype»` line above the label (draw.io's robustness glyphs were tried and read as stray arrows) |
 | sequence message | horizontal edge between lifelines: filled arrow (sync), open arrow (async), dashed open arrow (return); self-messages loop out to the right and back with both ends anchored on the lifeline's centre line |
 | sequence block | `umlFrame` behind the messages it covers, wide enough for the notes attached to them; its tab text and each `else` / `and` label are opaque cells drawn above lifelines and activations |
 | sequence note | note shape on the row after the message it follows |
@@ -174,8 +174,12 @@ across re-runs.
 - Edges sit on the root layer with absolute bend points; nodes inside a container use
   coordinates relative to the container, as draw.io requires. Container children are never
   auto-stacked by draw.io (no `childLayout` on lanes), so ELK's placement is kept.
-- Sequence grid: lifelines start 180 px apart and the gap between two neighbours widens
-  until every message label fits between the lifelines it spans. Every message, note, block
+- Sequence grid: a lifeline's head is 120 px wide, and wider when a word of its label
+  needs it: the head wraps a label at spaces but cannot break a word (a class or method
+  name), so it grows to that word at 7 px per character plus 12 px on each side. Two
+  neighbouring heads keep 60 px between them, which is 180 px from lifeline to lifeline at
+  the base width, and the gap widens until every message label fits between the lifelines
+  it spans. Every message, note, block
   header, `else`/`and` separator and block end has a row of its own (40, 48, 34, 30 and 16 px),
   so frame labels never sit on message labels. Notes take the gap beside their lifeline. A
   sync message activates the target until the matching return. Frames inset 16 px per

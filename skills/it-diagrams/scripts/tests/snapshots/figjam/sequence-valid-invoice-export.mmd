@@ -1,0 +1,35 @@
+sequenceDiagram
+  %% id: job
+  participant n1 as ExportJob
+  %% id: builder
+  participant n2 as InvoiceDocumentBuilderService
+  %% id: store
+  participant n3 as InvoiceRepository
+  %% id: db
+  participant n4 as Database
+  %% id: m1
+  n1->>n2: Build(invoiceId)
+  %% id: b1
+  opt invoiceId empty
+    %% id: m2
+    n2-->>n1: null
+  end
+  %% id: b2
+  opt invoice cached = false
+    %% id: m3
+    n2->>n3: GetInvoice(invoiceId)
+    %% id: m4
+    n3->>n4: SELECT invoice
+    %% id: m5
+    n3-->>n2: invoice
+  end
+  %% id: b3
+  alt has lines
+    %% id: m6
+    n2->>n3: GetLines(invoiceId)
+    %% id: m7
+    n3-->>n2: lines
+  else no lines
+    %% id: m8
+    n2-->>n1: document
+  end

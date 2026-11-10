@@ -1,14 +1,16 @@
 /**
  * Deterministic grid layout for sequence diagrams.
  *
- * Columns: participants left to right. The gap between two neighbours grows so that every
- * message label fits between the lifelines it spans. Rows: every message, note, block header,
+ * Columns: participants left to right. A header is as wide as the widest word of its label
+ * needs, and the gap between two neighbours grows so that every message label fits between
+ * the lifelines it spans. Rows: every message, note, block header,
  * section separator and block end gets a row of its own, so frame labels never sit on top of
  * message labels. Notes take the gap next to their lifeline instead of overlapping the next
  * one. A final pass reports any text boxes that still overlap, so the agent can tell the user.
  */
 
 import { longestLine } from './text-metrics.mjs';
+import { wrapText, LABEL_PAD } from './layout-graph.mjs';
 
 export const SEQUENCE_METRICS = {
   participantWidth: 120,
@@ -33,6 +35,14 @@ const textWidth = (text, m) => Math.ceil(longestLine(text) * m.charWidth) + 12;
 const lineCount = (text) => String(text).split(/\r\n?|\n/).length;
 
 /**
+ * Width of a participant's header: `participantWidth`, or more when the label has a word
+ * that needs it. The header wraps its label at spaces, but a word cannot break (a class or
+ * method name is one word however long), so the box grows until that word fits with the
+ * usual room on each side. Even, so the lifeline stands on a whole pixel.
+ */
+const headerWidth = (label, m) => Math.max(m.participantWidth, 2 * Math.ceil((wrapText(label, 1).widest + 2 * LABEL_PAD) / 2));
+
+/**
  * @param {object} ir validated sequence IR
  * @returns {{
  *   participants: Map<string,{x:number,y:number,width:number,height:number,centerX:number,index:number}>,
@@ -50,8 +60,10 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
   const index = new Map(ir.participants.map((p, i) => [p.id, i]));
   const n = ir.participants.length;
 
-  // Column gaps: at least minGap of clear space, widened until every label fits its span.
-  const gaps = Array.from({ length: Math.max(n - 1, 0) }, () => m.participantWidth + m.minGap);
+  // Column gaps, from one lifeline to the next: at least minGap of clear space between the
+  // two headers, widened until every label fits its span.
+  const widths = ir.participants.map((p) => headerWidth(p.label, m));
+  const gaps = Array.from({ length: Math.max(n - 1, 0) }, (_, i) => (widths[i] + widths[i + 1]) / 2 + m.minGap);
   const spanning = ir.messages
     .filter((msg) => msg.from !== msg.to)
     .map((msg) => ({ lo: Math.min(index.get(msg.from), index.get(msg.to)), hi: Math.max(index.get(msg.from), index.get(msg.to)), need: textWidth(msg.label, m) + 24 }))
@@ -64,10 +76,10 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     }
   }
   const participants = new Map();
-  let x = m.leftMargin;
+  let centerX = m.leftMargin + (widths[0] ?? 0) / 2;
   ir.participants.forEach((p, i) => {
-    participants.set(p.id, { x, y: m.topMargin, width: m.participantWidth, height: 0, centerX: x + m.participantWidth / 2, index: i });
-    if (i < n - 1) x += gaps[i];
+    participants.set(p.id, { x: centerX - widths[i] / 2, y: m.topMargin, width: widths[i], height: 0, centerX, index: i });
+    if (i < n - 1) centerX += gaps[i];
   });
   const gapRight = (i) => (i < n - 1 ? gaps[i] : m.participantWidth + 160);
   const gapLeft = (i) => (i > 0 ? gaps[i - 1] : m.participantWidth + 160);
