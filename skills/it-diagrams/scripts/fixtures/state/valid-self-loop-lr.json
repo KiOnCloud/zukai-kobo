@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "state",
+  "title": "Payment retries",
+  "direction": "LR",
+  "meta": {
+    "source": "clarify",
+    "notes": [
+      "layout repro: a self-transition in a left-to-right layout, on a state with an incoming and two outgoing transitions"
+    ]
+  },
+  "states": [
+    {
+      "id": "s0",
+      "kind": "initial"
+    },
+    {
+      "id": "pay",
+      "label": "Awaiting payment (attempt n)"
+    },
+    {
+      "id": "paid",
+      "label": "Paid"
+    },
+    {
+      "id": "failed",
+      "label": "Payment failed"
+    },
+    {
+      "id": "end",
+      "kind": "final"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t1",
+      "from": "s0",
+      "to": "pay",
+      "event": "order placed"
+    },
+    {
+      "id": "t2",
+      "from": "pay",
+      "to": "pay",
+      "event": "card declined",
+      "guard": "n < 3"
+    },
+    {
+      "id": "t3",
+      "from": "pay",
+      "to": "paid",
+      "event": "payment captured"
+    },
+    {
+      "id": "t4",
+      "from": "pay",
+      "to": "failed",
+      "event": "card declined",
+      "guard": "n = 3"
+    },
+    {
+      "id": "t5",
+      "from": "paid",
+      "to": "end"
+    },
+    {
+      "id": "t6",
+      "from": "failed",
+      "to": "end"
+    }
+  ]
+}

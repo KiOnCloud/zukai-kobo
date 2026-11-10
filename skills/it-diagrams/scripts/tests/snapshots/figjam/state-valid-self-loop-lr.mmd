@@ -1,0 +1,20 @@
+stateDiagram-v2
+  direction LR
+  %% id: pay
+  state "Awaiting payment (attempt n)" as n2
+  %% id: paid
+  state "Paid" as n3
+  %% id: failed
+  state "Payment failed" as n4
+  %% id: t1
+  [*] --> n2 : order placed
+  %% id: t2
+  n2 --> n2 : card declined [n 3]
+  %% id: t3
+  n2 --> n3 : payment captured
+  %% id: t4
+  n2 --> n4 : card declined [n = 3]
+  %% id: t5
+  n3 --> [*]
+  %% id: t6
+  n4 --> [*]

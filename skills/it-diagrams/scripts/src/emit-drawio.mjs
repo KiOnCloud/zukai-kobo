@@ -203,18 +203,40 @@ const round = (v) => Math.round(v * 1000) / 1000;
 const LIFELINE_STEREOTYPE = { participant: null, actor: null, boundary: 'boundary', control: 'control', entity: 'entity', database: 'database' };
 const ACTOR_GLYPH = { width: 30, height: 40, gap: 10 };
 
-/** Shared path for the ELK-laid kinds: containers, nodes, edges with child labels. */
-/**
- * Space a self-loop takes to the right of its node: the loop itself plus its label. ELK gets
- * the node this much wider on both sides (so edges still leave from the drawn centre) and the
- * shape is drawn centred in that box at its own width.
- */
+/** How far a self-loop stands off its node, in px. */
 const SELF_LOOP_OUT = 30;
+/**
+ * A self-loop goes on a side that is across the flow, where no other edge of its node ends:
+ * the other edges of a node leave and arrive along the flow, so a loop drawn there lies on
+ * top of the arrowhead of an incoming edge and its label reads as that edge's label.
+ *
+ * In a left-to-right or right-to-left layout that side is the top. ELK routes a self-loop
+ * there itself and keeps room for it and for its label above the node, so the emitter draws
+ * that route. In a top-down or bottom-up layout the side is the right (or the left), and the
+ * emitter draws the loop itself: ELK gets the node wider by the loop and its label on both
+ * sides (so edges still leave from the drawn centre), and the shape is drawn centred in that
+ * box at its own width.
+ */
+const acrossIsVertical = (direction) => direction === 'LR' || direction === 'RL';
+/** Layout spacing that makes ELK's own self-loop as deep as the drawn ones, where its route is used. */
+const loopSpacing = (direction) => (acrossIsVertical(direction) ? { selfLoop: SELF_LOOP_OUT } : {});
+/** An edge style without the orthogonal router, so draw.io follows the waypoints of a loop exactly. */
+const waypointStyle = (style) => style.replace(/edgeStyle=[^;]*;/, '').replace(/orthogonalLoop=1;/, '');
 /** A decision's rhombus style, with the label spacing that wraps a long question inside the diamond. */
 const decisionStyle = (size) => (size.spacing > 0 ? `${STYLE.decision}spacingLeft=${size.spacing};spacingRight=${size.spacing};` : STYLE.decision);
 
 const selfLoopLabelWidth = (label) => Math.ceil(longestLine(label) * 5.6) + 4;
 const selfLoopExtra = (label) => SELF_LOOP_OUT + (label ? selfLoopLabelWidth(label) + 12 : 0) + 10;
+/**
+ * Room beside each node for the loops the emitter draws on its right or left: the widest of
+ * its self-loops, per node id. Empty where the loops go over the top on ELK's own route.
+ */
+function sideLoopRoom(edges, direction) {
+  const room = new Map();
+  if (acrossIsVertical(direction)) return room;
+  for (const e of edges) if (e.from === e.to) room.set(e.from, Math.max(room.get(e.from) ?? 0, selfLoopExtra(e.label)));
+  return room;
+}
 /**
  * The box a shape is drawn in when the layout was given a larger one: centred across it at
  * `drawWidth` (room for a self-loop beside the shape) and, with `drawHeight`, at its top
@@ -347,7 +369,8 @@ function absoluteBox(id, layout, parentOf) {
   return { x, y, width: box.width, height: box.height };
 }
 
-function graphCells(cid, layout, { containers, nodes, edges }, warnings = []) {
+/** Shared path for the ELK-laid kinds: containers, nodes, edges with child labels. */
+function graphCells(cid, layout, { containers, nodes, edges, direction }, warnings = []) {
   const cells = [];
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
   const emitted = new Set();
@@ -415,6 +438,18 @@ function graphCells(cid, layout, { containers, nodes, edges }, warnings = []) {
   const blocked = (box) => taken.some((t) => overlaps(box, t)) || routed.some((r) => r.path.some((p, i) => i > 0 && onLine(box, r.path[i - 1], p)));
   for (const e of edges) {
     if (e.from === e.to) {
+      const own = layout.edges.get(e.id);
+      if (acrossIsVertical(direction) && !e.loop && own?.start && own?.end) {
+        // The loop ELK routed over the top of the node, with its label above it: the layout
+        // kept that room, and no other edge of the node ends on that side.
+        const style = `${waypointStyle(e.style)}${anchorStyle('exit', anchor(e.from, own.start))}${anchorStyle('entry', anchor(e.to, own.end))}`;
+        cells.push(edge({ id: cid(e.id), value: '', style, source: cid(e.from), target: cid(e.to), points: own.points }));
+        if (e.label) {
+          const placed = own.label ? labelGeometry([own.start, ...own.points, own.end], own.label, e.label) : { position: 0, offset: { x: 0, y: 0 }, align: 'center' };
+          cells.push(edgeLabel({ id: `${cid(e.id)}:label`, value: htmlLabel(e.label), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
+        }
+        continue;
+      }
       // Self-loop: out of one side, along it, and back in, on a side no other edge uses there;
       // the label sits beyond the loop. The node reserved this room in the layout.
       const n = nodeOf(e.from);
@@ -433,7 +468,7 @@ function graphCells(cid, layout, { containers, nodes, edges }, warnings = []) {
       const sx = dir > 0 ? 1 : 0;
       // A plain edge (no orthogonal router) follows exactly these waypoints, so the label's
       // midpoint anchor is on the loop's outer vertical.
-      const style = `${e.style.replace(/edgeStyle=[^;]*;/, '').replace(/orthogonalLoop=1;/, '')}exitX=${sx};exitY=${round(exitY)};exitDx=0;exitDy=0;entryX=${sx};entryY=${round(entryY)};entryDx=0;entryDy=0;`;
+      const style = `${waypointStyle(e.style)}exitX=${sx};exitY=${round(exitY)};exitDx=0;exitDy=0;entryX=${sx};entryY=${round(entryY)};entryDx=0;entryDy=0;`;
       cells.push(edge({ id: cid(e.id), value: '', style, source: cid(e.from), target: cid(e.to), points }));
       // Text anchored at the loop's outer side, aligned away from it: a fixed 4 px gap, whatever the text width.
       if (e.label) cells.push(edgeLabel({ id: `${cid(e.id)}:label`, value: htmlLabel(e.label), parent: cid(e.id), position: 0, offset: { x: dir * LABEL_GAP, y: 0 }, align: dir > 0 ? 'left' : 'right' }));
@@ -468,8 +503,7 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   const parent = parentMap(ir.groups ?? []);
   const containers = (ir.groups ?? []).map((g) => ({ id: g.id, label: g.label, parent: parent.get(g.id), style: STYLE.container }));
   const edges = ir.edges.map((e) => ({ id: e.id, from: e.from, to: e.to, label: e.label, style: STYLE.flowEdge }));
-  const loopExtra = new Map();
-  for (const e of edges) if (e.from === e.to) loopExtra.set(e.from, Math.max(loopExtra.get(e.from) ?? 0, selfLoopExtra(e.label)));
+  const loopExtra = sideLoopRoom(edges, ir.direction);
   const nodes = ir.nodes.map((n, i) => {
     const shape = n.ref ? 'subroutine' : (n.shape ?? 'process');
     const { label, link } = refLabel(n.label, n.ref, refs, `/nodes/${i}/ref`, warnings);
@@ -477,8 +511,8 @@ async function emitFlowchart(ir, cid, refs, warnings) {
     const extra = loopExtra.get(n.id) ?? 0;
     return { id: n.id, label, link, parent: parent.get(n.id), style: shape === 'decision' ? decisionStyle(size) : STYLE[shape], width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
   });
-  const layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction });
-  return graphCells(cid, layout, { containers, nodes, edges });
+  const layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing: loopSpacing(ir.direction) });
+  return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
 }
 
 async function emitState(ir, cid, refs, warnings) {
@@ -490,9 +524,7 @@ async function emitState(ir, cid, refs, warnings) {
     return [head, t.action ? `/ ${t.action}` : ''].filter(Boolean).join(' ');
   };
   const edges = ir.transitions.map((t) => ({ id: t.id, from: t.from, to: t.to, label: label(t) || undefined, style: STYLE.flowEdge }));
-  // ELK reserves no room for the loop drawn beside a state, so the state asks for it.
-  const loopExtra = new Map();
-  for (const e of edges) if (e.from === e.to) loopExtra.set(e.from, Math.max(loopExtra.get(e.from) ?? 0, selfLoopExtra(e.label)));
+  const loopExtra = sideLoopRoom(edges, ir.direction);
   const shown = new Map(ir.states.map((s, i) => [s.id, refLabel(s.label, s.ref, refs, `/states/${i}/ref`, warnings)]));
   // A composite's header is as tall as the lines of its title: a ref adds one.
   const compositeHeader = (lines) => 30 + 16 * (lines - 1);
@@ -505,7 +537,8 @@ async function emitState(ir, cid, refs, warnings) {
     const extra = loopExtra.get(s.id) ?? 0;
     return { id: s.id, label, link, parent: parent.get(s.id), style: STYLE[kind] ?? STYLE.state, width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
   });
-  let layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction });
+  const spacing = loopSpacing(ir.direction);
+  let layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
   // A composite is as wide as its content, which only the layout knows; a title that wraps at
   // that width needs a taller header, and the layout runs once more with it.
   let taller = false;
@@ -513,8 +546,8 @@ async function emitState(ir, cid, refs, warnings) {
     const height = compositeHeader(headerLines(c.label, layout.containers.get(c.id).width));
     if (height > c.headerHeight) { c.headerHeight = height; taller = true; }
   }
-  if (taller) layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction });
-  return graphCells(cid, layout, { containers, nodes, edges });
+  if (taller) layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
+  return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
 }
 
 const ROW = 26;
@@ -738,8 +771,8 @@ async function emitClass(ir, cid, warnings, refs) {
     }
     return { id: r.id, from: r.from, to: r.to, label: r.label, style: `${STYLE.classEdge}${def.style}`, endLabels, markers: { from: def.from, to: def.to } };
   });
-  const layout = await layoutGraph({ nodes, edges, direction: ir.direction, spacing: { nodeNode: 60, layer: 80 } });
-  return graphCells(cid, layout, { containers: [], nodes, edges }, warnings);
+  const layout = await layoutGraph({ nodes, edges, direction: ir.direction, spacing: { nodeNode: 60, layer: 80, ...loopSpacing(ir.direction) } });
+  return graphCells(cid, layout, { containers: [], nodes, edges, direction: ir.direction }, warnings);
 }
 
 /** The stick figure of a client; its label is drawn below it. */
@@ -769,10 +802,10 @@ async function emitArchitecture(ir, cid, refs, warnings) {
     return { ...node, ...measureNode(label, { pad: padOf(kind), baseHeight: kind === 'database' || kind === 'cache' ? 70 : 40 }) };
   });
   const edges = ir.connections.map((c) => ({ id: c.id, from: c.from, to: c.to, label: c.label, style: `${STYLE.flowEdge}${c.bidirectional ? 'startArrow=classic;startFill=1;' : ''}` }));
-  const spacing = { nodeNode: 50, layer: 80 };
+  const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
   let layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
   if (below.size > 0 && clientPorts(layout, { containers, nodes, edges })) layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
-  return graphCells(cid, layout, { containers, nodes, edges });
+  return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
 }
 
 /**

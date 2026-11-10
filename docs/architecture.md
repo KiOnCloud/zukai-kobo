@@ -129,8 +129,11 @@ ELK lays out flowchart, state, ER, class and architecture diagrams with orthogon
 label boxes into draw.io's relative label geometry, so a label stays where the engine put
 it. Every edge is written with ELK's waypoints and with exit and entry anchors taken from
 ELK's end points, so draw.io follows the computed route instead of re-routing a straight
-edge next to its neighbours. Self-loops are drawn by the emitter on a side band no other
-edge of that node touches, after the node asked ELK for the room on both sides. ER diagrams
+edge next to its neighbours. A self-loop goes on a side that is across the flow, where no
+other edge of its node ends. In a top-down or bottom-up layout the emitter draws it on a
+band of the right or left side, after the node asked ELK for the room on both sides. In a
+left-to-right or right-to-left layout it is the loop ELK itself routes over the top of the
+node, 30 px deep, with ELK's label box above it. ER diagrams
 run ELK twice: the first pass decides sides and row anchors, the second gets them as fixed
 ports (`FIXED_POS`), repeated until the order of anchors sharing a header band is stable.
 Table rows grow with wrapped text. For Mermaid, `planArchitectureGrid` places components on

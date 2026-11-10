@@ -185,6 +185,7 @@ const elk = () => (elkInstance ??= new ELK());
  * @param {Array<{id:string,parent?:string,headerHeight?:number}>} input.containers
  * @param {Array<{id:string,from:string,to:string,label?:string}>} input.edges
  * @param {string} [input.direction]
+ * @param {{nodeNode?:number, layer?:number, edgeEdge?:number, selfLoop?:number}} [input.spacing]
  * @returns {Promise<{ nodes: Map<string,{x,y,width,height}>, containers: Map<string,{x,y,width,height}>, edges: Map<string,{points:Array<{x,y}>}> }>}
  *   Node and container coordinates are relative to their parent (draw.io convention);
  *   edge bend points are absolute (edge cells sit on the root layer).
@@ -200,6 +201,9 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
   for (const c of containers) add(c.parent ?? null, { ...c, isContainer: true });
   for (const n of nodes) add(n.parent ?? null, { ...n, isContainer: false });
 
+  // ELK routes a self-loop itself, on a side that is across the flow; `selfLoop` is how far
+  // it stands off its node, for the directions whose loops are drawn on that route.
+  const selfLoop = spacing.selfLoop ? { 'elk.spacing.nodeSelfLoop': String(spacing.selfLoop) } : {};
   const build = (parent) => (byParent.get(parent) ?? []).map((el) => {
     if (!el.isContainer) {
       // Fixed ports pin where edges meet the node (ER rows); ELK routes from those points.
@@ -211,7 +215,8 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     const header = el.headerHeight ?? 30;
     return {
       id: el.id,
-      layoutOptions: { 'elk.padding': `[top=${header + 20},left=20,bottom=20,right=20]` },
+      // ELK reads the self-loop distance from the graph a node lies in, so a container repeats it.
+      layoutOptions: { 'elk.padding': `[top=${header + 20},left=20,bottom=20,right=20]`, ...selfLoop },
       children: build(el.id),
     };
   });
@@ -232,6 +237,7 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
       'elk.layered.spacing.edgeEdgeBetweenLayers': String(spacing.edgeEdge ?? 20),
       'elk.spacing.edgeLabel': '6',
       'elk.spacing.portPort': '20',
+      ...selfLoop,
       'elk.edgeLabels.placement': 'CENTER',
       'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',

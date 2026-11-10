@@ -129,6 +129,111 @@ describe('issue 25: every graph edge follows its layout route', () => {
   });
 });
 
+describe('issue 51: a self-transition in a horizontal layout loops over the top of its state', () => {
+  const lr = loadFixture('state', 'valid-self-loop-lr');
+  const boxHit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+  for (const direction of ['LR', 'RL']) {
+    it(`${direction}: the loop leaves and re-enters the top side, where no other transition ends, with its label above it`, async () => {
+      const r = await emit({ ...lr, direction }, 'drawio', { diagramId: 'g' });
+      expect(r.ok).toBe(true);
+      expect(r.warnings).toEqual([]);
+      const { edges, leaves, abs } = rebuild(r.output, 'g');
+      const pay = abs.get('g:pay');
+      const loop = edges.find((e) => e.id === 'g:t2');
+      expect(num(loop.style, 'exitY')).toBe(0);
+      expect(num(loop.style, 'entryY')).toBe(0);
+      // Out of the top, 30 px up, across and back down: every point of the loop is on or above the top side.
+      expect(loop.path).toHaveLength(4);
+      expect(loop.path[1].y).toBeCloseTo(pay.y - 30, 1);
+      expect(loop.path[2].y).toBeCloseTo(pay.y - 30, 1);
+      for (const p of loop.path) { expect(p.y).toBeLessThanOrEqual(pay.y + 0.5); expect(p.x).toBeGreaterThan(pay.x); expect(p.x).toBeLessThan(pay.x + pay.width); }
+      // The other transitions of the state end on its left and right sides only, at mid-height.
+      for (const e of edges) {
+        if (e === loop) continue;
+        for (const [id, at] of [[e.source, e.path[0]], [e.target, e.path.at(-1)]]) {
+          if (id !== 'g:pay') continue;
+          expect(at.y, e.id).toBeGreaterThan(pay.y + 1);
+          expect(at.y, e.id).toBeLessThan(pay.y + pay.height - 1);
+        }
+      }
+      // The state keeps its own size: no room is added beside it, the layout keeps it above.
+      expect(pay.height).toBe(40);
+      expect(edges.find((e) => e.id === 'g:t1').path.at(-1).x).toBeCloseTo(direction === 'LR' ? pay.x : pay.x + pay.width, 1);
+      // The label is centred above the loop, clear of every state and nearer to its loop than to any other transition.
+      expect(r.output).toMatch(/<mxCell id="g:t2:label"[^>]*align=center/);
+      expect(loop.labelBox.y + loop.labelBox.height).toBeLessThanOrEqual(pay.y - 30);
+      expect(distToPath(loop.labelBox, loop.path)).toBeLessThanOrEqual(6);
+      for (const n of leaves) expect(boxHit(loop.labelBox, n), n.id).toBe(false);
+      for (const e of edges) {
+        if (e === loop) continue;
+        expect(distToPath(loop.labelBox, e.path), e.id).toBeGreaterThan(20);
+        if (e.labelBox) expect(boxHit(loop.labelBox, e.labelBox), e.id).toBe(false);
+      }
+    });
+  }
+
+  it('two self-transitions of one state get a loop and a label each', async () => {
+    const ir = { ...lr, transitions: [...lr.transitions, { id: 't7', from: 'pay', to: 'pay', event: 'customer changes the card' }] };
+    const r = await emit(ir, 'drawio', { diagramId: 'g' });
+    const { edges, abs } = rebuild(r.output, 'g');
+    const pay = abs.get('g:pay');
+    const loops = edges.filter((e) => e.source === 'g:pay' && e.target === 'g:pay');
+    expect(loops).toHaveLength(2);
+    expect(sharedSegments(edges)).toEqual([]);
+    for (const l of loops) {
+      expect(num(l.style, 'exitY')).toBe(0);
+      expect(l.labelBox.y + l.labelBox.height).toBeLessThanOrEqual(pay.y);
+      const other = loops.find((x) => x !== l);
+      expect(boxHit(l.labelBox, other.labelBox)).toBe(false);
+      // Each label stands just above the top line of its own loop.
+      const top = Math.min(...l.path.map((p) => p.y));
+      expect(l.labelBox.y + l.labelBox.height).toBeLessThanOrEqual(top);
+      expect(top - (l.labelBox.y + l.labelBox.height)).toBeLessThanOrEqual(6);
+    }
+  });
+
+  it('the loop of a state inside a composite is as deep as any other', async () => {
+    const ir = { ...lr, states: [...lr.states, { id: 'grp', label: 'Checkout', kind: 'composite', children: ['pay', 'paid'] }] };
+    const r = await emit(ir, 'drawio', { diagramId: 'g' });
+    const { edges, abs } = rebuild(r.output, 'g');
+    const pay = abs.get('g:pay');
+    const loop = edges.find((e) => e.id === 'g:t2');
+    expect(num(loop.style, 'exitY')).toBe(0);
+    expect(loop.path[1].y).toBeCloseTo(pay.y - 30, 1);
+    // The loop and its label stay inside the composite, below its header.
+    const grp = abs.get('g:grp');
+    expect(loop.labelBox.y).toBeGreaterThanOrEqual(grp.y + 30);
+  });
+
+  it('a flowchart self-edge follows the same rule', async () => {
+    const ir = { schemaVersion: 1, kind: 'flowchart', title: 'Poll', direction: 'LR', nodes: [{ id: 'a', label: 'Start', shape: 'terminal' }, { id: 'b', label: 'Poll the queue' }, { id: 'c', label: 'Done', shape: 'terminal' }], edges: [{ id: 'e1', from: 'a', to: 'b' }, { id: 'e2', from: 'b', to: 'b', label: 'queue empty' }, { id: 'e3', from: 'b', to: 'c', label: 'message' }] };
+    const r = await emit(ir, 'drawio', { diagramId: 'g' });
+    const { edges, abs } = rebuild(r.output, 'g');
+    const b = abs.get('g:b');
+    const loop = edges.find((e) => e.id === 'g:e2');
+    expect(num(loop.style, 'exitY')).toBe(0);
+    expect(num(loop.style, 'entryY')).toBe(0);
+    // The node is as wide as it is without the self-edge: the room for the loop is above it.
+    const plain = rebuild((await emit({ ...ir, edges: ir.edges.filter((e) => e.id !== 'e2') }, 'drawio', { diagramId: 'g' })).output, 'g').abs.get('g:b');
+    expect(b.width).toBe(plain.width);
+    expect(loop.labelBox.y + loop.labelBox.height).toBeLessThanOrEqual(b.y - 30);
+  });
+
+  it('a top-down layout keeps the loop on the right side, where no other transition ends', async () => {
+    const r = await emit({ ...lr, direction: 'TB' }, 'drawio', { diagramId: 'g' });
+    const { edges, abs } = rebuild(r.output, 'g');
+    const pay = abs.get('g:pay');
+    const loop = edges.find((e) => e.id === 'g:t2');
+    expect(num(loop.style, 'exitX')).toBe(1);
+    expect(num(loop.style, 'entryX')).toBe(1);
+    for (const e of edges) {
+      if (e === loop) continue;
+      for (const [id, at] of [[e.source, e.path[0]], [e.target, e.path.at(-1)]]) if (id === 'g:pay') expect(at.x, e.id).toBeLessThan(pay.x + pay.width - 1);
+    }
+  });
+});
+
 describe('issue 26: labels stay on their own edge', () => {
   it('issue 30: self-transition labels start 4 px from the loop, long or short', async () => {
     const r = await emit(loadFixture('state', 'valid-self-loop'), 'drawio', { diagramId: 'g' });
