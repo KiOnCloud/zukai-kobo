@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
-# Copy the it-diagrams skill into a project for OpenAI Codex (.agents/skills) or, as a
+# Copy the Zukai skill into a project for OpenAI Codex (.agents/skills) or, as a
 # documented fallback, for Claude Code without the plugin (.claude/skills).
+#
+# Inside the plugin the skill is named "draw" (/zukai:draw). A copied skill has no plugin
+# namespace, so the copy is installed as "zukai": the folder and the "name" line of its
+# SKILL.md both become zukai ($zukai in Codex, /zukai in Claude Code).
 #
 # Usage: install.sh --target codex|claude-project [--dest <project-dir>]
 #
@@ -35,9 +39,14 @@ esac
 
 # Resolve the source from the script's own location, never from the working directory.
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-SRC="$SCRIPT_DIR/skills/it-diagrams"
+SRC="$SCRIPT_DIR/skills/draw"
 MANIFEST="$SCRIPT_DIR/.claude-plugin/plugin.json"
-MARKER=".it-diagrams-version"
+SOURCE_NAME="draw"
+INSTALL_NAME="zukai"
+MARKER=".zukai-version"
+# The name this skill was installed under before it was renamed.
+LEGACY_NAME="it-diagrams"
+LEGACY_MARKER=".it-diagrams-version"
 
 [ -f "$SRC/SKILL.md" ] || { echo "Source skill not found at $SRC" >&2; exit 1; }
 [ -f "$MANIFEST" ] || { echo "Manifest not found at $MANIFEST" >&2; exit 1; }
@@ -68,7 +77,8 @@ fi
 
 [ -d "$DEST_ROOT" ] || { echo "Destination project directory does not exist: $DEST_ROOT" >&2; exit 1; }
 DEST_ROOT=$(CDPATH= cd -- "$DEST_ROOT" && pwd -P)
-DEST="$DEST_ROOT/$SUBDIR/it-diagrams"
+DEST="$DEST_ROOT/$SUBDIR/$INSTALL_NAME"
+LEGACY="$DEST_ROOT/$SUBDIR/$LEGACY_NAME"
 
 if [ -f "$DEST/$MARKER" ]; then
   INSTALLED=$(head -n 1 "$DEST/$MARKER" | tr -d '[:space:]')
@@ -77,39 +87,52 @@ if [ -f "$DEST/$MARKER" ]; then
     exit 1
   fi
   case $(compare_versions "$SRC_VERSION" "$INSTALLED") in
-    0)  echo "it-diagrams $INSTALLED already up to date at $DEST"; exit 0 ;;
-    -1) echo "Installed it-diagrams $INSTALLED at $DEST is newer than this source ($SRC_VERSION); not downgrading." >&2; exit 3 ;;
-    1)  echo "Upgrading it-diagrams $INSTALLED -> $SRC_VERSION at $DEST" ;;
+    0)  echo "zukai $INSTALLED already up to date at $DEST"; exit 0 ;;
+    -1) echo "Installed zukai $INSTALLED at $DEST is newer than this source ($SRC_VERSION); not downgrading." >&2; exit 3 ;;
+    1)  echo "Upgrading zukai $INSTALLED -> $SRC_VERSION at $DEST" ;;
   esac
 elif [ -e "$DEST" ]; then
   echo "Existing folder without a version marker at $DEST; it will be backed up and replaced."
 else
-  echo "Installing it-diagrams $SRC_VERSION to $DEST"
+  echo "Installing zukai $SRC_VERSION to $DEST"
 fi
 
 mkdir -p "$DEST_ROOT/$SUBDIR"
-TMP="$DEST_ROOT/$SUBDIR/.it-diagrams.tmp-$$"
+TMP="$DEST_ROOT/$SUBDIR/.zukai.tmp-$$"
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT INT TERM
 
 # Copy into a temporary sibling first so an interrupted copy never leaves a half install.
 # Temporary siblings are only ever created by this script, so stale ones from a killed run are safe to drop.
-for stale in "$DEST_ROOT/$SUBDIR"/.it-diagrams.tmp-*; do
+for stale in "$DEST_ROOT/$SUBDIR"/.zukai.tmp-*; do
   [ -e "$stale" ] && rm -rf "$stale"
 done
 mkdir -p "$TMP"
 ( cd "$SRC" && tar -cf - --exclude=node_modules . ) | ( cd "$TMP" && tar -xf - )
 printf '%s\n' "$SRC_VERSION" > "$TMP/$MARKER"
 
+# Name the copy after its folder: a skill's name has to match the directory it lives in.
+grep -q "^name: $SOURCE_NAME\$" "$TMP/SKILL.md" || { echo "SKILL.md at $SRC does not declare 'name: $SOURCE_NAME'; refusing to install a copy with the wrong name." >&2; exit 1; }
+sed "s/^name: $SOURCE_NAME\$/name: $INSTALL_NAME/" "$TMP/SKILL.md" > "$TMP/SKILL.md.renamed"
+mv "$TMP/SKILL.md.renamed" "$TMP/SKILL.md"
+
+STAMP=$(date +%Y%m%d%H%M%S)
+# A copy installed under the old name would compete with this one for routing. Move it
+# aside only when its version marker shows this installer wrote it.
+if [ -f "$LEGACY/$LEGACY_MARKER" ]; then
+  mv "$LEGACY" "$LEGACY.bak-$STAMP"
+  echo "Install under the old name moved to $LEGACY.bak-$STAMP"
+fi
+
 if [ -e "$DEST" ]; then
-  BAK="$DEST.bak-$(date +%Y%m%d%H%M%S)"
+  BAK="$DEST.bak-$STAMP"
   mv "$DEST" "$BAK"
   echo "Previous install moved to $BAK"
 fi
 mv "$TMP" "$DEST"
 trap - EXIT INT TERM
 
-echo "Installed it-diagrams $SRC_VERSION to $DEST"
+echo "Installed zukai $SRC_VERSION to $DEST"
 if [ "$TARGET" = "claude-project" ]; then
-  echo "Warning: this is the fallback channel. If the it-diagrams plugin is also installed, two skills with the same name compete for routing; use one channel per machine." >&2
+  echo "Warning: this is the fallback channel. If the zukai plugin is also installed, two copies of the same skill compete for routing; use one channel per machine." >&2
 fi

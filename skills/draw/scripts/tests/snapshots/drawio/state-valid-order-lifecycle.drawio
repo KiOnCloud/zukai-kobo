@@ -1,0 +1,217 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="order-lifecycle" name="Order lifecycle">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="order-lifecycle:fulfil" value="Fulfilment" style="swimlane;whiteSpace=wrap;html=1;startSize=30;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="12" y="454" width="769" height="342" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:s0" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="12" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:new" value="New" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="990" y="102" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:payment" value="Awaiting payment" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="278" width="123" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:f0" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-lifecycle:fulfil">
+          <mxGeometry x="459" y="50" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:picking" value="Picking" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-lifecycle:fulfil">
+          <mxGeometry x="414" y="100" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:packing" value="Packing" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-lifecycle:fulfil">
+          <mxGeometry x="414" y="196" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:f-end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-lifecycle:fulfil">
+          <mxGeometry x="459" y="292" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:shipped" value="Shipped" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="208" y="932" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:delivered" value="Delivered" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="208" y="1108" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:cancelled" value="Cancelled" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="876" y="932" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:returned" value="Returned" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="188" y="1284" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="240" y="1394" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-lifecycle:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:s0" target="order-lifecycle:new">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.333;exitY=1;exitDx=0;exitDy=0;entryX=0.504;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:new" target="order-lifecycle:payment">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1030" y="167"/>
+              <mxPoint x="682" y="167"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t2:label" value="checkout" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t2">
+          <mxGeometry x="0.72" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t3" value="" style="rounded=0;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:payment" target="order-lifecycle:payment">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="773" y="290"/>
+              <mxPoint x="773" y="306"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t3:label" value="payment failed [attempts &amp;lt; 3] / notify customer" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t3">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.501;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:payment" target="order-lifecycle:fulfil">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="343"/>
+              <mxPoint x="397" y="343"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t4:label" value="payment captured / reserve stock" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t4">
+          <mxGeometry x="0.55" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:f0" target="order-lifecycle:picking">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:picking" target="order-lifecycle:packing">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t6:label" value="all items picked" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t6">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:packing" target="order-lifecycle:f-end">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t7:label" value="label printed" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t7">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.333;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:fulfil" target="order-lifecycle:shipped">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t8:label" value="carrier pickup" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t8">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:shipped" target="order-lifecycle:delivered">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t9:label" value="proof of delivery" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t9">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:new" target="order-lifecycle:cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1070" y="897"/>
+              <mxPoint x="966" y="897"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t10:label" value="customer cancels" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t10">
+          <mxGeometry x="-0.45" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:payment" target="order-lifecycle:cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="803" y="343"/>
+              <mxPoint x="936" y="343"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t11:label" value="timeout [after 24 h]" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t11">
+          <mxGeometry x="0.18" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:fulfil" target="order-lifecycle:cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="525" y="897"/>
+              <mxPoint x="906" y="897"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t12:label" value="out of stock / refund" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t12">
+          <mxGeometry x="-0.74" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.333;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:delivered" target="order-lifecycle:returned">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t13:label" value="return received [within 30 days]" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t13">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:delivered" target="order-lifecycle:end">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="288" y="1173"/>
+              <mxPoint x="333" y="1173"/>
+              <mxPoint x="333" y="1349"/>
+              <mxPoint x="255" y="1349"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.767;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:cancelled" target="order-lifecycle:end">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="936" y="997"/>
+              <mxPoint x="354" y="997"/>
+              <mxPoint x="354" y="1369"/>
+              <mxPoint x="263" y="1369"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.267;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:returned" target="order-lifecycle:end">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t17" value="" style="rounded=0;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:picking" target="order-lifecycle:picking">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="576" y="566"/>
+              <mxPoint x="576" y="582"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-lifecycle:t17:label" value="item missing / restock request" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t17">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

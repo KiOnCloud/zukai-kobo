@@ -1,6 +1,6 @@
 # Third-party notices
 
-The committed bundle `skills/it-diagrams/scripts/bin/cli.mjs` contains the following
+The committed bundle `skills/draw/scripts/bin/cli.mjs` contains the following
 third-party code. Licence texts are in each package's npm distribution.
 
 | Package | Version | Licence | Use |
@@ -13,7 +13,7 @@ not part of the bundle and are not redistributed.
 
 ## Data
 
-`skills/it-diagrams/scripts/src/aws-icons.json` and `skills/it-diagrams/references/aws-icons.md`
+`skills/draw/scripts/src/aws-icons.json` and `skills/draw/references/aws-icons.md`
 list the stencil names, titles and style values of the AWS shape library of draw.io
 (jgraph/drawio, Apache-2.0), read from `src/main/webapp/js/diagramly/sidebar/Sidebar-AWS4.js`
 at the tag recorded in the JSON file. No icon artwork is copied or embedded: an emitted

@@ -1,0 +1,107 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="order-checkout" name="Order checkout">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="order-checkout:fulfilment" value="Fulfilment" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="12" y="433" width="235" height="286" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:start" value="Customer submits cart" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="226" y="12" width="149" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:validate" value="Validate cart contents" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="228" y="112" width="145" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:in-stock" value="All items in stock?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="254" y="212" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:reserve" value="Reserve stock" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="order-checkout:fulfilment">
+          <mxGeometry x="57.5" y="50" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:payment" value="Capture payment&lt;br&gt;↳ order-checkout-payment" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="order-checkout:fulfilment">
+          <mxGeometry x="20" y="110" width="195" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:receipt" value="Send receipt email" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;size=20;spacingLeft=20;spacingRight=20;" vertex="1" parent="order-checkout:fulfilment">
+          <mxGeometry x="43.5" y="226" width="148" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:done" value="Order placed" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="784" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:backorder" value="Offer backorder" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="287" y="556" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:hint" value="Stock is checked per warehouse" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="413" y="112" width="204" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-checkout:e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.503;exitY=1;exitDx=0;exitDy=0;entryX=0.503;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:start" target="order-checkout:validate">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.503;exitY=1;exitDx=0;exitDy=0;entryX=0.336;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:validate" target="order-checkout:in-stock">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.336;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:in-stock" target="order-checkout:reserve">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="301" y="317"/>
+              <mxPoint x="130" y="317"/>
+              <mxPoint x="129.5" y="428"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e3:label" value="yes" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-checkout:e3">
+          <mxGeometry x="0.32" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="-0.09" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.664;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:in-stock" target="order-checkout:backorder">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e4:label" value="no" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-checkout:e4">
+          <mxGeometry x="-0.48" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:reserve" target="order-checkout:payment">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:payment" target="order-checkout:receipt">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e6:label" value="captured" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-checkout:e6">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.333;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:receipt" target="order-checkout:done">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="130" y="724"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:backorder" target="order-checkout:done">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="347" y="749"/>
+              <mxPoint x="170" y="749"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-checkout:e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.664;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-checkout:hint" target="order-checkout:in-stock">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="515" y="177"/>
+              <mxPoint x="347" y="177"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

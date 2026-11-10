@@ -1,8 +1,17 @@
-# Install it-diagrams
+# Install Zukai
 
-One source folder, `skills/it-diagrams/`, is distributed two ways. Pick one channel per
-machine: installing both the plugin and a project copy makes two skills with the same name
+One source folder, `skills/draw/`, is distributed two ways. Pick one channel per
+machine: installing both the plugin and a project copy makes two copies of the same skill
 compete for routing.
+
+| Channel | Installed as | Invoked with |
+|---|---|---|
+| Claude Code plugin | plugin `zukai`, skill `draw` | `/zukai:draw` |
+| OpenAI Codex folder copy | `.agents/skills/zukai/` | `$zukai` |
+| Claude Code folder copy (fallback) | `.claude/skills/zukai/` | `/zukai` |
+
+A folder copy has no plugin namespace in front of it, so the installer names the copy
+`zukai` instead of `draw`.
 
 Requirements: Node 22.13 or newer on `PATH`. The emitters are a committed single-file bundle,
 so no `npm install` is needed to use the skill. The draw.io desktop app and the Figma MCP
@@ -43,31 +52,31 @@ Add the marketplace and install the plugin. The repository is public, so no GitH
 or credential is needed; only `git` on `PATH`.
 
 ```text
-/plugin marketplace add KiOnCloud/it-diagrams
-/plugin install it-diagrams@it-diagrams
+/plugin marketplace add KiOnCloud/zukai
+/plugin install zukai@zukai
 ```
 
 On Claude Code 2.1.275 or later the two steps collapse into one:
 
 ```text
-/plugin install it-diagrams --marketplace KiOnCloud/it-diagrams
+/plugin install zukai --marketplace KiOnCloud/zukai
 ```
 
 The same commands work from a shell as `claude plugin marketplace add ...` and
-`claude plugin install ...`. After install, `/it-diagrams:it-diagrams` appears in the skill
+`claude plugin install ...`. After install, `/zukai:draw` appears in the skill
 list.
 
 ### Uninstall
 
 ```text
-/plugin uninstall it-diagrams@it-diagrams
-/plugin marketplace remove it-diagrams
+/plugin uninstall zukai@zukai
+/plugin marketplace remove zukai
 ```
 
 Removing the marketplace also uninstalls every plugin installed from it. Both steps leave
 `~/.claude/plugins/` as it was before the install: the plugin copy lived under
-`cache/it-diagrams/it-diagrams/<version>/`, the marketplace clone under
-`marketplaces/it-diagrams/`, and the records in `installed_plugins.json` and
+`cache/zukai/zukai/<version>/`, the marketplace clone under
+`marketplaces/zukai/`, and the records in `installed_plugins.json` and
 `known_marketplaces.json`.
 
 ### Credentials (only for a private fork)
@@ -86,7 +95,7 @@ Background auto-update is off until a user enables it under `/plugin` > Marketpl
 it is on, the check uses the same stored credential and never prompts. If no stored
 credential is available the update fails quietly and the installed copy keeps working; set
 `CLAUDE_CODE_PLUGIN_KEEP_MARKETPLACE_ON_FAILURE=1` to skip the re-clone attempt entirely.
-Without auto-update, pull a new release with `/plugin marketplace update it-diagrams`.
+Without auto-update, pull a new release with `/plugin marketplace update zukai`.
 A `GITHUB_TOKEN` in the environment alone does not authenticate the background check; it
 has to flow through a credential helper such as the one `gh auth setup-git` configures.
 
@@ -101,24 +110,25 @@ Codex reads skills from `.agents/skills/` in the project and from `~/.agents/ski
 the user. Clone this repository once, then copy the skill into the project:
 
 ```bash
-git clone git@github.com:KiOnCloud/it-diagrams.git
+git clone git@github.com:KiOnCloud/zukai.git
 ```
 
 ```bash
-./it-diagrams/install.sh --target codex --dest /path/to/your-project
+./zukai/install.sh --target codex --dest /path/to/your-project
 ```
 
 On Windows:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\it-diagrams\install.ps1 -Target codex -Dest C:\path\to\your-project
+powershell -ExecutionPolicy Bypass -File .\zukai\install.ps1 -Target codex -Dest C:\path\to\your-project
 ```
 
-The installer copies `skills/it-diagrams/` to `<project>/.agents/skills/it-diagrams/` and
-writes `.it-diagrams-version` next to `SKILL.md`. It copies into a temporary sibling and
+The installer copies `skills/draw/` to `<project>/.agents/skills/zukai/`, changes the
+`name` line of the copied `SKILL.md` from `draw` to `zukai` so it matches the folder, and
+writes `.zukai-version` next to `SKILL.md`. It copies into a temporary sibling and
 renames it into place, so an interrupted run never leaves a half install. It never runs
 `npm`, never touches the network, and never deletes an existing copy: a differing one is
-moved to `it-diagrams.bak-<timestamp>` first.
+moved to `zukai.bak-<timestamp>` first.
 
 To update, pull the repository and run the installer again. Exit codes:
 
@@ -128,7 +138,7 @@ To update, pull the repository and run the installer again. Exit codes:
 | 1 | Usage or I/O error, or a prerelease version marker that cannot be compared |
 | 3 | The installed copy is newer than the source; nothing changed |
 
-In Codex, invoke the skill with `$it-diagrams` or let it route from the description.
+In Codex, invoke the skill with `$zukai` or let it route from the description.
 
 ## Claude Code without the plugin (fallback)
 
@@ -136,10 +146,28 @@ If a machine cannot add the marketplace, the same installer copies the skill int
 `.claude/skills/` of a project:
 
 ```bash
-./it-diagrams/install.sh --target claude-project --dest /path/to/your-project
+./zukai/install.sh --target claude-project --dest /path/to/your-project
 ```
 
-The script warns that this channel competes with the plugin if both are present.
+Invoke the copy with `/zukai`. The script warns that this channel competes with the plugin
+if both are present.
+
+## Upgrading from it-diagrams
+
+Zukai was published as `it-diagrams` up to version 1.0.0. The IR format and the CLI did
+not change with the name, so existing `.ir.json` files keep working.
+
+- Plugin: remove the old marketplace, which also uninstalls the old plugin, then install
+  as described above. The command becomes `/zukai:draw`.
+
+  ```text
+  /plugin marketplace remove it-diagrams
+  ```
+
+- Folder copy: run the installer again. It installs `zukai/` and moves an
+  `it-diagrams/` folder it wrote earlier (recognised by its `.it-diagrams-version` file) to
+  `it-diagrams.bak-<timestamp>`, so the two do not compete. A folder with that name and no
+  version file is left untouched.
 
 ## Pre-release checks for maintainers
 
@@ -147,7 +175,7 @@ Run these before tagging a release. CI runs the first two; strict plugin validat
 CI only when the Claude Code CLI installs there, otherwise it is a local step.
 
 ```bash
-cd skills/it-diagrams/scripts && npm ci && npm test
+cd skills/draw/scripts && npm ci && npm test
 ```
 
 ```bash

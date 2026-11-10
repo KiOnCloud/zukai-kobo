@@ -33,11 +33,11 @@ jobs:
             console.log("manifests ok:", plugin.name, plugin.version);
           '
 
-      - name: Check the skill frontmatter uses only portable fields
+      - name: Check the skill frontmatter uses only portable fields and the plugin skill name
         run: |
           node -e '
             const fs = require("fs");
-            const text = fs.readFileSync("skills/it-diagrams/SKILL.md", "utf8");
+            const text = fs.readFileSync("skills/draw/SKILL.md", "utf8");
             const m = text.match(/^---\n([\s\S]*?)\n---/);
             if (!m) throw new Error("SKILL.md has no frontmatter");
             const keys = m[1].split("\n").filter((l) => /^[a-zA-Z-]+:/.test(l)).map((l) => l.split(":")[0]);
@@ -45,22 +45,23 @@ jobs:
             const bad = keys.filter((k) => !allowed.has(k));
             if (bad.length) throw new Error("non-portable frontmatter keys: " + bad.join(", "));
             if (!keys.includes("name") || !keys.includes("description")) throw new Error("name and description are required");
+            if (!/^name: draw$/m.test(m[1])) throw new Error("the skill must be named draw; the installers rename a folder copy to zukai from that exact line");
             console.log("frontmatter ok:", keys.join(", "));
           '
 
       - name: Install dev dependencies
-        if: ${{ hashFiles('skills/it-diagrams/scripts/package.json') != '' }}
-        working-directory: skills/it-diagrams/scripts
+        if: ${{ hashFiles('skills/draw/scripts/package.json') != '' }}
+        working-directory: skills/draw/scripts
         run: npm ci
 
       - name: Run tests
-        if: ${{ hashFiles('skills/it-diagrams/scripts/package.json') != '' }}
-        working-directory: skills/it-diagrams/scripts
+        if: ${{ hashFiles('skills/draw/scripts/package.json') != '' }}
+        working-directory: skills/draw/scripts
         run: npm test
 
       - name: Assert the bundle is committed
-        if: ${{ hashFiles('skills/it-diagrams/scripts/package.json') != '' }}
-        run: git ls-files --error-unmatch skills/it-diagrams/scripts/bin/cli.mjs
+        if: ${{ hashFiles('skills/draw/scripts/package.json') != '' }}
+        run: git ls-files --error-unmatch skills/draw/scripts/bin/cli.mjs
 
       - name: Install the Claude Code CLI for strict validation
         id: claude_cli

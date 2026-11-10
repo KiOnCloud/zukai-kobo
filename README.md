@@ -1,82 +1,233 @@
-# it-diagrams
+# Zukai
 
-Agent Skill that turns clarified requirements, an existing codebase or a raw idea into IT
-diagrams and emits them to three targets. One source folder, `skills/it-diagrams/`, ships as a
-Claude Code plugin and as a plain skill copy for OpenAI Codex.
+[![CI](https://github.com/KiOnCloud/zukai/actions/workflows/ci.yml/badge.svg)](https://github.com/KiOnCloud/zukai/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Install: `/plugin install it-diagrams --marketplace KiOnCloud/it-diagrams` (see
-[docs/install.md](docs/install.md) for the two-step form, Codex and credentials).
-New here? Read [docs/quickstart.md](docs/quickstart.md).
+**Software diagrams generated from a validated model, not drawn by hand.**
 
-## Status: open beta
+Zukai (図解, "to explain with a diagram") is an Agent Skill for Claude Code and OpenAI Codex.
+It turns requirements, an existing codebase or a raw idea into sequence, flowchart, activity,
+state, ER, class and architecture diagrams, and emits them as editable draw.io files, Mermaid
+text or FigJam boards.
 
-Version 1.0.0 is the open beta. Every diagram kind and target listed below works and is
-covered by tests; layout is what still changes between releases, so a diagram emitted again
-after an update can come out arranged differently. Report a wrong or ugly diagram at
-[github.com/KiOnCloud/it-diagrams/issues](https://github.com/KiOnCloud/it-diagrams/issues)
-with the `.ir.json` file the skill wrote, which is enough to reproduce it. Pull a newer
-release with `/plugin marketplace update it-diagrams`.
+The agent never writes diagram syntax. It writes one small JSON model per diagram; a bundled
+CLI validates that model and emits the output deterministically. A diagram is therefore
+either correct against its model or rejected with a list of errors, and the same model
+always produces the same file.
 
-## Entry point
+## Contents
 
-```text
-/it-diagrams:it-diagrams <clarify|scout|brainstorm> [--to mermaid|drawio|figjam]
+- [Why Zukai](#why-zukai)
+- [Quick start](#quick-start)
+- [Usage](#usage)
+- [Diagram kinds and targets](#diagram-kinds-and-targets)
+- [How it works](#how-it-works)
+- [Output](#output)
+- [Requirements](#requirements)
+- [Other runtimes](#other-runtimes)
+- [Documentation](#documentation)
+- [Development](#development)
+- [Status](#status)
+- [License](#license)
+
+## Why Zukai
+
+- **Validated before it is drawn.** Every diagram starts as a JSON intermediate
+  representation (IR) checked against a schema and a reference pass: unique ids, existing
+  endpoints, no containment cycles, well-nested sequence blocks. Every error comes back with
+  its path and a hint.
+- **Deterministic output.** Emitters are plain functions from IR to text. The IR is small
+  enough to review and to diff, and it is the file you edit when the diagram has to change.
+- **Editable results.** The default target is an uncompressed `.drawio` file, laid out
+  automatically, in which every shape and connection can still be moved and restyled.
+- **Three ways in.** Interview the user (`clarify`), read the code (`scout`), or start from
+  an idea and choose among proposed diagram sets (`brainstorm`).
+- **Nothing approximated silently.** A feature matrix states, per diagram kind, target and
+  feature, whether it is supported, degraded with a named warning, or rejected.
+- **Two audiences from one subject.** A technical view keeps component, endpoint and data
+  names; a business view keeps only the flow and the business rules.
+- **Reviewed before delivery.** Each diagram is checked against a review checklist, on a
+  rendered image when a renderer is installed, and labels are scanned for credentials on
+  every emit.
+
+## Quick start
+
+Requirements: Claude Code, `git`, and Node 22.13 or newer.
+
+```bash
+claude plugin marketplace add KiOnCloud/zukai
 ```
 
-| Mode | What happens |
+```bash
+claude plugin install zukai@zukai
+```
+
+Then open Claude Code in the project the diagram is about:
+
+```text
+/zukai:draw scout the login flow
+```
+
+Zukai asks one question (diagram kind, scope and view), writes the model, validates it,
+emits the files, has them reviewed and reports where they are. The five-minute walkthrough
+is in [docs/quickstart.md](docs/quickstart.md); every install option is in
+[docs/install.md](docs/install.md).
+
+## Usage
+
+```text
+/zukai:draw <clarify|scout|brainstorm> [options] <request>
+```
+
+| Mode | Use it when | What happens |
+|---|---|---|
+| `clarify` | You can describe the process in prose | Zukai interviews you until every required slot of the chosen diagram kind is filled, in at most three rounds |
+| `scout` | The diagram must reflect existing code | Zukai reads the codebase and derives the diagram from entry points, call chains, enums, entities or the dependency-injection graph |
+| `brainstorm` | You have an idea and do not yet know which diagrams help | Zukai proposes two or three candidate diagram sets, you pick one, then it clarifies |
+
+| Option | Values | Effect |
+|---|---|---|
+| `--to` | `drawio` (default), `mermaid`, `figjam` | Output target |
+| `--kind` | `sequence`, `flowchart`, `activity`, `state`, `er`, `class`, `architecture` | Fixes the diagram kind |
+| `--scope` | `overview`, `detailed` | One main diagram, or a main diagram linked to one sub-diagram per sub-flow |
+| `--audience` | `technical`, `business`, `both` | Who reads the diagram |
+
+Anything not given as an option is asked once, in a single question, in the user's language.
+
+```text
+/zukai:draw clarify order approval process
+/zukai:draw scout --kind activity --scope overview the refund flow
+/zukai:draw brainstorm --to mermaid a loyalty points feature
+```
+
+## Diagram kinds and targets
+
+| Kind | Shows |
 |---|---|
-| `clarify` | Interview the user until every required slot of the chosen diagram kind is filled, at most three rounds |
-| `scout` | Read the codebase and derive the diagram from entry points, call chains, enums, entities or the DI graph |
-| `brainstorm` | From a raw idea propose two or three candidate diagram sets, let the user pick, then clarify |
-
-Before drawing, the skill asks one question (one `AskUserQuestion` call in Claude Code, one
-message elsewhere): the diagram kind, the scope (`overview` or `detailed`), the view
-(`technical`, `business` or `both`), and the mode when it was left out, all in the user's
-language with the keyword in parentheses. Flags such as
-`--kind`, `--scope` and `--audience` skip the matching part.
-
-In Codex the same modes are reached by asking in prose after `$it-diagrams`.
-
-## Targets
+| `sequence` | Who calls whom, in what order, with replies and failure branches |
+| `flowchart` | Steps and decisions of one process from start to end |
+| `activity` | Swimlanes per actor or system, with hand-offs, fork and join |
+| `state` | The statuses one thing can be in and the events that move it between them |
+| `er` | Data entities, their key attributes and relations |
+| `class` | Types, interfaces, their members, inheritance and composition |
+| `architecture` | Deployable components, data stores, queues, external systems and their connections |
 
 | Target | Output | Notes |
 |---|---|---|
-| `drawio` | `.drawio` file, uncompressed mxGraph XML | Default; every shape and edge individually editable, laid out automatically |
-| `mermaid` | Mermaid text | Paste into Markdown |
-| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; falls back to Mermaid text |
+| `drawio` | `.drawio` file, uncompressed mxGraph XML | Default. Laid out automatically; every shape and edge stays editable. Architecture diagrams of AWS systems use AWS service icons with VPC, subnet and account frames |
+| `mermaid` | Mermaid text | Paste into Markdown or a wiki |
+| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; falls back to Mermaid text without it |
 
-Diagram kinds: sequence, flowchart, state, ER, class, architecture (with AWS service icons
-and VPC, subnet and account frames on the draw.io target), and activity with
-swimlanes, fork and join (draw.io is the activity target; Mermaid renders it with the beta
-`swimlane-beta` syntax and FigJam does not support it).
+draw.io is the target for `activity` diagrams. Mermaid renders them with its beta swimlane
+syntax and FigJam does not support them. The complete table of what each target supports is
+[docs/feature-matrix.md](docs/feature-matrix.md).
 
 ## How it works
 
-The model never hand-writes Mermaid or XML. Every flow ends the same way: write a JSON
-intermediate representation (IR), validate it, fix the full error list, then emit.
-
 ```text
-clarify | scout | brainstorm  ->  ir.json  ->  validate  ->  feature matrix  ->  emit
+clarify | scout | brainstorm  ->  IR (JSON)  ->  validate  ->  feature matrix  ->  secret scan  ->  emit
 ```
 
-The feature matrix is data. For each kind, target and feature it says `supported`,
-`degraded` (emitted with an explicit warning naming what was lost) or `unsupported` (fails
-validation for that target). Nothing is approximated silently.
+The IR is the only thing the agent writes. An excerpt of a sequence diagram:
+
+```json
+{
+  "schemaVersion": 1,
+  "kind": "sequence",
+  "title": "Login with password",
+  "participants": [
+    { "id": "web", "label": "Web app", "kind": "participant" },
+    { "id": "auth", "label": "Auth service", "kind": "control" }
+  ],
+  "messages": [
+    { "id": "m2", "from": "web", "to": "auth", "label": "POST /login", "kind": "sync" }
+  ]
+}
+```
+
+The bundled CLI then does the rest, and can be run by hand:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs validate login.ir.json
+```
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs emit --to drawio login.ir.json --out login.drawio
+```
+
+Before emitting, the CLI consults the feature matrix. For each kind, target and feature a
+cell is `supported`, `degraded` (emitted with a warning naming the element and what was lost)
+or `unsupported` (the emit fails for that target). The design and the reasoning behind each
+layout are in [docs/architecture.md](docs/architecture.md).
+
+## Output
+
+Every run writes into one folder of your project:
+
+```text
+diagrams/20261109_login-flow/
+  login-flow.drawio          the whole run: one page per diagram
+  drawio/<diagram>.drawio    each diagram on its own
+  source/<diagram>.ir.json   the model the diagrams were generated from
+```
+
+To change a diagram, edit the `.ir.json` file and emit again. The XML is an output, not a
+source.
 
 ## Requirements
 
-- Node 22.13 or newer. The emitters are a committed single-file bundle; consumers never run
-  `npm install`.
-- Optional: draw.io desktop for previews, the Figma MCP server for the FigJam target.
+- Node 22.13 or newer. The CLI is a committed single-file bundle, so using Zukai never
+  needs `npm install`. Validating and emitting never touch the network.
+- Optional: draw.io desktop or Playwright with Chromium, for the rendered review step.
+- Optional: the Figma MCP server, for the FigJam target.
+
+## Other runtimes
+
+The same skill folder runs outside the Claude Code plugin. `install.sh` (and `install.ps1`
+on Windows) copies it into a project:
+
+| Runtime | Install | Invoke |
+|---|---|---|
+| Claude Code plugin | `claude plugin install zukai@zukai` | `/zukai:draw` |
+| OpenAI Codex | `install.sh --target codex --dest <project>` | `$zukai` |
+| Claude Code without the plugin | `install.sh --target claude-project --dest <project>` | `/zukai` |
+
+Use one channel per machine. Details, uninstall, update and private-fork credentials are in
+[docs/install.md](docs/install.md).
+
+Zukai was published as `it-diagrams` up to version 1.0.0. Existing `.ir.json` files keep
+working; see [Upgrading from it-diagrams](docs/install.md#upgrading-from-it-diagrams).
+
+## Documentation
+
+| Document | Content |
+|---|---|
+| [docs/quickstart.md](docs/quickstart.md) | From nothing to a reviewed draw.io diagram in five minutes |
+| [docs/install.md](docs/install.md) | Every install channel, updates, uninstall, credentials |
+| [docs/architecture.md](docs/architecture.md) | Pipeline, layout engines, extension rule, testing strategy |
+| [docs/feature-matrix.md](docs/feature-matrix.md) | What each target supports for each diagram kind |
+| [skills/draw/SKILL.md](skills/draw/SKILL.md) | The skill's own contract, as the agent reads it |
 
 ## Development
 
 ```bash
-cd skills/it-diagrams/scripts && npm ci && npm test
+cd skills/draw/scripts && npm ci && npm test
 ```
 
-Plan and research: [plans/261104-1501-it-diagrams-plugin/plan.md](plans/261104-1501-it-diagrams-plugin/plan.md).
-Third-party code in the bundle: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The CLI bundle in `skills/draw/scripts/bin/` is committed; rebuild it with `npm run build`
+after changing anything under `src/`. A test fails when the committed bundle drifts from the
+sources. The original plan and research are in
+[plans/261104-1501-it-diagrams-plugin/plan.md](plans/261104-1501-it-diagrams-plugin/plan.md).
+
+## Status
+
+Version 1.0.0 is the open beta. Every diagram kind and target listed above works and is
+covered by tests. Layout is what still changes between releases, so a diagram emitted again
+after an update can come out arranged differently.
+
+Report a wrong or ugly diagram at
+[github.com/KiOnCloud/zukai/issues](https://github.com/KiOnCloud/zukai/issues) and attach the
+`.ir.json` file the skill wrote, which is enough to reproduce it.
 
 ## License
 

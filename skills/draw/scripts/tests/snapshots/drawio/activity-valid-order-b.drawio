@@ -1,0 +1,72 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="order-b-same-flow-main-path-declared-fir" name="Order B: same flow, main path declared first">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:svc" value="Order service" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="386.5" height="604" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:a-reserve" value="Reserve stock" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
+          <mxGeometry x="30" y="338" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:a-reject" value="Return empty result" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
+          <mxGeometry x="190" y="338" width="133" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:a-ship" value="Create shipment" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
+          <mxGeometry x="30" y="444" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
+          <mxGeometry x="241.5" y="70" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:d-stock" value="In stock?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
+          <mxGeometry x="186.5" y="160" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
+          <mxGeometry x="75" y="544" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:end-empty" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-b-same-flow-main-path-declared-fir:svc">
+          <mxGeometry x="241.5" y="449" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-b-same-flow-main-path-declared-fir:start" target="order-b-same-flow-main-path-declared-fir:d-stock">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-b-same-flow-main-path-declared-fir:d-stock" target="order-b-same-flow-main-path-declared-fir:a-reserve">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="296.5" y="302"/>
+              <mxPoint x="130" y="302"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:f2:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-b-same-flow-main-path-declared-fir:f2">
+          <mxGeometry x="0.25" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-b-same-flow-main-path-declared-fir:d-stock" target="order-b-same-flow-main-path-declared-fir:a-reject">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:f3:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-b-same-flow-main-path-declared-fir:f3">
+          <mxGeometry x="0.22" y="0" relative="1" as="geometry">
+            <mxPoint x="19" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-b-same-flow-main-path-declared-fir:a-reject" target="order-b-same-flow-main-path-declared-fir:end-empty">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-b-same-flow-main-path-declared-fir:a-reserve" target="order-b-same-flow-main-path-declared-fir:a-ship">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-b-same-flow-main-path-declared-fir:f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-b-same-flow-main-path-declared-fir:a-ship" target="order-b-same-flow-main-path-declared-fir:end">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,126 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="order-domain" name="Order domain">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="order-domain:order" value="«aggregate root»&lt;br&gt;Order" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=46;" vertex="1" parent="1">
+          <mxGeometry x="205" y="270" width="300" height="172" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:order:row-0" value="+Id: Guid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:order">
+          <mxGeometry x="0" y="46" width="300" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:order:row-1" value="-lines: List&amp;lt;OrderLine&amp;gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:order">
+          <mxGeometry x="0" y="72" width="300" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:order:sep-2" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" vertex="1" parent="order-domain:order">
+          <mxGeometry x="0" y="98" width="300" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:order:row-3" value="+AddLine(Product product, int quantity): ErrorOr&amp;lt;OrderLine&amp;gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:order">
+          <mxGeometry x="0" y="106" width="300" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:order:row-4" value="+Total(): Money" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:order">
+          <mxGeometry x="0" y="146" width="300" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:order-line" value="OrderLine" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
+          <mxGeometry x="275" y="674" width="160" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:order-line:row-0" value="+Quantity: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:order-line">
+          <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:order-line:row-1" value="+UnitPrice: Money" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:order-line">
+          <mxGeometry x="0" y="52" width="160" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:product" value="Product" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
+          <mxGeometry x="302" y="928" width="160" height="52" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:product:row-0" value="Sku: string" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:product">
+          <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:entity" value="«abstract»&lt;br&gt;Entity" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=46;" vertex="1" parent="1">
+          <mxGeometry x="96" y="522" width="160" height="72" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:entity:row-0" value="#Id: Guid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:entity">
+          <mxGeometry x="0" y="46" width="160" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:repository" value="«interface»&lt;br&gt;IOrderRepository" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=46;" vertex="1" parent="1">
+          <mxGeometry x="12" y="118" width="283" height="72" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:repository:row-0" value="Save(Order order, CancellationToken ct): Task" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-domain:repository">
+          <mxGeometry x="0" y="46" width="283" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:ef-repository" value="EfOrderRepository" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
+          <mxGeometry x="248" y="12" width="160" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-domain:r1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=16;endFill=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:order" target="order-domain:entity">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="467"/>
+              <mxPoint x="176" y="467"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamondThin;startFill=1;startSize=24;endArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:order" target="order-domain:order-line">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r2:label" value="lines" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r2">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r2:from-card" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r2">
+          <mxGeometry x="-1" y="0" relative="1" as="geometry">
+            <mxPoint x="5" y="38" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r2:to-card" value="1..*" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r2">
+          <mxGeometry x="1" y="0" relative="1" as="geometry">
+            <mxPoint x="5" y="-14" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.331;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:order-line" target="order-domain:product">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r3:label" value="for" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r3">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r3:to-card" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r3">
+          <mxGeometry x="1" y="0" relative="1" as="geometry">
+            <mxPoint x="5" y="-24" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=16;endFill=0;dashed=1;exitX=0.331;exitY=1;exitDx=0;exitDy=0;entryX=0.502;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:ef-repository" target="order-domain:repository">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="301" y="63"/>
+              <mxPoint x="154" y="63"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;dashed=1;exitX=0.669;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:ef-repository" target="order-domain:order">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r5:label" value="persists" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-domain:r5">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-domain:r6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamondThin;startFill=0;startSize=24;endArrow=none;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.669;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-domain:order" target="order-domain:product">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="467"/>
+              <mxPoint x="460" y="467"/>
+              <mxPoint x="460" y="873"/>
+              <mxPoint x="409" y="873"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

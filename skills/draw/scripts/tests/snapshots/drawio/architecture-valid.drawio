@@ -1,0 +1,121 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="order-platform" name="Order platform">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="order-platform:aws" value="AWS account" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="333" y="12" width="986" height="351" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:vpc" value="VPC" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="order-platform:aws">
+          <mxGeometry x="302" y="79" width="639" height="252" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:browser" value="Customer browser" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=107;" vertex="1" parent="1">
+          <mxGeometry x="46" y="240" width="40" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:web" value="Angular web app" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-platform:vpc">
+          <mxGeometry x="20" y="159" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:api" value="Order API (.NET)" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-platform:vpc">
+          <mxGeometry x="256" y="159" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:db" value="PostgreSQL" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-platform:vpc">
+          <mxGeometry x="499" y="140" width="120" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:cache" value="Redis" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-platform:vpc">
+          <mxGeometry x="499" y="50" width="120" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:queue" value="SQS orders" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;size=20;spacingLeft=20;spacingRight=20;" vertex="1" parent="order-platform:aws">
+          <mxGeometry x="20" y="55.67" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:worker" value="Fulfilment worker" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-platform:vpc">
+          <mxGeometry x="20" y="99" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:psp" value="Payment provider" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1582" y="302" width="122" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:browser" target="order-platform:web">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c1:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform:c1">
+          <mxGeometry x="-0.61" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:web" target="order-platform:api">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c2:label" value="REST/JSON" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform:c2">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:api" target="order-platform:db">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c3:label" value="SQL" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform:c3">
+          <mxGeometry x="0.08" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;startArrow=classic;startFill=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:api" target="order-platform:cache">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1021" y="258"/>
+              <mxPoint x="1021" y="176"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c4:label" value="cache aside" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform:c4">
+          <mxGeometry x="0.45" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:api" target="order-platform:queue">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1031" y="274"/>
+              <mxPoint x="1031" y="311"/>
+              <mxPoint x="1289" y="311"/>
+              <mxPoint x="1289" y="81"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c5:label" value="publish order placed" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform:c5">
+          <mxGeometry x="0.88" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:queue" target="order-platform:worker">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="483" y="94.33"/>
+              <mxPoint x="483" y="210"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c6:label" value="consume" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform:c6">
+          <mxGeometry x="0.3" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:api" target="order-platform:psp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1021" y="282"/>
+              <mxPoint x="1021" y="322"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform:c7:label" value="capture payment" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform:c7">
+          <mxGeometry x="0.58" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

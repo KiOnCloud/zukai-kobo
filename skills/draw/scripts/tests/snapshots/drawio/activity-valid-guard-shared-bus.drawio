@@ -1,0 +1,130 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="guard-on-a-straight-branch-into-a-shared" name="Guard on a straight branch into a shared bus">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:client" value="Client" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#fff2cc;swimlaneFillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="220" height="970" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:api" value="API" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#dae8fc;swimlaneFillColor=#f0f6ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="380" height="970" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:store" value="Store" style="swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;fillColor=#d5e8d4;swimlaneFillColor=#f1f8f0;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="640" y="40" width="220" height="970" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:req" value="Send order" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:client">
+          <mxGeometry x="35" y="160" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:reject" value="Reject order" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:api">
+          <mxGeometry x="30" y="438" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:check" value="Check stock" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:api">
+          <mxGeometry x="190" y="438" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:notify" value="Notify store" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:store">
+          <mxGeometry x="35" y="710" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:ack" value="Store confirms" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:store">
+          <mxGeometry x="35" y="810" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:client">
+          <mxGeometry x="80" y="70" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:valid" value="Valid?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:api">
+          <mxGeometry x="180" y="260" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:dry" value="Dry run?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:api">
+          <mxGeometry x="180" y="538" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:done" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:api">
+          <mxGeometry x="155" y="910" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:start" target="guard-on-a-straight-branch-into-a-shared:req">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:req" target="guard-on-a-straight-branch-into-a-shared:valid">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="135" y="270"/>
+              <mxPoint x="510" y="270"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:valid" target="guard-on-a-straight-branch-into-a-shared:reject">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="402"/>
+              <mxPoint x="350" y="402"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f3:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="guard-on-a-straight-branch-into-a-shared:f3">
+          <mxGeometry x="0.25" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:reject" target="guard-on-a-straight-branch-into-a-shared:done">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="920"/>
+              <mxPoint x="430" y="920"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:valid" target="guard-on-a-straight-branch-into-a-shared:check">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f5:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="guard-on-a-straight-branch-into-a-shared:f5">
+          <mxGeometry x="0.22" y="0" relative="1" as="geometry">
+            <mxPoint x="21.5" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:check" target="guard-on-a-straight-branch-into-a-shared:dry">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:dry" target="guard-on-a-straight-branch-into-a-shared:done">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="920"/>
+              <mxPoint x="430" y="920"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f7:label" value="yes: nothing is sent" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="guard-on-a-straight-branch-into-a-shared:f7">
+          <mxGeometry x="-0.22" y="0" relative="1" as="geometry">
+            <mxPoint x="63.5" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:dry" target="guard-on-a-straight-branch-into-a-shared:notify">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="688"/>
+              <mxPoint x="735" y="688"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f8:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="guard-on-a-straight-branch-into-a-shared:f8">
+          <mxGeometry x="0.48" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-10" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:notify" target="guard-on-a-straight-branch-into-a-shared:ack">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:ack" target="guard-on-a-straight-branch-into-a-shared:done">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="735" y="920"/>
+              <mxPoint x="430" y="920"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

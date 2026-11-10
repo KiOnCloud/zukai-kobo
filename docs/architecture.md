@@ -10,13 +10,13 @@ scout (read code)     ─┼─> IR file (JSON) ─> validate ─> feature matri
 brainstorm (idea) ─> clarify ┘                                                                        └─ figjam falls back to mermaid
 ```
 
-- **Input flows** are instructions, not code: `skills/it-diagrams/SKILL.md` routes on the
-  mode argument and the three protocols in `skills/it-diagrams/references/` do the work.
+- **Input flows** are instructions, not code: `skills/draw/SKILL.md` routes on the
+  mode argument and the three protocols in `skills/draw/references/` do the work.
   They are runtime-neutral so a single-agent runtime (Codex) gets the full behaviour. The
   Claude-only agents in `agents/` are thin accelerators that read the same protocol files
   and return their result inline; they hold no logic of their own and cannot write files.
-- **The IR** (`skills/it-diagrams/scripts/src/schema/ir-v1.schema.json`, explained in
-  `skills/it-diagrams/references/ir-reference.md`) is the only thing the model writes. It is a
+- **The IR** (`skills/draw/scripts/src/schema/ir-v1.schema.json`, explained in
+  `skills/draw/references/ir-reference.md`) is the only thing the model writes. It is a
   JSON object discriminated on `kind` with flat collections; containers reference children by
   id. Every element has a document-unique id and a label.
 - **Validation** runs two passes and returns every error with a JSON-pointer path and a hint:
@@ -64,10 +64,12 @@ reference).
 
 ## Distribution
 
-One source folder, `skills/it-diagrams/`, follows the Agent Skills standard (only `name` and
+One source folder, `skills/draw/`, follows the Agent Skills standard (only `name` and
 `description` in the frontmatter). The repository root is both the Claude Code marketplace
-and its single plugin (`.claude-plugin/`, `source: "./"`). Codex users copy the folder with
-`install.sh --target codex`, which writes a version marker and upgrades in place. The
+and its single plugin (`.claude-plugin/`, `source: "./"`). Inside the plugin the skill is
+named `draw` and invoked as `/zukai:draw`. Codex users copy the folder with
+`install.sh --target codex`, which installs it as `zukai` (folder and `name`, since a copy
+has no plugin namespace), writes a version marker and upgrades in place. The
 `version` in `.claude-plugin/plugin.json` is the single release number for both channels.
 
 ## Activity lanes in draw.io

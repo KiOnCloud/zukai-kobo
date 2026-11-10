@@ -1,10 +1,10 @@
 {
-  "name": "it-diagrams",
+  "name": "zukai",
   "owner": { "name": "KiOnCloud" },
-  "description": "Marketplace for the it-diagrams plugin: IT diagrams from requirements, code or ideas, emitted to Mermaid, draw.io and FigJam.",
+  "description": "Marketplace for the Zukai plugin: IT diagrams from requirements, code or ideas, emitted to Mermaid, draw.io and FigJam.",
   "plugins": [
     {
-      "name": "it-diagrams",
+      "name": "zukai",
       "source": "./",
       "description": "Turn clarified requirements, source code or a raw idea into a validated JSON diagram model and emit Mermaid, draw.io or FigJam."
     }

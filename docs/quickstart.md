@@ -8,11 +8,11 @@ Five minutes from nothing to a reviewed draw.io diagram. The full reference is
 Requirements: Node 22.13 or newer, `git`, Claude Code. No GitHub account is needed.
 
 ```bash
-claude plugin marketplace add KiOnCloud/it-diagrams
-claude plugin install it-diagrams@it-diagrams
+claude plugin marketplace add KiOnCloud/zukai
+claude plugin install zukai@zukai
 ```
 
-Check: open `claude` in any project and type `/it-diagrams:it-diagrams`; the command
+Check: open `claude` in any project and type `/zukai:draw`; the command
 should autocomplete.
 
 ## 2. Draw a diagram
@@ -20,9 +20,9 @@ should autocomplete.
 Open Claude Code in the project the diagram is about and run one of:
 
 ```text
-/it-diagrams:it-diagrams scout the login flow
-/it-diagrams:it-diagrams clarify order approval process
-/it-diagrams:it-diagrams brainstorm a loyalty points feature
+/zukai:draw scout the login flow
+/zukai:draw clarify order approval process
+/zukai:draw brainstorm a loyalty points feature
 ```
 
 - `scout`: the diagram is derived from the code in the current folder. Nothing is invented
@@ -66,7 +66,7 @@ Put them after the mode:
 | `--scope detailed` | Skip the scope question |
 | `--audience technical\|business\|both` | Skip the reader question; `business` is a view for non-technical readers (no code names or implementation steps, every business rule kept), `both` makes one of each |
 
-Example: `/it-diagrams:it-diagrams scout --kind activity --scope overview the refund flow`.
+Example: `/zukai:draw scout --kind activity --scope overview the refund flow`.
 
 ## 5. Change something later
 
@@ -74,7 +74,7 @@ Example: `/it-diagrams:it-diagrams scout --kind activity --scope overview the re
   (same conversation reuses the folder), or run the CLI yourself:
 
   ```bash
-  node ~/.claude/plugins/cache/it-diagrams/it-diagrams/<version>/skills/it-diagrams/scripts/bin/cli.mjs emit --to drawio source/login.ir.json --out drawio/login.drawio
+  node ~/.claude/plugins/cache/zukai/zukai/<version>/skills/draw/scripts/bin/cli.mjs emit --to drawio source/login.ir.json --out drawio/login.drawio
   ```
 
 - Another language, same layout: write a JSON map of element id to new text and run
@@ -84,8 +84,8 @@ Example: `/it-diagrams:it-diagrams scout --kind activity --scope overview the re
 ## 6. Update the plugin
 
 ```bash
-claude plugin marketplace update it-diagrams
-claude plugin update it-diagrams@it-diagrams
+claude plugin marketplace update zukai
+claude plugin update zukai@zukai
 ```
 
 ## If something is off
@@ -96,4 +96,5 @@ claude plugin update it-diagrams@it-diagrams
 - Preview images are the skill's own check and are never kept; the deliverables are the
   files in the run folder.
 - Codex users: copy the skill with `install.sh --target codex` (see install.md) and call it
-  with `$it-diagrams` followed by the request in prose.
+  with `$zukai` followed by the request in prose.
+- Coming from `it-diagrams`: see "Upgrading from it-diagrams" in install.md.

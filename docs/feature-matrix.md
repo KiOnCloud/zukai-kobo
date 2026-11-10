@@ -1,7 +1,7 @@
 # Feature matrix
 
-Generated from `skills/it-diagrams/scripts/src/feature-matrix.json` by `npm run docs:matrix`
-in `skills/it-diagrams/scripts`. A test fails when this page drifts from the JSON.
+Generated from `skills/draw/scripts/src/feature-matrix.json` by `npm run docs:matrix`
+in `skills/draw/scripts`. A test fails when this page drifts from the JSON.
 
 For each diagram kind, target and feature the value is one of:
 

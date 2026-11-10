@@ -1,0 +1,94 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="adversarial-labels-init-theme-forest" name="Adversarial &quot;labels&quot; %%{init: {&quot;theme&quot;:&quot;forest&quot;}}%%">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="adversarial-labels-init-theme-forest:direction" value="subgraph end" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="12" width="430" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:end" value="He said &amp;quot;end&amp;quot;" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="12" y="62" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:graph" value="line one&lt;br&gt;line two" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="334" y="52" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:a--b" value="&amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="616" y="42" width="164" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:subgraph" value="%%{init: {&amp;quot;theme&amp;quot;:&amp;quot;forest&amp;quot;}}%%" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="929" y="62" width="196" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:click" value="click n1 href &amp;quot;https://evil.example&amp;quot;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;size=20;spacingLeft=20;spacingRight=20;" vertex="1" parent="adversarial-labels-init-theme-forest:direction">
+          <mxGeometry x="20" y="50" width="230" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:style" value="n1 --&amp;gt; n2; n2 --&amp;gt; n3" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="adversarial-labels-init-theme-forest:direction">
+          <mxGeometry x="270" y="50" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:leak" value="postgres://app:Sup3rS3cret@db.internal:5432/orders" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1685" y="62" width="260" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:token" value="api key ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="2005" y="52" width="260" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:jp" value="注文を確定する [確認済み] {JSON}" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="2325" y="62" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:bars" value="a | b | c #1 &amp;amp; co" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="2605" y="62" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:end-edge" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:end" target="adversarial-labels-init-theme-forest:graph">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:end-edge:label" value="&amp;quot;quoted&amp;quot; label" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="adversarial-labels-init-theme-forest:end-edge">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:graph" target="adversarial-labels-init-theme-forest:a--b">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e2:label" value="x --&amp;gt; y" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="adversarial-labels-init-theme-forest:e2">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:a--b" target="adversarial-labels-init-theme-forest:subgraph">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e3:label" value="end" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="adversarial-labels-init-theme-forest:e3">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:subgraph" target="adversarial-labels-init-theme-forest:click">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:click" target="adversarial-labels-init-theme-forest:style">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:style" target="adversarial-labels-init-theme-forest:leak">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:leak" target="adversarial-labels-init-theme-forest:token">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:token" target="adversarial-labels-init-theme-forest:jp">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adversarial-labels-init-theme-forest:e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:jp" target="adversarial-labels-init-theme-forest:bars">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
