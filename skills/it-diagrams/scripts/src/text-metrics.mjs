@@ -32,7 +32,10 @@ const ASCII_BOLD = [
 ];
 
 /** Characters outside ASCII that labels often carry and that no rule below gets right; a letter stands for the one it is as wide as. */
-const NAMED = { đ: 'd', Đ: 'D', '«': 556, '»': 556, '–': 556, '—': 1000, '…': 1000, '‘': 222, '’': 222, '“': 333, '”': 333, '↳': 1000 };
+const NAMED = {
+  đ: 'd', Đ: 'D', '«': 556, '»': 556, '–': 556, '—': 1000, '…': 1000, '‘': 222, '’': 222, '“': 333, '”': 333, '↳': 1000,
+  '\u00a0': ' ', '\u2007': '0', '\u202f': 200, '\u2010': '-', '\u2011': '-', // no-break and figure spaces, hyphens
+};
 
 /**
  * Characters that East Asian fonts draw at full width: CJK ideographs, kana, Hangul and the

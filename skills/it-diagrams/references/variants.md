@@ -77,8 +77,8 @@ product name as a lane, a code word such as `get`) go once into the map's `"$kee
 which applies to every page and copy; a complete map plus `$keep` leaves `untouched` empty.
 Show every warning verbatim: `layout:` warnings name the boxes whose new text wraps to more
 lines than the box's height holds (and than the old text took), has an unbreakable word
-wider than the box, or exceeds a non-wrapping box, measured at 1.75 Latin widths per CJK
-character, which matches draw.io's 12 px font within a few percent; a cell and its canvas
+wider than the box, or exceeds a non-wrapping box, measured by the glyph widths of
+draw.io's 12 px font and wrapped where draw.io wraps; a cell and its canvas
 copy give one warning naming both pages. The fix is a shorter label, or a re-emit from a
 translated IR when the user prefers resized shapes over a preserved layout. Keys that
 matched nothing are listed in `unmatched`; they usually mean a typo in the id.

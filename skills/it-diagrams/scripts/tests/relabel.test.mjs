@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { wrapText } from '../src/layout-graph.mjs';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -36,6 +37,20 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
     expect(out.warnings).toHaveLength(1);
     expect(out.warnings[0].path).toBe('returns:approve');
     expect(out.warnings[0].message).toMatch(/^layout: .*wraps to/);
+  });
+
+  it('measures a subroutine between its side bars, as the emitter sizes it', async () => {
+    const r = await emit(loadFixture('activity', 'valid-two-lanes'), 'drawio', { diagramId: 'returns' });
+    const box = checkDrawioStructure(r.output).cells.find((c) => c.id === 'returns:approve');
+    expect(box.style).toMatch(/^shape=process;/);
+    const width = Number(box.mxGeometry.width);
+    // Three lines in the whole width of the box, four between the bars, which take a fifth of it: the box holds three.
+    const label = 'Approve the request, print the return shipping label and email it to them';
+    expect(wrapText(label, width - 8).lines).toBe(3);
+    expect(wrapText(label, 0.8 * width - 4).lines).toBe(4);
+    const out = relabelDrawio(r.output, { approve: label });
+    expect(out.warnings).toHaveLength(1);
+    expect(out.warnings[0].message).toMatch(/wraps to 4 lines/);
   });
 
   it('issue 39: measures a decision with label spacing at its wrap width, so a question that no longer fits the diamond is reported', async () => {

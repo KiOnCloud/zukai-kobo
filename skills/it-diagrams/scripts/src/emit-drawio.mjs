@@ -444,7 +444,10 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
   for (const e of edges) {
     if (e.from === e.to) {
       const own = layout.edges.get(e.id);
-      if (acrossIsVertical(direction) && !e.loop && own?.start && own?.end) {
+      // A shape drawn smaller than its layout box (a client figure over its name) keeps the
+      // loop the emitter draws at the figure itself: ELK's route spans the whole box.
+      const fills = nodeOf(e.from)?.drawWidth === undefined;
+      if (acrossIsVertical(direction) && !e.loop && fills && own?.start && own?.end) {
         // The loop ELK routed over the top of the node, with its label above it: the layout
         // kept that room, and no other edge of the node ends on that side.
         const style = `${waypointStyle(e.style)}${anchorStyle('exit', anchor(e.from, own.start))}${anchorStyle('entry', anchor(e.to, own.end))}`;

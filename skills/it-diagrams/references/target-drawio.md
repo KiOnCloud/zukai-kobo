@@ -71,8 +71,8 @@ the places it occurs, except labels without letters and texts named in the map's
 list. Boxes are not resized: a label that wraps to more lines than its box holds, has an
 unbreakable word wider than its box, overflows a non-wrapping box, no longer fits inside
 a decision's rhombus (measured at the wrap width its label spacing leaves), or, for a name
-drawn below an actor figure, takes more lines at its wrap width than the old name did (CJK
-characters count 1.75 Latin widths) is one `layout:` warning per cell across pages, and keys
+drawn below an actor figure, takes more lines at its wrap width than the old name did (by
+the text widths and word wrap of the layout rules below) is one `layout:` warning per cell across pages, and keys
 that matched nothing are listed. Compressed
 input is accepted; the output is always uncompressed. The whole protocol, including the
 business-audience variant, is in `variants.md`.
@@ -150,14 +150,17 @@ across re-runs.
 - Text width: a line is measured by its glyphs in draw.io's default font, Helvetica at
   12 px (`scripts/src/text-metrics.mjs`): `i` is 2.7 px, `n` 6.7 px, `W` 11.3 px, a CJK or
   full-width character 12.3 px, a letter with diacritics as wide as its base letter, bold
-  headers by the bold face. A text is broken into lines where draw.io breaks it, at spaces
-  and between CJK characters, never inside a word (`wrapText`), so a line the author broke
-  by hand counts once when it fits and a box is as tall as the lines draw.io renders. A box
+  headers by the bold face. A text is broken into lines where draw.io breaks it (`wrapText`):
+  at spaces, between CJK characters, and inside a word after a hyphen, a dash or a `?` that
+  a letter or a digit follows (`acme-corp`, `0-5`, `/find?id=1`), but not at a no-break
+  space, a slash, a dot or an underscore, nor after a sign (`-5`). So a line the author broke by
+  hand counts once when it fits, a long hyphenated name counts every line it is spread
+  over, and a box is as tall as the lines draw.io renders. A box
   cut to one line gets 4 % more than the measured width, because renderers differ from the
   font's own widths by a few percent; the lines of a box at the width cap are counted
   without that margin, since a line that wraps after all still has room in the box. A long
-  word without a space (a URL, an identifier) does not wrap in draw.io: it stays on its
-  line and runs over the box, so break it by hand or shorten it.
+  word with no place to break (an identifier, a path of slashes) does not wrap in draw.io:
+  it stays on its line and runs over the box, so break it by hand or shorten it.
 - Label padding: the 24 px are 12 px of clear space on each side of the text (`LABEL_PAD`),
   and the node styles draw them as `spacingLeft=10;spacingRight=10;` on top of draw.io's own
   2 px. The text therefore wraps at the width its height was measured for, and a line that

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emit } from '../src/pipeline.mjs';
-import { emitDrawio, slugify } from '../src/emit-drawio.mjs';
+import { emitDrawio, slugify, rowHeight } from '../src/emit-drawio.mjs';
 import { xmlAttr, htmlLabel, vertex } from '../src/drawio-xml.mjs';
 import { measureNode, measureDecision, wrapText, wrappedLines, LABEL_PAD } from '../src/layout-graph.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
@@ -37,6 +37,9 @@ describe('drawio-xml', () => {
 
   describe('issue 52: a box is as tall as the lines draw.io renders', () => {
     const ir = loadFixture('flowchart', 'valid-hand-broken-lines');
+    const HYPHENATED = 'lint-staged-prettier-eslint-typecheck-and-vitest-related-unit-tests-then-build-docker-image-and-push';
+    const URL_ER = { schemaVersion: 1, kind: 'er', title: 'Hooks', entities: [{ id: 'hook', label: 'Webhook', attributes: [{ name: 'id', type: 'uuid', key: 'pk' }, { name: 'callback_url', type: 'varchar(2048)', comment: 'https://hooks.example.com/v1/tenants/acme-corp/integrations/billing-events' }] }], relations: [] };
+    const HYPHEN_FLOW = { schemaVersion: 1, kind: 'flowchart', title: 'CI', nodes: [{ id: 'a', label: HYPHENATED }, { id: 'b', label: 'Prix\u00a0: 5\u00a0000\u00a0EUR hors taxes par an et par utilisateur\u00a0actif' }, { id: 'c', label: 'Roll back to the last known-good release — then page the on-call engineer?' }], edges: [{ id: 'e1', from: 'a', to: 'b' }, { id: 'e2', from: 'b', to: 'c' }] };
     const sizes = async () => {
       const r = await emit(ir, 'drawio', { diagramId: 'g' });
       expect(r.ok).toBe(true);
@@ -82,41 +85,74 @@ describe('drawio-xml', () => {
       expect(wrappedLines(para, 260)).toBe(3);
       // One unbreakable word overflows on its line instead of wrapping, so it adds no height.
       expect(measureNode('x'.repeat(100))).toEqual({ width: 260, height: 40 });
+      // A name joined by hyphens is spread over the lines its parts fill: draw.io breaks after each hyphen.
+      expect(measureNode(HYPHENATED)).toEqual({ width: 260, height: 80 });
     });
 
-    it.skipIf(!pw)('renders every node label of every fixture in Chromium on the lines its box was sized for, or one fewer', async () => {
+    it('breaks inside a word where a browser does, and nowhere else', () => {
+      const lines = (text) => wrapText(text, 1).lines;
+      expect(lines('acme-corp')).toBe(2);
+      expect(lines('0-5')).toBe(2);
+      expect(lines('/find?id=1')).toBe(2);
+      expect(lines('2019–2024')).toBe(2);
+      expect(lines('before—after')).toBe(3);
+      expect(lines('wait…done')).toBe(2);
+      expect(lines('zero\u200bwidth')).toBe(2);
+      expect(lines('--force')).toBe(3);
+      expect(lines('a-?b')).toBe(2);
+      // No break at a slash, a dot, an underscore, a colon or a no-break space, after a sign, or between a hyphen and the punctuation after it.
+      for (const whole of ['docs/api/v1', 'hooks.example.com', 'customer_id', 'std::vector', '5\u00a0000\u00a0EUR', '10\u202f%', '-5', 'a-)', 'a-,b', 'a?)b', 'a??', 'ends-']) expect(lines(whole), whole).toBe(1);
+      expect(lines('retry -5 times')).toBe(3);
+    });
+
+    it('gives a table row the lines a long hyphenated value is spread over, so nothing is clipped', async () => {
+      const r = await emit(URL_ER, 'drawio', { diagramId: 'g' });
+      const { cells } = checkDrawioStructure(r.output);
+      const row = cellBounds(cells.find((c) => c.id === 'g:hook:row-1'));
+      // The 300 px table leaves the row 288 px of text; the comment breaks after "acme-" and "billing-".
+      expect(row.width).toBe(300);
+      expect(row.height).toBe(26 + 14 * 2);
+      expect(rowHeight('PK id: uuid', 300)).toBe(26);
+    });
+
+    it.skipIf(!pw)('renders every node label and table row of every fixture in Chromium on the lines it was sized for', async () => {
       // The labelled node shapes that are 40 px tall for one line and 20 px taller for each further one,
       // and the subroutine, whose label draw.io wraps between its side bars.
       const plain = /^(rounded=1;)?whiteSpace=wrap;html=1;(arcSize=30;)?(dashed=1;)?spacingLeft=10;spacingRight=10;$/;
       const subroutine = /^shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;$/;
       const boxes = [];
-      for (const f of validFixtures()) {
+      const hard = [{ kind: 'er', name: 'long-url', ir: URL_ER }, { kind: 'flowchart', name: 'hyphens', ir: HYPHEN_FLOW }];
+      for (const f of [...validFixtures(), ...hard]) {
         const r = await emit(f.ir, 'drawio', { diagramId: 'g' });
         for (const c of checkDrawioStructure(r.output).cells) {
-          if (c.vertex !== '1' || !c.value || !(plain.test(c.style ?? '') || subroutine.test(c.style ?? ''))) continue;
+          if (c.vertex !== '1' || !c.value) continue;
           const b = cellBounds(c);
-          boxes.push({ at: `${f.kind}/${f.name} ${c.id}`, html: c.value, ...b, wrap: subroutine.test(c.style) ? Math.round(0.8 * b.width - 4 + 2) : b.width - 24 + 2 });
+          const at = `${f.kind}/${f.name} ${c.id}`;
+          // A table row is 26 px for one line and 14 px taller for each further one, with 4 + 2 px of spacing a side; it clips what does not fit.
+          if (/^text;.*overflow=hidden/.test(c.style ?? '')) boxes.push({ at, html: c.value, ...b, wrap: b.width - 12 + 2, base: 26, line: 14, row: true });
+          else if (plain.test(c.style ?? '') || subroutine.test(c.style ?? '')) boxes.push({ at, html: c.value, ...b, wrap: subroutine.test(c.style) ? Math.round(0.8 * b.width - 4 + 2) : b.width - 24 + 2, base: 40, line: 20 });
         }
       }
-      expect(boxes.length).toBeGreaterThan(100);
+      expect(boxes.filter((b) => !b.row).length).toBeGreaterThan(100);
+      expect(boxes.filter((b) => b.row).length).toBeGreaterThan(50);
       const browser = await pw.chromium.launch();
       try {
         const page = await browser.newPage();
         // draw.io wraps a label at the box less its spacing (10 + 2 px a side), plus 2 px.
         await page.setContent(`<body style="font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.2">${boxes.map((b, i) => `<div id="b${i}" style="width:${b.wrap}px;white-space:normal;overflow-wrap:normal">${b.html}</div>`).join('')}</body>`);
         const rendered = await page.evaluate((count) => Array.from({ length: count }, (_, i) => Math.round(document.getElementById(`b${i}`).getBoundingClientRect().height / 14.4)), boxes.length);
-        let exact = 0;
         boxes.forEach((b, i) => {
-          const counted = (b.height - 40) / 20 + 1;
+          const counted = (b.height - b.base) / b.line + 1;
           expect(Number.isInteger(counted), b.at).toBe(true);
+          // Never fewer lines than drawn: a row would clip its last line, a box would run short of room.
           expect(counted, b.at).toBeGreaterThanOrEqual(rendered[i]);
-          expect(counted, b.at).toBeLessThanOrEqual(rendered[i] + 1);
-          if (counted === rendered[i]) exact++;
+          // A node counts exactly the lines drawn. A row counts them at a width less the 4 % margin, so at most one more.
+          expect(counted, b.at).toBeLessThanOrEqual(rendered[i] + (b.row ? 1 : 0));
         });
-        // The count is one too many only where the browser breaks a line at a hyphen or a slash, which the wrap here does not.
-        expect(exact / boxes.length).toBeGreaterThan(0.95);
-        const tall = boxes.filter((b) => b.at.startsWith('flowchart/valid-hand-broken-lines'));
-        expect(tall.map((b) => (b.height - 40) / 20 + 1)).toEqual(tall.map((b) => rendered[boxes.indexOf(b)]));
+        // The cases that a wrap at spaces alone gets wrong are among them, and take several lines.
+        const lines = (at) => rendered[boxes.findIndex((b) => b.at === at)];
+        expect(lines('flowchart/hyphens g:a')).toBe(3);
+        expect(lines('er/long-url g:hook:row-1')).toBe(3);
       } finally {
         await browser.close();
       }

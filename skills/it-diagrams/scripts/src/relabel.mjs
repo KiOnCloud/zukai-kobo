@@ -134,7 +134,7 @@ export function relabelDrawio(xml, map) {
         const wraps = /whiteSpace=wrap/.test(c.style);
         const problem = /verticalLabelPosition=bottom/.test(c.style)
           ? checkFitBelow(c.parts.main, c.newText, Number(c.style.match(/labelWidth=(\d+)/)?.[1] ?? c.geometry.width), wraps)
-          : checkFit(c.parts.main, c.newText, Number(c.geometry.width), Number(c.geometry.height), wraps, { spacing, rhombus: /^rhombus;/.test(c.style) });
+          : checkFit(c.parts.main, c.newText, Number(c.geometry.width), Number(c.geometry.height), wraps, { spacing, rhombus: /^rhombus;/.test(c.style), bars: /^shape=process;/.test(c.style) });
         if (problem) {
           if (!fitProblems.has(c.attrs.id)) fitProblems.set(c.attrs.id, { problem, pages: [] });
           fitProblems.get(c.attrs.id).pages.unshift(p.pageId);
@@ -219,8 +219,9 @@ const LINE = 15;
  * a/w + b/h <= 1, so the check uses that inequality, with the same grace for a text that
  * fits no worse than the old one. Returns the problem or undefined.
  */
-function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus = false } = {}) {
-  const usable = Math.max(width - spacing - TEXT_INSET, 1);
+function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus = false, bars = false } = {}) {
+  // A subroutine keeps its label between its side bars, which take a tenth of the width each.
+  const usable = Math.max((bars ? 0.8 * width : width) - spacing - (bars ? 4 : TEXT_INSET), 1);
   if (wraps && rhombus) {
     const block = (text) => {
       const lines = wrappedLines(text, usable);

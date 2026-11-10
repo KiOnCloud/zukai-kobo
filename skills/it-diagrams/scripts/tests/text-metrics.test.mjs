@@ -103,10 +103,19 @@ describe('text metrics', () => {
       '注文API を呼び出して 在庫 を確認する',
     ];
     const widths = [96, 116, 136, 160, 187, 236, 276];
+    // Texts with the places inside a word where a browser breaks a line, and the spaces where it does not.
+    const inWord = [
+      'lint-staged-prettier-eslint-typecheck-and-vitest-related-unit-tests-then-build-docker-image-and-push',
+      'callback_url: varchar(2048) (https://hooks.example.com/v1/tenants/acme-corp/integrations/billing-events)',
+      'GET /api/v2/orders?status=open&page=2 returns the first-page-only summary for read-only users',
+      'Prix\u00a0: 5\u00a0000\u00a0EUR hors taxes par an et par utilisateur\u00a0actif, soit 10\u202f% de moins',
+      'Roll back to the last known-good release — then page the on-call engineer… and wait 2019–2024',
+      'retry -5 times with --force and -_db: ShopDbContext in the re-entrant, non-blocking, lock-free path',
+    ];
     const browser = await pw.chromium.launch();
     try {
       const page = await browser.newPage();
-      const cases = texts.flatMap((t) => widths.map((w) => ({ t, w })));
+      const cases = [...texts, ...inWord].flatMap((t) => widths.map((w) => ({ t, w })));
       await page.setContent(`<body style="font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.2">${cases.map((c, i) => `<div id="c${i}" style="width:${c.w}px;white-space:normal;overflow-wrap:normal">${c.t}</div>`).join('')}</body>`);
       const rendered = await page.evaluate((count) => Array.from({ length: count }, (_, i) => Math.round(document.getElementById(`c${i}`).getBoundingClientRect().height / 14.4)), cases.length);
       let same = 0;
@@ -115,6 +124,8 @@ describe('text metrics', () => {
         // A line that fills its width to the last pixel can fall either way; the count is never further off.
         expect(Math.abs(lines - rendered[i]), `${c.w} px: ${c.t}`).toBeLessThanOrEqual(1);
         if (lines === rendered[i]) same++;
+        // Where the text breaks inside its words, the count is never short of the lines drawn.
+        if (inWord.includes(c.t)) expect(lines, `${c.w} px: ${c.t}`).toBeGreaterThanOrEqual(rendered[i]);
       });
       expect(same / cases.length).toBeGreaterThan(0.9);
     } finally {

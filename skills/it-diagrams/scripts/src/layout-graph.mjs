@@ -41,11 +41,35 @@ export function measureNode(label, { extraRows = 0, minWidth = 120, maxWidth = 2
   return { width, height };
 }
 
+/** A space a line may break at: any white space but the no-break spaces. */
+const BREAK_SPACE = /[^\S\u00a0\u202f\u2007\ufeff]/;
+const EM_DASH = '\u2014';
+const ZERO_WIDTH_SPACE = '\u200b';
+const HYPHEN = /[-\u2010\u2013]/;
+const LETTER = /\p{L}/u;
+const DIGIT = /\p{N}/u;
+
 /**
- * Greedy word wrap at a width in px, as a browser does: lines break at spaces and between
- * East Asian characters, never inside a word, so a word wider than the line stands alone;
- * explicit line breaks are kept. Returns the line count and the widest line in px; `bold`
- * measures the text in the bold face of headers and titles.
+ * Whether a browser may break the line after `ch` when `next` follows it in the same word;
+ * `starts` says that `ch` is the first character of the word. Chromium breaks after a hyphen
+ * or an en dash before a letter, a digit or another hyphen (`acme-corp`, `0-5`, `--force`),
+ * but not after a sign (`-5`), and after a `?` or an ellipsis before a letter or a digit
+ * (`/find?id=1`). It breaks in a few more places, before a quote or an underscore; those
+ * are left out, which can only count a line too many, never one too few.
+ */
+function breaksAfter(ch, next, starts) {
+  if (next === undefined) return false;
+  if (HYPHEN.test(ch)) return next === '-' || (LETTER.test(next) && !(starts && ch !== '-')) || (DIGIT.test(next) && !starts);
+  if (ch === '?' || ch === '\u2026') return LETTER.test(next) || DIGIT.test(next);
+  return false;
+}
+
+/**
+ * Greedy word wrap at a width in px, as a browser does. A line breaks at a space, between
+ * East Asian characters, inside a word where `breaksAfter` says so, and around an em dash;
+ * it never breaks at a no-break space, at a slash, a dot or an underscore, or elsewhere
+ * inside a word, so a part wider than the line stands alone on it. Explicit line breaks are kept. Returns the line count and the widest line in
+ * px; `bold` measures the text in the bold face of headers and titles.
  */
 export function wrapText(label, width, { bold = false } = {}) {
   const px = (text) => textWidth(text, { bold });
@@ -62,11 +86,16 @@ export function wrapText(label, width, { bold = false } = {}) {
       word = '';
       space = false;
     };
-    for (const ch of para) {
-      if (/\s/.test(ch)) { flush(); space = true; }
-      else if (isWide(ch)) { flush(); tokens.push({ px: px(ch), space }); space = false; }
-      else word += ch;
-    }
+    const chars = [...para];
+    chars.forEach((ch, i) => {
+      if (BREAK_SPACE.test(ch)) { flush(); space = true; }
+      else if (isWide(ch) || ch === EM_DASH) { flush(); tokens.push({ px: px(ch), space }); space = false; }
+      else {
+        const starts = word === '';
+        word += ch;
+        if (ch === ZERO_WIDTH_SPACE || breaksAfter(ch, chars[i + 1], starts)) flush();
+      }
+    });
     flush();
     let line = 0;
     for (const t of tokens) {
@@ -132,12 +161,11 @@ function balancedBlock(label, lines, upper) {
  * question on several lines gets `spacingLeft` and `spacingRight` so draw.io wraps it at
  * the block's width instead of the box's.
  *
- * Balanced lines matter because draw.io breaks a line at more places than this wrap does: at
- * a wrap width that leaves one line nearly full it breaks at the last opportunity it finds,
- * which can be a hyphen inside a value such as `0-5`, leaving an orphan on the next line.
- * With both lines about half the text, no line is near enough to full for that. The block
- * gets the room of `roomFor` on top of its widest line, so a renderer that draws the text a
- * little wider still fits each line.
+ * Balanced lines matter because a line that is nearly full breaks at the last opportunity
+ * before its end, which can be a hyphen inside a value such as `0-5`, leaving an orphan on
+ * the next line. With both lines about half the text, the break falls at a space near the
+ * middle. The block gets the room of `roomFor` on top of its widest line, so a renderer
+ * that draws the text a little wider still fits each line.
  * @returns {{width:number, height:number, spacing:number}} spacing in px per side, 0 for none
  */
 export function measureDecision(label) {
@@ -174,7 +202,7 @@ export function measureLabelBelow(label, { maxWidth = 160 } = {}) {
   return { width: wrap, height: block.lines * TEXT_LINE + 6, wrap };
 }
 
-export function measureLabel(text) {
+function measureLabel(text) {
   const lines = String(text).split(/\r\n?|\n/);
   return { width: Math.ceil(widestLine(text)) + 8, height: 16 * lines.length };
 }
