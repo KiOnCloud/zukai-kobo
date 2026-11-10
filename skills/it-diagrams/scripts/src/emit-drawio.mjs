@@ -1,4 +1,5 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
+import { awsIcon, awsGroup } from './aws-icons.mjs';
 import { layoutGraph, measureNode, measureDecision, measureLabelBelow, wrapText, LABEL_PAD } from './layout-graph.mjs';
 import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
@@ -789,27 +790,64 @@ async function emitClass(ir, cid, warnings, refs) {
 
 /** The stick figure of a client; its label is drawn below it. */
 const ACTOR = { width: 40, height: 60 };
+/** An AWS service icon, at the size draw.io's AWS library places it; its label is drawn below it. */
+const AWS_ICON = { width: 78, height: 78 };
+/**
+ * The style draw.io's AWS palette gives a service icon. The colour is not part of the
+ * stencil: each service category has its own fill, which the catalog records.
+ */
+const AWS_ICON_POINTS = 'points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];';
+const awsIconStyle = (icon) => `sketch=0;${AWS_ICON_POINTS}outlineConnect=0;fontColor=#232F3E;${icon.gradient ? `gradientColor=${icon.gradient};gradientDirection=north;` : ''}fillColor=${icon.fill};strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.${icon.name};`;
+/** The corner icon of an AWS group frame and the gap before its title (the palette's `spacingLeft=30`). */
+const AWS_GROUP_ICON = 30;
+/**
+ * An AWS group frame as a container. The palette's style is kept as it is; a frame that is a
+ * plain rectangle there (an Availability Zone) gains the container flags the stencil frames
+ * already carry. The title of a frame stands on one line beside its corner icon, so the
+ * frame is at least that wide; the Auto Scaling group has its icon above a centred title and
+ * needs a taller header.
+ */
+function awsGroupContainer(group, label) {
+  const centred = group.style.includes('shape=mxgraph.aws4.groupCenter;');
+  const stencil = group.style.includes('shape=mxgraph.aws4.');
+  return {
+    style: stencil ? group.style : `${group.style}container=1;pointerEvents=0;collapsible=0;recursiveResize=0;`,
+    headerHeight: centred ? 45 : 30,
+    minWidth: Math.min(400, 2 * Math.ceil((measureLabelBelow(label, { maxWidth: 360 }).width + (stencil && !centred ? AWS_GROUP_ICON : 0) + 2 * LABEL_PAD) / 2)),
+  };
+}
 
 async function emitArchitecture(ir, cid, refs, warnings) {
   const parent = parentMap(ir.boundaries ?? []);
-  const containers = (ir.boundaries ?? []).map((b) => ({ id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container }));
+  const containers = (ir.boundaries ?? []).map((b) => {
+    const group = awsGroup(b.group);
+    return { id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container, ...(group ? awsGroupContainer(group, b.label) : {}) };
+  });
   const kindOf = (c) => c.kind ?? 'service';
-  // A client's layout box holds the figure and the label under it, so a boundary frame, the
-  // next actor and the edges all keep clear of the text; the figure is drawn at its top
-  // centre. Clients that share a parent get one width, so their figures line up, and both
+  // A figure with its label below it: the stick figure of a client, or an AWS service icon.
+  const figureOf = (c) => {
+    const icon = awsIcon(c.icon);
+    if (icon) return { ...AWS_ICON, style: awsIconStyle(icon) };
+    return kindOf(c) === 'client' ? { ...ACTOR, style: STYLE.client } : undefined;
+  };
+  // The layout box of such a component holds the figure and the label under it, so a boundary
+  // frame, the next figure and the edges all keep clear of the text; the figure is drawn at
+  // its top centre. Figures that share a parent get one width, so they line up, and both
   // sides are even, so the centre the edges leave from is a whole pixel.
   const even = (v) => 2 * Math.ceil(v / 2);
   const shown = new Map(ir.components.map((c, i) => [c.id, refLabel(c.label, c.ref, refs, `/components/${i}/ref`, warnings)]));
-  const below = new Map(ir.components.filter((c) => kindOf(c) === 'client').map((c) => [c.id, measureLabelBelow(shown.get(c.id).label)]));
-  const actorWidth = new Map();
-  for (const [id, b] of below) actorWidth.set(parent.get(id), Math.max(actorWidth.get(parent.get(id)) ?? ACTOR.width, even(b.width)));
+  const figures = new Map(ir.components.map((c) => [c.id, figureOf(c)]).filter(([, f]) => f));
+  const below = new Map([...figures.keys()].map((id) => [id, measureLabelBelow(shown.get(id).label)]));
+  const figureWidth = new Map();
+  for (const [id, b] of below) figureWidth.set(parent.get(id), Math.max(figureWidth.get(parent.get(id)) ?? 0, figures.get(id).width, even(b.width)));
   const nodes = ir.components.map((c) => {
     const kind = kindOf(c);
     const { label, link } = shown.get(c.id);
     const node = { id: c.id, label, link, parent: parent.get(c.id), style: STYLE[kind] };
-    if (kind === 'client') {
+    const figure = figures.get(c.id);
+    if (figure) {
       const b = below.get(c.id);
-      return { ...node, style: `${STYLE.client}labelWidth=${b.wrap};`, width: actorWidth.get(node.parent), height: even(ACTOR.height + b.height), drawWidth: ACTOR.width, drawHeight: ACTOR.height };
+      return { ...node, style: `${figure.style}labelWidth=${b.wrap};`, width: figureWidth.get(node.parent), height: even(figure.height + b.height), drawWidth: figure.width, drawHeight: figure.height };
     }
     return { ...node, ...measureNode(label, { pad: padOf(kind), baseHeight: kind === 'database' || kind === 'cache' ? 70 : 40 }) };
   });

@@ -1,0 +1,54 @@
+flowchart LR
+  %% id: browser
+  n1(("Customer browser"))
+  %% id: psp
+  n10>"Payment provider"]
+  %% id: cloud
+  subgraph n11["AWS Cloud"]
+    %% id: cdn
+    n2["CloudFront"]
+    %% id: assets
+    n3[("Static assets (S3)")]
+    %% id: region
+    subgraph n12["ap-northeast-1"]
+      %% id: vpc
+      subgraph n13["VPC 10.0.0.0/16"]
+        %% id: public
+        subgraph n14["Public subnet"]
+          %% id: alb
+          n4["Application Load Balancer"]
+        end
+        %% id: private
+        subgraph n15["Private subnet"]
+          %% id: api
+          n5["Order API (ECS Fargate)"]
+          %% id: db
+          n6[("Aurora PostgreSQL")]
+          %% id: cache
+          n7(["ElastiCache Redis"])
+        end
+      end
+      %% id: queue
+      n8[["SQS orders"]]
+      %% id: worker
+      n9["Fulfilment worker"]
+    end
+  end
+  %% id: c1
+  n1 -->|"HTTPS"| n2
+  %% id: c2
+  n2 -->|"static files"| n3
+  %% id: c3
+  n2 -->|"/api"| n4
+  %% id: c4
+  n4 -->|"HTTP"| n5
+  %% id: c5
+  n5 -->|"SQL"| n6
+  %% id: c6
+  n5 -->|"cache"| n7
+  %% id: c7
+  n5 -->|"order placed"| n8
+  %% id: c8
+  n8 -->|"trigger"| n9
+  %% id: c9
+  n5 -->|"capture payment"| n10

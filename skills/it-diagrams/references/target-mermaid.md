@@ -39,6 +39,9 @@ Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
   flowchart keeps the connection labels, draws two-way connections as `<-->`, shows every
   component kind as a shape, and carries none of the architecture-beta matrix warnings.
   `--to drawio` draws every architecture faithfully.
+- AWS icons and group frames (`icon`, `group`) are not drawn in either form: each component
+  gets the icon or shape of its `kind`, each frame is a plain group, and one warning per
+  field says so. Use `--to drawio` for an AWS architecture diagram.
 - sequence participants of kind `database`, `boundary`, `control`, `entity` are written as
   Mermaid participant types (`participant id@{ "type" : "database" } as Label`, Mermaid 11.x
   or newer). With `--mermaid-stable`, and in the figjam profile, they are plain participants.

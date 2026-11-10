@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Web tier across two Availability Zones",
+  "components": [
+    { "id": "users", "label": "Users", "kind": "client" },
+    { "id": "dns", "label": "Route 53", "icon": "aws:route_53" },
+    { "id": "alb", "label": "Application Load Balancer", "icon": "aws:elastic_load_balancing" },
+    { "id": "web_a", "label": "Web server A", "icon": "aws:ec2" },
+    { "id": "web_c", "label": "Web server C", "icon": "aws:ec2" },
+    { "id": "db_primary", "label": "RDS primary", "kind": "database", "icon": "aws:rds" },
+    { "id": "db_standby", "label": "RDS standby (Multi-AZ)", "kind": "database", "icon": "aws:rds" },
+    { "id": "secrets", "label": "Secrets Manager", "icon": "aws:secrets_manager" },
+    { "id": "erp", "label": "On-premise ERP", "kind": "external" },
+    { "id": "batch", "label": "Nightly export job" }
+  ],
+  "boundaries": [
+    { "id": "account", "label": "Production account", "group": "aws:aws_account", "children": ["dns", "vpc", "secrets"] },
+    { "id": "vpc", "label": "VPC", "group": "aws:vpc", "children": ["alb", "asg", "data"] },
+    { "id": "asg", "label": "Auto Scaling group", "group": "aws:auto_scaling_group", "children": ["az_a", "az_c"] },
+    { "id": "az_a", "label": "Availability Zone 1a", "group": "aws:availability_zone", "children": ["web_a"] },
+    { "id": "az_c", "label": "Availability Zone 1c", "group": "aws:availability_zone", "children": ["web_c"] },
+    { "id": "data", "label": "Database security group", "group": "aws:security_group", "children": ["db_primary", "db_standby"] },
+    { "id": "dc", "label": "Corporate data center", "children": ["erp", "batch"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "users", "to": "dns", "label": "DNS" },
+    { "id": "c2", "from": "users", "to": "alb", "label": "HTTPS" },
+    { "id": "c3", "from": "alb", "to": "web_a" },
+    { "id": "c4", "from": "alb", "to": "web_c" },
+    { "id": "c5", "from": "web_a", "to": "db_primary", "label": "SQL" },
+    { "id": "c6", "from": "web_c", "to": "db_primary", "label": "SQL" },
+    { "id": "c7", "from": "db_primary", "to": "db_standby", "label": "replication", "bidirectional": true },
+    { "id": "c8", "from": "web_a", "to": "secrets", "label": "read secret" },
+    { "id": "c9", "from": "batch", "to": "db_standby", "label": "read replica" },
+    { "id": "c10", "from": "batch", "to": "erp", "label": "export" }
+  ]
+}

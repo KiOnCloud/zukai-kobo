@@ -95,6 +95,13 @@ are `external`. Boundaries come from accounts, VPCs, namespaces or compose netwo
 Connections come from client registrations, connection strings (host part only) and
 publish or subscribe calls.
 
+When the code deploys to AWS and the target is drawio, the same evidence gives the icons and
+frames (`SKILL.md`, AWS icons; names in `aws-icons.md`): a Terraform `aws_*` resource, a
+CloudFormation or SAM `AWS::*` type, a CDK construct or an AWS SDK client names the service
+of a component; `aws_vpc`, `aws_subnet` (public when its route table has an internet
+gateway route), the provider region and the account give the frames. Set an icon only for a
+service the files name; a host name that merely looks like AWS is not evidence.
+
 ## Output
 
 Produce the IR with `meta.source` set to `scout` and the cited paths in `meta.notes`, then

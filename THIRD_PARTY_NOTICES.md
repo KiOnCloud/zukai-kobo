@@ -10,3 +10,13 @@ third-party code. Licence texts are in each package's npm distribution.
 
 Development-only dependencies (`esbuild`, `vitest`, `mermaid`, `jsdom`, `fast-xml-parser`) are
 not part of the bundle and are not redistributed.
+
+## Data
+
+`skills/it-diagrams/scripts/src/aws-icons.json` and `skills/it-diagrams/references/aws-icons.md`
+list the stencil names, titles and style values of the AWS shape library of draw.io
+(jgraph/drawio, Apache-2.0), read from `src/main/webapp/js/diagramly/sidebar/Sidebar-AWS4.js`
+at the tag recorded in the JSON file. No icon artwork is copied or embedded: an emitted
+`.drawio` file names the stencils and draw.io draws them. AWS service names and the AWS
+Architecture Icons are trademarks and property of Amazon Web Services, Inc.; this project is
+not affiliated with or endorsed by AWS.

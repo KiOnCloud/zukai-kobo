@@ -127,7 +127,7 @@ and audience as numbered items, and accept a number, a name or "default".
 | 4 | `state` | The statuses one thing can be in and the events that move it between them | mermaid, drawio |
 | 5 | `er` | Data entities, their key attributes and one-to-many relations | mermaid, drawio |
 | 6 | `class` | Types, interfaces, their members and inheritance or composition | mermaid, drawio |
-| 7 | `architecture` | Deployable components, data stores, queues, external systems and the connections between them | mermaid, drawio |
+| 7 | `architecture` | Deployable components, data stores, queues, external systems and the connections between them; with AWS service icons and VPC or subnet frames in draw.io when the system runs on AWS | mermaid, drawio |
 
 Example for a login feature with `AskUserQuestion`, no mode given, user writing
 Vietnamese: question "Bạn có đầu vào nào?", options "Làm rõ yêu cầu (clarify)", "Đọc code
@@ -143,6 +143,18 @@ not re-ask when the user already answered.
 
 The IR fields for each kind, with one complete example per kind, are in
 `references/ir-reference.md`. Read it before writing IR.
+
+AWS icons. When an `architecture` diagram shows a system that runs on AWS and the target is
+`drawio`, draw it as an AWS architecture diagram: read `references/aws-icons.md`, set `icon`
+on each component that is an AWS service (`"icon": "aws:lambda"`) and `group` on each
+boundary that is an AWS construct (`"group": "aws:vpc"`). Copy the value from that file and
+never write one from memory: the names are draw.io's, not the service abbreviations
+(`aws:identity_and_access_management`, not `aws:iam`), and an unknown name fails validation
+with the nearest names as a hint. A component with no matching icon (the customer's own
+system, a third party) keeps its generic shape, and `kind` stays on every component: it is
+what Mermaid and FigJam draw, with a warning that the icons were lost. Prefer `direction:
+"LR"` for these diagrams: connections then enter a frame from its side, clear of the frame
+titles along the top. Skip the icons when the user asks for a vendor-neutral picture.
 
 ## Targets
 

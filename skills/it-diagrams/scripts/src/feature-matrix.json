@@ -426,6 +426,28 @@
           "mermaid": "supported",
           "drawio": "supported",
           "figjam": "supported"
+        },
+        "component.icon.aws": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "Mermaid has no AWS icons; each component is drawn with the generic icon or shape of its kind"
+          },
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "FigJam has no AWS icons; each component is drawn with the shape of its kind"
+          }
+        },
+        "boundary.group.aws": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "the AWS group frames are drawn as plain groups"
+          },
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "the AWS group frames are drawn as plain subgraphs"
+          }
         }
       }
     },

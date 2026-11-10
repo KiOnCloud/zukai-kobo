@@ -63,6 +63,8 @@ offers a bespoke architecture layout (`useArchitectureLayoutCode`, see the Figma
 `datastore`, `external`, `async`) instead of the user's boundaries. The CLI does not emit
 that form; if the user asks for it, say that it drops their boundaries and would have to be
 written by hand, which this skill does not do.
+AWS icons and group frames (`icon`, `group`) are not drawn: components keep the shape of
+their `kind`, frames are plain subgraphs, and one warning per field says so.
 
 ## 5. Fallback when Figma is not available
 

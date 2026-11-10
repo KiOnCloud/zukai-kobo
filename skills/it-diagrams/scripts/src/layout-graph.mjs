@@ -215,7 +215,8 @@ const elk = () => (elkInstance ??= new ELK());
 /**
  * @param {object} input
  * @param {Array<{id:string,width:number,height:number,parent?:string}>} input.nodes
- * @param {Array<{id:string,parent?:string,headerHeight?:number}>} input.containers
+ * @param {Array<{id:string,parent?:string,headerHeight?:number,minWidth?:number}>} input.containers
+ *   `minWidth` keeps a container at least that wide, for a title that must fit on one line
  * @param {Array<{id:string,from:string,to:string,label?:string}>} input.edges
  * @param {string} [input.direction]
  * @param {{nodeNode?:number, layer?:number, edgeEdge?:number, selfLoop?:number}} [input.spacing]
@@ -237,6 +238,9 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
   // ELK routes a self-loop itself, on a side that is across the flow; `selfLoop` is how far
   // it stands off its node, for the directions whose loops are drawn on that route.
   const selfLoop = spacing.selfLoop ? { 'elk.spacing.nodeSelfLoop': String(spacing.selfLoop) } : {};
+  // The layered algorithm lays a top-to-bottom graph out sideways and turns the result, and it
+  // reads a container's minimum size before the turn: the width goes in as the second value.
+  const vertical = direction === 'TB' || direction === 'BT';
   const build = (parent) => (byParent.get(parent) ?? []).map((el) => {
     if (!el.isContainer) {
       // Fixed ports pin where edges meet the node (ER rows); ELK routes from those points.
@@ -249,7 +253,7 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     return {
       id: el.id,
       // ELK reads the self-loop distance from the graph a node lies in, so a container repeats it.
-      layoutOptions: { 'elk.padding': `[top=${header + 20},left=20,bottom=20,right=20]`, ...selfLoop },
+      layoutOptions: { 'elk.padding': `[top=${header + 20},left=20,bottom=20,right=20]`, ...selfLoop, ...(el.minWidth ? { 'elk.nodeSize.constraints': 'MINIMUM_SIZE', 'elk.nodeSize.minimum': vertical ? `(0,${el.minWidth})` : `(${el.minWidth},0)` } : {}) },
       children: build(el.id),
     };
   });

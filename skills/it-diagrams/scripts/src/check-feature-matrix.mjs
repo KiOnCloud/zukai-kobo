@@ -94,6 +94,9 @@ export function enumerateFeatures(ir) {
         if (c.label) use('connection.label', `/connections/${i}`, c.id);
         if (c.bidirectional) use('connection.bidirectional', `/connections/${i}`, c.id);
       });
+      // One entry for the diagram, not one per element: a target without AWS icons loses all of them alike.
+      if (list(ir, 'components').some((c) => c.icon)) use('component.icon.aws', '/components');
+      if (boundaries.some((b) => b.group)) use('boundary.group.aws', '/boundaries');
       break;
     }
     case 'activity': {

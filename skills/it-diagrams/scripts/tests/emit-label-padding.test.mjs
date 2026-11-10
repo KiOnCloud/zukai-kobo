@@ -16,7 +16,8 @@ const padOf = (cell) => ({ left: DRAWIO_SPACING + spacingOf(cell, 'Left'), right
 /**
  * The labelled nodes of an IR that are drawn as a plain shape sized by `measureNode`, with
  * the height of a one-line box. A decision is sized against its rhombus, a subroutine's side
- * bars bound its label, a client's name stands below its figure, and a `ref` adds a line.
+ * bars bound its label, the name of a client or of an AWS icon stands below its figure, and a
+ * `ref` adds a line.
  */
 function plainNodes(ir) {
   const of = (list, keep, base = () => 40) => (list ?? []).filter((el) => !el.ref && keep(el)).map((el) => ({ id: el.id, label: el.label, baseHeight: base(el), slanted: el.shape === 'io' || el.kind === 'queue' }));
@@ -24,7 +25,7 @@ function plainNodes(ir) {
     case 'flowchart': return of(ir.nodes, (n) => n.shape !== 'decision' && n.shape !== 'subroutine');
     case 'activity': return of(ir.actions, () => true);
     case 'state': return of(ir.states, (s) => (s.kind ?? 'simple') === 'simple');
-    case 'architecture': return of(ir.components, (c) => c.kind !== 'client', (c) => (c.kind === 'database' || c.kind === 'cache' ? 70 : 40));
+    case 'architecture': return of(ir.components, (c) => c.kind !== 'client' && !c.icon, (c) => (c.kind === 'database' || c.kind === 'cache' ? 70 : 40));
     default: return [];
   }
 }

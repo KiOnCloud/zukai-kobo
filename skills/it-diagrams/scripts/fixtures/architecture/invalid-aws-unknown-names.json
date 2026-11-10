@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Names that are not in the AWS catalog",
+  "components": [
+    { "id": "roles", "label": "IAM roles", "icon": "aws:iam" },
+    { "id": "fn", "label": "Function", "icon": "aws:lamda" },
+    { "id": "ok", "label": "Bucket", "icon": "aws:s3" }
+  ],
+  "boundaries": [
+    { "id": "net", "label": "Network", "group": "aws:subnet", "children": ["roles", "fn", "ok"] }
+  ],
+  "connections": []
+}

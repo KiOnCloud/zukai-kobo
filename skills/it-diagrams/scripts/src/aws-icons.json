@@ -1,0 +1,1958 @@
+{
+  "source": {
+    "repo": "jgraph/drawio",
+    "tag": "v32.6.10",
+    "path": "src/main/webapp/js/diagramly/sidebar/Sidebar-AWS4.js",
+    "sha256": "f633e20b449058c6cb92f1666db0d9678da09aaa894da82bdcbb01ac96d0bc32"
+  },
+  "icons": {
+    "activate": {
+      "title": "Activate",
+      "category": "Customer Enablement",
+      "fill": "#C925D1"
+    },
+    "alexa_for_business": {
+      "title": "Alexa for Business (retired)",
+      "category": "AWS (retired)",
+      "fill": "#DD344C"
+    },
+    "amplify": {
+      "title": "Amplify",
+      "category": "Front End Web Mobile",
+      "fill": "#DD344C"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "apache_mxnet_on_aws": {
+      "title": "Apache MXNet on AWS",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "api_gateway": {
+      "title": "API Gateway",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "app_config": {
+      "title": "App Config",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "app_mesh": {
+      "title": "App Mesh",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "app_runner": {
+      "title": "App Runner",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "app_studio": {
+      "title": "App Studio",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "app_wizard": {
+      "title": "Launch Wizard",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "appfabric": {
+      "title": "AppFabric",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "appflow": {
+      "title": "AppFlow",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "application_auto_scaling": {
+      "title": "Application Auto Scaling",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "application_composer": {
+      "title": "Infrastructure Composer",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "application_cost_profiler": {
+      "title": "Application Cost Profiler (retired)",
+      "category": "AWS (retired)",
+      "fill": "#7AA116"
+    },
+    "application_discovery_service": {
+      "title": "Application Discovery Service",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "application_integration": {
+      "title": "Application Integration",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "application_recovery_controller": {
+      "title": "Application Recovery Controller",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "appstream_20": {
+      "title": "AppStream 2.0 (retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "appsync": {
+      "title": "AppSync",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "artifact": {
+      "title": "Artifact",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "athena": {
+      "title": "Athena",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "audit_manager": {
+      "title": "Audit Manager",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "augmented_ai": {
+      "title": "Augmented AI (A2I)",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "aurora": {
+      "title": "Aurora",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "auto_scaling2": {
+      "title": "EC2 Auto Scaling",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "auto_scaling3": {
+      "title": "Auto Scaling",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "autoscaling": {
+      "title": "Auto Scaling",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "b2b_data_interchange": {
+      "title": "B2B Data Interchange",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "backint_agent": {
+      "title": "Backint Agent",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "backup": {
+      "title": "Backup",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "batch": {
+      "title": "Batch",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "bedrock": {
+      "title": "Bedrock",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "bedrock_agentcore": {
+      "title": "Bedrock AgentCore",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "blockchain": {
+      "title": "Blockchain",
+      "category": "Blockchain",
+      "fill": "#ED7100"
+    },
+    "bottlerocket": {
+      "title": "Bottlerocket",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "braket": {
+      "title": "Braket",
+      "category": "Quantum Technologies",
+      "fill": "#ED7100"
+    },
+    "budgets_2": {
+      "title": "Budgets",
+      "category": "Cloud Financial Management",
+      "fill": "#7AA116"
+    },
+    "business_application": {
+      "title": "Business Applications",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "certificate_manager_3": {
+      "title": "Certificate Manager",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "chatbot": {
+      "title": "Chatbot",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "chime": {
+      "title": "Chime",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "chime_sdk": {
+      "title": "Chime SDK",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "clean_rooms": {
+      "title": "Clean Rooms",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "client_vpn": {
+      "title": "Client VPN",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "cloud9": {
+      "title": "Cloud9",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "cloud_control_api": {
+      "title": "Cloud Control API",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "cloud_development_kit": {
+      "title": "Cloud Development Kit",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "cloud_directory": {
+      "title": "Cloud Directory",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "cloud_map": {
+      "title": "Cloud Map",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "cloud_wan": {
+      "title": "Cloud WAN",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "cloudendure_disaster_recovery": {
+      "title": "Elastic Disaster Recovery",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "cloudendure_migration": {
+      "title": "Application Migration Service",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "cloudformation": {
+      "title": "CloudFormation",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "cloudfront": {
+      "title": "CloudFront",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "cloudhsm": {
+      "title": "CloudHSM",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "cloudsearch2": {
+      "title": "CloudSearch",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "cloudshell": {
+      "title": "CloudShell",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "cloudtrail": {
+      "title": "CloudTrail",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "cloudwatch_2": {
+      "title": "CloudWatch",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "codeartifact": {
+      "title": "CodeArtifact",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "codebuild": {
+      "title": "CodeBuild",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "codecatalyst": {
+      "title": "CodeCatalyst",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "codecommit": {
+      "title": "CodeCommit",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "codedeploy": {
+      "title": "CodeDeploy",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "codeguru": {
+      "title": "CodeGuru",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "codeguru_2": {
+      "title": "CodeGuru",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "codepipeline": {
+      "title": "CodePipeline",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "codestar": {
+      "title": "CodeStar (retired)",
+      "category": "AWS (retired)",
+      "fill": "#C925D1"
+    },
+    "codewhisperer": {
+      "title": "CodeWhisperer",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "cognito": {
+      "title": "Cognito",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "command_line_interface": {
+      "title": "Command Line Interface",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "comprehend": {
+      "title": "Comprehend",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "comprehend_medical": {
+      "title": "Comprehend Medical",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "compute": {
+      "title": "Compute",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "compute_optimizer": {
+      "title": "Compute Optimizer",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "config": {
+      "title": "Config",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "connect": {
+      "title": "Connect",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "console_mobile_application": {
+      "title": "Console Mobile Application",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "contact_center": {
+      "title": "Customer Experience",
+      "category": "Customer Experience",
+      "fill": "#DD344C"
+    },
+    "containers": {
+      "title": "Containers",
+      "category": "Containers",
+      "fill": "#ED7100"
+    },
+    "control_tower": {
+      "title": "Control Tower",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "corretto": {
+      "title": "Corretto",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "cost_and_usage_report": {
+      "title": "Cost & Usage Report",
+      "category": "Cloud Financial Management",
+      "fill": "#7AA116"
+    },
+    "cost_explorer": {
+      "title": "Cost Explorer",
+      "category": "Cloud Financial Management",
+      "fill": "#7AA116"
+    },
+    "cost_management": {
+      "title": "Cloud Financial Management",
+      "category": "Cloud Financial Management",
+      "fill": "#7AA116"
+    },
+    "custom_billing_manager": {
+      "title": "Billing Conductor",
+      "category": "Cloud Financial Management",
+      "fill": "#7AA116"
+    },
+    "customer_enablement": {
+      "title": "Customer Enablement",
+      "category": "Customer Enablement",
+      "fill": "#C925D1"
+    },
+    "customer_engagement": {
+      "title": "Customer Engagement",
+      "category": "Customer Engagement",
+      "fill": "#3334B9",
+      "gradient": "#4D72F3"
+    },
+    "data_exchange": {
+      "title": "Data Exchange",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "data_pipeline": {
+      "title": "Data Pipeline (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "data_transfer_terminal": {
+      "title": "Data Transfer Terminal",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "database": {
+      "title": "Databases",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "database_migration_service": {
+      "title": "Database Migration Service",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "datasync": {
+      "title": "DataSync",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "datazone": {
+      "title": "DataZone",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "deadline_cloud": {
+      "title": "Deadline Cloud",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "deep_learning_amis": {
+      "title": "Deep Learning AMIs",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "deep_learning_containers": {
+      "title": "Deep Learning Containers",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "deepcomposer": {
+      "title": "DeepComposer (retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "deeplens": {
+      "title": "DeepLens (retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "deepracer": {
+      "title": "DeepRacer",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "desktop_and_app_streaming": {
+      "title": "End User Computing",
+      "category": "End User Computing",
+      "fill": "#01A88D"
+    },
+    "detective": {
+      "title": "Detective",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "developer_tools": {
+      "title": "Developer Tools",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "device_farm": {
+      "title": "Device Farm",
+      "category": "Front End Web Mobile",
+      "fill": "#DD344C"
+    },
+    "devops_agent": {
+      "title": "DevOps Agent",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "devops_guru": {
+      "title": "DevOps Guru",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "direct_connect": {
+      "title": "Direct Connect",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "directory_service": {
+      "title": "Directory Service",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "distro_for_opentelemetry": {
+      "title": "Distro for OpenTelemetry",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "documentdb_with_mongodb_compatibility": {
+      "title": "DocumentDB",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "dynamodb": {
+      "title": "DynamoDB",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "ec2": {
+      "title": "EC2",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "ec2_image_builder": {
+      "title": "EC2 Image Builder",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "ecr": {
+      "title": "Elastic Container Registry",
+      "category": "Containers",
+      "fill": "#ED7100"
+    },
+    "ecs": {
+      "title": "Elastic Container Service",
+      "category": "Containers",
+      "fill": "#ED7100"
+    },
+    "ecs_anywhere": {
+      "title": "ECS Anywhere",
+      "category": "Containers",
+      "fill": "#ED7100"
+    },
+    "eks": {
+      "title": "Elastic Kubernetes Service",
+      "category": "Containers",
+      "fill": "#ED7100"
+    },
+    "eks_anywhere": {
+      "title": "EKS Anywhere",
+      "category": "Containers",
+      "fill": "#ED7100"
+    },
+    "eks_cloud": {
+      "title": "EKS Cloud (retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "eks_distro": {
+      "title": "EKS Distro",
+      "category": "Containers",
+      "fill": "#ED7100"
+    },
+    "elastic_beanstalk": {
+      "title": "Elastic Beanstalk",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "elastic_block_store": {
+      "title": "Elastic Block Store",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "elastic_fabric_adapter": {
+      "title": "Elastic Fabric Adapter",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "elastic_file_system": {
+      "title": "Elastic File System",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "elastic_inference_2": {
+      "title": "Elastic Inference",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "elastic_load_balancing": {
+      "title": "Elastic Load Balancing",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "elastic_transcoder": {
+      "title": "Elastic Transcoder (retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "elastic_vmware_service": {
+      "title": "Elastic VMware Service",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "elasticache": {
+      "title": "ElastiCache",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "elasticsearch_service": {
+      "title": "OpenSearch Service",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "elemental": {
+      "title": "Elemental Appliances & Software",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "elemental_inference": {
+      "title": "Elemental Inference",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "elemental_link": {
+      "title": "Elemental Link",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "elemental_mediaconnect": {
+      "title": "Elemental MediaConnect",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "elemental_mediaconvert": {
+      "title": "Elemental MediaConvert",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "elemental_medialive": {
+      "title": "Elemental MediaLive",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "elemental_mediapackage": {
+      "title": "Elemental MediaPackage",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "elemental_mediastore": {
+      "title": "Elemental MediaStore",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "elemental_mediatailor": {
+      "title": "Elemental MediaTailor",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "emr": {
+      "title": "EMR",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "end_user_messaging": {
+      "title": "End User Messaging",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "entity_resolution": {
+      "title": "Entity Resolution",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "eventbridge": {
+      "title": "EventBridge",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "express_workflow": {
+      "title": "Express Workflows",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "fargate": {
+      "title": "Fargate",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "fault_injection_simulator": {
+      "title": "Fault Injection Service",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "file_cache": {
+      "title": "File Cache",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "finops_agent": {
+      "title": "FinOps Agent",
+      "category": "Cloud Financial Management",
+      "fill": "#7AA116"
+    },
+    "finspace": {
+      "title": "FinSpace",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "firewall_manager": {
+      "title": "Firewall Manager",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "forecast": {
+      "title": "Forecast",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "fraud_detector": {
+      "title": "Fraud Detector",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "freertos": {
+      "title": "FreeRTOS",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "fsx": {
+      "title": "FSx",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "fsx_for_lustre": {
+      "title": "FSx for Lustre",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "fsx_for_netapp_ontap": {
+      "title": "FSx for NetApp ONTAP",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "fsx_for_openzfs": {
+      "title": "FSx for OpenZFS",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "fsx_for_windows_file_server": {
+      "title": "FSx for Windows File Server",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "gamekit": {
+      "title": "GameKit (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "gamelift_2": {
+      "title": "GameLift Servers",
+      "category": "Games",
+      "fill": "#8C4FFF"
+    },
+    "gamelift_streams": {
+      "title": "GameLift Streams",
+      "category": "Games",
+      "fill": "#8C4FFF"
+    },
+    "games": {
+      "title": "Game Tech",
+      "category": "Games",
+      "fill": "#8C4FFF"
+    },
+    "gamesparks": {
+      "title": "GameSparks (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "genomics_cli": {
+      "title": "Genomics CLI (retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "glacier": {
+      "title": "S3 Glacier",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "global_accelerator": {
+      "title": "Global Accelerator",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "glue": {
+      "title": "Glue",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "glue_databrew": {
+      "title": "Glue DataBrew",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "glue_elastic_views": {
+      "title": "Glue Elastic Views (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "greengrass": {
+      "title": "IoT Greengrass",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "ground_station": {
+      "title": "Ground Station",
+      "category": "Satellite",
+      "fill": "#C925D1"
+    },
+    "guardduty": {
+      "title": "GuardDuty",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "healthimaging": {
+      "title": "HealthImaging",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "healthlake": {
+      "title": "HealthLake",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "healthscribe": {
+      "title": "HealthScribe",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "honeycode": {
+      "title": "Honeycode (retired)",
+      "category": "AWS (retired)",
+      "fill": "#DD344C"
+    },
+    "identity_and_access_management": {
+      "title": "Identity & Access Management",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "infrequent_access_storage_class": {
+      "title": "Infrequent Access Storage Class (retired)",
+      "category": "AWS (retired)",
+      "fill": "#7AA116"
+    },
+    "inspector": {
+      "title": "Inspector",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "interactive_video": {
+      "title": "Interactive Video Service",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "interconnect": {
+      "title": "Interconnect",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "internet_of_things": {
+      "title": "Internet of Things",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "iot_1click": {
+      "title": "IoT 1-Click (retired)",
+      "category": "AWS (retired)",
+      "fill": "#7AA116"
+    },
+    "iot_analytics": {
+      "title": "IoT Analytics (retired)",
+      "category": "AWS (retired)",
+      "fill": "#7AA116"
+    },
+    "iot_button": {
+      "title": "IoT Button (retired)",
+      "category": "AWS (retired)",
+      "fill": "#7AA116"
+    },
+    "iot_core": {
+      "title": "Core",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "iot_device_defender": {
+      "title": "Device Defender",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "iot_device_management": {
+      "title": "Device Management",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "iot_edukit": {
+      "title": "IoT EduKit (retired)",
+      "category": "AWS (retired)",
+      "fill": "#7AA116"
+    },
+    "iot_events": {
+      "title": "Events",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "iot_expresslink": {
+      "title": "ExpressLink",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "iot_fleetwise": {
+      "title": "FleetWise",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "iot_roborunner": {
+      "title": "IoT RoboRunner (retired)",
+      "category": "AWS (retired)",
+      "fill": "#7AA116"
+    },
+    "iot_sitewise": {
+      "title": "SiteWise",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "iot_things_graph": {
+      "title": "IoT Things Graph (retired)",
+      "category": "AWS (retired)",
+      "fill": "#7AA116"
+    },
+    "iot_twinmaker": {
+      "title": "TwinMaker",
+      "category": "Internet of Things",
+      "fill": "#7AA116"
+    },
+    "iq": {
+      "title": "IQ",
+      "category": "Customer Enablement",
+      "fill": "#C925D1"
+    },
+    "kendra": {
+      "title": "Kendra",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "key_management_service": {
+      "title": "Key Management Service",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "keyspaces": {
+      "title": "Keyspaces",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "kinesis": {
+      "title": "Kinesis",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "kinesis_data_analytics": {
+      "title": "Kinesis Data Analytics (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "kinesis_data_firehose": {
+      "title": "Data Firehose",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "kinesis_data_streams": {
+      "title": "Kinesis Data Streams",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "kinesis_video_streams": {
+      "title": "Kinesis Video Streams",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "lake_formation": {
+      "title": "Lake Formation",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "lambda": {
+      "title": "Lambda",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "lex": {
+      "title": "Lex",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "license_manager": {
+      "title": "License Manager",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "lightsail": {
+      "title": "Lightsail",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "lightsail_for_research": {
+      "title": "Lightsail for Research",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "local_zones": {
+      "title": "Local Zones",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "location_service": {
+      "title": "Location Service",
+      "category": "Front End Web Mobile",
+      "fill": "#DD344C"
+    },
+    "lookout_for_equipment": {
+      "title": "Lookout for Equipment",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "lookout_for_metrics": {
+      "title": "Lookout for Metrics (retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "lookout_for_vision": {
+      "title": "Lookout for Vision",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "lumberyard": {
+      "title": "Lumberyard (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "machine_learning": {
+      "title": "Artificial Intelligence",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "macie": {
+      "title": "Macie",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "mainframe_modernization": {
+      "title": "Mainframe Modernization",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "managed_apache_cassandra_service": {
+      "title": "Managed Apache Cassandra Service",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "managed_blockchain": {
+      "title": "Managed Blockchain",
+      "category": "Blockchain",
+      "fill": "#ED7100"
+    },
+    "managed_service_for_apache_flink": {
+      "title": "Managed Service for Apache Flink",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "managed_service_for_grafana": {
+      "title": "Managed Grafana",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "managed_service_for_prometheus": {
+      "title": "Managed Service for Prometheus",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "managed_services": {
+      "title": "Managed Services",
+      "category": "Customer Enablement",
+      "fill": "#C925D1"
+    },
+    "managed_streaming_for_kafka": {
+      "title": "Managed Streaming for Apache Kafka",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "managed_workflows_for_apache_airflow": {
+      "title": "Managed Workflows for Apache Airflow",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "management_and_governance": {
+      "title": "Management Tools",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "management_console": {
+      "title": "Management Console",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "media_services": {
+      "title": "Media Services",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "memorydb_for_redis": {
+      "title": "MemoryDB",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "migration_and_transfer": {
+      "title": "Migration & Modernization",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "migration_evaluator": {
+      "title": "Migration Evaluator",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "migration_hub": {
+      "title": "Migration Hub (retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "mobile": {
+      "title": "Front-End Web & Mobile",
+      "category": "Front End Web Mobile",
+      "fill": "#DD344C"
+    },
+    "mobile_application": {
+      "title": "Console Mobile Application (retired)",
+      "category": "AWS (retired)",
+      "fill": "#E7157B"
+    },
+    "monitron": {
+      "title": "Monitron",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "mq": {
+      "title": "MQ",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "multicloud_and_hybrid": {
+      "title": "Multicloud and Hybrid",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "neptune": {
+      "title": "Neptune",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "network_firewall": {
+      "title": "Network Firewall",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "networking_and_content_delivery": {
+      "title": "Networking & Content Delivery",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "neuron_ml_sdk": {
+      "title": "Neuron",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "nice_dcv": {
+      "title": "DCV",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "nice_enginframe": {
+      "title": "NICE EnginFrame (retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "nimble_studio": {
+      "title": "Nimble Studio (retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "nitro_enclaves": {
+      "title": "Nitro Enclaves",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "nova2": {
+      "title": "Nova",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "omics": {
+      "title": "HealthOmics",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "open_3d_engine": {
+      "title": "Open 3D Engine (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "open_3d_engine_2": {
+      "title": "Open 3D Engine",
+      "category": "Games",
+      "fill": "#8C4FFF"
+    },
+    "opsworks": {
+      "title": "OpsWorks (retired)",
+      "category": "AWS (retired)",
+      "fill": "#E7157B"
+    },
+    "oracle_database_at_aws": {
+      "title": "Oracle Database at AWS",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "organizations": {
+      "title": "Organizations",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "outposts": {
+      "title": "Outposts rack",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "outposts_1u_and_2u_servers": {
+      "title": "Outposts servers",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "outposts_family": {
+      "title": "Outposts Family (retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "panorama": {
+      "title": "Panorama",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "parallel_cluster": {
+      "title": "Parallel Cluster",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "parallel_computing_service": {
+      "title": "Parallel Computing Service",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "partner_central": {
+      "title": "Partner Central",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "payment_cryptography": {
+      "title": "Payment Cryptography",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "personal_health_dashboard": {
+      "title": "Health Dashboard",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "personalize": {
+      "title": "Personalize",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "pinpoint": {
+      "title": "Pinpoint",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "polly": {
+      "title": "Polly",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "private_5g": {
+      "title": "Private 5G (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "private_certificate_authority": {
+      "title": "Private Certificate Authority",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "professional_services": {
+      "title": "Professional Services",
+      "category": "Customer Enablement",
+      "fill": "#C925D1"
+    },
+    "proton": {
+      "title": "Proton",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "q": {
+      "title": "Q",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "quantum_ledger_database": {
+      "title": "Quantum Ledger Database (Blockchain, retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "quantum_technologies": {
+      "title": "Quantum Technologies",
+      "category": "Quantum Technologies",
+      "fill": "#ED7100"
+    },
+    "quick_suite": {
+      "title": "Quick",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "quicksight": {
+      "title": "QuickSight (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "rds": {
+      "title": "RDS",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "rds_on_vmware": {
+      "title": "RDS on VMware (retired)",
+      "category": "AWS (retired)",
+      "fill": "#C925D1"
+    },
+    "red_hat_openshift": {
+      "title": "Red Hat OpenShift Service on AWS",
+      "category": "Containers",
+      "fill": "#ED7100"
+    },
+    "redshift": {
+      "title": "Redshift",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "rekognition_2": {
+      "title": "Rekognition",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "repost": {
+      "title": "rePost",
+      "category": "Customer Enablement",
+      "fill": "#C925D1"
+    },
+    "repost_private": {
+      "title": "rePost Private",
+      "category": "Customer Enablement",
+      "fill": "#C925D1"
+    },
+    "reserved_instance_reporting": {
+      "title": "Reserved Instance Reporting",
+      "category": "Cloud Financial Management",
+      "fill": "#7AA116"
+    },
+    "resilience_hub": {
+      "title": "Resilience Hub",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "resource_access_manager": {
+      "title": "Resource Access Manager",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "resource_explorer": {
+      "title": "Resource Explorer",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "robomaker": {
+      "title": "RoboMaker (retired)",
+      "category": "AWS (retired)",
+      "fill": "#DD344C"
+    },
+    "robotics": {
+      "title": "Robotics (retired)",
+      "category": "AWS (retired)",
+      "fill": "#DD344C"
+    },
+    "route_53": {
+      "title": "Route 53",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "rtb_fabric": {
+      "title": "RTB Fabric",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "s3": {
+      "title": "Simple Storage Service (S3)",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "s3_on_outposts_storage": {
+      "title": "S3 on Outposts",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "sagemaker": {
+      "title": "SageMaker AI",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "sagemaker_2": {
+      "title": "SageMaker",
+      "category": "Analytics",
+      "fill": "#8C4FFF"
+    },
+    "sagemaker_ground_truth": {
+      "title": "SageMaker Ground Truth",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "sagemaker_studio_lab": {
+      "title": "SageMaker Studio Lab",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "satellite": {
+      "title": "Satellite",
+      "category": "Satellite",
+      "fill": "#C925D1"
+    },
+    "savings_plans": {
+      "title": "Savings Plans",
+      "category": "Cloud Financial Management",
+      "fill": "#7AA116"
+    },
+    "secrets_manager": {
+      "title": "Secrets Manager",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "security_agent": {
+      "title": "Security Agent",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "security_hub": {
+      "title": "Security Hub",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "security_identity_and_compliance": {
+      "title": "Security & Identity",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "security_incident_response": {
+      "title": "Security Incident Response",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "security_lake": {
+      "title": "Security Lake",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "server_migration_service": {
+      "title": "Server Migration Service (retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "serverless": {
+      "title": "Serverless",
+      "category": "Serverless",
+      "fill": "#8C4FFF"
+    },
+    "serverless_application_repository": {
+      "title": "Serverless Application Repository",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "service_catalog": {
+      "title": "Service Catalog",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "service_management_connector": {
+      "title": "Service Management Connector",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "shield": {
+      "title": "Shield",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "signer": {
+      "title": "Signer",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "simple_email_service": {
+      "title": "Simple Email Service",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "simspace_weaver": {
+      "title": "SimSpace Weaver",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "single_sign_on": {
+      "title": "IAM Identity Center",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "site_to_site_vpn": {
+      "title": "Site-to-Site VPN",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "snowball": {
+      "title": "Snowball",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "snowball_edge": {
+      "title": "Snowball Edge",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "snowcone": {
+      "title": "Snowcone (retired)",
+      "category": "AWS (retired)",
+      "fill": "#7AA116"
+    },
+    "snowmobile": {
+      "title": "Snowmobile (Migration, retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "sns": {
+      "title": "Simple Notification Service",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "sql_workbench": {
+      "title": "SQL Workbench (retired)",
+      "category": "AWS (retired)",
+      "fill": "#8C4FFF"
+    },
+    "sqs": {
+      "title": "Simple Queue Service",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "step_functions": {
+      "title": "Step Functions",
+      "category": "Application Integration",
+      "fill": "#E7157B"
+    },
+    "storage": {
+      "title": "Storage",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "storage_gateway": {
+      "title": "Storage Gateway",
+      "category": "Storage",
+      "fill": "#7AA116"
+    },
+    "supply_chain": {
+      "title": "Supply Chain",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "support": {
+      "title": "Support",
+      "category": "Customer Enablement",
+      "fill": "#C925D1"
+    },
+    "sustainability": {
+      "title": "Sustainability",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "systems_manager": {
+      "title": "Systems Manager",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "systems_manager_incident_manager": {
+      "title": "Systems Manager - Incident Manager",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "telco_network_builder": {
+      "title": "Telco Network Builder",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "tensorflow_on_aws": {
+      "title": "TensorFlow on AWS",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "textract": {
+      "title": "Textract",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "thinkbox_deadline": {
+      "title": "Thinkbox Deadline",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "thinkbox_draft": {
+      "title": "Thinkbox Draft (retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "thinkbox_frost": {
+      "title": "Thinkbox Frost",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "thinkbox_krakatoa": {
+      "title": "Thinkbox Krakatoa",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "thinkbox_sequoia": {
+      "title": "Thinkbox Sequoia (retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "thinkbox_stoke": {
+      "title": "Thinkbox Stoke",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "thinkbox_xmesh": {
+      "title": "Thinkbox XMesh",
+      "category": "Media Services",
+      "fill": "#ED7100"
+    },
+    "timestream": {
+      "title": "Timestream",
+      "category": "Databases",
+      "fill": "#C925D1"
+    },
+    "tools_and_sdks": {
+      "title": "Tools and SDKs",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    },
+    "torchserve": {
+      "title": "PyTorch on AWS",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "training_certification": {
+      "title": "Training Certification",
+      "category": "Customer Enablement",
+      "fill": "#C925D1"
+    },
+    "transcribe": {
+      "title": "Transcribe",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "transfer_family": {
+      "title": "Transfer Family",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "transfer_for_sftp": {
+      "title": "Transfer for SFTP (retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "transform": {
+      "title": "Transform",
+      "category": "Migration & Modernization",
+      "fill": "#01A88D"
+    },
+    "transit_gateway": {
+      "title": "Transit Gateway",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "translate": {
+      "title": "Translate",
+      "category": "Artificial Intelligence",
+      "fill": "#01A88D"
+    },
+    "trusted_advisor": {
+      "title": "Trusted Advisor",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "user_notifications": {
+      "title": "User Notifications",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "verified_access": {
+      "title": "Verified Access",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "verified_permissions": {
+      "title": "Verified Permissions",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "vmware_cloud_on_aws": {
+      "title": "VMware Cloud on AWS (retired)",
+      "category": "AWS (retired)",
+      "fill": "#ED7100"
+    },
+    "vpc": {
+      "title": "VPC",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "vpc_lattice": {
+      "title": "VPC Lattice",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "vpc_privatelink": {
+      "title": "PrivateLink",
+      "category": "Network & Content Delivery",
+      "fill": "#8C4FFF"
+    },
+    "waf": {
+      "title": "WAF",
+      "category": "Security & Identity",
+      "fill": "#DD344C"
+    },
+    "wavelength": {
+      "title": "Wavelength",
+      "category": "Compute",
+      "fill": "#ED7100"
+    },
+    "well_architect_tool": {
+      "title": "Well-Architected Tool",
+      "category": "Management Tools",
+      "fill": "#E7157B"
+    },
+    "wickr": {
+      "title": "Wickr",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "workdocs": {
+      "title": "WorkDocs SDK",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "worklink": {
+      "title": "WorkLink (retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "workmail": {
+      "title": "WorkMail",
+      "category": "Business Applications",
+      "fill": "#DD344C"
+    },
+    "workspaces": {
+      "title": "WorkSpaces",
+      "category": "End User Computing",
+      "fill": "#01A88D"
+    },
+    "workspaces_family": {
+      "title": "WorkSpaces Family (retired)",
+      "category": "AWS (retired)",
+      "fill": "#01A88D"
+    },
+    "workspaces_thin_client": {
+      "title": "WorkSpaces Thin Client",
+      "category": "End User Computing",
+      "fill": "#01A88D"
+    },
+    "xray": {
+      "title": "X-Ray",
+      "category": "Developer Tools",
+      "fill": "#C925D1"
+    }
+  },
+  "groups": {
+    "auto_scaling_group": {
+      "title": "Auto Scaling group",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.groupCenter;grIcon=mxgraph.aws4.group_auto_scaling_group;grStroke=1;strokeColor=#D86613;fillColor=none;verticalAlign=top;align=center;fontColor=#D86613;dashed=1;spacingTop=25;"
+    },
+    "availability_zone": {
+      "title": "Availability Zone",
+      "style": "fillColor=none;strokeColor=#147EBA;dashed=1;verticalAlign=top;fontStyle=0;fontColor=#147EBA;whiteSpace=wrap;html=1;"
+    },
+    "aws_account": {
+      "title": "AWS Account",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_account;strokeColor=#CD2264;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#CD2264;dashed=0;"
+    },
+    "aws_cloud": {
+      "title": "AWS Cloud",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud_alt;strokeColor=#232F3E;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#232F3E;dashed=0;"
+    },
+    "aws_cloud_alt": {
+      "title": "AWS Cloud",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;strokeColor=#232F3E;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#232F3E;dashed=0;"
+    },
+    "aws_iot_greengrass": {
+      "title": "AWS Iot Greengrass",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_iot_greengrass;strokeColor=#7AA116;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#3F8624;dashed=0;"
+    },
+    "aws_iot_greengrass_deployment": {
+      "title": "AWS Iot Greengrass Deployment",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_iot_greengrass_deployment;strokeColor=#7AA116;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#3F8624;dashed=0;"
+    },
+    "aws_step_functions_workflow": {
+      "title": "AWS Step Functions workflow",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_step_functions_workflow;strokeColor=#CD2264;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#CD2264;dashed=0;"
+    },
+    "corporate_data_center": {
+      "title": "Corporate data center",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_corporate_data_center;strokeColor=#7D8998;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#5A6C86;dashed=0;"
+    },
+    "ec2_instance_contents": {
+      "title": "EC2 instance contents",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_ec2_instance_contents;strokeColor=#D86613;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#D86613;dashed=0;"
+    },
+    "elastic_beanstalk_container": {
+      "title": "Elastic Beanstalk container",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_elastic_beanstalk;strokeColor=#D86613;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#D86613;dashed=0;"
+    },
+    "generic_group": {
+      "title": "Generic group",
+      "style": "fillColor=none;strokeColor=#5A6C86;dashed=1;verticalAlign=top;fontStyle=0;fontColor=#5A6C86;whiteSpace=wrap;html=1;"
+    },
+    "generic_group_alt": {
+      "title": "Generic group",
+      "style": "fillColor=#EFF0F3;strokeColor=none;dashed=0;verticalAlign=top;fontStyle=0;fontColor=#232F3D;whiteSpace=wrap;html=1;"
+    },
+    "private_subnet": {
+      "title": "Private subnet",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#00A4A6;fillColor=#E6F6F7;verticalAlign=top;align=left;spacingLeft=30;fontColor=#147EBA;dashed=0;"
+    },
+    "public_subnet": {
+      "title": "Public subnet",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#7AA116;fillColor=#F2F6E8;verticalAlign=top;align=left;spacingLeft=30;fontColor=#248814;dashed=0;"
+    },
+    "region": {
+      "title": "Region",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_region;strokeColor=#00A4A6;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#147EBA;dashed=1;"
+    },
+    "security_group": {
+      "title": "Security group",
+      "style": "fillColor=none;strokeColor=#DD3522;verticalAlign=top;fontStyle=0;fontColor=#DD3522;whiteSpace=wrap;html=1;"
+    },
+    "server_contents": {
+      "title": "Server contents",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_on_premise;strokeColor=#7D8998;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#5A6C86;dashed=0;"
+    },
+    "spot_fleet": {
+      "title": "Spot Fleet",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_spot_fleet;strokeColor=#D86613;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#D86613;dashed=0;"
+    },
+    "vpc": {
+      "title": "VPC",
+      "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_vpc2;strokeColor=#8C4FFF;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#AAB7B8;dashed=0;"
+    }
+  }
+}

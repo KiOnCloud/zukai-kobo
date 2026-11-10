@@ -232,8 +232,8 @@ Collections: `components` (at least one), `boundaries` (optional), `connections`
 
 | Element | Fields |
 |---|---|
-| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external`; `ref`: diagram id of the sub-diagram that details this component (its IR file name without `.ir.json`), shown as a second label line |
-| boundary | `id`, `label`, `children`: component or boundary ids (a deployment unit, network or team boundary) |
+| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external`; `ref`: diagram id of the sub-diagram that details this component (its IR file name without `.ir.json`), shown as a second label line; `icon` (optional): an AWS service icon, `aws:<name>` |
+| boundary | `id`, `label`, `children`: component or boundary ids (a deployment unit, network or team boundary); `group` (optional): an AWS group frame, `aws:<name>` |
 | connection | `id`, `from`, `to`, `label` (protocol or purpose), `bidirectional` (default `false`) |
 
 ```json
@@ -255,6 +255,43 @@ Collections: `components` (at least one), `boundaries` (optional), `connections`
     { "id": "c2", "from": "api", "to": "db", "label": "SQL" },
     { "id": "c3", "from": "api", "to": "queue", "label": "publish order placed" },
     { "id": "c4", "from": "api", "to": "psp", "label": "capture payment" }
+  ]
+}
+```
+
+### AWS icons
+
+`icon` and `group` turn the diagram into an AWS architecture diagram on the draw.io target.
+The values are listed in `aws-icons.md` (every service icon and group frame of draw.io's AWS
+library); copy them from there. A name that is not listed fails validation, and the error
+names the nearest ones. `kind` keeps its meaning beside `icon`: draw.io draws the icon in
+place of the shape of the kind, Mermaid and FigJam draw the shape of the kind and warn once
+that the icons and frames were lost. Components and boundaries without the fields keep their
+generic look in the same diagram.
+
+```json
+{
+  "schemaVersion": 1, "kind": "architecture", "title": "Order platform on AWS", "direction": "LR",
+  "components": [
+    { "id": "browser", "label": "Customer browser", "kind": "client" },
+    { "id": "alb", "label": "Application Load Balancer", "icon": "aws:elastic_load_balancing" },
+    { "id": "api", "label": "Order API (ECS Fargate)", "icon": "aws:fargate" },
+    { "id": "db", "label": "Aurora PostgreSQL", "kind": "database", "icon": "aws:aurora" },
+    { "id": "queue", "label": "SQS orders", "kind": "queue", "icon": "aws:sqs" },
+    { "id": "psp", "label": "Payment provider", "kind": "external" }
+  ],
+  "boundaries": [
+    { "id": "cloud", "label": "AWS Cloud", "group": "aws:aws_cloud", "children": ["vpc", "queue"] },
+    { "id": "vpc", "label": "VPC", "group": "aws:vpc", "children": ["public", "private"] },
+    { "id": "public", "label": "Public subnet", "group": "aws:public_subnet", "children": ["alb"] },
+    { "id": "private", "label": "Private subnet", "group": "aws:private_subnet", "children": ["api", "db"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "alb", "label": "HTTPS" },
+    { "id": "c2", "from": "alb", "to": "api", "label": "HTTP" },
+    { "id": "c3", "from": "api", "to": "db", "label": "SQL" },
+    { "id": "c4", "from": "api", "to": "queue", "label": "order placed" },
+    { "id": "c5", "from": "api", "to": "psp", "label": "capture payment" }
   ]
 }
 ```

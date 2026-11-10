@@ -844,6 +844,9 @@
               },
               "ref": {
                 "$ref": "#/$defs/ref"
+              },
+              "icon": {
+                "$ref": "#/$defs/awsName"
               }
             }
           }
@@ -867,6 +870,9 @@
               },
               "children": {
                 "$ref": "#/$defs/idList"
+              },
+              "group": {
+                "$ref": "#/$defs/awsName"
               }
             }
           }
@@ -1033,6 +1039,11 @@
         "flows"
       ],
       "unevaluatedProperties": false
+    },
+    "awsName": {
+      "type": "string",
+      "pattern": "^aws:[a-z0-9_]{1,64}$",
+      "description": "An AWS icon or group frame of draw.io's AWS library, written aws:<name>; the names are listed in references/aws-icons.md"
     }
   }
 }

@@ -31,7 +31,8 @@ Open Claude Code in the project the diagram is about and run one of:
 - `brainstorm`: you have an idea; the skill proposes which diagrams would help and you pick.
 
 The skill then asks one question with up to four parts: which **kind** (sequence,
-flowchart, activity swimlanes, state, ER, class, architecture), which **scope** (`overview`:
+flowchart, activity swimlanes, state, ER, class, architecture; an architecture on AWS is
+drawn with AWS service icons and VPC or subnet frames in draw.io), which **scope** (`overview`:
 one diagram of about 15 steps; `detailed`: one main diagram plus a sub-diagram per sub-flow,
 linked from the main one), **which view** (`technical`: for developers, keeps code and data
 names; `business`: for a PM, client or operations, business rules only; `both`: one of each

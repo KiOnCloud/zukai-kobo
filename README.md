@@ -45,7 +45,8 @@ In Codex the same modes are reached by asking in prose after `$it-diagrams`.
 | `mermaid` | Mermaid text | Paste into Markdown |
 | `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; falls back to Mermaid text |
 
-Diagram kinds: sequence, flowchart, state, ER, class, architecture, and activity with
+Diagram kinds: sequence, flowchart, state, ER, class, architecture (with AWS service icons
+and VPC, subnet and account frames on the draw.io target), and activity with
 swimlanes, fork and join (draw.io is the activity target; Mermaid renders it with the beta
 `swimlane-beta` syntax and FigJam does not support it).
 

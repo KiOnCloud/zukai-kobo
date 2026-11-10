@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Order platform on AWS",
+  "direction": "LR",
+  "components": [
+    { "id": "browser", "label": "Customer browser", "kind": "client" },
+    { "id": "cdn", "label": "CloudFront", "icon": "aws:cloudfront" },
+    { "id": "assets", "label": "Static assets (S3)", "kind": "database", "icon": "aws:s3" },
+    { "id": "alb", "label": "Application Load Balancer", "icon": "aws:elastic_load_balancing" },
+    { "id": "api", "label": "Order API (ECS Fargate)", "icon": "aws:fargate" },
+    { "id": "db", "label": "Aurora PostgreSQL", "kind": "database", "icon": "aws:aurora" },
+    { "id": "cache", "label": "ElastiCache Redis", "kind": "cache", "icon": "aws:elasticache" },
+    { "id": "queue", "label": "SQS orders", "kind": "queue", "icon": "aws:sqs" },
+    { "id": "worker", "label": "Fulfilment worker", "icon": "aws:lambda" },
+    { "id": "psp", "label": "Payment provider", "kind": "external" }
+  ],
+  "boundaries": [
+    { "id": "cloud", "label": "AWS Cloud", "group": "aws:aws_cloud", "children": ["cdn", "assets", "region"] },
+    { "id": "region", "label": "ap-northeast-1", "group": "aws:region", "children": ["vpc", "queue", "worker"] },
+    { "id": "vpc", "label": "VPC 10.0.0.0/16", "group": "aws:vpc", "children": ["public", "private"] },
+    { "id": "public", "label": "Public subnet", "group": "aws:public_subnet", "children": ["alb"] },
+    { "id": "private", "label": "Private subnet", "group": "aws:private_subnet", "children": ["api", "db", "cache"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "cdn", "label": "HTTPS" },
+    { "id": "c2", "from": "cdn", "to": "assets", "label": "static files" },
+    { "id": "c3", "from": "cdn", "to": "alb", "label": "/api" },
+    { "id": "c4", "from": "alb", "to": "api", "label": "HTTP" },
+    { "id": "c5", "from": "api", "to": "db", "label": "SQL" },
+    { "id": "c6", "from": "api", "to": "cache", "label": "cache" },
+    { "id": "c7", "from": "api", "to": "queue", "label": "order placed" },
+    { "id": "c8", "from": "queue", "to": "worker", "label": "trigger" },
+    { "id": "c9", "from": "api", "to": "psp", "label": "capture payment" }
+  ]
+}

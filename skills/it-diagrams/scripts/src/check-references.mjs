@@ -1,3 +1,4 @@
+import { awsIcon, awsGroup, nearestAwsNames } from './aws-icons.mjs';
 /**
  * Referential-integrity checks that JSON Schema cannot express: unique ids across the
  * document, every endpoint and child exists, containment has no cycles, and the
@@ -241,6 +242,19 @@ function checkArchitecture(ir, err) {
   const boundaries = idSet(list(ir, 'boundaries'));
   checkEndpoints(ir, 'connections', components, 'component', err);
   checkContainment(ir, 'boundaries', new Set([...components, ...boundaries]), 'components or boundaries', err);
+  checkAwsNames(ir, 'components', 'icon', 'icons', awsIcon, err);
+  checkAwsNames(ir, 'boundaries', 'group', 'groups', awsGroup, err);
+}
+
+/** An icon or group frame must be a name of the catalog: draw.io draws an unknown one as an empty box. */
+function checkAwsNames(ir, collection, field, table, lookup, err) {
+  (Array.isArray(ir[collection]) ? ir[collection] : []).forEach((el, i) => {
+    // A value of the wrong shape is the schema's error; only a well-formed name is looked up.
+    if (!isObj(el) || typeof el[field] !== 'string' || !/^aws:[a-z0-9_]{1,64}$/.test(el[field]) || lookup(el[field])) return;
+    const near = nearestAwsNames(table, el[field]);
+    const what = field === 'icon' ? 'AWS icon' : 'AWS group frame';
+    err(`/${collection}/${i}/${field}`, `unknown ${what} "${el[field]}"`, `${near.length ? `did you mean ${near.join(', ')}? ` : ''}the names are listed in references/aws-icons.md; leave "${field}" out when none fits`);
+  });
 }
 
 function checkActivity(ir, err) {

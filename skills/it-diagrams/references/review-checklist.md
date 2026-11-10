@@ -10,7 +10,8 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 1. Every arrow starts and ends at the intended elements and points the right way; branch
    arrows leave a decision at its tip and share one trunk when they head the same way.
 2. No label overlaps another label, a frame, a note or a shape; nothing is cut off or
-   outside the page.
+   outside the page. An AWS icon shows its picture: an empty coloured or white square means
+   the viewer lacks that stencil, which is reported, not passed.
 3. Frames, groups and lanes enclose exactly their members; each action sits in the lane of
    the actor that performs it; the reading order (top to bottom or left to right) matches
    the order in the IR.
@@ -25,7 +26,9 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
    business rule with its values may take up to four lines, because splitting the rule into
    several elements would make the simpler view larger than the technical one.
 6. Names are consistent: the same system, actor or entity has the same label everywhere;
-   stereotypes and lane names match the vocabulary of the project.
+   stereotypes and lane names match the vocabulary of the project. An AWS `icon` is the
+   service its label names, and a `group` is the construct its label names (a subnet is not
+   drawn as a VPC).
 7. The title says what the diagram shows; ids and file names are English kebab-case; no
    credential, connection string, token or personal data appears anywhere.
 

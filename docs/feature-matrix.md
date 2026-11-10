@@ -109,6 +109,8 @@ For each diagram kind, target and feature the value is one of:
 | `connection.label` | degraded (architecture-beta edges have no labels; the label is dropped) | supported | supported |
 | `connection.bidirectional` | supported | supported | degraded (flowchart edges are one-way; the label gains "(both ways)") |
 | `component.ref` | supported | supported | supported |
+| `component.icon.aws` | degraded (Mermaid has no AWS icons; each component is drawn with the generic icon or shape of its kind) | supported | degraded (FigJam has no AWS icons; each component is drawn with the shape of its kind) |
+| `boundary.group.aws` | degraded (the AWS group frames are drawn as plain groups) | supported | degraded (the AWS group frames are drawn as plain subgraphs) |
 
 ## activity
 

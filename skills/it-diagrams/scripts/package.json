@@ -12,7 +12,8 @@
     "build": "node build.mjs",
     "test": "vitest run",
     "cli": "node bin/cli.mjs",
-    "docs:matrix": "node src/render-feature-matrix.mjs"
+    "docs:matrix": "node src/render-feature-matrix.mjs",
+    "gen:aws-icons": "node tools/generate-aws-icons.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

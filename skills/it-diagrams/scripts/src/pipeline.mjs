@@ -49,9 +49,10 @@ export async function emit(ir, target, options = {}) {
       return { ok: false, errors: [{ path: '/', message: `no emitter for target "${target}"` }], warnings };
   }
   // The flowchart form keeps labels, icons as shapes and nested boundaries, so the matrix
-  // warnings that describe architecture-beta do not apply to it.
+  // warnings that describe architecture-beta do not apply to it. AWS icons and group frames
+  // are lost in either form, so those two stay.
   const fellBack = result.warnings.some((w) => w.fallback === 'flowchart');
-  const kept = fellBack ? warnings.filter((w) => w.stage !== 'feature-matrix') : warnings;
+  const kept = fellBack ? warnings.filter((w) => w.stage !== 'feature-matrix' || /\.aws$/.test(w.feature)) : warnings;
   kept.push(...result.warnings.map((w) => ({ stage: 'emit', ...w })));
   return { ok: true, output: result.output, errors: [], warnings: kept };
 }

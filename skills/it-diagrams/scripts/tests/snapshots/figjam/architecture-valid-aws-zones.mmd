@@ -1,0 +1,62 @@
+flowchart TB
+  %% id: users
+  n1(("Users"))
+  %% id: account
+  subgraph n11["Production account"]
+    %% id: dns
+    n2["Route 53"]
+    %% id: vpc
+    subgraph n12["VPC"]
+      %% id: alb
+      n3["Application Load Balancer"]
+      %% id: asg
+      subgraph n13["Auto Scaling group"]
+        %% id: az_a
+        subgraph n14["Availability Zone 1a"]
+          %% id: web_a
+          n4["Web server A"]
+        end
+        %% id: az_c
+        subgraph n15["Availability Zone 1c"]
+          %% id: web_c
+          n5["Web server C"]
+        end
+      end
+      %% id: data
+      subgraph n16["Database security group"]
+        %% id: db_primary
+        n6[("RDS primary")]
+        %% id: db_standby
+        n7[("RDS standby (Multi-AZ)")]
+      end
+    end
+    %% id: secrets
+    n8["Secrets Manager"]
+  end
+  %% id: dc
+  subgraph n17["Corporate data center"]
+    %% id: erp
+    n9>"On-premise ERP"]
+    %% id: batch
+    n10["Nightly export job"]
+  end
+  %% id: c1
+  n1 -->|"DNS"| n2
+  %% id: c2
+  n1 -->|"HTTPS"| n3
+  %% id: c3
+  n3 --> n4
+  %% id: c4
+  n3 --> n5
+  %% id: c5
+  n4 -->|"SQL"| n6
+  %% id: c6
+  n5 -->|"SQL"| n6
+  %% id: c7
+  n6 <-->|"replication"| n7
+  %% id: c8
+  n4 -->|"read secret"| n8
+  %% id: c9
+  n10 -->|"read replica"| n7
+  %% id: c10
+  n10 -->|"export"| n9
