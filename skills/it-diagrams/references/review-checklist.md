@@ -10,7 +10,9 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 1. Every arrow starts and ends at the intended elements and points the right way; branch
    arrows leave a decision at its tip and share one trunk when they head the same way.
 2. No label overlaps another label, a frame, a note or a shape; nothing is cut off or
-   outside the page. No connection runs through a component name or a frame title. An AWS icon shows its picture: an empty coloured or white square means
+   outside the page. No connection runs through a component name or a frame title. A
+   line that passes a shape or a text with clear space between them is how a connection gets
+   round its neighbours, not a finding; report it only when it touches one. An AWS icon shows its picture: an empty coloured or white square means
    the viewer lacks that stencil, which is reported, not passed.
 3. Frames, groups and lanes enclose exactly their members; each action sits in the lane of
    the actor that performs it; the reading order (top to bottom or left to right) matches
