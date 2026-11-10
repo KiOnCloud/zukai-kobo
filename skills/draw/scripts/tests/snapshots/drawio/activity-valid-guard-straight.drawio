@@ -25,11 +25,11 @@
         <mxCell id="guard-on-a-straight-branch:end-b" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="guard-on-a-straight-branch:bank">
           <mxGeometry x="80" y="438" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch:start" target="guard-on-a-straight-branch:d">
+        <mxCell id="guard-on-a-straight-branch:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch:start" target="guard-on-a-straight-branch:d">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch:f-yes" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch:d" target="guard-on-a-straight-branch:end-a">
+        <mxCell id="guard-on-a-straight-branch:f-yes" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch:d" target="guard-on-a-straight-branch:end-a">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -38,7 +38,7 @@
             <mxPoint x="63.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch:f-no" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch:d" target="guard-on-a-straight-branch:a-ask">
+        <mxCell id="guard-on-a-straight-branch:f-no" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch:d" target="guard-on-a-straight-branch:a-ask">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="140" y="324"/>
@@ -51,7 +51,7 @@
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch:a-ask" target="guard-on-a-straight-branch:end-b">
+        <mxCell id="guard-on-a-straight-branch:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch:a-ask" target="guard-on-a-straight-branch:end-b">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>

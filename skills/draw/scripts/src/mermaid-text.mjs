@@ -69,17 +69,27 @@ export function architectureLabel(text) {
 }
 
 /**
+ * Characters FigJam's parser rejects that carry meaning in a label, and the plain-text form
+ * each is written as. A comparison keeps its sense as the mathematical sign; a lone angle
+ * bracket, a percent sign and an ampersand become their full-width forms, which are ordinary
+ * text to the parser and read the same. Longer operators come first.
+ */
+const FIGJAM_MEANING = [
+  ['<=', '\u2264'], ['>=', '\u2265'], ['!=', '\u2260'], ['<>', '\u2260'],
+  ['<', '\uff1c'], ['>', '\uff1e'], ['%', '\uff05'], ['&', '\uff06'],
+];
+
+/**
  * FigJam's generate_diagram accepts a stricter Mermaid subset: no entity codes, no HTML, no
- * line breaks, and quotes inside quoted labels break the parse. Characters that cannot be
- * shown are replaced; the caller warns when the label was altered.
+ * line breaks, and quotes inside quoted labels break the parse. A character that changes
+ * what the label says when it is dropped (a comparison, a percent sign) is written in a
+ * form the parser takes as text; the rest of what cannot be shown is replaced by a space.
+ * The caller warns when the label was altered.
  */
 export function figjamLabel(text) {
-  const label = String(text)
-    .replace(/\r\n?|\n/g, ' ')
-    .replace(/"/g, "'")
-    .replace(/[<>{}\[\]|#%;&`\\]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim() || 'unnamed';
+  let label = String(text).replace(/\r\n?|\n/g, ' ').replace(/"/g, "'");
+  for (const [from, to] of FIGJAM_MEANING) label = label.split(from).join(to);
+  label = label.replace(/[{}\[\]|#;`\\]+/g, ' ').replace(/\s+/g, ' ').trim() || 'unnamed';
   return { label, altered: label !== String(text) };
 }
 

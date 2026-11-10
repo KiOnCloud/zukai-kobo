@@ -53,7 +53,7 @@ describe('figjam target', () => {
   });
 
   it('sanitises labels and reports the alteration', () => {
-    expect(figjamLabel('Say "hi"\nnow <b>')).toEqual({ label: "Say 'hi' now b", altered: true });
+    expect(figjamLabel('Say "hi"\nnow [b]')).toEqual({ label: "Say 'hi' now b", altered: true });
     expect(figjamLabel('Plain label')).toEqual({ label: 'Plain label', altered: false });
   });
 

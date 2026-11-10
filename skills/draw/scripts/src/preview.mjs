@@ -308,6 +308,11 @@ const MERMAID_PAGE = `<!doctype html><html><body style="margin:0;background:#fff
     mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
     const { svg } = await mermaid.render('diagram', text);
     document.getElementById('target').innerHTML = svg;
+    // Mermaid lets its drawing shrink to the window (width 100 % up to a max-width). The page is
+    // measured in one window and photographed in another, so a drawing wider than the first
+    // would have two sizes and lose its right and bottom edge; at its full width it has one.
+    const drawn = document.querySelector('#target svg');
+    if (drawn && drawn.style.maxWidth) drawn.style.width = drawn.style.maxWidth;
     window.__done = true;
   } catch (e) {
     window.__error = String(e && e.message || e);

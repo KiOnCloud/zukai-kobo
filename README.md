@@ -221,7 +221,7 @@ sources. The original plan and research are in
 
 ## Status
 
-Version 1.0.0 is the open beta. Every diagram kind and target listed above works and is
+Version 1.1.0 is the open beta. Every diagram kind and target listed above works and is
 covered by tests. Layout is what still changes between releases, so a diagram emitted again
 after an update can come out arranged differently.
 

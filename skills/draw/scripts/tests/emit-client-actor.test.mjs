@@ -38,8 +38,8 @@ describe('client actors of an architecture diagram in draw.io', () => {
     expect(actors).toHaveLength(2);
     const frame = abs.get('a:b-users');
     for (const a of actors) {
-      expect(a.figure.width, a.id).toBe(40);
-      expect(a.figure.height, a.id).toBe(60);
+      expect(a.figure.width, a.id).toBe(54);
+      expect(a.figure.height, a.id).toBe(44);
       expect(a.cell.style, a.id).toContain('whiteSpace=wrap');
       expect(contains(frame, a.figure), `${a.id} figure in frame`).toBe(true);
       expect(contains(frame, a.label), `${a.id} label in frame`).toBe(true);
@@ -114,7 +114,7 @@ describe('client actors of an architecture diagram in draw.io', () => {
     }
   });
 
-  it('relabel measures a new name at the label width, not at the 40 px figure', async () => {
+  it('relabel measures a new name at the label width, not at the 54 px figure', async () => {
     const r = await emit(loadFixture('architecture', 'valid-client-labels'), 'drawio', { diagramId: 'a' });
     const fits = relabelDrawio(r.output, { web: 'Trình duyệt khách', partner: 'Tích hợp đối tác (nhập đơn hàng)', $keep: ['Users', 'Shop', 'Order API', 'Orders DB', 'HTTPS', 'SQL'] });
     expect(fits.replaced).toBe(2);

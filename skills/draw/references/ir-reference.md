@@ -67,6 +67,14 @@ Collections: `nodes` (at least one), `edges`, `groups` (optional).
 | edge | `id`, `from`, `to`, `kind`: `flow` (default) or `conditional`; `label` (required for `conditional`) |
 | group | `id`, `label`, `children`: node or group ids |
 
+Write the nodes of a loop in the order they are read: draw.io lays the steps of a loop out in
+the order of `nodes` and draws the edge that goes back to an earlier one as the return line.
+Keep every node of a loop in the same group: a group is laid out as one block, so a step of
+the loop left outside it lands above or below the whole block and its lines run round it.
+The draw.io emit reports such a step with a `layout:` warning that names the group to add it
+to; a step in another group altogether is not reported, since a loop may return to an
+earlier phase on purpose.
+
 ```json
 {
   "schemaVersion": 1, "kind": "flowchart", "title": "Order checkout", "direction": "TB",
@@ -203,7 +211,9 @@ Collections: `classes` (at least one), `relations`.
 | class | `id`, `label`, `stereotype` (for example `interface`, `abstract`, `service`), `attributes`: `[{ "name", "type", "visibility" }]`, `methods`: `[{ "name", "params", "returns", "visibility" }]`; `ref`: diagram id of the sub-diagram that details this class (its IR file name without `.ir.json`), shown as a header line under the name |
 | relation | `id`, `from`, `to`, `kind`: `inheritance`, `realization`, `composition`, `aggregation`, `association`, `dependency`; `label`, `fromCardinality`, `toCardinality` (free text such as `1`, `0..*`) |
 
-`visibility` is `public`, `private`, `protected` or `package`. `from` is the source of the
+`visibility` is `public`, `private`, `protected` or `package`. `type` and `returns` are
+optional and never empty: for a member without a type, such as the values of an
+enumeration, leave the field out. `from` is the source of the
 arrow: the subclass for `inheritance`, the implementation for `realization`, the whole for
 `composition` and `aggregation`, the dependent for `dependency` and `association`.
 

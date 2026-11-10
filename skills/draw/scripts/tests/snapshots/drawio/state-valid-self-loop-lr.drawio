@@ -19,7 +19,7 @@
         <mxCell id="payment-retries:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="841" y="67" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="payment-retries:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:s0" target="payment-retries:pay">
+        <mxCell id="payment-retries:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:s0" target="payment-retries:pay">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -28,7 +28,7 @@
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="payment-retries:t2" value="" style="rounded=0;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.333;exitY=0;exitDx=0;exitDy=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:pay" target="payment-retries:pay">
+        <mxCell id="payment-retries:t2" value="" style="rounded=0;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.333;exitY=0;exitDx=0;exitDy=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:pay" target="payment-retries:pay">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="299.33" y="34"/>
@@ -41,7 +41,7 @@
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="payment-retries:t3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.325;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:pay" target="payment-retries:paid">
+        <mxCell id="payment-retries:t3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.325;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:pay" target="payment-retries:paid">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -50,7 +50,7 @@
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="payment-retries:t4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.675;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:pay" target="payment-retries:failed">
+        <mxCell id="payment-retries:t4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.675;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:pay" target="payment-retries:failed">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="449" y="91"/>
@@ -63,11 +63,11 @@
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="payment-retries:t5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:paid" target="payment-retries:end">
+        <mxCell id="payment-retries:t5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:paid" target="payment-retries:end">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="payment-retries:t6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:failed" target="payment-retries:end">
+        <mxCell id="payment-retries:t6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="payment-retries:failed" target="payment-retries:end">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="806" y="157"/>

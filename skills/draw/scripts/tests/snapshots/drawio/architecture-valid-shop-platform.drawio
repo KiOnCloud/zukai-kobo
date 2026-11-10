@@ -5,54 +5,54 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="shop-platform:cloud" value="Cloud account" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
-          <mxGeometry x="661" y="12" width="1427" height="432" as="geometry"/>
+          <mxGeometry x="666" y="12" width="2027" height="522" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:vpc" value="Private network" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="shop-platform:cloud">
-          <mxGeometry x="25" y="50" width="892" height="362" as="geometry"/>
+          <mxGeometry x="30" y="50" width="1242" height="452" as="geometry"/>
         </mxCell>
-        <mxCell id="shop-platform:browser" value="Customer browser" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=107;" vertex="1" parent="1">
-          <mxGeometry x="46" y="339" width="40" height="60" as="geometry"/>
+        <mxCell id="shop-platform:browser" value="Customer browser" style="shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=107;" vertex="1" parent="1">
+          <mxGeometry x="39" y="437" width="54" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="shop-platform:mobile" value="Mobile app" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=67;" vertex="1" parent="1">
-          <mxGeometry x="374" y="217" width="40" height="60" as="geometry"/>
+        <mxCell id="shop-platform:mobile" value="Mobile app" style="shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=67;" vertex="1" parent="1">
+          <mxGeometry x="367" y="323" width="54" height="44" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:cdn" value="CDN" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="328" y="349" width="120" height="40" as="geometry"/>
+          <mxGeometry x="328" y="439" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:gw" value="API gateway" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="shop-platform:vpc">
-          <mxGeometry x="20" y="280.33" width="120" height="40" as="geometry"/>
+          <mxGeometry x="20" y="370.33" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:orders" value="Order service" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="shop-platform:vpc">
-          <mxGeometry x="221" y="245" width="120" height="40" as="geometry"/>
+          <mxGeometry x="341" y="307" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:catalog" value="Catalog service" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="shop-platform:vpc">
-          <mxGeometry x="493.5" y="280.33" width="120" height="40" as="geometry"/>
+          <mxGeometry x="723.5" y="370.33" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:pay" value="Payment service" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="shop-platform:vpc">
-          <mxGeometry x="493.5" y="151" width="120" height="40" as="geometry"/>
+          <mxGeometry x="723.5" y="196" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:odb" value="Orders DB (PostgreSQL)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;spacingLeft=10;spacingRight=10;" vertex="1" parent="shop-platform:vpc">
-          <mxGeometry x="472" y="61" width="163" height="70" as="geometry"/>
+          <mxGeometry x="702" y="76" width="163" height="70" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:cdb" value="Catalog DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;spacingLeft=10;spacingRight=10;" vertex="1" parent="shop-platform:vpc">
-          <mxGeometry x="752" y="182" width="120" height="70" as="geometry"/>
+          <mxGeometry x="1102" y="242" width="120" height="70" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:cache" value="Redis cache" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="shop-platform:vpc">
-          <mxGeometry x="752" y="272" width="120" height="70" as="geometry"/>
+          <mxGeometry x="1102" y="362" width="120" height="70" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:bus" value="Event bus" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;size=20;spacingLeft=20;spacingRight=20;" vertex="1" parent="shop-platform:cloud">
-          <mxGeometry x="1067" y="80" width="120" height="40" as="geometry"/>
+          <mxGeometry x="1547" y="80" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:mailer" value="Mail worker" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="shop-platform:cloud">
-          <mxGeometry x="1287" y="80" width="120" height="40" as="geometry"/>
+          <mxGeometry x="1887" y="80" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:psp" value="Payment provider" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="2363" y="213" width="122" height="40" as="geometry"/>
+          <mxGeometry x="2973" y="258" width="122" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="shop-platform:smtp" value="SMTP relay" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="2363" y="92" width="120" height="40" as="geometry"/>
+          <mxGeometry x="2973" y="92" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="shop-platform:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:browser" target="shop-platform:cdn">
+        <mxCell id="shop-platform:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:browser" target="shop-platform:cdn">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -61,122 +61,122 @@
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:cdn" target="shop-platform:gw">
+        <mxCell id="shop-platform:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:cdn" target="shop-platform:gw">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c2:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c2">
-          <mxGeometry x="-0.19" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.22" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:mobile" target="shop-platform:gw">
+        <mxCell id="shop-platform:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:mobile" target="shop-platform:gw">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="601" y="247"/>
-              <mxPoint x="601" y="356"/>
-              <mxPoint x="656" y="355.67"/>
+              <mxPoint x="601" y="345"/>
+              <mxPoint x="601" y="446"/>
+              <mxPoint x="656" y="445.67"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c3:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c3">
-          <mxGeometry x="-0.43" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.44" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:gw" target="shop-platform:orders">
+        <mxCell id="shop-platform:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:gw" target="shop-platform:orders">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="836" y="355.67"/>
-              <mxPoint x="836" y="327"/>
+              <mxPoint x="861" y="445.67"/>
+              <mxPoint x="861" y="389"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c4:label" value="REST" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c4">
-          <mxGeometry x="0.26" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.22" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:gw" target="shop-platform:catalog">
+        <mxCell id="shop-platform:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:gw" target="shop-platform:catalog">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c5:label" value="REST" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c5">
-          <mxGeometry x="-0.2" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.11" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:orders" target="shop-platform:odb">
+        <mxCell id="shop-platform:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:orders" target="shop-platform:odb">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1047" y="323"/>
-              <mxPoint x="1047" y="158"/>
+              <mxPoint x="1202" y="385"/>
+              <mxPoint x="1202" y="173"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c6:label" value="SQL" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c6">
-          <mxGeometry x="0.63" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.49" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:catalog" target="shop-platform:cdb">
+        <mxCell id="shop-platform:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:catalog" target="shop-platform:cdb">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1331" y="355.67"/>
-              <mxPoint x="1331" y="279"/>
+              <mxPoint x="1586" y="445.67"/>
+              <mxPoint x="1586" y="339"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c7:label" value="SQL" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c7">
-          <mxGeometry x="0.46" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.35" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;startArrow=classic;startFill=1;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:catalog" target="shop-platform:cache">
+        <mxCell id="shop-platform:c8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;startArrow=classic;startFill=1;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:catalog" target="shop-platform:cache">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c8:label" value="read-through" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c8">
-          <mxGeometry x="0.16" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.08" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:orders" target="shop-platform:pay">
+        <mxCell id="shop-platform:c9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:orders" target="shop-platform:pay">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1057" y="331"/>
-              <mxPoint x="1057" y="233"/>
+              <mxPoint x="1222" y="393"/>
+              <mxPoint x="1222" y="278"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c9:label" value="gRPC" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c9">
-          <mxGeometry x="0.39" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.27" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;startArrow=classic;startFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:pay" target="shop-platform:psp">
+        <mxCell id="shop-platform:c10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;startArrow=classic;startFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:pay" target="shop-platform:psp">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c10:label" value="HTTPS + webhook" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c10">
-          <mxGeometry x="0.75" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.81" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:orders" target="shop-platform:bus">
+        <mxCell id="shop-platform:c11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:orders" target="shop-platform:bus">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1037" y="315"/>
-              <mxPoint x="1037" y="112"/>
+              <mxPoint x="1182" y="377"/>
+              <mxPoint x="1182" y="112"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c11:label" value="publish OrderPaid" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c11">
-          <mxGeometry x="0.84" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.8" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:bus" target="shop-platform:mailer">
+        <mxCell id="shop-platform:c12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:bus" target="shop-platform:mailer">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -185,25 +185,25 @@
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:mailer" target="shop-platform:smtp">
+        <mxCell id="shop-platform:c13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:mailer" target="shop-platform:smtp">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c13:label" value="SMTP" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c13">
-          <mxGeometry x="0.08" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.1" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="shop-platform:c14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:orders" target="shop-platform:catalog">
+        <mxCell id="shop-platform:c14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="shop-platform:orders" target="shop-platform:catalog">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1148" y="339"/>
-              <mxPoint x="1148" y="355.67"/>
+              <mxPoint x="1343" y="401"/>
+              <mxPoint x="1343" y="445.67"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="shop-platform:c14:label" value="check stock" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="shop-platform:c14">
-          <mxGeometry x="-0.11" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.18" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>

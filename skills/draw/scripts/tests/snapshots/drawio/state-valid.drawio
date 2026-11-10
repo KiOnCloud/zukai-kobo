@@ -5,7 +5,7 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="order-lifecycle:processing" value="Processing" style="swimlane;whiteSpace=wrap;html=1;startSize=30;rounded=1;arcSize=10;" vertex="1" parent="1">
-          <mxGeometry x="107" y="454" width="193" height="342" as="geometry"/>
+          <mxGeometry x="107" y="454" width="193" height="542" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="209" y="12" width="30" height="30" as="geometry"/>
@@ -20,28 +20,28 @@
           <mxGeometry x="98" y="50" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle:picking" value="Picking" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-lifecycle:processing">
-          <mxGeometry x="53" y="100" width="120" height="40" as="geometry"/>
+          <mxGeometry x="53" y="140" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle:packing" value="Packing" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-lifecycle:processing">
-          <mxGeometry x="53" y="196" width="120" height="40" as="geometry"/>
+          <mxGeometry x="53" y="316" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle:p-end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="order-lifecycle:processing">
-          <mxGeometry x="98" y="292" width="30" height="30" as="geometry"/>
+          <mxGeometry x="98" y="492" width="30" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle:shipped" value="Shipped" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="144" y="956" width="120" height="40" as="geometry"/>
+          <mxGeometry x="144" y="1156" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle:cancelled" value="Cancelled" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="245" y="856" width="120" height="40" as="geometry"/>
+          <mxGeometry x="245" y="1056" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="194" y="1056" width="30" height="30" as="geometry"/>
+          <mxGeometry x="194" y="1256" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="order-lifecycle:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:start" target="order-lifecycle:draft">
+        <mxCell id="order-lifecycle:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:start" target="order-lifecycle:draft">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle:t2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:draft" target="order-lifecycle:placed">
+        <mxCell id="order-lifecycle:t2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:draft" target="order-lifecycle:placed">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -50,7 +50,7 @@
             <mxPoint x="-4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle:t3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.333;exitY=1;exitDx=0;exitDy=0;entryX=0.503;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:placed" target="order-lifecycle:processing">
+        <mxCell id="order-lifecycle:t3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.333;exitY=1;exitDx=0;exitDy=0;entryX=0.503;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:placed" target="order-lifecycle:processing">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -59,11 +59,11 @@
             <mxPoint x="-4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle:t4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:p-start" target="order-lifecycle:picking">
+        <mxCell id="order-lifecycle:t4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:p-start" target="order-lifecycle:picking">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle:t5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:picking" target="order-lifecycle:packing">
+        <mxCell id="order-lifecycle:t5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:picking" target="order-lifecycle:packing">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -72,7 +72,7 @@
             <mxPoint x="-4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle:t6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:packing" target="order-lifecycle:p-end">
+        <mxCell id="order-lifecycle:t6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:packing" target="order-lifecycle:p-end">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -81,7 +81,7 @@
             <mxPoint x="-4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle:t7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.503;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:processing" target="order-lifecycle:shipped">
+        <mxCell id="order-lifecycle:t7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.503;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:processing" target="order-lifecycle:shipped">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -90,32 +90,32 @@
             <mxPoint x="-4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle:t8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:placed" target="order-lifecycle:cancelled">
+        <mxCell id="order-lifecycle:t8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:placed" target="order-lifecycle:cancelled">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="244" y="343"/>
               <mxPoint x="325" y="343"/>
-              <mxPoint x="325" y="821"/>
-              <mxPoint x="305" y="821"/>
+              <mxPoint x="325" y="1021"/>
+              <mxPoint x="305" y="1021"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="order-lifecycle:t8:label" value="cancel [not yet processing]" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-lifecycle:t8">
-          <mxGeometry x="-0.53" y="0" relative="1" as="geometry">
+          <mxGeometry x="-0.64" y="0" relative="1" as="geometry">
             <mxPoint x="4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle:t9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.333;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:shipped" target="order-lifecycle:end">
+        <mxCell id="order-lifecycle:t9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.333;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:shipped" target="order-lifecycle:end">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle:t10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:cancelled" target="order-lifecycle:end">
+        <mxCell id="order-lifecycle:t10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle:cancelled" target="order-lifecycle:end">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="305" y="921"/>
-              <mxPoint x="289" y="921"/>
-              <mxPoint x="289" y="1021"/>
-              <mxPoint x="214" y="1021"/>
+              <mxPoint x="305" y="1121"/>
+              <mxPoint x="289" y="1121"/>
+              <mxPoint x="289" y="1221"/>
+              <mxPoint x="214" y="1221"/>
             </Array>
           </mxGeometry>
         </mxCell>

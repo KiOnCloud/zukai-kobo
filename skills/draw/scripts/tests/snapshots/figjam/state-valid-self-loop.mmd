@@ -17,7 +17,7 @@ stateDiagram-v2
   %% id: t1
   [*] --> n2
   %% id: t2
-  n2 --> n2 : payment failed [attempts 3] / notify customer
+  n2 --> n2 : payment failed [attempts ＜ 3] / notify customer
   %% id: t3
   n2 --> n4 : flagged
   %% id: t6

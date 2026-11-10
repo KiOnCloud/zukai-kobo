@@ -14,6 +14,8 @@
 
 import { widestLine } from './text-metrics.mjs';
 
+/** How far along its flow, in px, a guard still reads as next to its decision. */
+const GUARD_NEAR = 240;
 /** Minimum distance between a straight branch's guard and the sibling run it leaves below. */
 const GUARD_CLEAR = 12;
 
@@ -542,7 +544,7 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
     const oneLane = lanesOf.every((lane) => lane === lanesOf[0]);
     warnings.push(oneLane
       ? { path: '/flows', message: `layout: flows "${a}" and "${b}" cross inside lane "${lanesOf[0]}"; no column order that avoids it was found`, hint: 'the lanes do not force this crossing; moving one of the nodes to another lane avoids it, or report the shape so the column order can learn it' }
-      : { path: '/flows', message: `layout: flows "${a}" and "${b}" cross; no route around it was found`, hint: 'a crossing that the lanes of the nodes force can be accepted; reordering flows does not change the route, but nodes that share a row of one lane keep their order in `actions` and `controls` when nothing else separates them, so reordering those can move it' });
+      : { path: '/flows', message: `layout: flows "${a}" and "${b}" cross; no route around it was found, so the crossing is drawn with a line jump`, hint: 'a crossing that the lanes of the nodes force can be accepted: the jump shows that the two lines do not meet; reordering flows does not change the route, but nodes that share a row of one lane keep their order in `actions` and `controls` when nothing else separates them, so reordering those can move it' });
   }
 
   // Guard labels: greedy placement over candidate anchors, avoiding nodes and other labels.
@@ -670,7 +672,7 @@ function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0, horizontal 
     const x = a.x + dir * (run - width / 2 - 8);
     const d = distTo(i - 1) + Math.abs(x - a.x);
     const offset = { x: 0, y: -(height / 2 + aboveGap) };
-    above.push({ position: (2 * d) / total - 1, offset, box: { x: x - width / 2, y: a.y + offset.y - height / 2, width, height } });
+    above.push({ adrift: run < Math.abs(a.x - b.x) - 0.5 && d > GUARD_NEAR, position: (2 * d) / total - 1, offset, box: { x: x - width / 2, y: a.y + offset.y - height / 2, width, height } });
   }
   // An anchor never passes the end of the path: draw.io stops the label there, so the box
   // that is checked stays where the text is drawn also when the segment is shorter than the
@@ -712,7 +714,13 @@ function labelCandidates(s, t, e, guard, trunkLen = 0, mergeLen = 0, horizontal 
       beside.push({ position: a.position, offset, box: { x: a.x + offset.x - width / 2, y: a.y - height / 2, width, height } });
     }
   }
-  return horizontal ? [...beside, ...above] : [...above, ...beside];
+  // Above a run is the first choice, with one exception. Where another flow joins the run on
+  // its way, the place is right before that join; when that is also far along the flow (down
+  // a lane and across two others), the guard stands next to the flow that comes in and far
+  // from its own decision, and reads as the guard of the wrong one. There the private stretch
+  // beside the first segment, next to the decision, comes first.
+  const adrift = above.filter((c) => c.adrift);
+  return horizontal ? [...beside, ...above] : [...above.filter((c) => !c.adrift), ...beside, ...adrift];
 }
 
 function transpose(r) {

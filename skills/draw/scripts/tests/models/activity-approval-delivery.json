@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 1,
+  "kind": "activity",
+  "title": "Invoice approval and delivery",
+  "meta": {
+    "source": "manual"
+  },
+  "lanes": [
+    {
+      "id": "accountant",
+      "label": "Accountant"
+    },
+    {
+      "id": "manager",
+      "label": "Finance manager"
+    },
+    {
+      "id": "system",
+      "label": "Invoicing system"
+    },
+    {
+      "id": "customer",
+      "label": "Customer"
+    }
+  ],
+  "actions": [
+    {
+      "id": "draft",
+      "label": "Create draft invoice",
+      "lane": "accountant"
+    },
+    {
+      "id": "submit",
+      "label": "Submit for approval",
+      "lane": "accountant"
+    },
+    {
+      "id": "validate",
+      "label": "Validate invoice",
+      "lane": "system",
+      "ref": "invoice-validation"
+    },
+    {
+      "id": "fix",
+      "label": "Correct the draft",
+      "lane": "accountant"
+    },
+    {
+      "id": "review",
+      "label": "Review invoice",
+      "lane": "manager"
+    },
+    {
+      "id": "second",
+      "label": "Second approval by director",
+      "lane": "manager"
+    },
+    {
+      "id": "reject",
+      "label": "Reject with reason",
+      "lane": "manager"
+    },
+    {
+      "id": "issue",
+      "label": "Issue invoice and assign number",
+      "lane": "system"
+    },
+    {
+      "id": "pdf",
+      "label": "Generate PDF",
+      "lane": "system"
+    },
+    {
+      "id": "register",
+      "label": "Register with tax authority",
+      "lane": "system"
+    },
+    {
+      "id": "send",
+      "label": "Email invoice",
+      "lane": "system"
+    },
+    {
+      "id": "receive",
+      "label": "Receive invoice",
+      "lane": "customer"
+    },
+    {
+      "id": "pay",
+      "label": "Pay invoice",
+      "lane": "customer"
+    },
+    {
+      "id": "remind",
+      "label": "Send payment reminder",
+      "lane": "system"
+    },
+    {
+      "id": "close",
+      "label": "Mark as paid",
+      "lane": "system"
+    }
+  ],
+  "controls": [
+    {
+      "id": "start",
+      "kind": "initial",
+      "lane": "accountant"
+    },
+    {
+      "id": "valid",
+      "kind": "decision",
+      "label": "Valid?",
+      "lane": "system"
+    },
+    {
+      "id": "amount",
+      "kind": "decision",
+      "label": "Total over 10,000,000 JPY?",
+      "lane": "manager"
+    },
+    {
+      "id": "decide",
+      "kind": "decision",
+      "label": "Approved?",
+      "lane": "manager"
+    },
+    {
+      "id": "approved",
+      "kind": "merge",
+      "lane": "manager"
+    },
+    {
+      "id": "fork",
+      "kind": "fork",
+      "lane": "system"
+    },
+    {
+      "id": "join",
+      "kind": "join",
+      "lane": "system"
+    },
+    {
+      "id": "paid",
+      "kind": "decision",
+      "label": "Paid within 30 days?",
+      "lane": "customer"
+    },
+    {
+      "id": "end",
+      "kind": "final",
+      "lane": "system"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "from": "start",
+      "to": "draft"
+    },
+    {
+      "id": "f2",
+      "from": "draft",
+      "to": "submit"
+    },
+    {
+      "id": "f3",
+      "from": "submit",
+      "to": "validate"
+    },
+    {
+      "id": "f4",
+      "from": "validate",
+      "to": "valid"
+    },
+    {
+      "id": "f5",
+      "from": "valid",
+      "to": "fix",
+      "guard": "no"
+    },
+    {
+      "id": "f6",
+      "from": "fix",
+      "to": "submit"
+    },
+    {
+      "id": "f7",
+      "from": "valid",
+      "to": "review",
+      "guard": "yes"
+    },
+    {
+      "id": "f8",
+      "from": "review",
+      "to": "decide"
+    },
+    {
+      "id": "f9",
+      "from": "decide",
+      "to": "reject",
+      "guard": "no"
+    },
+    {
+      "id": "f10",
+      "from": "reject",
+      "to": "fix"
+    },
+    {
+      "id": "f11",
+      "from": "decide",
+      "to": "amount",
+      "guard": "yes"
+    },
+    {
+      "id": "f12",
+      "from": "amount",
+      "to": "second",
+      "guard": "yes"
+    },
+    {
+      "id": "f13",
+      "from": "amount",
+      "to": "approved",
+      "guard": "no"
+    },
+    {
+      "id": "f14",
+      "from": "second",
+      "to": "approved"
+    },
+    {
+      "id": "f15",
+      "from": "approved",
+      "to": "issue"
+    },
+    {
+      "id": "f16",
+      "from": "issue",
+      "to": "fork"
+    },
+    {
+      "id": "f17",
+      "from": "fork",
+      "to": "pdf"
+    },
+    {
+      "id": "f18",
+      "from": "fork",
+      "to": "register"
+    },
+    {
+      "id": "f19",
+      "from": "pdf",
+      "to": "join"
+    },
+    {
+      "id": "f20",
+      "from": "register",
+      "to": "join"
+    },
+    {
+      "id": "f21",
+      "from": "join",
+      "to": "send"
+    },
+    {
+      "id": "f22",
+      "from": "send",
+      "to": "receive"
+    },
+    {
+      "id": "f23",
+      "from": "receive",
+      "to": "paid"
+    },
+    {
+      "id": "f24",
+      "from": "paid",
+      "to": "pay",
+      "guard": "yes"
+    },
+    {
+      "id": "f25",
+      "from": "paid",
+      "to": "remind",
+      "guard": "no"
+    },
+    {
+      "id": "f26",
+      "from": "remind",
+      "to": "receive"
+    },
+    {
+      "id": "f27",
+      "from": "pay",
+      "to": "close"
+    },
+    {
+      "id": "f28",
+      "from": "close",
+      "to": "end"
+    }
+  ]
+}

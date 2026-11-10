@@ -22,11 +22,11 @@
         <mxCell id="ticket-triage:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="ticket-triage:desk">
           <mxGeometry x="155" y="438" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="ticket-triage:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:start" target="ticket-triage:d">
+        <mxCell id="ticket-triage:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:start" target="ticket-triage:d">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="ticket-triage:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:d" target="ticket-triage:esc">
+        <mxCell id="ticket-triage:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:d" target="ticket-triage:esc">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="290" y="302"/>
@@ -39,7 +39,7 @@
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="ticket-triage:f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:d" target="ticket-triage:close">
+        <mxCell id="ticket-triage:f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:d" target="ticket-triage:close">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -48,7 +48,7 @@
             <mxPoint x="19" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="ticket-triage:f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:esc" target="ticket-triage:end">
+        <mxCell id="ticket-triage:f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:esc" target="ticket-triage:end">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="130" y="448"/>
@@ -56,7 +56,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="ticket-triage:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:close" target="ticket-triage:end">
+        <mxCell id="ticket-triage:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-triage:close" target="ticket-triage:end">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="290" y="448"/>

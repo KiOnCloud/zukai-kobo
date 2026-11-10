@@ -348,6 +348,18 @@ describe('preview', () => {
     expect(readFileSync(join(dir, 'custom.png')).subarray(0, 4).equals(PNG_MAGIC)).toBe(true);
   }, 120_000);
 
+  it.skipIf(!hasPlaywright)('shows a Mermaid diagram wider than the window it is measured in whole, not cut at 2000 px', async () => {
+    const steps = Array.from({ length: 26 }, (_, i) => `  s${i}["Step number ${i}"]`);
+    const links = Array.from({ length: 25 }, (_, i) => `  s${i} --> s${i + 1}`);
+    const file = join(dir, 'wide.mmd');
+    writeFileSync(file, ['flowchart LR', ...steps, ...links, ''].join('\n'));
+    const r = await preview(file, { out: join(dir, 'wide.png') });
+    expect(r.errors).toEqual([]);
+    // At scale 2 a drawing cut to the 2000 px window came out exactly 4000 px wide.
+    expect(r.scale).toBe(2);
+    expect(pngSize(join(dir, 'wide.png')).width).toBeGreaterThan(4200);
+  }, 120_000);
+
   it.skipIf(!hasPlaywright)('reports a Mermaid syntax error instead of a blank image', async () => {
     const file = join(dir, 'broken.mmd');
     writeFileSync(file, 'flowchart TB\n  a --> \n  --> b\n');

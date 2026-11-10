@@ -22,7 +22,7 @@
         <mxCell id="order-service-fan-out:catalog" value="Catalog service" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry x="718" y="312" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="order-service-fan-out:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:gw" target="order-service-fan-out:orders">
+        <mxCell id="order-service-fan-out:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:gw" target="order-service-fan-out:orders">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -31,7 +31,7 @@
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-service-fan-out:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:orders" target="order-service-fan-out:odb">
+        <mxCell id="order-service-fan-out:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:orders" target="order-service-fan-out:odb">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="478" y="144"/>
@@ -44,7 +44,7 @@
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-service-fan-out:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:orders" target="order-service-fan-out:pay">
+        <mxCell id="order-service-fan-out:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:orders" target="order-service-fan-out:pay">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -53,7 +53,7 @@
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-service-fan-out:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:orders" target="order-service-fan-out:bus">
+        <mxCell id="order-service-fan-out:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:orders" target="order-service-fan-out:bus">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="498" y="160"/>
@@ -66,7 +66,7 @@
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-service-fan-out:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:orders" target="order-service-fan-out:catalog">
+        <mxCell id="order-service-fan-out:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-service-fan-out:orders" target="order-service-fan-out:catalog">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="478" y="168"/>

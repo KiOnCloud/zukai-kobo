@@ -207,6 +207,74 @@ function measureLabel(text) {
   return { width: Math.ceil(widestLine(text)) + 8, height: 16 * lines.length };
 }
 
+/**
+ * The edges that lead back to an earlier step of a loop: among the nodes of one cycle (a
+ * strongly connected component), every edge that runs from a node to one given before it.
+ * The order the nodes are given in is the order the author reads them in, so laying exactly
+ * these edges out against the flow puts the steps of a loop below (or after) one another in
+ * that order, with the return line beside them. Left to itself the layout breaks a cycle at
+ * an edge of its own choosing, which can turn a loop upside down. What remains is acyclic,
+ * since inside a cycle every other edge runs forward in the given order; edges outside any
+ * cycle are never touched, and neither are self-loops.
+ * @param {Array<{id:string}>} nodes
+ * @param {Array<{id:string,from:string,to:string}>} edges
+ * @returns {Set<string>} ids of the edges that lead back
+ */
+export function backEdges(nodes, edges) {
+  const order = new Map(nodes.map((n, i) => [n.id, i]));
+  const component = cycleOf(nodes, edges);
+  const back = new Set();
+  for (const e of edges) {
+    if (e.from === e.to || !order.has(e.from) || !order.has(e.to)) continue;
+    if (component.get(e.from) === component.get(e.to) && order.get(e.to) < order.get(e.from)) back.add(e.id);
+  }
+  return back;
+}
+
+/**
+ * The cycle each node lies on: a map from node id to the id of one node that stands for its
+ * strongly connected component. Two nodes share a value exactly when each can be reached
+ * from the other; a node on no cycle has a value of its own.
+ * @param {Array<{id:string}>} nodes
+ * @param {Array<{id:string,from:string,to:string}>} edges
+ * @returns {Map<string,string>}
+ */
+export function cycleOf(nodes, edges) {
+  const order = new Map(nodes.map((n, i) => [n.id, i]));
+  const out = new Map(nodes.map((n) => [n.id, []]));
+  for (const e of edges) if (e.from !== e.to && order.has(e.to)) out.get(e.from)?.push(e.to);
+  // Tarjan's strongly connected components, iterative so a long chain cannot overflow the stack.
+  const index = new Map();
+  const low = new Map();
+  const component = new Map();
+  const open = [];
+  const onStack = new Set();
+  let counter = 0;
+  for (const root of nodes) {
+    if (index.has(root.id)) continue;
+    const work = [{ id: root.id, next: 0 }];
+    index.set(root.id, counter); low.set(root.id, counter++); open.push(root.id); onStack.add(root.id);
+    while (work.length > 0) {
+      const top = work.at(-1);
+      const to = out.get(top.id)[top.next++];
+      if (to === undefined) {
+        work.pop();
+        if (work.length > 0) low.set(work.at(-1).id, Math.min(low.get(work.at(-1).id), low.get(top.id)));
+        if (low.get(top.id) === index.get(top.id)) {
+          let member;
+          do { member = open.pop(); onStack.delete(member); component.set(member, top.id); } while (member !== top.id);
+        }
+      } else if (!index.has(to)) {
+        index.set(to, counter); low.set(to, counter++); open.push(to); onStack.add(to);
+        work.push({ id: to, next: 0 });
+      } else if (onStack.has(to)) {
+        low.set(top.id, Math.min(low.get(top.id), index.get(to)));
+      }
+    }
+  }
+  return component;
+}
+
 const ELK_DIRECTION = { TB: 'DOWN', BT: 'UP', LR: 'RIGHT', RL: 'LEFT' };
 
 let elkInstance;
@@ -222,12 +290,13 @@ const elk = () => (elkInstance ??= new ELK());
  *   `layoutReversed` places the ends of an edge in the opposite order along the flow; the
  *   returned route still runs from `from` to `to`
  * @param {string} [input.direction]
+ * @param {Record<string,string>} [input.options] further ELK options for the whole graph
  * @param {{nodeNode?:number, layer?:number, edgeEdge?:number, selfLoop?:number}} [input.spacing]
  * @returns {Promise<{ nodes: Map<string,{x,y,width,height}>, containers: Map<string,{x,y,width,height}>, edges: Map<string,{points:Array<{x,y}>}> }>}
  *   Node and container coordinates are relative to their parent (draw.io convention);
  *   edge bend points are absolute (edge cells sit on the root layer).
  */
-export async function layoutGraph({ nodes, containers = [], edges, direction = 'TB', spacing = {} }) {
+export async function layoutGraph({ nodes, containers = [], edges, direction = 'TB', spacing = {}, options = {} }) {
   const nodeSpacing = spacing.nodeNode ?? 40;
   const layerSpacing = spacing.layer ?? 60;
   const byParent = new Map();
@@ -244,6 +313,17 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
   // The layered algorithm lays a top-to-bottom graph out sideways and turns the result, and it
   // reads a container's minimum size before the turn: the width goes in as the second value.
   const vertical = direction === 'TB' || direction === 'BT';
+  // ELK reads the spacings from the graph a node lies in and a container does not inherit
+  // them: without them a line inside a frame turns ELK's default 10 px before its arrowhead
+  // where a line outside turns 25 px before it, so every container repeats them.
+  const spacingOptions = {
+    'elk.spacing.nodeNode': String(nodeSpacing),
+    'elk.layered.spacing.nodeNodeBetweenLayers': String(layerSpacing),
+    'elk.spacing.edgeNode': '25',
+    'elk.layered.spacing.edgeNodeBetweenLayers': '25',
+    'elk.spacing.edgeEdge': String(spacing.edgeEdge ?? 20),
+    'elk.layered.spacing.edgeEdgeBetweenLayers': String(spacing.edgeEdge ?? 20),
+  };
   const build = (parent) => (byParent.get(parent) ?? []).map((el) => {
     if (!el.isContainer) {
       // Fixed ports pin where edges meet the node (ER rows); ELK routes from those points.
@@ -256,7 +336,7 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     return {
       id: el.id,
       // ELK reads the self-loop distance from the graph a node lies in, so a container repeats it.
-      layoutOptions: { 'elk.padding': `[top=${header + (el.inset ?? 20)},left=${el.inset ?? 20},bottom=${el.inset ?? 20},right=${el.inset ?? 20}]`, ...selfLoop, ...(el.minWidth ? { 'elk.nodeSize.constraints': 'MINIMUM_SIZE', 'elk.nodeSize.minimum': vertical ? `(0,${el.minWidth})` : `(${el.minWidth},0)` } : {}) },
+      layoutOptions: { ...spacingOptions, 'elk.padding': `[top=${header + (el.inset ?? 20)},left=${el.inset ?? 20},bottom=${el.inset ?? 20},right=${el.inset ?? 20}]`, ...selfLoop, ...(el.minWidth ? { 'elk.nodeSize.constraints': 'MINIMUM_SIZE', 'elk.nodeSize.minimum': vertical ? `(0,${el.minWidth})` : `(${el.minWidth},0)` } : {}) },
       children: build(el.id),
     };
   });
@@ -269,18 +349,14 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
       'elk.edgeRouting': 'ORTHOGONAL',
       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
       'elk.json.edgeCoords': 'ROOT',
-      'elk.spacing.nodeNode': String(nodeSpacing),
-      'elk.layered.spacing.nodeNodeBetweenLayers': String(layerSpacing),
-      'elk.spacing.edgeNode': '25',
-      'elk.layered.spacing.edgeNodeBetweenLayers': '25',
-      'elk.spacing.edgeEdge': String(spacing.edgeEdge ?? 20),
-      'elk.layered.spacing.edgeEdgeBetweenLayers': String(spacing.edgeEdge ?? 20),
+      ...spacingOptions,
       'elk.spacing.edgeLabel': '6',
       'elk.spacing.portPort': '20',
       ...selfLoop,
       'elk.edgeLabels.placement': 'CENTER',
       'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+      ...options,
     },
     children: build(null),
     edges: edges.map((e) => ({
@@ -289,6 +365,7 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
       // which puts the two ends in the opposite order along the flow; the route is turned back below.
       sources: [e.layoutReversed ? (e.toPort ?? e.to) : (e.fromPort ?? e.from)],
       targets: [e.layoutReversed ? (e.fromPort ?? e.from) : (e.toPort ?? e.to)],
+      // A label the caller places itself takes no room in the layout.
       // A label the caller places itself takes no room in the layout.
       labels: e.label && !e.labelPlacedByCaller ? [{ text: e.label, ...measureLabel(e.label) }] : [],
     })),

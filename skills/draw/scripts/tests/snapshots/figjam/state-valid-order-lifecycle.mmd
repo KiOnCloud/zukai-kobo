@@ -31,7 +31,7 @@ stateDiagram-v2
   %% id: t2
   n2 --> n3 : checkout
   %% id: t3
-  n3 --> n3 : payment failed [attempts 3] / notify customer
+  n3 --> n3 : payment failed [attempts ＜ 3] / notify customer
   %% id: t4
   n3 --> n4 : payment captured / reserve stock
   %% id: t8

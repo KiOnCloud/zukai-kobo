@@ -28,7 +28,9 @@ node "<skill-dir>/scripts/bin/cli.mjs" emit --to figjam ./diagrams/order-checkou
   diagram as a flowchart.
 
 The `figjam` profile differs from plain Mermaid: no front matter (the title goes in the tool
-call), sequence notes are dropped, labels lose quotes, markup and line breaks,
+call), sequence notes are dropped, labels lose quotes, brackets and line breaks (a comparison keeps
+its sense: `<=`, `>=`, `!=` are written as ≤, ≥, ≠, and `<`, `>`, `%`, `&` in their full-width
+forms ＜, ＞, ％, ＆),
 architecture diagrams become flowcharts with boundaries as subgraphs, and an ER diagram is
 laid out top to bottom whatever its `direction`. Every one of these shows up as a warning. Print all warnings to the user before calling Figma.
 

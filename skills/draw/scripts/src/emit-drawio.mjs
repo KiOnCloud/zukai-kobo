@@ -1,6 +1,6 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
 import { awsIcon, awsGroup } from './aws-icons.mjs';
-import { layoutGraph, measureNode, measureDecision, measureLabelBelow, wrapText, LABEL_PAD } from './layout-graph.mjs';
+import { layoutGraph, backEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, LABEL_PAD } from './layout-graph.mjs';
 import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
 import { widestLine, roomFor, safeWidth } from './text-metrics.mjs';
@@ -157,7 +157,7 @@ export const STYLE = {
   subroutine: 'shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;',
   note: `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;${labelPad('note')}`,
   container: 'swimlane;whiteSpace=wrap;html=1;startSize=30;',
-  flowEdge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;',
+  flowEdge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;',
   // state
   initial: 'ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;',
   final: 'ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;',
@@ -174,7 +174,9 @@ export const STYLE = {
   database: `shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;${labelPad('database')}`,
   queue: `shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;size=${SLANT};${labelPad('queue')}`,
   cache: `shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;dashed=1;${labelPad('cache')}`,
-  client: 'shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;',
+  // A screen, from draw.io's built-in network library: a client is an application (a browser,
+  // a mobile app), not a person, and a stick figure reads as a user.
+  client: 'shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;',
   external: `rounded=1;whiteSpace=wrap;html=1;dashed=1;${labelPad('external')}`,
   // activity
   lane: 'swimlane;whiteSpace=wrap;html=1;startSize=40;fontStyle=1;',
@@ -442,6 +444,16 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
   const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
   const onLine = (box, a, b) => overlaps(box, { x: Math.min(a.x, b.x) - 1, y: Math.min(a.y, b.y) - 1, width: Math.abs(a.x - b.x) + 2, height: Math.abs(a.y - b.y) + 2 });
   const blocked = (box) => taken.some((t) => overlaps(box, t)) || routed.some((r) => r.path.some((p, i) => i > 0 && onLine(box, r.path[i - 1], p)));
+  // The labels at the two ends of an edge (class cardinalities), beside the line as drawn; a
+  // self-loop has them too, at the points where it leaves and re-enters its node.
+  const endLabelCells = (e, path) => {
+    for (const l of e.endLabels ?? []) {
+      const placed = endLabelGeometry(path, l.end, l.value, e.markers?.[l.end] ?? 0, blocked);
+      taken.push(placed.box);
+      if (!placed.free) warnings.push({ path: l.path, message: `layout: ${l.what} has no free place beside its line; it may sit on a neighbouring line or label`, hint: 'reorder the elements or change the direction so the lines at that end are further apart' });
+      cells.push(edgeLabel({ id: `${cid(e.id)}:${l.suffix}`, value: htmlLabel(l.value), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
+    }
+  };
   for (const e of edges) {
     if (e.from === e.to) {
       const own = layout.edges.get(e.id);
@@ -457,6 +469,7 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
           const placed = own.label ? labelGeometry([own.start, ...own.points, own.end], own.label, e.label) : { position: 0, offset: { x: 0, y: 0 }, align: 'center' };
           cells.push(edgeLabel({ id: `${cid(e.id)}:label`, background: e.labelBackground, value: htmlLabel(e.label), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
         }
+        endLabelCells(e, [own.start, ...own.points, own.end]);
         continue;
       }
       // Self-loop: out of one side, along it, and back in, on a side no other edge uses there;
@@ -481,6 +494,7 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
       cells.push(edge({ id: cid(e.id), value: '', style, source: cid(e.from), target: cid(e.to), points }));
       // Text anchored at the loop's outer side, aligned away from it: a fixed 4 px gap, whatever the text width.
       if (e.label) cells.push(edgeLabel({ id: `${cid(e.id)}:label`, background: e.labelBackground, value: htmlLabel(e.label), parent: cid(e.id), position: 0, offset: { x: dir * LABEL_GAP, y: 0 }, align: dir > 0 ? 'left' : 'right' }));
+      endLabelCells(e, [{ x: edgeX, y: points[0].y }, ...points, { x: edgeX, y: points[1].y }]);
       continue;
     }
     const route = layout.edges.get(e.id) ?? { points: [] };
@@ -498,12 +512,7 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
       const placed = route.label && line ? labelGeometry(line, route.label, e.label) : { position: 0, offset: { x: 0, y: 0 }, align: 'center' };
       cells.push(edgeLabel({ id: `${cid(e.id)}:label`, background: e.labelBackground, value: htmlLabel(e.label), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
     }
-    for (const l of e.endLabels ?? []) {
-      const placed = endLabelGeometry(route.start && route.end ? [route.start, ...points, route.end] : [{ x: 0, y: 0 }, { x: 0, y: 1 }], l.end, l.value, e.markers?.[l.end] ?? 0, blocked);
-      taken.push(placed.box);
-      if (!placed.free) warnings.push({ path: l.path, message: `layout: ${l.what} has no free place beside its line; it may sit on a neighbouring line or label`, hint: 'reorder the elements or change the direction so the lines at that end are further apart' });
-      cells.push(edgeLabel({ id: `${cid(e.id)}:${l.suffix}`, value: htmlLabel(l.value), parent: cid(e.id), position: placed.position, offset: placed.offset, align: placed.align }));
-    }
+    endLabelCells(e, route.start && route.end ? [route.start, ...points, route.end] : [{ x: 0, y: 0 }, { x: 0, y: 1 }]);
   }
   return cells;
 }
@@ -514,10 +523,167 @@ function parentMap(containers) {
   return parent;
 }
 
+/**
+ * Where the lines of a decision meet its rhombus: at the tips, never on a slanted edge. Every
+ * branch leaves through the tip the flow points to, as one line that splits where the
+ * branches part; every line that arrives ends at the opposite tip. A branch that leads back
+ * to an earlier step leaves through a side tip, and a line that comes back to a decision
+ * from a later step arrives at the other side tip, so neither runs along the forward lines.
+ * The tips are fixed ports for the layout, which routes the lines that share one as a
+ * single line with a junction.
+ */
+function decisionPorts(decisionNodes, edges, back, direction = 'TB') {
+  const sides = { TB: ['top', 'bottom', 'right', 'left'], BT: ['bottom', 'top', 'right', 'left'], LR: ['left', 'right', 'bottom', 'top'], RL: ['right', 'left', 'bottom', 'top'] }[direction];
+  const [into, out, backOut, backInto] = sides;
+  for (const n of decisionNodes) {
+    // A decision with a self-loop is drawn centred in a wider layout box.
+    const inset = n.drawWidth !== undefined ? (n.width - n.drawWidth) / 2 : 0;
+    // A port is 1 px square and a line meets it at its centre: half a pixel back puts that centre on the tip.
+    const at = { top: { x: n.width / 2 - 0.5, y: 0 }, bottom: { x: n.width / 2 - 0.5, y: n.height }, left: { x: inset, y: n.height / 2 - 0.5 }, right: { x: n.width - inset, y: n.height / 2 - 0.5 } };
+    const used = new Set();
+    for (const e of edges) {
+      if (e.from === e.to) continue;
+      if (e.from === n.id) { const side = back.has(e.id) ? backOut : out; e.fromPort = `${n.id}:port:${side}`; used.add(side); }
+      if (e.to === n.id) { const side = back.has(e.id) ? backInto : into; e.toPort = `${n.id}:port:${side}`; used.add(side); }
+    }
+    if (used.size > 0) n.ports = [...used].map((side) => ({ id: `${n.id}:port:${side}`, ...at[side] }));
+  }
+}
+
+/** How far past the point where a branch parts from the others its answer starts, in px. */
+const BRANCH_LABEL_GAP = 8;
+/** An answer the layout placed further than this from where its branch parts is moved next to the decision when there is room, in px. */
+const BRANCH_LABEL_FAR = 60;
+
+/**
+ * Write the answer of each branch (the label of an edge that leaves a decision) on the part
+ * of the line that belongs to that branch alone, next to the decision: just past the point
+ * where it parts from the other branches, or just past the tip when it shares no line. On
+ * the shared line an answer would read as the label of every branch.
+ *
+ * The layout gives a forward branch's answer a place of its own in the first layer after the
+ * decision, which is next to it unless the branch leaves a group first: then that layer lies
+ * beyond the group and the answer stands near the far end of a long line. Such an answer
+ * moves to the place past the split when nothing is there: no step, no other line, no other
+ * label. The answer of a branch that leads back has no place from the layout and always
+ * goes there.
+ * @param {Array<{x:number,y:number,width:number,height:number}>} boxes the steps of the chart, absolute
+ * @param {Array<{x:number,y:number,width:number,height:number}>} frames the groups, absolute; an answer lies inside or outside one, never across its border
+ */
+function placeBranchLabels(layout, edges, boxes, frames) {
+  const pathOf = (e) => { const r = layout.edges.get(e.id); return r?.start && r?.end ? [r.start, ...(r.points ?? []), r.end] : undefined; };
+  const step = (a, b) => ({ length: Math.hypot(b.x - a.x, b.y - a.y), x: Math.sign(Math.round(b.x - a.x)), y: Math.sign(Math.round(b.y - a.y)) });
+  // Length of the line two paths from one point have in common before they part.
+  const shared = (p, q) => {
+    let common = 0;
+    for (let i = 1; i < Math.min(p.length, q.length); i++) {
+      const a = step(p[i - 1], p[i]);
+      const b = step(q[i - 1], q[i]);
+      if (a.x !== b.x || a.y !== b.y) break;
+      common += Math.min(a.length, b.length);
+      if (Math.abs(a.length - b.length) > 0.5) break;
+    }
+    return common;
+  };
+  const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const onLine = (box, a, b) => overlaps(box, { x: Math.min(a.x, b.x) - 2, y: Math.min(a.y, b.y) - 2, width: Math.abs(a.x - b.x) + 4, height: Math.abs(a.y - b.y) + 4 });
+  // How far along a path the point nearest to the centre of a box lies.
+  const alongOf = (path, box) => {
+    const c = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    let best = { d: Infinity, along: 0 };
+    let before = 0;
+    for (let i = 1; i < path.length; i++) {
+      const a = path[i - 1];
+      const b = path[i];
+      const l = Math.hypot(b.x - a.x, b.y - a.y);
+      const t = l === 0 ? 0 : Math.max(0, Math.min(1, ((c.x - a.x) * (b.x - a.x) + (c.y - a.y) * (b.y - a.y)) / (l * l)));
+      const d = Math.hypot(c.x - (a.x + t * (b.x - a.x)), c.y - (a.y + t * (b.y - a.y)));
+      if (d < best.d) best = { d, along: before + t * l };
+      before += l;
+    }
+    return best.along;
+  };
+  const branches = edges.filter((e) => e.branch && e.label && e.from !== e.to && pathOf(e));
+  for (const e of branches) {
+    const path = pathOf(e);
+    const route = layout.edges.get(e.id);
+    const total = path.reduce((sum, p, i) => (i === 0 ? 0 : sum + Math.hypot(p.x - path[i - 1].x, p.y - path[i - 1].y)), 0);
+    let parted = 0;
+    for (const o of edges) {
+      if (o === e || o.from !== e.from || o.from === o.to) continue;
+      const other = pathOf(o);
+      if (other && Math.hypot(other[0].x - path[0].x, other[0].y - path[0].y) < 0.5) parted = Math.max(parted, shared(path, other));
+    }
+    if (route.label && alongOf(path, route.label) - parted <= BRANCH_LABEL_FAR) continue;
+    const width = Math.ceil(widestLine(e.label)) + 4;
+    const height = 16 * String(e.label).split(/\r\n?|\n/).length;
+    const { point, vertical, dir } = pointAlong(path, Math.min(parted + BRANCH_LABEL_GAP, total / 2));
+    // Beside a vertical stretch the text starts right of the line; along a horizontal one it
+    // stands above the line and runs on from the point in the direction of the branch.
+    const box = vertical
+      ? { x: point.x + LABEL_GAP, y: dir > 0 ? point.y : point.y - height, width, height }
+      : { x: dir > 0 ? point.x : point.x - width, y: point.y - LABEL_GAP - height, width, height };
+    const inside = (f) => box.x >= f.x && box.y >= f.y && box.x + box.width <= f.x + f.width && box.y + box.height <= f.y + f.height;
+    const taken = boxes.some((n) => overlaps(box, n)) || frames.some((f) => overlaps(box, f) && !inside(f))
+      || edges.some((o) => { if (o === e) return false; const q = pathOf(o); return q?.some((p, i) => i > 0 && onLine(box, q[i - 1], p)) || (o.label && layout.edges.get(o.id)?.label && overlaps(box, layout.edges.get(o.id).label)); });
+    // A place the layout gave stays when the one next to the decision is taken.
+    if (taken && route.label) continue;
+    route.label = box;
+  }
+}
+
+/**
+ * Report each step of a loop that was left outside the group the rest of the loop is in. A
+ * group is laid out as one block, so such a step cannot stand between the steps it follows
+ * and precedes: it lands above or below the whole block and its lines run round it. The
+ * diagram still says the right thing; the remedy is one entry in the group's `children`.
+ *
+ * The group of a loop is the innermost group that holds more than half of its steps. A step
+ * is astray when it lies in no group, or only in a group that encloses that one. A step in
+ * another group altogether is left alone: a loop that returns to an earlier phase crosses
+ * groups on purpose.
+ */
+function strayLoopSteps(ir, parent, warnings) {
+  const component = cycleOf(ir.nodes, ir.edges);
+  const loops = new Map();
+  for (const n of ir.nodes) {
+    const key = component.get(n.id);
+    if (!loops.has(key)) loops.set(key, []);
+    loops.get(key).push(n);
+  }
+  const chain = (id) => { const out = []; for (let g = parent.get(id); g; g = parent.get(g)) out.push(g); return out; };
+  const labelOf = new Map((ir.groups ?? []).map((g) => [g.id, g.label]));
+  for (const steps of loops.values()) {
+    if (steps.length < 2) continue;
+    const count = new Map();
+    for (const n of steps) { const g = parent.get(n.id); if (g) count.set(g, (count.get(g) ?? 0) + 1); }
+    const [home, held] = [...count].sort((a, b) => b[1] - a[1])[0] ?? [];
+    if (!home || held * 2 <= steps.length) continue;
+    const around = new Set(chain(home));
+    for (const n of steps) {
+      const own = parent.get(n.id);
+      if (own === home || chain(n.id).includes(home)) continue;
+      if (own !== undefined && !around.has(own)) continue;
+      warnings.push({
+        path: `/nodes/${ir.nodes.indexOf(n)}`,
+        message: `layout: step "${n.id}" ("${n.label}") belongs to the loop inside group "${home}" ("${labelOf.get(home)}") but lies outside it, so it stands apart from the loop and its lines run round the group`,
+        hint: `add "${n.id}" to the children of group "${home}"; leave it only if the step really is outside what the group stands for`,
+      });
+    }
+  }
+}
+
 async function emitFlowchart(ir, cid, refs, warnings) {
   const parent = parentMap(ir.groups ?? []);
-  const containers = (ir.groups ?? []).map((g) => ({ id: g.id, label: g.label, parent: parent.get(g.id), style: STYLE.container }));
-  const edges = ir.edges.map((e) => ({ id: e.id, from: e.from, to: e.to, label: e.label, style: STYLE.flowEdge }));
+  const containers = (ir.groups ?? []).map((g) => ({ id: g.id, label: g.label, parent: parent.get(g.id), style: STYLE.container, title: plainTitle(g.label) }));
+  // An edge that leads back to an earlier step is laid out against the flow, so a loop reads
+  // downwards and its return line runs up beside it.
+  strayLoopSteps(ir, parent, warnings);
+  const back = backEdges(ir.nodes, ir.edges);
+  const decisions = new Set(ir.nodes.filter((n) => n.shape === 'decision' && !n.ref).map((n) => n.id));
+  // The answer on a branch that leads back is written by the emitter beside the side tip it
+  // leaves (see placeBranchLabels), so it takes no room in the layout.
+  const edges = ir.edges.map((e) => ({ id: e.id, from: e.from, to: e.to, label: e.label, style: STYLE.flowEdge, layoutReversed: back.has(e.id) || undefined, labelPlacedByCaller: (decisions.has(e.from) && back.has(e.id)) || undefined, branch: decisions.has(e.from) || undefined }));
   const loopExtra = sideLoopRoom(edges, ir.direction);
   const nodes = ir.nodes.map((n, i) => {
     const shape = n.ref ? 'subroutine' : (n.shape ?? 'process');
@@ -526,7 +692,23 @@ async function emitFlowchart(ir, cid, refs, warnings) {
     const extra = loopExtra.get(n.id) ?? 0;
     return { id: n.id, label, link, parent: parent.get(n.id), style: shape === 'decision' ? decisionStyle(size) : STYLE[shape], width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
   });
-  const layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing: loopSpacing(ir.direction) });
+  decisionPorts(nodes.filter((n) => decisions.has(n.id)), edges, back, ir.direction);
+  // The layout gives each label a place of its own in the first layer after the node its
+  // edge leaves. The branches of a decision share one line from its tip and part before that
+  // layer, so each answer stands on its own branch, next to the decision.
+  const arrange = () => layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing: loopSpacing(ir.direction), options: { 'elk.layered.edgeLabels.centerLabelPlacementStrategy': 'TAIL_LAYER' } });
+  let layout = await arrange();
+  // A flow that enters a group from above runs across its header: the title steps aside, and
+  // a group too narrow for that is widened, which moves the lines, so the titles are placed again.
+  let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
+  for (let round = 0; unplaced && round < 6; round++) {
+    layout = await arrange();
+    unplaced = placeGroupTitles(layout, { containers, nodes, edges });
+  }
+  if (unplaced) warnings.push({ path: '/groups', message: 'layout: a flow crosses the title of a group; no free place was found for it along the top of the group', hint: 'shorten the group label or change "direction"' });
+  for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  placeBranchLabels(layout, edges, nodes.map((n) => drawBox(n, absoluteBox(n.id, layout, parentOf))), containers.map((c) => absoluteBox(c.id, layout, parentOf)));
   return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
 }
 
@@ -686,7 +868,9 @@ async function emitEr(ir, cid, warnings, refs) {
   const headerHeights = new Map();
   for (const [key, group] of groups) {
     if (!key.endsWith('|header')) continue;
-    const [entity] = key.split('|');
+    const [entity, side] = key.split('|');
+    // Anchors on the top or the bottom side are spread across the width, not down the header.
+    if (side === 'top' || side === 'bottom') continue;
     headerHeights.set(entity, Math.max(headerHeights.get(entity) ?? ROW, ROW + ER_ANCHOR_PITCH * (group.length - 1)));
   }
   nodes = buildNodes(headerHeights);
@@ -794,8 +978,8 @@ async function emitClass(ir, cid, warnings, refs) {
   return graphCells(cid, layout, { containers: [], nodes, edges, direction: ir.direction }, warnings);
 }
 
-/** The stick figure of a client; its label is drawn below it. */
-const ACTOR = { width: 40, height: 60 };
+/** The screen figure of a client; its label is drawn below it. */
+const CLIENT_FIGURE = { width: 54, height: 44 };
 /**
  * An AWS service icon, at the size draw.io's AWS library places it; its label is drawn below
  * it. `below` is room under that label: a connection that leaves the icon downwards starts
@@ -846,7 +1030,14 @@ function awsGroupContainer(group, label) {
 }
 
 /**
- * Put the title of each AWS group frame where no connection crosses it. A frame title lies
+ * The title of a plain frame (a boundary, a flowchart group) for `placeGroupTitles`: bold, on
+ * one line, centred in the header strip. `plain` leaves a frame no line crosses exactly as
+ * draw.io draws it, wrapped title included.
+ */
+const plainTitle = (label, header = 30) => ({ width: Math.ceil(wrapText(label, Infinity, { bold: true }).widest) + 4, height: header, start: TITLE_GAP, centred: true, plain: true });
+
+/**
+ * Put the title of each group frame where no connection crosses it. A frame title lies
  * in the header strip along the top of its frame; a connection that enters or leaves the
  * frame through its top side runs across that strip. The title keeps its usual place (beside
  * the corner icon, or centred on a plain frame) when that place is free, and otherwise moves
@@ -868,7 +1059,7 @@ function placeGroupTitles(layout, { containers, nodes, edges }) {
   for (const c of containers) {
     if (!c.title) continue;
     const frame = absoluteBox(c.id, layout, parentOf);
-    const { width, height, start, centred } = c.title;
+    const { width, height, start, centred, plain } = c.title;
     const lo = frame.x + start;
     const hi = frame.x + frame.width - TITLE_GAP;
     // The stretches of the strip that a line runs through, each with a gap on both sides.
@@ -876,6 +1067,7 @@ function placeGroupTitles(layout, { containers, nodes, edges }) {
       .filter((l) => l.y1 >= frame.y && l.y0 <= frame.y + height && l.x1 >= frame.x && l.x0 <= frame.x + frame.width)
       .map((l) => [l.x0 - TITLE_LINE_GAP, l.x1 + TITLE_LINE_GAP])
       .sort((a, b) => a[0] - b[0]);
+    if (plain && taken.length === 0) { c.titleOffset = undefined; continue; }
     const free = [];
     let at = lo;
     for (const [a, b] of taken) {
@@ -892,7 +1084,7 @@ function placeGroupTitles(layout, { containers, nodes, edges }) {
     }
     if (best === undefined) {
       const longest = free.reduce((m, [a, b]) => Math.max(m, b - a), 0);
-      c.minWidth = 2 * Math.ceil((Math.max(c.minWidth, frame.width) + width - longest + 2) / 2);
+      c.minWidth = 2 * Math.ceil((Math.max(c.minWidth ?? 0, frame.width) + width - longest + 2) / 2);
       c.titleOffset = undefined;
       widened = true;
     } else {
@@ -1234,15 +1426,15 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   const parent = parentMap(ir.boundaries ?? []);
   const containers = (ir.boundaries ?? []).map((b) => {
     const group = awsGroup(b.group);
-    return { id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container, ...(group ? awsGroupContainer(group, b.label) : {}) };
+    return { id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container, ...(group ? awsGroupContainer(group, b.label) : { title: plainTitle(b.label) }) };
   });
-  const usesAws = containers.some((c) => c.title) || ir.components.some((c) => awsIcon(c.icon));
+  const usesAws = (ir.boundaries ?? []).some((b) => awsGroup(b.group)) || ir.components.some((c) => awsIcon(c.icon));
   const kindOf = (c) => c.kind ?? 'service';
-  // A figure with its label below it: the stick figure of a client, or an AWS service icon.
+  // A figure with its label below it: the screen of a client, or an AWS service icon.
   const figureOf = (c) => {
     const icon = awsIcon(c.icon);
     if (icon) return { ...AWS_ICON, style: awsIconStyle(icon) };
-    return kindOf(c) === 'client' ? { ...ACTOR, style: STYLE.client } : undefined;
+    return kindOf(c) === 'client' ? { ...CLIENT_FIGURE, style: STYLE.client } : undefined;
   };
   // The layout box of such a component holds the figure and the label under it, so a boundary
   // frame, the next figure and the edges all keep clear of the text; the figure is drawn at
@@ -1307,7 +1499,7 @@ async function emitArchitecture(ir, cid, refs, warnings) {
     layout = await placeAside(await layoutGraph({ ...laidOut(), containers, direction: ir.direction, spacing }));
     unplaced = placeGroupTitles(layout, { containers, nodes, edges });
   }
-  if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a connection crosses the title of an AWS group frame; no free place was found for it along the top of the frame', hint: 'set "direction" to "LR" or shorten the boundary label' });
+  if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a connection crosses the title of a group frame; no free place was found for it along the top of the frame', hint: 'set "direction" to "LR" or shorten the boundary label' });
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
   // draw.io writes an edge label on a white patch. Inside a tinted frame (a subnet) the patch
   // takes the colour of the frame, so the label hides its line without showing as a box.

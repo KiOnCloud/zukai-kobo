@@ -4,9 +4,9 @@ flowchart LR
   %% id: graph
   n2["line one line two"]
   %% id: a--b
-  n3{"script alert(1) /script"}
+  n3{"＜script＞alert(1)＜/script＞"}
   %% id: subgraph
-  n4["init: 'theme':'forest'"]
+  n4["％％ init: 'theme':'forest' ％％"]
   %% id: leak
   n7>"postgres://app:Sup3rS3cret@db.internal:5432/orders"]
   %% id: token
@@ -14,18 +14,18 @@ flowchart LR
   %% id: jp
   n9["注文を確定する 確認済み JSON"]
   %% id: bars
-  n10["a b c 1 co"]
+  n10["a b c 1 ＆ co"]
   %% id: direction
   subgraph n11["subgraph end"]
     %% id: click
     n5[/"click n1 href 'https://evil.example'"/]
     %% id: style
-    n6[["n1 -- n2 n2 -- n3"]]
+    n6[["n1 --＞ n2 n2 --＞ n3"]]
   end
   %% id: end-edge
   n1 -->|"'quoted' label"| n2
   %% id: e2
-  n2 -->|"x -- y"| n3
+  n2 -->|"x --＞ y"| n3
   %% id: e3
   n3 -->|"end"| n4
   %% id: e4

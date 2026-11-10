@@ -40,11 +40,11 @@
         <mxCell id="guard-on-a-straight-branch-into-a-shared:done" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="guard-on-a-straight-branch-into-a-shared:api">
           <mxGeometry x="155" y="910" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:start" target="guard-on-a-straight-branch-into-a-shared:req">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:start" target="guard-on-a-straight-branch-into-a-shared:req">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:req" target="guard-on-a-straight-branch-into-a-shared:valid">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:req" target="guard-on-a-straight-branch-into-a-shared:valid">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="135" y="270"/>
@@ -52,7 +52,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:valid" target="guard-on-a-straight-branch-into-a-shared:reject">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:valid" target="guard-on-a-straight-branch-into-a-shared:reject">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="510" y="402"/>
@@ -65,7 +65,7 @@
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:reject" target="guard-on-a-straight-branch-into-a-shared:done">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:reject" target="guard-on-a-straight-branch-into-a-shared:done">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="350" y="920"/>
@@ -73,7 +73,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:valid" target="guard-on-a-straight-branch-into-a-shared:check">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:valid" target="guard-on-a-straight-branch-into-a-shared:check">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -82,11 +82,11 @@
             <mxPoint x="21.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:check" target="guard-on-a-straight-branch-into-a-shared:dry">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:check" target="guard-on-a-straight-branch-into-a-shared:dry">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:dry" target="guard-on-a-straight-branch-into-a-shared:done">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:dry" target="guard-on-a-straight-branch-into-a-shared:done">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="510" y="920"/>
@@ -99,7 +99,7 @@
             <mxPoint x="63.5" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:dry" target="guard-on-a-straight-branch-into-a-shared:notify">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:dry" target="guard-on-a-straight-branch-into-a-shared:notify">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="510" y="688"/>
@@ -112,11 +112,11 @@
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:notify" target="guard-on-a-straight-branch-into-a-shared:ack">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:notify" target="guard-on-a-straight-branch-into-a-shared:ack">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="guard-on-a-straight-branch-into-a-shared:f10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:ack" target="guard-on-a-straight-branch-into-a-shared:done">
+        <mxCell id="guard-on-a-straight-branch-into-a-shared:f10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="guard-on-a-straight-branch-into-a-shared:ack" target="guard-on-a-straight-branch-into-a-shared:done">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="735" y="920"/>

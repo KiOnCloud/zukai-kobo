@@ -239,7 +239,7 @@ describe('AWS icons and group frames in draw.io', () => {
     }
     // The icon replaces the shape of the kind; a component without one keeps it.
     expect(figures.find((f) => f.id === 'db').cell.style).not.toContain('cylinder3');
-    expect(figures.find((f) => f.id === 'browser').cell.style).toContain('shape=umlActor');
+    expect(figures.find((f) => f.id === 'browser').cell.style).toContain('shape=mxgraph.networks.monitor');
   });
 
   it('writes the gradient of the few categories draw.io draws with one', async () => {

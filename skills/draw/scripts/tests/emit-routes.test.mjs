@@ -104,12 +104,17 @@ const distToPath = (box, path) => {
 
 describe('issue 25: every graph edge follows its layout route', () => {
   for (const [kind, name] of [['flowchart', 'valid-refund-approval'], ['class', 'valid-order-domain'], ['state', 'valid-order-lifecycle']]) {
-    it(`${kind}/${name}: fixed anchors, no shared segments, no edge through a foreign node`, async () => {
+    it(`${kind}/${name}: fixed anchors, no shared segments but the trunk of a decision, no edge through a foreign node`, async () => {
       const r = await emit(loadFixture(kind, name), 'drawio', { diagramId: 'g' });
       expect(r.ok).toBe(true);
-      const { edges, leaves } = rebuild(r.output, 'g');
+      const { edges, leaves, cells } = rebuild(r.output, 'g');
       for (const e of edges) expect(e.style, e.id).toMatch(/exitX=.*entryX=/);
-      expect(sharedSegments(edges)).toEqual([]);
+      // The branches of one decision leave its tip as one line, and the lines into one
+      // decision end at its other tip as one: only those pairs may share a stretch.
+      const decision = (id) => /(^|;)rhombus;/.test(cells.find((c) => c.id === id)?.style ?? '');
+      const byId = new Map(edges.map((e) => [e.id, e]));
+      const atOneTip = ([a, b]) => (byId.get(a).source === byId.get(b).source && decision(byId.get(a).source)) || (byId.get(a).target === byId.get(b).target && decision(byId.get(a).target));
+      expect(sharedSegments(edges).filter((pair) => !atOneTip(pair))).toEqual([]);
       expect(touchesForeignNode(edges, leaves)).toEqual([]);
     });
   }
