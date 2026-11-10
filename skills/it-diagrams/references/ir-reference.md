@@ -31,7 +31,7 @@ Errors come back as JSON on stderr with a JSON-pointer `path`, a `message` and u
 | `schemaVersion` | yes | `1` |
 | `kind` | yes | `flowchart`, `sequence`, `state`, `er`, `class`, `architecture`, `activity` |
 | `title` | yes | 1 to 500 characters; becomes the diagram name |
-| `direction` | no | `TB` (default), `BT`, `LR`, `RL`; ignored by sequence and architecture |
+| `direction` | no | `TB` (default), `BT`, `LR`, `RL`; ignored by sequence and by Mermaid's `architecture-beta`; draw.io lays an architecture out in the given direction |
 | `meta.source` | no | `clarify`, `scout`, `brainstorm`, `manual` |
 | `meta.notes` | no | free text, for example the file paths a scout derived the diagram from |
 | `meta.audience` | no | `technical` (default) or `business`; the review applies the audience items of the checklist (see `variants.md`) |

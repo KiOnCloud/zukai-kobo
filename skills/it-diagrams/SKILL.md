@@ -152,9 +152,9 @@ never write one from memory: the names are draw.io's, not the service abbreviati
 (`aws:identity_and_access_management`, not `aws:iam`), and an unknown name fails validation
 with the nearest names as a hint. A component with no matching icon (the customer's own
 system, a third party) keeps its generic shape, and `kind` stays on every component: it is
-what Mermaid and FigJam draw, with a warning that the icons were lost. Prefer `direction:
-"LR"` for these diagrams: connections then enter a frame from its side, clear of the frame
-titles along the top. Skip the icons when the user asks for a vendor-neutral picture.
+what Mermaid and FigJam draw, with a warning that the icons were lost. Either
+direction works: a frame title steps aside when a connection enters its frame from above.
+Skip the icons when the user asks for a vendor-neutral picture.
 
 ## Targets
 

@@ -800,22 +800,91 @@ const AWS_ICON_POINTS = 'points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0]
 const awsIconStyle = (icon) => `sketch=0;${AWS_ICON_POINTS}outlineConnect=0;fontColor=#232F3E;${icon.gradient ? `gradientColor=${icon.gradient};gradientDirection=north;` : ''}fillColor=${icon.fill};strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.${icon.name};`;
 /** The corner icon of an AWS group frame and the gap before its title (the palette's `spacingLeft=30`). */
 const AWS_GROUP_ICON = 30;
+/** Room kept between a frame title and its frame's side, and between a title and a line that crosses the header. */
+const TITLE_GAP = 8;
 /**
- * An AWS group frame as a container. The palette's style is kept as it is; a frame that is a
- * plain rectangle there (an Availability Zone) gains the container flags the stencil frames
- * already carry. The title of a frame stands on one line beside its corner icon, so the
- * frame is at least that wide; the Auto Scaling group has its icon above a centred title and
- * needs a taller header.
+ * An AWS group frame as a container. The palette's style is kept, with two changes. A frame
+ * that is a plain rectangle there (an Availability Zone) gains the container flags the
+ * stencil frames already carry. The Auto Scaling group, whose palette form has its icon and
+ * title in the middle of the top side, is drawn like every other frame, icon in the corner
+ * and title beside it: a title in the corner can step aside when a connection enters the
+ * frame from above, a fixed icon in the middle cannot. The title of a frame stands on one
+ * line, so the frame is at least that wide.
  */
 function awsGroupContainer(group, label) {
-  const centred = group.style.includes('shape=mxgraph.aws4.groupCenter;');
-  const stencil = group.style.includes('shape=mxgraph.aws4.');
+  const corner = group.style
+    .replace('shape=mxgraph.aws4.groupCenter;', 'shape=mxgraph.aws4.group;')
+    .replace('align=center;', `align=left;spacingLeft=${AWS_GROUP_ICON};`)
+    .replace('spacingTop=25;', '');
+  const stencil = corner.includes('shape=mxgraph.aws4.');
+  const text = measureLabelBelow(label, { maxWidth: 360 });
+  const start = stencil ? AWS_GROUP_ICON : TITLE_GAP;
   return {
-    style: stencil ? group.style : `${group.style}container=1;pointerEvents=0;collapsible=0;recursiveResize=0;`,
-    headerHeight: centred ? 45 : 30,
-    minWidth: Math.min(400, 2 * Math.ceil((measureLabelBelow(label, { maxWidth: 360 }).width + (stencil && !centred ? AWS_GROUP_ICON : 0) + 2 * LABEL_PAD) / 2)),
+    style: stencil ? corner : `${corner}container=1;pointerEvents=0;collapsible=0;recursiveResize=0;`,
+    title: { width: text.width, height: text.height + 4, start, centred: !stencil },
+    minWidth: Math.min(400, 2 * Math.ceil((start + text.width + TITLE_GAP) / 2)),
   };
 }
+
+/**
+ * Put the title of each AWS group frame where no connection crosses it. A frame title lies
+ * in the header strip along the top of its frame; a connection that enters or leaves the
+ * frame through its top side runs across that strip. The title keeps its usual place (beside
+ * the corner icon, or centred on a plain frame) when that place is free, and otherwise moves
+ * along the strip to the free stretch nearest to it. A frame with no free stretch long
+ * enough is given a larger minimum width; the caller then lays the diagram out again.
+ * @returns {boolean} whether a frame was widened, so the layout has to run again
+ */
+function placeGroupTitles(layout, { containers, nodes, edges }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const lines = [];
+  for (const e of edges) {
+    const r = layout.edges.get(e.id);
+    if (!r?.start || !r?.end) continue;
+    const path = [r.start, ...(r.points ?? []), r.end];
+    for (let i = 1; i < path.length; i++) lines.push({ x0: Math.min(path[i - 1].x, path[i].x), x1: Math.max(path[i - 1].x, path[i].x), y0: Math.min(path[i - 1].y, path[i].y), y1: Math.max(path[i - 1].y, path[i].y) });
+    if (e.label && r.label) lines.push({ x0: r.label.x, x1: r.label.x + r.label.width, y0: r.label.y, y1: r.label.y + r.label.height });
+  }
+  let widened = false;
+  for (const c of containers) {
+    if (!c.title) continue;
+    const frame = absoluteBox(c.id, layout, parentOf);
+    const { width, height, start, centred } = c.title;
+    const lo = frame.x + start;
+    const hi = frame.x + frame.width - TITLE_GAP;
+    // The stretches of the strip that a line runs through, each with a gap on both sides.
+    const taken = lines
+      .filter((l) => l.y1 >= frame.y && l.y0 <= frame.y + height && l.x1 >= frame.x && l.x0 <= frame.x + frame.width)
+      .map((l) => [l.x0 - TITLE_GAP, l.x1 + TITLE_GAP])
+      .sort((a, b) => a[0] - b[0]);
+    const free = [];
+    let at = lo;
+    for (const [a, b] of taken) {
+      if (a > at) free.push([at, Math.min(a, hi)]);
+      at = Math.max(at, b);
+    }
+    if (at < hi) free.push([at, hi]);
+    const usual = centred ? frame.x + (frame.width - width) / 2 : lo;
+    let best;
+    for (const [a, b] of free) {
+      if (b - a < width) continue;
+      const x = Math.min(Math.max(usual, a), b - width);
+      if (best === undefined || Math.abs(x - usual) < Math.abs(best - usual)) best = x;
+    }
+    if (best === undefined) {
+      const longest = free.reduce((m, [a, b]) => Math.max(m, b - a), 0);
+      c.minWidth = 2 * Math.ceil((Math.max(c.minWidth, frame.width) + width - longest + 2) / 2);
+      c.titleOffset = undefined;
+      widened = true;
+    } else {
+      c.titleOffset = Math.abs(best - usual) < 0.5 ? undefined : Math.round(best - frame.x);
+    }
+  }
+  return widened;
+}
+
+/** The style of a group frame with its title moved `offset` px in from the frame's left side. */
+const titleAt = (style, offset) => (/spacingLeft=\d+;/.test(style) ? style.replace(/spacingLeft=\d+;/, `spacingLeft=${offset};`) : `${style}align=left;spacingLeft=${offset};`);
 
 async function emitArchitecture(ir, cid, refs, warnings) {
   const parent = parentMap(ir.boundaries ?? []);
@@ -855,6 +924,14 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
   let layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
   if (below.size > 0 && clientPorts(layout, { containers, nodes, edges })) layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
+  // A wider frame moves the lines, so the titles are placed again after each new layout.
+  let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
+  for (let round = 0; unplaced && round < 6; round++) {
+    layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
+    unplaced = placeGroupTitles(layout, { containers, nodes, edges });
+  }
+  if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a connection crosses the title of an AWS group frame; no free place was found for it along the top of the frame', hint: 'set "direction" to "LR" or shorten the boundary label' });
+  for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
   return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
 }
 

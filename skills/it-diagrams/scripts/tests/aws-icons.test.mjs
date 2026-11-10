@@ -248,18 +248,59 @@ describe('AWS icons and group frames in draw.io', () => {
     expect(cellOf('x').style).toContain(`gradientColor=${catalog.icons[name].gradient};gradientDirection=north;fillColor=${catalog.icons[name].fill};`);
   });
 
-  it('draws each group frame with the style of draw.io\'s palette, as a container', async () => {
+  it('draws each group frame with the stencil and colours of draw.io\'s palette, as a container', async () => {
+    const part = (style, key) => style.match(new RegExp(`(?:^|;)${key}=([^;]*)`))?.[1];
     for (const sample of samples) {
       const ir = loadFixture('architecture', sample);
       const { cellOf } = await drawn(ir);
       for (const b of ir.boundaries) {
         const style = cellOf(b.id).style;
         if (!b.group) { expect(style, b.id).toContain('swimlane;'); continue; }
-        expect(style.startsWith(awsGroup(b.group).style), b.id).toBe(true);
+        const palette = awsGroup(b.group).style;
+        for (const key of ['grIcon', 'strokeColor', 'fillColor', 'fontColor', 'dashed']) expect(part(style, key), `${b.id} ${key}`).toBe(part(palette, key));
         expect(style, b.id).toContain('container=1;');
+        expect(style, b.id).toContain('verticalAlign=top;');
         expect(style, b.id).not.toContain('swimlane');
       }
     }
+  });
+
+  it('draws the Auto Scaling group with its icon in the corner, like every other frame', async () => {
+    const { cellOf } = await drawn(loadFixture('architecture', 'valid-aws-zones'));
+    const style = cellOf('asg').style;
+    expect(style).toContain('shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_auto_scaling_group;');
+    expect(style).not.toContain('groupCenter');
+    expect(style).not.toContain('spacingTop');
+    expect(style).toMatch(/align=left;spacingLeft=\d+;/);
+  });
+
+  it('keeps every frame title clear of every connection, in every direction', async () => {
+    let moved = 0;
+    for (const sample of samples) for (const direction of ['LR', 'TB', 'RL', 'BT']) {
+      const ir = withDirection(loadFixture('architecture', sample), direction);
+      const { r, abs, cellOf, paths } = await drawn(ir);
+      expect(r.warnings, `${sample} ${direction}`).toEqual([]);
+      for (const b of ir.boundaries.filter((x) => x.group)) {
+        const frame = abs.get(`a:${b.id}`);
+        const style = cellOf(b.id).style;
+        const text = measureLabelBelow(b.label, { maxWidth: 360 });
+        // Where draw.io writes the title: from `spacingLeft` when it is left-aligned, else centred.
+        const left = /align=left;/.test(style) ? Number(style.match(/spacingLeft=(\d+);/)[1]) : (frame.width - text.width) / 2;
+        if (/align=left;spacingLeft=(\d+);/.test(style) && Number(style.match(/spacingLeft=(\d+);/)[1]) !== 30) moved++;
+        const title = { x: frame.x + left, y: frame.y, width: text.width, height: text.height + 4 };
+        expect(title.x + title.width, `${sample} ${direction}: title of ${b.id} inside its frame`).toBeLessThanOrEqual(frame.x + frame.width);
+        for (const [id, path] of paths) for (let i = 1; i < path.length; i++) {
+          expect(intersects(title, segmentBox(path[i - 1], path[i])), `${sample} ${direction}: ${id} through the title of ${b.id}`).toBe(false);
+        }
+      }
+    }
+    // The top-down sample has connections that enter frames from above: some titles had to step aside.
+    expect(moved).toBeGreaterThan(0);
+  });
+
+  it('leaves a title in its usual place when nothing crosses it', async () => {
+    const { cellOf } = await drawn(loadFixture('architecture', 'valid-aws'));
+    for (const id of ['cloud', 'region', 'vpc', 'public', 'private']) expect(cellOf(id).style, id).toContain('spacingLeft=30;');
   });
 
   it('keeps every member inside its frame, below the title, in every direction', async () => {
@@ -269,7 +310,7 @@ describe('AWS icons and group frames in draw.io', () => {
       const labelOf = new Map(figures.map((f) => [f.id, f.label]));
       for (const b of ir.boundaries) {
         const frame = abs.get(`a:${b.id}`);
-        const header = b.group === 'aws:auto_scaling_group' ? 45 : 30;
+        const header = 30;
         const inside = { x: frame.x, y: frame.y + header, width: frame.width, height: frame.height - header };
         for (const child of b.children) {
           const where = `${sample} ${direction}: ${child} in ${b.id}`;
