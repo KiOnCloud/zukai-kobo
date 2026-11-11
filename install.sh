@@ -14,7 +14,14 @@
 #             3 the installed copy is newer than this source.
 #
 # The script only copies files. It never runs npm, never touches the network, and never
-# deletes an existing install: a differing destination is moved to <dest>.bak-<timestamp>.
+# deletes an existing install: a differing destination is moved out of the skills folder, to
+# <project>/.agents/zukai-backups/<name>-<timestamp> (.claude/zukai-backups for claude-project).
+# A backup left inside the skills folder would still be a skill named zukai, and two skills
+# with one name compete for routing.
+#
+# The copy holds what the skills run with: SKILL.md, references/, the bundled CLI
+# (scripts/bin/cli.mjs) and the feature matrix. The sources, tests and fixtures of the CLI
+# stay in the repository.
 set -eu
 
 usage() {
@@ -101,7 +108,30 @@ fi
 [ -d "$DEST_ROOT" ] || { echo "Destination project directory does not exist: $DEST_ROOT" >&2; exit 1; }
 DEST_ROOT=$(CDPATH= cd -- "$DEST_ROOT" && pwd -P)
 DEST_DIR="$DEST_ROOT/$SUBDIR"
+BACKUP_DIR="$DEST_ROOT/${SUBDIR%/skills}/zukai-backups"
 LEGACY="$DEST_DIR/$LEGACY_NAME"
+
+# Move a folder out of the skills folder: $1 the folder, $2 its name in the backup folder.
+backup() {
+  mkdir -p "$BACKUP_DIR"
+  target="$BACKUP_DIR/$2"
+  n=1
+  while [ -e "$target" ]; do n=$((n + 1)); target="$BACKUP_DIR/$2-$n"; done
+  mv "$1" "$target"
+  echo "$target"
+}
+
+# Backups that an earlier version of this script left inside the skills folder
+# (<name>.bak-<timestamp>) still carry a SKILL.md with the skill's name: move them out too.
+sweep_old_backups() {
+  for name in zukai zukai-revise "$LEGACY_NAME"; do
+    for old in "$DEST_DIR/$name".bak-*; do
+      [ -d "$old" ] || continue
+      stamp=${old##*.bak-}
+      echo "Backup from an earlier install moved out of the skills folder: $(backup "$old" "$name-$stamp")"
+    done
+  done
+}
 
 # Decide for both skills before touching anything. A copy already at this version is left
 # alone (backing it up would leave a second copy with the same name competing for routing);
@@ -122,6 +152,7 @@ for spec in $SKILLS; do
   TODO="$TODO $spec"
 done
 if [ -z "$TODO" ]; then
+  sweep_old_backups
   echo "zukai $SRC_VERSION already up to date at $DEST_DIR (zukai, zukai-revise)"
   exit 0
 fi
@@ -140,6 +171,16 @@ for spec in $TODO; do
   src=${spec%%:*}; rest=${spec#*:}; name=${rest%%:*}; marker=${rest#*:}
   mkdir -p "$TMP/$name"
   ( cd "$SCRIPT_DIR/skills/$src" && tar -cf - --exclude=node_modules . ) | ( cd "$TMP/$name" && tar -xf - )
+  # The CLI runs from its bundle; what only a rebuild or a test needs stays in the repository.
+  # The feature matrix is the one source file the skill text points at.
+  if [ -d "$TMP/$name/scripts/src" ]; then
+    mv "$TMP/$name/scripts/src/feature-matrix.json" "$TMP/$name/scripts/feature-matrix.json.keep"
+    for dev in src tests fixtures tools build.mjs package-lock.json; do
+      rm -rf "$TMP/$name/scripts/$dev"
+    done
+    mkdir -p "$TMP/$name/scripts/src"
+    mv "$TMP/$name/scripts/feature-matrix.json.keep" "$TMP/$name/scripts/src/feature-matrix.json"
+  fi
   printf '%s\n' "$SRC_VERSION" > "$TMP/$name/$marker"
   # Name the copy after its folder: a skill's name has to match the directory it lives in.
   grep -q "^name: $src\$" "$TMP/$name/SKILL.md" || { echo "SKILL.md at $SCRIPT_DIR/skills/$src does not declare 'name: $src'; refusing to install a copy with the wrong name." >&2; exit 1; }
@@ -151,17 +192,16 @@ STAMP=$(date +%Y%m%d%H%M%S)
 # A copy installed under the old name would compete with this one for routing. Move it
 # aside only when its version marker shows this installer wrote it.
 if [ -f "$LEGACY/$LEGACY_MARKER" ]; then
-  mv "$LEGACY" "$LEGACY.bak-$STAMP"
-  echo "Install under the old name moved to $LEGACY.bak-$STAMP"
+  echo "Install under the old name moved to $(backup "$LEGACY" "$LEGACY_NAME-$STAMP")"
 fi
+sweep_old_backups
 
 # Both copies are complete before either is moved in; only a failure between these moves
 # (a locked folder) can leave one updated, and running the installer again finishes the job.
 for spec in $TODO; do
   rest=${spec#*:}; name=${rest%%:*}
   if [ -e "$DEST_DIR/$name" ]; then
-    mv "$DEST_DIR/$name" "$DEST_DIR/$name.bak-$STAMP"
-    echo "Previous install of $name moved to $DEST_DIR/$name.bak-$STAMP"
+    echo "Previous install of $name moved to $(backup "$DEST_DIR/$name" "$name-$STAMP")"
   fi
   mv "$TMP/$name" "$DEST_DIR/$name"
   echo "Installed $name $SRC_VERSION to $DEST_DIR/$name"

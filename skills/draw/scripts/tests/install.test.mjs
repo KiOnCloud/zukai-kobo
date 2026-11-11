@@ -52,11 +52,34 @@ describe.skipIf(!runnable)('install.sh', () => {
     writeFileSync(join(old, '.zukai-version'), '1.0.0\n');
     writeFileSync(join(old, 'SKILL.md'), '---\nname: zukai\n---\n');
     expect(run('codex', dest)).toMatch(/Upgrading zukai -> /);
-    const names = readdirSync(join(dest, '.agents/skills')).sort();
-    expect(names).toHaveLength(3);
-    expect(names[0]).toBe('zukai');
-    expect(names[1]).toBe('zukai-revise');
-    expect(names[2]).toMatch(/^zukai\.bak-\d{14}$/);
+    // The backup leaves the skills folder: there it would still be a skill named zukai.
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-revise']);
+    const backups = readdirSync(join(dest, '.agents/zukai-backups'));
+    expect(backups).toHaveLength(1);
+    expect(backups[0]).toMatch(/^zukai-\d{14}$/);
+    expect(readFileSync(join(dest, '.agents/zukai-backups', backups[0], '.zukai-version'), 'utf8')).toBe('1.0.0\n');
+  });
+
+  it('moves a backup that an earlier installer left inside the skills folder out of it', () => {
+    const dest = mkdtempSync(join(tmpdir(), 'zukai-install-'));
+    run('codex', dest);
+    const old = join(dest, '.agents/skills/zukai.bak-20260101000000');
+    mkdirSync(old, { recursive: true });
+    writeFileSync(join(old, 'SKILL.md'), '---\nname: zukai\n---\n');
+    expect(run('codex', dest)).toMatch(/already up to date/);
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-revise']);
+    expect(readdirSync(join(dest, '.agents/zukai-backups'))).toEqual(['zukai-20260101000000']);
+  });
+
+  it('copies what the skills run with and leaves the CLI sources, tests and fixtures behind', () => {
+    const dest = mkdtempSync(join(tmpdir(), 'zukai-install-'));
+    run('codex', dest);
+    const scripts = join(dest, '.agents/skills/zukai/scripts');
+    expect(readdirSync(scripts).sort()).toEqual(['bin', 'package.json', 'src']);
+    expect(readdirSync(join(scripts, 'src'))).toEqual(['feature-matrix.json']);
+    // The installed CLI runs on its own, from another working directory.
+    const out = execFileSync(process.execPath, [join(scripts, 'bin', 'cli.mjs'), 'validate', join(repoRoot, 'skills/draw/scripts/fixtures/flowchart/valid.json')], { cwd: dest, encoding: 'utf8' });
+    expect(JSON.parse(out)).toMatchObject({ ok: true, kind: 'flowchart' });
   });
 
   it('touches nothing when one installed copy is newer than the source', () => {
@@ -75,10 +98,10 @@ describe.skipIf(!runnable)('install.sh', () => {
     writeFileSync(join(legacy, '.it-diagrams-version'), '1.0.0\n');
     writeFileSync(join(legacy, 'SKILL.md'), '---\nname: it-diagrams\n---\n');
     run('codex', dest);
-    const names = readdirSync(join(dest, '.agents/skills')).sort();
-    expect(names).toHaveLength(3);
-    expect(names[0]).toMatch(/^it-diagrams\.bak-\d{14}$/);
-    expect(names.slice(1)).toEqual(['zukai', 'zukai-revise']);
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-revise']);
+    const backups = readdirSync(join(dest, '.agents/zukai-backups'));
+    expect(backups).toHaveLength(1);
+    expect(backups[0]).toMatch(/^it-diagrams-\d{14}$/);
   });
 
   it('leaves a folder with the old name alone when it carries no version marker', () => {

@@ -34,16 +34,18 @@ const TITLE_STYLE = 'text;html=1;align=left;verticalAlign=middle;fontSize=16;fon
  * still get their own pages after it, which is where page links from `ref` steps land. Cell
  * ids stay unique because every diagram uses its own id prefix.
  * @param {Array<{ ir: object, diagramId?: string }>} entries
- * @param {{ canvas?: string[], gap?: number, title?: string }} [options] `canvas` lists diagram ids in
- *   the order they go on the canvas page; `title` names that page
+ * @param {{ canvas?: string[], gap?: number, title?: string, legacyIds?: boolean }} [options] `canvas` lists diagram ids in
+ *   the order they go on the canvas page; `title` names that page; `legacyIds` gives the page
+ *   ids of 2.0.3 and older (cut at 40 characters), so `drift` can rebuild such a file
  */
 export async function emitDrawioBundle(entries, options = {}) {
   const warnings = [];
   const ids = entries.map((entry, i) => entry.diagramId ?? `${slugify(entry.ir.title)}-${i + 1}`);
-  const refs = bundleRefs(entries.map((entry, i) => ({ id: ids[i], ir: entry.ir })));
+  const slug = options.legacyIds ? slugify : pageIdOf;
+  const refs = bundleRefs(entries.map((entry, i) => ({ id: ids[i], ir: entry.ir })), slug);
   const rendered = [];
   for (const [i, entry] of entries.entries()) {
-    const page = await emitDrawioPage(entry.ir, { diagramId: ids[i], refs });
+    const page = await emitDrawioPage(entry.ir, { diagramId: ids[i], refs, slug });
     rendered.push(page);
     warnings.push(...page.warnings.map((w) => ({ ...w, diagram: page.diagramId })));
   }
@@ -58,6 +60,7 @@ export async function emitDrawioBundle(entries, options = {}) {
   if (options.canvas && options.canvas.length > 0) {
     const gap = options.gap ?? 120;
     const byId = new Map(rendered.map((p, i) => [ids[i], p]));
+    const taken = new Set(rendered.map((p) => p.diagramId));
     const cells = [];
     let x = 0;
     for (const id of options.canvas) {
@@ -66,7 +69,7 @@ export async function emitDrawioBundle(entries, options = {}) {
       x += PAGE_MARGIN + placed.width + gap;
     }
     let canvasId = 'canvas';
-    while (ids.includes(canvasId)) canvasId = `${canvasId}-1`;
+    while (taken.has(canvasId)) canvasId = `${canvasId}-1`;
     let name = options.title ?? 'Canvas';
     if (rendered.some((p) => p.name === name)) name = `${name} (canvas)`;
     pages.push({ diagramId: canvasId, name, cells });
@@ -80,8 +83,8 @@ export async function emitDrawioBundle(entries, options = {}) {
  * the emitters show and link to.
  * @param {Array<{ id: string, ir: object }>} entries
  */
-export function bundleRefs(entries) {
-  return new Map(entries.map((e) => [e.id, { pageId: slugify(e.id), title: e.ir.title }]));
+export function bundleRefs(entries, slug = pageIdOf) {
+  return new Map(entries.map((e) => [e.id, { pageId: slug(e.id), title: e.ir.title }]));
 }
 
 /**
@@ -99,7 +102,7 @@ function refLabel(label, ref, refs, path, warnings) {
 
 async function emitDrawioPage(ir, options = {}) {
   const warnings = [];
-  const slug = options.diagramId ? slugify(options.diagramId) : slugify(ir.title);
+  const slug = options.diagramId ? (options.slug ?? pageIdOf)(options.diagramId) : slugify(ir.title);
   const cid = (id) => `${slug}:${id}`;
   const refs = options.refs;
   let cells;
@@ -116,8 +119,23 @@ async function emitDrawioPage(ir, options = {}) {
   return { diagramId: slug, name: ir.title, cells, warnings };
 }
 
+/**
+ * The slug of a title, for a diagram that was given no id: short enough to read in a cell id.
+ * Page ids were this slug of the diagram id up to 2.0.3, so it is also how `drift` reads a
+ * file delivered by those versions.
+ */
 export function slugify(title) {
   const s = String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/g, '');
+  return s || 'diagram';
+}
+
+/**
+ * The page id (and cell-id prefix) of a diagram id. A diagram id is a file name the skill
+ * chose (`<slug>-NN-<part>-business`), so it is kept whole: cut at 40 characters, two
+ * diagrams with a long common start shared one page id and every cell id.
+ */
+export function pageIdOf(diagramId) {
+  const s = String(diagramId).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return s || 'diagram';
 }
 

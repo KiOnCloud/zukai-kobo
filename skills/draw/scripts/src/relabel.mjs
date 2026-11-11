@@ -29,6 +29,12 @@ import { wrapText } from './layout-graph.mjs';
  * wrap width against the lines the old label took. A cell and its copies (the canvas page) give one warning naming the
  * pages. Compressed input (draw.io's default for older files) is inflated; output is
  * uncompressed.
+ *
+ * The file then no longer is what a fresh emit of its IR draws: the boxes keep the sizes and
+ * places they had for the old labels. So that `drift` can still tell a hand edit from that,
+ * every page records the label each relabelled cell was laid out for (the first one, however
+ * often it is relabelled) in a `zukaiLabels` property of its root cell, which draw.io keeps
+ * on save like any property set with Edit Data.
  * @param {string} xml the .drawio file
  * @param {Record<string, string | string[]>} map new labels by key, plus optional `$keep`
  * @returns {{ output: string, replaced: number, byText: number, unmatched: string[],
@@ -68,7 +74,7 @@ export function relabelDrawio(xml, map) {
         geometry: geometry ? parseAttrs(geometry[1]) : null,
       });
     }
-    pages.push({ match: m, attrs: m[1], body: m[2], page, pageId, cells });
+    pages.push({ match: m, attrs: m[1], body: m[2], page, pageId, cells, basis: readLabelBasis(m[2]) });
   }
 
   // Pass 1: by key.
@@ -145,6 +151,9 @@ export function relabelDrawio(xml, map) {
       cursor = c.index + c.length;
     }
     body += p.body.slice(cursor);
+    const basis = { ...p.basis };
+    for (const c of p.cells) if (c.newText !== undefined && c.parts.main !== c.newText && !Object.hasOwn(basis, c.attrs.id)) basis[c.attrs.id] = c.parts.main;
+    if (Object.keys(basis).length > 0) body = writeLabelBasis(body, basis);
     const attrs = p.newName !== undefined ? p.attrs.replace(/\sname="[^"]*"/, ` name="${xmlAttr(p.newName)}"`) : p.attrs;
     out = out.slice(0, p.match.index) + `<diagram${attrs}>${body}</diagram>` + out.slice(p.match.index + p.match[0].length);
   }
@@ -153,6 +162,36 @@ export function relabelDrawio(xml, map) {
   }
   const unmatched = keys.filter((k) => !matched.has(k));
   return { output: out, replaced, byText, unmatched, untouched, warnings };
+}
+
+const ROOT_PLAIN = /<mxCell\s+id="0"\s*\/>/;
+const ROOT_OBJECT = /<(object|UserObject)\b([^>]*\sid="0"[^>]*)>/;
+
+/**
+ * The labels the cells of a page were laid out for, as an earlier relabel recorded them:
+ * cell id to the text the cell carried when the page was emitted.
+ * @param {string} body the content of a `<diagram>`
+ * @returns {Record<string, string>}
+ */
+export function readLabelBasis(body) {
+  const m = ROOT_OBJECT.exec(body);
+  if (!m) return {};
+  try {
+    const parsed = JSON.parse(parseAttrs(m[2]).zukaiLabels ?? '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? Object.fromEntries(Object.entries(parsed).filter(([, v]) => typeof v === 'string')) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLabelBasis(body, basis) {
+  const value = xmlAttr(JSON.stringify(basis));
+  const existing = ROOT_OBJECT.exec(body);
+  if (existing) {
+    const attrs = /\szukaiLabels="[^"]*"/.test(existing[2]) ? existing[2].replace(/\szukaiLabels="[^"]*"/, ` zukaiLabels="${value}"`) : ` zukaiLabels="${value}"${existing[2]}`;
+    return body.slice(0, existing.index) + `<${existing[1]}${attrs}>` + body.slice(existing.index + existing[0].length);
+  }
+  return body.replace(ROOT_PLAIN, `<object label="" zukaiLabels="${value}" id="0"><mxCell/></object>`);
 }
 
 /** draw.io compresses page content as base64(deflate-raw(uriencoded(xml))); turn it back into XML. */

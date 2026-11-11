@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync, chmodSync } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { preview, loadPlaywright, drawioInstallPaths, findDrawioBinary, drawioExtent, drawioVertices, tileFrames, pngSize } from '../src/preview.mjs';
+import { preview, loadPlaywright, drawioInstallPaths, findDrawioBinary, drawioExtent, drawioVertices, tileFrames, pngSize, defaultPreviewPath, mermaidBlocks } from '../src/preview.mjs';
 import { decodePng, cropPng, encodePng } from '../src/png.mjs';
 import { emit } from '../src/pipeline.mjs';
 import { loadFixture, scriptsDir } from './helpers.mjs';
@@ -333,7 +333,8 @@ describe('preview', () => {
     const r = await preview(file);
     expect(r.errors).toEqual([]);
     expect(r.ok).toBe(true);
-    expect(r.out).toBe(join(tmpdir(), 'zukai-preview', 'sequence.png'));
+    expect(r.out).toBe(defaultPreviewPath(file));
+    expect(r.out).toMatch(/zukai-preview[\\/]sequence-drawio-[0-9a-f]{8}\.png$/);
     expect(existsSync(r.out)).toBe(true);
     expect(readFileSync(r.out).subarray(0, 4).equals(PNG_MAGIC)).toBe(true);
   }, 120_000);

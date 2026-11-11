@@ -422,7 +422,14 @@ export function planArchitectureGrid(ir) {
     const first = steps.map(([dx, dy]) => (reverse ? [anchor[0] - dx, anchor[1] - dy] : [anchor[0] + dx, anchor[1] + dy]));
     const diagonals = [[1, 1], [-1, 1], [1, -1], [-1, -1]].map(([dx, dy]) => [anchor[0] + dx, anchor[1] + dy]);
     const candidates = [...first, ...diagonals, ...ring(anchor, 2), ...ring(anchor, 3)];
-    return candidates.find((c) => !taken.has(key(c)));
+    const free = candidates.find((c) => !taken.has(key(c)));
+    if (free) return free;
+    // A hub with more neighbours than the 48 cells around it: keep widening the ring, which
+    // always ends at a free cell. Such a graph falls back to the flowchart form anyway.
+    for (let r = 4; ; r++) {
+      const cell = ring(anchor, r).find((c) => !taken.has(key(c)));
+      if (cell) return cell;
+    }
   };
   for (const c of ir.connections) {
     if (!cells.has(c.from) && !cells.has(c.to)) place(c.from, cells.size === 0 ? [0, 0] : near([0, 0], false) ?? [cells.size, 0]);

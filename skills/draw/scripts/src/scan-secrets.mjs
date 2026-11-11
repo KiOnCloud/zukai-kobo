@@ -1,9 +1,31 @@
 /**
  * Deterministic secret scan over every string in an IR document. Labels and notes are
- * user- and code-derived, so a credential can land in a diagram by accident. The scan
- * returns warnings for every target; the figjam target turns them into a hard gate.
- * The matched value is never echoed in full.
+ * user- and code-derived, so a credential can land in a diagram by accident. Every finding
+ * is a warning with a `kind`; the pipeline decides what each kind stops:
+ *
+ *   uri-credential, token-pattern   a credential by its form: no target writes it
+ *   assignment, high-entropy,       a guess ("token: required", a hash, an id, an address):
+ *   personal-data                   written to a local file with the warning, refused for
+ *                                   FigJam, whose labels leave the machine
+ *
+ * Labels are written in the user's language, so the words that introduce a secret are known
+ * in English, Vietnamese (with and without diacritics) and Japanese. The matched value is
+ * never echoed in full.
  */
+
+/** The kinds that are a credential by their form; the others are guesses. */
+export const DEFINITE_KINDS = new Set(['uri-credential', 'token-pattern']);
+
+/**
+ * Words that name a secret, followed by `=` or `:` and a value. A Latin word needs a word
+ * boundary; Japanese is written without spaces, so its words match anywhere.
+ */
+const SECRET_WORDS_LATIN = [
+  'password', 'passwd', 'pwd', 'passphrase', 'secret', 'token', 'api[_-]?key', 'access[_-]?key', 'secret[_-]?key', 'private[_-]?key', 'client[_-]?secret',
+  'mật khẩu', 'mat khau', 'mật mã', 'mat ma', 'mã bí mật', 'ma bi mat', 'khóa bí mật', 'khoá bí mật', 'khoa bi mat', 'khóa api', 'khoá api', 'khoa api', 'mã truy cập', 'ma truy cap',
+];
+const SECRET_WORDS_CJK = ['パスワード', 'パスフレーズ', '暗証番号', '秘密鍵', '秘密キー', 'シークレット', 'トークン', 'APIキー', 'アクセスキー', '認証キー', '合言葉'];
+const SECRET_ASSIGNMENT = new RegExp(`(?:(?<![\\p{L}\\p{N}_])(?:${SECRET_WORDS_LATIN.join('|')})|(?:${SECRET_WORDS_CJK.join('|')}))\\s*[=:＝：]\\s*['"「『]?[^\\s'"」』]{6,}`, 'iu');
 
 const PATTERNS = [
   { kind: 'uri-credential', re: /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:[^\s/@]+@/i, what: 'URI with embedded credentials (scheme://user:password@host)' },
@@ -16,8 +38,22 @@ const PATTERNS = [
   { kind: 'token-pattern', re: /\bglpat-[A-Za-z0-9_-]{20,}\b/, what: 'GitLab token' },
   { kind: 'token-pattern', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----/, what: 'private key block' },
   { kind: 'token-pattern', re: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/, what: 'JSON Web Token' },
-  { kind: 'token-pattern', re: /\b(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|client[_-]?secret)\s*[=:]\s*['"]?[^\s'"]{6,}/i, what: 'key=value assignment of a password, token or secret' },
+  { kind: 'token-pattern', re: SECRET_ASSIGNMENT, what: 'key=value assignment of a password, token or secret' },
 ];
+
+/**
+ * Personal data that a label has no reason to carry: a mail address, and a telephone number
+ * written the way one is dialled (international prefix, or groups of digits joined by spaces,
+ * dots or hyphens with a leading 0 or an area code in brackets). A date, a port, an amount
+ * and an id have no such form.
+ */
+const PERSONAL = [
+  { re: /(?<![\w.+-])[\w.+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}(?![\w-])/, what: 'e-mail address' },
+  { re: /(?<![\w+])\+\d{1,3}[ .-]?(?:\(\d{1,4}\)[ .-]?)?\d{2,4}(?:[ .-]?\d{2,4}){1,3}(?!\d)/, what: 'telephone number' },
+  { re: /(?<![\w.-])(?:\(0\d{1,3}\)|0\d{1,3})[ .-]\d{3,4}[ .-]\d{3,4}(?![\d.-])/, what: 'telephone number' },
+];
+/** Addresses that stand for "an address": documentation domains and obvious placeholders. */
+const PLACEHOLDER_MAIL = /@(?:example\.(?:com|org|net)|[\w.-]+\.(?:example|test|invalid|localhost))$|^(?:user|name|email|someone|xxx+)@/i;
 
 const TOKEN_RE = /[A-Za-z0-9+/=_-]{20,}/g;
 const HEX_RE = /\b[0-9a-f]{32,}\b/i;
@@ -78,10 +114,21 @@ export function scanSecrets(ir) {
     for (const p of PATTERNS) {
       const m = value.match(p.re);
       if (m) {
-        warnings.push({ path, kind: p.kind, message: `possible ${p.what} (${preview(m[0])}); remove it before sharing the diagram` });
+        // "password: required" names a rule, not a password: a value of plain lower-case
+        // letters is reported as a guess.
+        const plainWord = p.re === SECRET_ASSIGNMENT && /[=:＝：]\s*['"「『]?\p{Ll}+$/u.test(m[0]);
+        warnings.push({ path, kind: plainWord ? 'assignment' : p.kind, message: `possible ${p.what} (${preview(m[0])}); remove it before sharing the diagram` });
         flagged = true;
         break;
       }
+    }
+    if (flagged) continue;
+    for (const p of PERSONAL) {
+      const m = value.match(p.re);
+      if (!m || (p.what === 'e-mail address' && PLACEHOLDER_MAIL.test(m[0]))) continue;
+      warnings.push({ path, kind: 'personal-data', message: `possible ${p.what} (${preview(m[0])}); a diagram names roles and systems, not people: replace it with a placeholder such as <customer e-mail>` });
+      flagged = true;
+      break;
     }
     if (flagged) continue;
     const hex = value.match(HEX_RE);

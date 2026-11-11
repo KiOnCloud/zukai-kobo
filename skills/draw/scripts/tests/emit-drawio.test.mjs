@@ -123,7 +123,7 @@ describe('drawio-xml', () => {
       const boxes = [];
       const hard = [{ kind: 'er', name: 'long-url', ir: URL_ER }, { kind: 'flowchart', name: 'hyphens', ir: HYPHEN_FLOW }];
       for (const f of [...validFixtures(), ...hard]) {
-        const r = await emit(f.ir, 'drawio', { diagramId: 'g' });
+        const r = await emit(f.ir, 'drawio', { diagramId: 'g', allowSensitive: true });
         for (const c of checkDrawioStructure(r.output).cells) {
           if (c.vertex !== '1' || !c.value) continue;
           const b = cellBounds(c);
@@ -330,7 +330,8 @@ describe('drawio-xml', () => {
 describe('emitDrawio', () => {
   for (const { kind, name, ir } of validFixtures()) {
     it(`emits a structurally valid, deterministic file for ${kind}/${name}`, async () => {
-      const r = await emit(ir, 'drawio');
+      // The adversarial fixture holds a connection string on purpose; the override stands for the user's word.
+      const r = await emit(ir, 'drawio', { allowSensitive: true });
       expect(r.errors).toEqual([]);
       expect(r.ok).toBe(true);
       expect(r.output).not.toMatch(/\r/);
@@ -365,7 +366,7 @@ describe('emitDrawio', () => {
   }
 
   it('escapes adversarial labels so no raw markup reaches an attribute', async () => {
-    const r = await emit(loadFixture('adversarial', 'labels'), 'drawio');
+    const r = await emit(loadFixture('adversarial', 'labels'), 'drawio', { allowSensitive: true });
     expect(r.ok).toBe(true);
     for (const m of r.output.matchAll(/value="([^"]*)"/g)) {
       expect(m[1]).not.toMatch(/[<>]/);

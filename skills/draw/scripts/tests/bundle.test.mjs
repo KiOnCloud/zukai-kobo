@@ -188,7 +188,7 @@ describe('bundle', () => {
       const out = join(dir, 'checkout.drawio');
       const r = spawnSync(process.execPath, [join(scriptsDir, 'bin', 'cli.mjs'), 'bundle', '--to', 'drawio', '--out', out, '--title', 'Checkout', '--canvas', 'all', '--gap', '80', join(fixturesDir, 'sequence', 'valid.json'), join(fixturesDir, 'state', 'valid.json')], { cwd: dir, encoding: 'utf8' });
       expect(r.status).toBe(0);
-      expect(JSON.parse(r.stdout)).toEqual({ ok: true, out, diagrams: 2, warnings: 0, canvas: ['valid', 'valid-2'] });
+      expect(JSON.parse(r.stdout)).toEqual({ ok: true, out, diagrams: 2, order: ['valid', 'valid-2'], warnings: 0, canvas: ['valid', 'valid-2'] });
       expect(readFileSync(out, 'utf8')).toContain('<diagram id="canvas" name="Checkout">');
       const bad = spawnSync(process.execPath, [join(scriptsDir, 'bin', 'cli.mjs'), 'bundle', '--to', 'drawio', '--out', out, '--gap', '80', join(fixturesDir, 'state', 'valid.json')], { cwd: dir, encoding: 'utf8' });
       expect(bad.status).toBe(1);
@@ -207,7 +207,7 @@ describe('bundle', () => {
     const r = spawnSync(process.execPath, [join(scriptsDir, 'bin', 'cli.mjs'), 'bundle', '--to', 'drawio', '--out', out, '--title', 'Checkout', join(fixturesDir, 'flowchart', 'valid.json'), join(fixturesDir, 'state', 'valid.json')], { cwd: dir, encoding: 'utf8' });
     expect(r.status).toBe(0);
     // The flowchart fixture refs a diagram that is not bundled, which is one warning.
-    expect(JSON.parse(r.stdout)).toEqual({ ok: true, out, diagrams: 2, warnings: 1 });
+    expect(JSON.parse(r.stdout)).toMatchObject({ ok: true, out, diagrams: 2, warnings: 1 });
     expect(existsSync(out)).toBe(true);
     expect(readFileSync(out, 'utf8')).toContain('<diagram id="valid-2"');
   });

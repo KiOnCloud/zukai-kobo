@@ -26,7 +26,7 @@ describe('snapshotRun', () => {
     expect(r).toMatchObject({ ok: true, rev: 'r001', files: ['login.ir.json', 'main.ir.json'], removed: [] });
     expect(readFileSync(join(run, 'history', 'r001', 'source', 'main.ir.json'), 'utf8')).toBe(text(flow));
     expect(JSON.parse(readFileSync(join(run, 'history', 'r001', 'revision.json'), 'utf8'))).toEqual({
-      rev: 'r001', number: 1, createdAt: '2026-11-11T00:00:00.000Z', request: 'add a step', files: ['login.ir.json', 'main.ir.json'], extras: [], bundle: { title: 'Shop', canvas: ['main'], gap: 120 },
+      rev: 'r001', number: 1, createdAt: '2026-11-11T00:00:00.000Z', request: 'add a step', files: ['login.ir.json', 'main.ir.json'], extras: [], undo: ['r001'], redo: [], bundle: { title: 'Shop', canvas: ['main'], gap: 120 },
     });
   });
 

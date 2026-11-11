@@ -241,7 +241,8 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
     expect(run.status).toBe(0);
     expect(JSON.parse(run.stdout)).toMatchObject({ ok: true, out: join(dir, 'returns.vi.drawio'), replaced: 1, byText: 0, unmatched: ['ghost'] });
     expect(JSON.parse(run.stdout).untouched.length).toBeGreaterThan(3);
-    expect(JSON.parse(run.stdout).warnings).toBeGreaterThan(3);
+    // One warning for the unmatched key and one for all the labels the map left alone.
+    expect(JSON.parse(run.stdout).warnings).toBe(2);
     expect(JSON.parse(run.stderr).warnings[0].message).toContain('ghost');
     expect(readFileSync(join(dir, 'returns.vi.drawio'), 'utf8')).toContain('value="Duyệt&lt;br&gt;↳ return-request-label"');
     const bad = spawnSync(process.execPath, [join(scriptsDir, 'bin', 'cli.mjs'), 'relabel', 'vi.json', '--map', 'vi.json', '--out', 'x.drawio'], { cwd: dir, encoding: 'utf8' });

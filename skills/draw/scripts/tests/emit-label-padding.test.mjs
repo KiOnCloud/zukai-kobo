@@ -31,7 +31,7 @@ function plainNodes(ir) {
 }
 
 async function cellsOf(ir) {
-  const r = await emit(ir, 'drawio', { diagramId: 'd' });
+  const r = await emit(ir, 'drawio', { diagramId: 'd', allowSensitive: true });
   expect(r.ok).toBe(true);
   const { problems, cells } = checkDrawioStructure(r.output);
   expect(problems).toEqual([]);
