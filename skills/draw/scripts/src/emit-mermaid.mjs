@@ -54,7 +54,7 @@ export function emitMermaid(ir, options = {}) {
         const shown = (c) => (c.ref && !t.repeats(c.ref, c.label) ? `${c.label} ${options.refs?.get(c.ref) ? `↳ ${options.refs.get(c.ref).title}` : `↳ ${c.ref}`}` : c.label);
         const units = (text) => [...text].reduce((n, ch) => n + (/[\u1100-\uffdc]/.test(ch) ? 2 : 1), 0);
         const long = ir.components.find((c) => units(shown(c)) > ARCH_LABEL_MAX);
-        if (long) plan.fallback = `the label of "${long.id}" is longer than ${ARCH_LABEL_MAX} characters, which stretches the frame of its boundary over its neighbours`;
+        if (long) plan.fallback = `the label of "${long.id}"${shown(long) === long.label ? '' : ', with the line its ref adds,'} is longer than ${ARCH_LABEL_MAX} characters, which stretches the frame of its boundary over its neighbours`;
       }
       if (profile === 'figjam' || plan.fallback) {
         if (plan?.fallback) warnings.push({ path: '/connections', fallback: 'flowchart', message: `layout: architecture-beta cannot place this diagram without overlaps (${plan.fallback}); emitted as a flowchart with boundaries as subgraphs, or use --to drawio` });

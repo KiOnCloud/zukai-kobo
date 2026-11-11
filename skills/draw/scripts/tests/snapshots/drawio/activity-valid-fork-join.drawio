@@ -94,13 +94,13 @@
         <mxCell id="order-fulfilment:f8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-fulfilment:paid" target="order-fulfilment:sync">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="619" y="704"/>
-              <mxPoint x="391.5" y="704"/>
+              <mxPoint x="619" y="746"/>
+              <mxPoint x="391.5" y="746"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="order-fulfilment:f8:label" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-fulfilment:f8">
-          <mxGeometry x="0.45" y="0" relative="1" as="geometry">
+          <mxGeometry x="0.7" y="0" relative="1" as="geometry">
             <mxPoint x="0" y="-10" as="offset"/>
           </mxGeometry>
         </mxCell>

@@ -139,7 +139,9 @@ this call, the kind question stays, and its answer is dropped if the user picks
 `brainstorm`. Without that tool, send one text message with one numbered question per item
 that is still open (mode, kind, scope, view), each with its own lettered options (`1a`,
 `2b`), the suggestion marked; the kind question lists all seven kinds of the table below
-and is left out when `--kind` was given or the mode is `brainstorm`. Accept an option, a
+(for a request about the modules of one program, the three kinds of "Modules are not
+resources" first and in that order, then the rest) and is left out when `--kind` was given
+or the mode is `brainstorm`. Accept an option, a
 name or "default".
 
 | # | Kind | One-line description for the user | Best target |

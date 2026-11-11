@@ -140,6 +140,7 @@ export function inspect(ir) {
   return [
     ...checkModel(ir).warnings.map((w) => ({ stage: 'model', ...w })),
     ...checkDetail(ir).warnings.map((w) => ({ stage: 'detail', ...w })),
-    ...scanSecrets(ir).warnings.map((w) => ({ stage: 'secret-scan', ...w })),
+    // A credential by its form stops every emit: said here, so `ok: true` is not read as "will emit".
+    ...scanSecrets(ir).warnings.map((w) => ({ stage: 'secret-scan', ...w, ...(DEFINITE_KINDS.has(w.kind) ? { blocks: 'emit', hint: 'emit and bundle refuse this value on every target: replace it with a placeholder such as <db password>' } : {}) })),
   ];
 }

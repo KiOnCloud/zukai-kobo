@@ -1,4 +1,4 @@
-import { basename } from 'node:path';
+import { basename, dirname } from 'node:path';
 
 /**
  * The order of the diagrams of a run: a main diagram, then its business view, then its parts
@@ -14,11 +14,20 @@ import { basename } from 'node:path';
 const BUSINESS = '-business';
 const subjectOf = (id) => (id.endsWith(BUSINESS) ? id.slice(0, -BUSINESS.length) : id);
 
-/** The run slug of a run folder or of its `source/` folder; undefined when the name has none. */
+/**
+ * The run slug of a run folder, of its `source/` folder, or of a copy of the run inside it
+ * (`drafts/<x>`, `history/<rev>`); undefined when no folder on the way up is named like a run.
+ */
 export function runSlugOf(dir) {
-  const name = basename(dir) === 'source' ? basename(dir.slice(0, -'source'.length - 1)) : basename(dir);
-  const m = /^\d{8}_(.+)$/.exec(name);
-  return m ? m[1] : undefined;
+  let at = dir;
+  for (let up = 0; up < 4; up++) {
+    const m = /^\d{8}_(.+)$/.exec(basename(at));
+    if (m) return m[1];
+    const parent = dirname(at);
+    if (parent === at) break;
+    at = parent;
+  }
+  return undefined;
 }
 
 /**

@@ -382,8 +382,14 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
     for (const f of ir.flows) {
       const pl = plans.get(f.id);
       if (!f.guard || pl.type !== 'adjacent' || !guardRoom.has(pl.rs)) continue;
-      if (Math.abs(centerX(f.from) - centerX(f.to)) > 0.5) continue;
       if (!ir.flows.some((o) => o !== f && o.from === f.from && plans.get(o.id).type !== 'self')) continue;
+      // Straight down or with a turn towards a node in another lane: either way the branch
+      // meets, on that track, a flow that comes from another node.
+      const joined = ir.flows.some((o) => {
+        const q = plans.get(o.id);
+        return o.to === f.to && o.from !== f.from && (q.type === 'adjacent' ? q.rs === pl.rs : (q.type === 'skip' || q.type === 'column') && q.rt - 1 === pl.rs);
+      });
+      if (!joined && Math.abs(centerX(f.from) - centerX(f.to)) > 0.5) continue;
       if ((gapTracks.get(pl.rs) ?? []).at(-1) === pl.key) lateJoin.set(pl.rs, pl.key);
     }
     const gapY = (g, key) => {

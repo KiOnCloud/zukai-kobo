@@ -107,6 +107,29 @@ describe('order of a run (report item 2)', () => {
   });
 });
 
+describe('order of a draft and of a business step (found by the end-to-end run of the fixes)', () => {
+  it('orders a draft of a run like the run, also when it adds a diagram that sorts before the main one', () => {
+    const run = makeRun('login', { login: flow('Login'), 'login-01-mfa': flow('MFA') });
+    for (const [id, title] of [['login', 'Login'], ['login-01-mfa', 'MFA'], ['audit', 'Audit']]) write(join(run, 'drafts', 'a', 'source', `${id}.ir.json`), flow(title));
+    const r = cli('bundle', '--to', 'mermaid', '--out', join(run, 'drafts', 'a', 'login.md'), join(run, 'drafts', 'a'));
+    expect(r.out.order).toEqual(['login', 'login-01-mfa', 'audit']);
+  });
+
+  it('keeps one line on a business step whose part is titled like it, with the view in brackets', () => {
+    const step = (ref) => ({ schemaVersion: 1, kind: 'flowchart', title: 'Refund', nodes: [{ id: 's', label: 'Start', shape: 'terminal' }, { id: 'check', label: 'Kiểm tra điều kiện', ref }], edges: [{ id: 'e1', from: 's', to: 'check' }] });
+    const run = makeRun('refund', { 'refund-business': step('refund-01-check-business'), 'refund-01-check-business': flow('Kiểm tra điều kiện (nghiệp vụ)') });
+    expect(cli('bundle', '--to', 'drawio', '--out', join(run, 'refund.drawio'), run).code).toBe(0);
+    expect(readFileSync(join(run, 'refund.drawio'), 'utf8')).toContain('<UserObject label="Kiểm tra điều kiện" link="data:page/id,refund-01-check-business"');
+  });
+
+  it('says on validate that every emit will refuse a credential', () => {
+    const r = cli('validate', write(join(tmp('blocks'), 's.ir.json'), flow('S', { meta: { notes: ['password=Sup3rS3cret!'] } })));
+    expect(r.code).toBe(0);
+    expect(r.warnings[0]).toMatchObject({ stage: 'secret-scan', blocks: 'emit' });
+    expect(r.stderr).not.toContain('Sup3rS3cret');
+  });
+});
+
 describe('emit --to mermaid with a large hub (report item 3)', () => {
   it('emits a component with 60 neighbours instead of a stack trace', () => {
     const components = [{ id: 'hub', label: 'Hub' }];
