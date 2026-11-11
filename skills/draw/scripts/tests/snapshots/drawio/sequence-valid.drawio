@@ -117,8 +117,8 @@
         <mxCell id="login-with-password:b1:tab" value="alt password matches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
           <mxGeometry x="65" y="491" width="141" height="18" as="geometry"/>
         </mxCell>
-        <mxCell id="login-with-password:b1:sep-label-1" value="else password wrong" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=5;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="64" y="609" width="145" height="20" as="geometry"/>
+        <mxCell id="login-with-password:b1:sep-label-1" value="else password wrong" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="65" y="609" width="141" height="20" as="geometry"/>
         </mxCell>
         <mxCell id="login-with-password:b2:tab" value="loop until 3 attempts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
           <mxGeometry x="49" y="161" width="132" height="18" as="geometry"/>

@@ -216,7 +216,10 @@ export const STYLE = {
   frame: 'shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;',
   frameTabLabel: 'text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;',
   frameSeparator: 'line;strokeWidth=1;dashed=1;html=1;',
-  frameSeparatorLabel: 'text;html=1;align=left;verticalAlign=middle;spacingLeft=5;resizable=0;fillColor=#ffffff;strokeColor=none;',
+  // Opaque, so the dashed line does not run through the text; it starts inside the frame's
+  // border and ends close behind the text, so it covers neither the border nor more of a
+  // lifeline than the words do.
+  frameSeparatorLabel: 'text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;',
   // The spacing draws the room the layout counted when it sized the note: the text wraps
   // inside it, off the left border and short of the folded corner (draw.io adds 2 px itself).
   sequenceNote: `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=${NOTE_FOLD};spacingLeft=${NOTE_PAD.left - 2};spacingRight=${NOTE_PAD.right - 2};`,
@@ -516,7 +519,15 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
       const style = `${waypointStyle(e.style)}exitX=${sx};exitY=${round(exitY)};exitDx=0;exitDy=0;entryX=${sx};entryY=${round(entryY)};entryDx=0;entryDy=0;`;
       cells.push(edge({ id: cid(e.id), value: '', style, source: cid(e.from), target: cid(e.to), points }));
       // Text anchored at the loop's outer side, aligned away from it: a fixed 4 px gap, whatever the text width.
-      if (e.label) cells.push(edgeLabel({ id: `${cid(e.id)}:label`, background: e.labelBackground, value: htmlLabel(e.label), parent: cid(e.id), position: 0, offset: { x: dir * LABEL_GAP, y: 0 }, align: dir > 0 ? 'left' : 'right' }));
+      if (e.label) {
+        cells.push(edgeLabel({ id: `${cid(e.id)}:label`, background: e.labelBackground, value: htmlLabel(e.label), parent: cid(e.id), position: 0, offset: { x: dir * LABEL_GAP, y: 0 }, align: dir > 0 ? 'left' : 'right' }));
+        // The loop's own label is in the way of its end labels like any other: a cardinality
+        // placed on the loop's corner would run into its first letter.
+        const w = selfLoopLabelWidth(e.label);
+        const lines = String(e.label).split(/\r\n?|\n/).length;
+        const midY = (points[0].y + points[1].y) / 2;
+        taken.push({ x: dir > 0 ? outX + LABEL_GAP - 2 : outX - LABEL_GAP - w - 2, y: midY - 8 * lines - 2, width: w + 4, height: 16 * lines + 4 });
+      }
       endLabelCells(e, [{ x: edgeX, y: points[0].y }, ...points, { x: edgeX, y: points[1].y }]);
       continue;
     }
@@ -2098,7 +2109,7 @@ function emitSequence(ir, cid, warnings, refs) {
     onTop.push(vertex({ id: `${cid(f.id)}:tab`, value: htmlLabel(f.sections[0].label), style: STYLE.frameTabLabel, x: f.x + 1, y: f.y + 1, width: f.tabWidth + 4, height: 18, connectable: false }));
     f.sections.slice(1).forEach((s, i) => {
       cells.push(vertex({ id: `${cid(f.id)}:sep-${i + 1}`, value: '', style: STYLE.frameSeparator, x: f.x, y: s.y, width: f.width, height: 1, connectable: false }));
-      onTop.push(vertex({ id: `${cid(f.id)}:sep-label-${i + 1}`, value: htmlLabel(s.label), style: STYLE.frameSeparatorLabel, x: f.x, y: s.y - 10, width: s.width + 12, height: 20, connectable: false }));
+      onTop.push(vertex({ id: `${cid(f.id)}:sep-label-${i + 1}`, value: htmlLabel(s.label), style: STYLE.frameSeparatorLabel, x: f.x + 1, y: s.y - 10, width: s.width + 8, height: 20, connectable: false }));
     });
   }
   for (const p of ir.participants) {

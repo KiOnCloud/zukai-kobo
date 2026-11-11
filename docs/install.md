@@ -214,6 +214,24 @@ redraws it.
 A system that one component calls and that calls the same component back still took the
 long way in this version when the two were written as two connections; 2.0.3 fixes that.
 
+## Upgrading to 2.0.5
+
+Version 2.0.5 closes the low findings that the end-to-end test of the 2.0.4 fixes left open.
+Nothing changes in how a run is written or read:
+
+- A class self-relation keeps its cardinalities off its own label.
+- `relabel` reports a label on a line that became much longer than the one it replaces.
+- The branch label of a sequence block no longer covers the frame's border.
+- `emit --to mermaid` says when `architecture-beta` will cut the slug of a `ref` inside a word.
+- The secret scan quotes nothing of a mail address or telephone number, and the closing
+  contract names the placeholder addresses it does not report.
+
+Also new since 2.0.3 and not listed under 2.0.4 below: `validate` and every emit print
+`model:` and `size:` warnings; an unknown target and an option without its value exit 1,
+not 2; `preview` writes each file to a path of its own; `restore <run> undo|redo` takes one
+step along the run's history; hand-edited files of a rotated revision are kept under
+`history/extras/` and listed as `keptExtras`.
+
 ## Upgrading to 2.0.4
 
 Version 2.0.4 fixes what the end-to-end test of 2.0.3 found (`plans/reports/`). What changes

@@ -472,6 +472,67 @@ describe('what the second end-to-end run still found', () => {
   });
 });
 
+describe('the low findings of the closing round', () => {
+  it('keeps the cardinalities of a class self-relation off its own label', async () => {
+    const { emit } = await import('../src/pipeline.mjs');
+    const ir = { schemaVersion: 1, kind: 'class', title: 'Catalogue',
+      classes: [{ id: 'Category', label: 'Category', attributes: [{ name: 'name', type: 'string' }] }, { id: 'Product', label: 'Product', attributes: [{ name: 'sku', type: 'string' }] }],
+      relations: [{ id: 'has', from: 'Category', to: 'Product', kind: 'aggregation' }, { id: 'self', from: 'Category', to: 'Category', kind: 'association', label: 'danh mục cha của danh mục con', fromCardinality: '0..1', toCardinality: '0..*' }] };
+    const r = await emit(ir, 'drawio', { diagramId: 'd' });
+    expect(r.warnings.filter((w) => w.message.startsWith('layout:'))).toEqual([]);
+    const xml = r.output;
+    // The loop, its label right of it, and the two cardinalities: neither stands at the height of the label.
+    const loop = /id="d:self"[^>]*>\s*<mxGeometry[^>]*>\s*<Array as="points">\s*<mxPoint x="([\d.]+)" y="([\d.]+)"\/>\s*<mxPoint x="[\d.]+" y="([\d.]+)"/.exec(xml);
+    const mid = (Number(loop[2]) + Number(loop[3])) / 2;
+    for (const end of ['from-card', 'to-card']) {
+      const g = new RegExp(`id="d:self:${end}"[^>]*>\\s*<mxGeometry[^>]*>\\s*<mxPoint x="(-?[\\d.]+)" y="(-?[\\d.]+)"`).exec(xml);
+      const right = Number(g[1]) > 0;
+      const level = Math.abs((end === 'from-card' ? Number(loop[2]) : Number(loop[3])) + Number(g[2]) - mid) < 10;
+      expect(right && level, end).toBe(false);
+    }
+  });
+
+  it('reports a label on a line that became much longer than the one it replaces', async () => {
+    const { relabelDrawio } = await import('../src/relabel.mjs');
+    const { emit } = await import('../src/pipeline.mjs');
+    const xml = (await emit(loadFixture('flowchart', 'valid'), 'drawio', { diagramId: 'd' })).output;
+    expect(relabelDrawio(xml, { e3: 'có' }).warnings).toEqual([]);
+    const long = relabelDrawio(xml, { e3: 'có, tất cả mặt hàng trong giỏ đều còn trong kho' }).warnings;
+    expect(long).toHaveLength(1);
+    expect(long[0].message).toMatch(/^layout: the new label on this line is about \d+ px longer/);
+  });
+
+  it('starts the branch label of a sequence block inside the border of its frame', async () => {
+    const { emit } = await import('../src/pipeline.mjs');
+    const cells = checkDrawioStructure((await emit(loadFixture('sequence', 'valid'), 'drawio', { diagramId: 'd' })).output).cells;
+    const label = cells.find((c) => /:sep-label-1$/.test(c.id));
+    const frame = cells.find((c) => c.id === label.id.replace(/:sep-label-1$/, ''));
+    expect(Number(label.mxGeometry.x)).toBeGreaterThan(Number(frame.mxGeometry.x));
+  });
+
+  it('says so when architecture-beta will cut the slug of a ref inside a word, and keeps the form', async () => {
+    const { emit } = await import('../src/pipeline.mjs');
+    const r = await emit(loadFixture('architecture', 'valid-ref-parts'), 'mermaid');
+    expect(r.output).toContain('architecture-beta');
+    const cut = r.warnings.filter((w) => /is cut inside a word/.test(w.message));
+    expect(cut).toHaveLength(1);
+    expect(cut[0].message).toContain('"order-sync-02-store"');
+  });
+
+  it('quotes nothing of a mail address or a telephone number, and names a fitting placeholder', async () => {
+    const { scanSecrets } = await import('../src/scan-secrets.mjs');
+    const mail = scanSecrets({ a: 'Gửi tới an.nguyen@acme.vn' }).warnings[0].message;
+    expect(mail).not.toMatch(/an\.n|acme/);
+    expect(mail).toContain('<customer e-mail>');
+    expect(scanSecrets({ a: 'Gọi 0912345678' }).warnings[0].message).toContain('<customer phone>');
+    const dir = tmp('pii');
+    const r = cli('emit', '--to', 'figjam', write(join(dir, 'p.ir.json'), flow('P', { nodes: [{ id: 'start', label: 'Start', shape: 'terminal' }, { id: 'check', label: 'Gửi tới an.nguyen@acme.vn' }, { id: 'done', label: 'Done', shape: 'terminal' }] })));
+    expect(r.code).toBe(2);
+    expect(r.errors[0].hint).toContain('<customer e-mail>');
+    expect(r.stderr).not.toContain('an.n');
+  });
+});
+
 describe('history (report items 21 and 26)', () => {
   it('keeps the hand-edited files of a revision that is rotated out, and says where', () => {
     const run = makeRun('extras', { main: flow('Main') });

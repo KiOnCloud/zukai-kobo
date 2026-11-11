@@ -37,7 +37,7 @@ export async function emit(ir, target, options = {}) {
   if (blocking.length > 0) {
     return {
       ok: false,
-      errors: blocking.map((w) => ({ path: w.path, message: `refusing to emit for ${target}: ${w.message}`, hint: 'replace the value in the IR with a placeholder such as <db password>, or pass --allow-sensitive if it is not a secret' })),
+      errors: blocking.map((w) => ({ path: w.path, message: `refusing to emit for ${target}: ${w.message}`, hint: w.kind === 'personal-data' ? 'replace the value in the IR with a placeholder that names the role (<customer e-mail>), or pass --allow-sensitive if it is not personal data' : 'replace the value in the IR with a placeholder such as <db password>, or pass --allow-sensitive if it is not a secret' })),
       warnings,
     };
   }

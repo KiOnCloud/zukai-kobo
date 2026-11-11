@@ -117,7 +117,12 @@ part's title, so the review gate previews it beside the single files.
 An architecture diagram is written as `architecture-beta` only while it can be drawn well:
 when a component inside a boundary has a label longer than 16 characters (a `ref` adds the
 part's title to it), Mermaid would stretch the boundary's frame over its neighbours, so the
-CLI writes the flowchart form instead and says so in a `layout:` warning.
+CLI writes the flowchart form instead and says so in a `layout:` warning. Without a boundary
+the form stays, and one thing is only reported: `architecture-beta` breaks a label by width,
+so the slug that a `ref` shows in a single file is cut inside a word when it is longer than
+16 characters (`layout:` warning naming the slug). The combined file shows the part's title
+there, which breaks at its words; for a single file the remedy is `--to drawio` or a shorter
+slug.
 
 ## Where the output goes and how to paste it
 

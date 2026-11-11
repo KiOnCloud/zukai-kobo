@@ -101,6 +101,10 @@ Rules that hold in every mode:
     for `figjam`, whose labels leave the machine. A run folder is usually committed or sent
     to a client, so fix the IR for these too before delivering; leave one in only when the
     user says it is not a secret, and say so in the report.
+  - An address that stands for "an address" is not reported: one at `example.com`,
+    `example.org`, `example.net` or under `.example`, `.test`, `.invalid`, and one that
+    begins `user@`, `name@`, `email@` or `someone@`. Use such a form, or a placeholder in
+    angle brackets, wherever a label needs to show that an address goes there.
   - `--allow-sensitive` is the user's word that a finding is not a secret. Pass it only
     after the user said so for that value, never on your own.
 - Keep ids stable across re-runs so a user can diff IR files: derive them from names
