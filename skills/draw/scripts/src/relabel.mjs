@@ -253,6 +253,8 @@ const widest = (text) => Math.ceil(widestLine(text));
  * about 15 px.
  */
 const TEXT_INSET = 8;
+/** How much wider than drawn the text metrics may measure a line (see text-metrics.mjs). */
+const WIDTH_SLACK = 1.03;
 const LINE = 15;
 
 /**
@@ -280,7 +282,10 @@ function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus
     const now = block(newText);
     if (now.fill <= 1 || now.fill <= block(oldText).fill) return undefined;
     if (now.lines === 1) return `the new label needs about ${Math.ceil(now.widest)} px in a ${width}x${height} diamond that holds ${Math.floor(width * (1 - LINE / height))} px on one line`;
-    return `the new label wraps to ${now.lines} lines in a ${width}x${height} diamond that holds ${Math.floor((height * (1 - usable / width)) / LINE)} at that width`;
+    const holds = Math.floor((height * (1 - usable / width)) / LINE);
+    return holds >= 1
+      ? `the new label wraps to ${now.lines} lines in a ${width}x${height} diamond that holds ${holds} at that width`
+      : `the new label wraps to ${now.lines} lines, which reach the slanted sides of its ${width}x${height} diamond`;
   }
   // A subroutine keeps its label between its side bars, which take a tenth of the width each.
   const usable = Math.max((bars ? 0.8 * width : width) - spacing - (bars ? 4 : TEXT_INSET), 1);
@@ -307,7 +312,10 @@ function checkFitBelow(oldText, newText, width, wraps) {
     return need(newText) > Math.max(need(oldText), width) ? `the new label needs about ${need(newText)} px below its shape, where the old one took ${need(oldText)} px` : undefined;
   }
   if (widestWord(newText) > width && widestWord(oldText) <= width) return `a word of the new label is wider than the ${width} px the label below the shape wraps at`;
-  const lines = wrappedLines(newText, width);
+  // The text widths err on the wide side by up to 3 % (they size boxes, where too wide is
+  // safe). A warning must not: a label that the browser still fits on its line, such as eight
+  // full-width characters in 97 px, would be reported as wrapping.
+  const lines = wrappedLines(newText, width * WIDTH_SLACK);
   const room = wrappedLines(oldText, width);
   return lines > room ? `the new label wraps to ${lines} lines below its shape, where the layout left room for ${room}` : undefined;
 }

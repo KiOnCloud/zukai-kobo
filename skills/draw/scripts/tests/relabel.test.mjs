@@ -72,7 +72,7 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
     expect(oneLine.warnings).toHaveLength(1);
     expect(oneLine.warnings[0].message).toMatch(/needs about 117 px in a 140x80 diamond that holds 113 px on one line/);
     const twoLines = relabelDrawio(plain.output, { eligible: 'Are all the items in stock?' });
-    expect(twoLines.warnings[0].message).toMatch(/wraps to 2 lines in a 140x80 diamond that holds 0 at that width/);
+    expect(twoLines.warnings[0].message).toMatch(/wraps to 2 lines, which reach the slanted sides of its 140x80 diamond/);
     const longer = relabelDrawio(r.output, { ok: 'Is the file a PDF or a PNG, and is its size under the limit configured for the tenant and the folder?' });
     expect(longer.warnings).toHaveLength(1);
     expect(longer.warnings[0].path).toBe('upload:ok');

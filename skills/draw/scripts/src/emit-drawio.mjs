@@ -593,7 +593,7 @@ const BRANCH_LABEL_FAR = 60;
  * @param {Array<{x:number,y:number,width:number,height:number}>} boxes the steps of the chart, absolute
  * @param {Array<{x:number,y:number,width:number,height:number}>} frames the groups, absolute; an answer lies inside or outside one, never across its border
  */
-function placeBranchLabels(layout, edges, boxes, frames) {
+function placeBranchLabels(layout, edges, boxes, frames, direction) {
   const pathOf = (e) => { const r = layout.edges.get(e.id); return r?.start && r?.end ? [r.start, ...(r.points ?? []), r.end] : undefined; };
   const step = (a, b) => ({ length: Math.hypot(b.x - a.x, b.y - a.y), x: Math.sign(Math.round(b.x - a.x)), y: Math.sign(Math.round(b.y - a.y)) });
   // Length of the line two paths from one point have in common before they part.
@@ -637,18 +637,48 @@ function placeBranchLabels(layout, edges, boxes, frames) {
       const other = pathOf(o);
       if (other && Math.hypot(other[0].x - path[0].x, other[0].y - path[0].y) < 0.5) parted = Math.max(parted, shared(path, other));
     }
-    if (route.label && alongOf(path, route.label) - parted <= BRANCH_LABEL_FAR) continue;
     const width = Math.ceil(widestLine(e.label)) + 4;
     const height = 16 * String(e.label).split(/\r\n?|\n/).length;
+    const insideOf = (box) => (f) => box.x >= f.x && box.y >= f.y && box.x + box.width <= f.x + f.width && box.y + box.height <= f.y + f.height;
+    const takenAt = (box) => boxes.some((n) => overlaps(box, n)) || frames.some((f) => overlaps(box, f) && !insideOf(box)(f))
+      || edges.some((o) => { if (o === e) return false; const q = pathOf(o); return q?.some((p, i) => i > 0 && onLine(box, q[i - 1], p)) || (o.label && layout.edges.get(o.id)?.label && overlaps(box, layout.edges.get(o.id).label)); });
+    // In a left-to-right chart the branches part a few pixels from the tip, one going on
+    // straight and the others turning up or down, and the layout writes every answer in the
+    // corner of that split, where each reads as the answer of the line next to it. A branch
+    // that turns gets its answer beside the middle of the stretch it runs across the flow,
+    // away from the straight line; the branch that goes on gets it above its line, past the
+    // split.
+    if (acrossIsVertical(direction) && parted + 1 < total) {
+      const first = pointAlong(path, parted + 1);
+      let own;
+      if (first.vertical) {
+        // The stretch across the flow, from the split to its next corner.
+        let left = parted + 1;
+        let seg;
+        for (let i = 1; i < path.length && !seg; i++) {
+          const l = Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+          if (left <= l) seg = { a: path[i - 1], b: path[i], from: l - (l - left) - 1 }; else left -= l;
+        }
+        const startY = seg.a.y + first.dir * seg.from;
+        if (Math.abs(seg.b.y - startY) >= height + 2 * BRANCH_LABEL_GAP) {
+          const mid = (startY + seg.b.y) / 2;
+          own = [{ x: seg.a.x + LABEL_GAP, y: mid - height / 2, width, height }, { x: seg.a.x - LABEL_GAP - width, y: mid - height / 2, width, height }].find((b) => !takenAt(b));
+        }
+      } else {
+        const at = pointAlong(path, Math.min(parted + BRANCH_LABEL_GAP, total / 2)).point;
+        const above = { x: first.dir > 0 ? at.x : at.x - width, y: at.y - LABEL_GAP - height, width, height };
+        if (!takenAt(above)) own = above;
+      }
+      if (own) { route.label = own; continue; }
+    }
+    if (route.label && alongOf(path, route.label) - parted <= BRANCH_LABEL_FAR) continue;
     const { point, vertical, dir } = pointAlong(path, Math.min(parted + BRANCH_LABEL_GAP, total / 2));
     // Beside a vertical stretch the text starts right of the line; along a horizontal one it
     // stands above the line and runs on from the point in the direction of the branch.
     const box = vertical
       ? { x: point.x + LABEL_GAP, y: dir > 0 ? point.y : point.y - height, width, height }
       : { x: dir > 0 ? point.x : point.x - width, y: point.y - LABEL_GAP - height, width, height };
-    const inside = (f) => box.x >= f.x && box.y >= f.y && box.x + box.width <= f.x + f.width && box.y + box.height <= f.y + f.height;
-    const taken = boxes.some((n) => overlaps(box, n)) || frames.some((f) => overlaps(box, f) && !inside(f))
-      || edges.some((o) => { if (o === e) return false; const q = pathOf(o); return q?.some((p, i) => i > 0 && onLine(box, q[i - 1], p)) || (o.label && layout.edges.get(o.id)?.label && overlaps(box, layout.edges.get(o.id).label)); });
+    const taken = takenAt(box);
     // A place the layout gave stays when the one next to the decision is taken.
     if (taken && route.label) continue;
     route.label = box;
@@ -731,7 +761,7 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   if (unplaced) warnings.push({ path: '/groups', message: 'layout: a flow crosses the title of a group; no free place was found for it along the top of the group', hint: 'shorten the group label or change "direction"' });
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
-  placeBranchLabels(layout, edges, nodes.map((n) => drawBox(n, absoluteBox(n.id, layout, parentOf))), containers.map((c) => absoluteBox(c.id, layout, parentOf)));
+  placeBranchLabels(layout, edges, nodes.map((n) => drawBox(n, absoluteBox(n.id, layout, parentOf))), containers.map((c) => absoluteBox(c.id, layout, parentOf)), ir.direction);
   return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
 }
 
@@ -791,19 +821,20 @@ export function rowHeight(text, width) {
 /** Lines a bold title takes in a header of the given width: its own line breaks plus word wrap. */
 const headerLines = (text, width) => wrapText(text, Math.max(safeWidth(width - 8), 1), { bold: true }).lines;
 
-function tableNode(id, header, rows, { headerHeight: minHeaderHeight = ROW, link } = {}) {
+function tableNode(id, header, rows, { headerHeight: minHeaderHeight = ROW, rowHeights, link } = {}) {
   const widest = Math.max(widestLine(header, { bold: true }), ...rows.map((r) => widestLine(r.text ?? '')));
   const width = Math.min(TABLE_MAX_WIDTH, Math.max(160, roomFor(widest) + 24));
   // The header grows with its lines as a row does: a stereotype, the title of a ref, and
   // any of them that is wider than the table and wraps.
   const headerHeight = Math.max(minHeaderHeight, ROW + HEADER_LINE * (headerLines(header, width) - 1));
-  const heightOf = (r) => (r.separator ? 8 : rowHeight(r.text, width));
-  const height = headerHeight + rows.reduce((h, r) => h + heightOf(r), 0);
+  // A row that several relations end at on one side is as tall as their markers need (`rowHeights`).
+  const heightOf = (r, i) => (r.separator ? 8 : Math.max(rowHeight(r.text, width), rowHeights?.get(i) ?? 0));
+  const height = headerHeight + rows.reduce((h, r, i) => h + heightOf(r, i), 0);
   let y = headerHeight;
   const rowTops = [];
   const children = rows.map((r, i) => {
     const rowY = y;
-    const h = heightOf(r);
+    const h = heightOf(r, i);
     rowTops.push({ y: rowY, height: h });
     y += h;
     return (parentId) => (r.separator
@@ -855,7 +886,7 @@ async function emitEr(ir, cid, warnings, refs) {
   });
   // The header is as tall as its anchor band or its title lines (a ref adds one), whichever is more.
   const shown = new Map(ir.entities.map((e, i) => [e.id, refLabel(e.label, e.ref, refs, `/entities/${i}/ref`, warnings)]));
-  const buildNodes = (headerHeights) => ir.entities.map((e) => tableNode(e.id, shown.get(e.id).label, rowsOf(e), { headerHeight: headerHeights.get(e.id) ?? ROW, link: shown.get(e.id).link }));
+  const buildNodes = (headerHeights, rowHeights = new Map()) => ir.entities.map((e) => tableNode(e.id, shown.get(e.id).label, rowsOf(e), { headerHeight: headerHeights.get(e.id) ?? ROW, rowHeights: rowHeights.get(e.id), link: shown.get(e.id).link }));
   const edgeStyle = (r) => `${STYLE.erEdge}startArrow=${ER_ARROW[r.fromCardinality]};startFill=0;endArrow=${ER_ARROW[r.toCardinality]};endFill=0;${r.identifying === false ? 'dashed=1;' : ''}`;
   const edges = ir.relations.map((r) => ({ id: r.id, from: r.from, to: r.to, label: r.label, style: edgeStyle(r) }));
   const spacing = { nodeNode: 60, layer: 80 };
@@ -896,7 +927,17 @@ async function emitEr(ir, cid, warnings, refs) {
     if (side === 'top' || side === 'bottom') continue;
     headerHeights.set(entity, Math.max(headerHeights.get(entity) ?? ROW, ROW + ER_ANCHOR_PITCH * (group.length - 1)));
   }
-  nodes = buildNodes(headerHeights);
+  // The same for an attribute row that several relations end at on one side (a key that
+  // two tables refer to): 8 px apart their markers would lie on top of each other.
+  const rowHeights = new Map();
+  for (const [key, group] of groups) {
+    const [entity, side, row] = key.split('|');
+    if (row === 'header' || group.length < 2 || side === 'top' || side === 'bottom' || side === 'loop') continue;
+    if (!rowHeights.has(entity)) rowHeights.set(entity, new Map());
+    const rows = rowHeights.get(entity);
+    rows.set(Number(row), Math.max(rows.get(Number(row)) ?? 0, ROW + ER_ANCHOR_PITCH * (group.length - 1)));
+  }
+  nodes = buildNodes(headerHeights, rowHeights);
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   // A self-relation needs room beside its entity (the loop takes the side with fewer ports);
   // ELK gets the entity that much wider on both sides and the table is drawn centred in it.
@@ -932,7 +973,7 @@ async function emitEr(ir, cid, warnings, refs) {
       group.forEach((end, k) => {
         const n = nodeById.get(end.entity);
         const along = end.row !== undefined
-          ? n.rowTops[end.row].y + n.rowTops[end.row].height / 2 + (group.length > 1 ? (k - (group.length - 1) / 2) * 8 : 0)
+          ? n.rowTops[end.row].y + n.rowTops[end.row].height / 2 + (group.length > 1 ? (k - (group.length - 1) / 2) * (end.side === 'left' || end.side === 'right' ? ER_ANCHOR_PITCH : 8) : 0)
           : ROW / 2 + ER_ANCHOR_PITCH * k;
         end.relY = along / n.height;
         if (end.side === 'loop') return;
