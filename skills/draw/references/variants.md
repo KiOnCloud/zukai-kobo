@@ -124,9 +124,11 @@ draw.io's 12 px font and wrapped where draw.io wraps; a cell and its canvas
 copy give one warning naming both pages. The fix is a shorter label, or a re-emit from a
 translated IR when the user prefers resized shapes over a preserved layout. A name
 below a figure (an AWS icon, a client) is the one label `relabel` gives more room: the figure
-does not hold it, so its wrap width grows, up to 200 px, until the new name takes no more
-lines than the old one. A name that is still reported after that is longer than the room
-between two icons: when more than half of the icon names of a page are reported, say so and
+does not hold it, so its wrap width grows until the new name takes no more lines than the old one,
+as far as the frame around the figure and the figures beside it leave room (never across a
+frame line, at most 200 px). A name that is still reported after that is longer than that
+room and wraps, which can put its second line beside a connection that leaves the icon
+downwards: when more than half of the icon names of a page are reported, say so and
 offer the translated IR for that diagram instead of delivering the relabelled page.
 
 `relabel` writes into each page it changed the labels the page was laid out for (a

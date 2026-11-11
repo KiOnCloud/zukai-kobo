@@ -416,6 +416,27 @@ describe('what the second end-to-end run still found', () => {
     expect(drift.pages[0].changes.filter((c) => c.change === 'restyled')).toEqual([]);
   });
 
+  it('never widens the name below an icon across the line of the frame the icon stands in', async () => {
+    const { relabelDrawio } = await import('../src/relabel.mjs');
+    const { emit } = await import('../src/pipeline.mjs');
+    const ir = { schemaVersion: 1, kind: 'architecture', title: 'Shop', direction: 'LR',
+      components: [{ id: 'app', label: 'App', kind: 'client' }, { id: 'alb', label: 'ALB', icon: 'aws:elastic_load_balancing' }, { id: 'api', label: 'API', icon: 'aws:fargate' }],
+      boundaries: [{ id: 'vpc', label: 'VPC', group: 'aws:vpc', children: ['alb', 'api'] }],
+      connections: [{ id: 'c1', from: 'app', to: 'alb', label: 'HTTPS' }, { id: 'c2', from: 'alb', to: 'api', label: 'HTTP' }] };
+    const out = relabelDrawio((await emit(ir, 'drawio', { diagramId: 'shop' })).output, { alb: 'アプリケーションロードバランサーの入口', api: 'ロイヤルティAPIサービス（ECS Fargate）' });
+    const cells = checkDrawioStructure(out.output).cells;
+    const frame = Number(cells.find((c) => c.id === 'shop:vpc').mxGeometry.width);
+    for (const id of ['shop:alb', 'shop:api']) {
+      const c = cells.find((x) => x.id === id);
+      const centre = Number(c.mxGeometry.x) + Number(c.mxGeometry.width) / 2;
+      const half = Number(/labelWidth=(\d+)/.exec(c.style)[1]) / 2;
+      expect(centre - half, id).toBeGreaterThanOrEqual(0);
+      expect(centre + half, id).toBeLessThanOrEqual(frame);
+    }
+    // What does not fit that room is reported, not drawn across the frame.
+    expect(out.warnings.length).toBeGreaterThanOrEqual(1);
+  });
+
   it('relabels an attribute row of an entity by its row key', async () => {
     const run = makeRun('data', { data: loadFixture('er', 'valid') });
     const file = join(run, 'data.drawio');

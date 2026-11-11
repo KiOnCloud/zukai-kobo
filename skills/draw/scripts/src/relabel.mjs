@@ -71,6 +71,7 @@ export function relabelDrawio(xml, map) {
         name: c[1], attrText: c[2], attrs: a, index: c.index, length: c[0].length, selfClosing: c[0].endsWith('/>'),
         labelAttr: c[1] === 'UserObject' ? 'label' : 'value',
         style: a.style ?? (inner ? parseAttrs(inner[1]).style : '') ?? '',
+        parent: a.parent ?? (inner ? parseAttrs(inner[1]).parent : undefined),
         geometry: geometry ? parseAttrs(geometry[1]) : null,
       });
     }
@@ -144,8 +145,9 @@ export function relabelDrawio(xml, map) {
         if (/verticalLabelPosition=bottom/.test(c.style) && wraps && /labelWidth=\d+/.test(c.style)) {
           const was = Number(c.style.match(/labelWidth=(\d+)/)[1]);
           const room = wrappedLines(c.parts.main, was);
+          const limit = Math.max(was, Math.min(BELOW_MAX, roomBelow(c, p.cells)));
           let width = was;
-          while (width < BELOW_MAX && wrappedLines(c.newText, width) > room) width += 4;
+          while (width + 4 <= limit && wrappedLines(c.newText, width) > room) width += 4;
           if (width !== was && wrappedLines(c.newText, width) <= room) {
             c.style = c.style.replace(/labelWidth=\d+/, `labelWidth=${width}`);
             c.restyled = true;
@@ -277,6 +279,8 @@ const TEXT_INSET = 8;
 const WIDTH_SLACK = 1.03;
 /** The widest a name below a figure may become when a relabel lets it grow, in px. */
 const BELOW_MAX = 200;
+/** Room kept between a name below a figure and the line of the frame around it, in px. */
+const FRAME_CLEAR = 6;
 const LINE = 15;
 
 /**
@@ -320,6 +324,32 @@ function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus
   }
   const need = widest(newText) + TEXT_INSET;
   return need > width ? `the new label needs about ${need} px in a ${width} px box that does not wrap` : undefined;
+}
+
+/**
+ * How wide a name below a figure may become where the figure stands: twice the distance from
+ * its centre to the nearer side of the frame it lies in (a name must not cross a frame line)
+ * and to the middle between it and each figure beside it on its row (their names share that
+ * room). Coordinates of cells with one parent are relative to that parent, so they compare.
+ */
+function roomBelow(cell, cells) {
+  const g = cell.geometry;
+  const box = (x) => ({ x: Number(x.geometry?.x ?? 0), y: Number(x.geometry?.y ?? 0), width: Number(x.geometry?.width ?? 0), height: Number(x.geometry?.height ?? 0) });
+  const own = box(cell);
+  const centre = own.x + own.width / 2;
+  let half = Infinity;
+  // A self-closing cell (the page's own layer) has no geometry of its own.
+  const frame = cells.find((x) => x.attrs.id === cell.parent && !x.selfClosing && x.geometry?.width !== undefined);
+  if (frame) half = Math.min(half, centre - FRAME_CLEAR, Number(frame.geometry.width) - centre - FRAME_CLEAR);
+  for (const other of cells) {
+    if (other === cell || other.selfClosing || other.parent !== cell.parent || !other.geometry || other.geometry.relative === '1' || other.geometry.width === undefined) continue;
+    if (!/verticalLabelPosition=bottom/.test(other.style)) continue;
+    const o = box(other);
+    // On one row: the names stand side by side below the two figures.
+    if (o.y + o.height <= own.y || own.y + own.height <= o.y) continue;
+    half = Math.min(half, Math.abs(o.x + o.width / 2 - centre) / 2 - FRAME_CLEAR / 2);
+  }
+  return g && Number.isFinite(half) ? Math.floor(2 * half) : Infinity;
 }
 
 /**
