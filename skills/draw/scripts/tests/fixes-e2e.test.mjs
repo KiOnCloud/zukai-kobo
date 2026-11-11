@@ -600,6 +600,27 @@ describe('the combined Mermaid file (report items 13 and 22)', () => {
   }, 240_000);
 });
 
+describe('preview of a drawing whose labels reach past its shapes', () => {
+  it.skipIf(!loadPlaywright())('fills the image instead of leaving empty bands above and below', async () => {
+    const { preview } = await import('../src/preview.mjs');
+    const { decodePng } = await import('../src/png.mjs');
+    const dir = tmp('bands');
+    cli('emit', '--to', 'drawio', join(scriptsDir, 'fixtures', 'state', 'valid.json'), '--out', join(dir, 'state.drawio'));
+    const r = await preview(join(dir, 'state.drawio'), { out: join(dir, 'state.png'), maxPx: 900, renderer: 'drawio-web' });
+    expect(r.ok, JSON.stringify(r.errors)).toBe(true);
+    const png = decodePng(readFileSync(r.files[0]));
+    const stride = png.width * png.bpp;
+    const inked = (y) => png.pixels.subarray(y * stride, (y + 1) * stride).some((v) => v < 200);
+    let top = 0;
+    while (top < png.height && !inked(top)) top += 1;
+    let bottom = png.height - 1;
+    while (bottom > 0 && !inked(bottom)) bottom -= 1;
+    // The drawing reaches to within the margin of both ends of the image.
+    expect(top).toBeLessThan(png.height * 0.08);
+    expect(png.height - bottom).toBeLessThan(png.height * 0.08);
+  }, 180_000);
+});
+
 describe('preview path (report item 23)', () => {
   it('gives every input file a path of its own, and one file the same path each time', () => {
     const a = defaultPreviewPath('/work/a/diagrams/20261111_x/x.drawio');

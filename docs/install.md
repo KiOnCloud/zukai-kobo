@@ -248,6 +248,7 @@ Nothing changes in how a run is written or read:
 - `relabel` reports a label on a line that became much longer than the one it replaces.
 - The branch label of a sequence block no longer covers the frame's border.
 - `emit --to mermaid` says when `architecture-beta` will cut the slug of a `ref` inside a word.
+- `preview` no longer leaves empty bands around a drawing whose labels reach past its shapes.
 - The secret scan quotes nothing of a mail address or telephone number, and the closing
   contract names the placeholder addresses it does not report.
 
