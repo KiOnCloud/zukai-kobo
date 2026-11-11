@@ -1,6 +1,6 @@
 {
   "name": "zukai",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Turn clarified requirements, source code or a raw idea into a validated JSON diagram model and emit Mermaid, draw.io or FigJam (sequence, flowchart, state, ER, class, architecture).",
   "author": { "name": "KiOnCloud" },
   "license": "MIT",
