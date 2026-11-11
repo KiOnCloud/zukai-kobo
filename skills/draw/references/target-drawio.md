@@ -24,11 +24,14 @@ usual warnings come from the secret scan.
 ## Combined file for a run
 
 ```bash
-node "<skill-dir>/scripts/bin/cli.mjs" bundle --to drawio --out ./diagrams/<yyyymmdd>_<run-slug>/<run-slug>.drawio --title "<feature>" ./diagrams/<yyyymmdd>_<run-slug>/source/*.ir.json
+node "<skill-dir>/scripts/bin/cli.mjs" bundle --to drawio --out ./diagrams/<yyyymmdd>_<run-slug>/<run-slug>.drawio --title "<feature>" ./diagrams/<yyyymmdd>_<run-slug>
 ```
 
-Writes every diagram of the run into one file (one named page per diagram, each page headed by its title), in the order given: main diagram
-first. Every IR is validated before anything is written; errors and warnings carry the
+Writes every diagram of the run into one file (one named page per diagram, each page headed by its title). Given the run folder, the CLI takes the IRs of its `source/` in run
+order: the main diagram (the one named after the run), its business view, then each part
+followed by its business view; the result lists that order. IR files given one by one are
+taken in the order given, which is how a subset is bundled; a shell pattern such as
+`source/*.ir.json` is not that order (it puts the parts first). Every IR is validated before anything is written; errors and warnings carry the
 `diagram` id they belong to. Individual files in `drawio/` stay the reusable copies.
 
 Inside the bundle an element with `ref` (a flowchart node, an activity action, a sequence
@@ -42,8 +45,8 @@ slug text, gets no link, and the CLI warns (`ref "<slug>" is not in this bundle`
 ### Canvas page
 
 ```bash
-node "<skill-dir>/scripts/bin/cli.mjs" bundle --to drawio --out <run-slug>.drawio --title "<feature>" --canvas all --gap 120 source/*.ir.json
-node "<skill-dir>/scripts/bin/cli.mjs" bundle --to drawio --out <run-slug>.drawio --title "<feature>" --canvas login,login-01-mfa source/*.ir.json
+node "<skill-dir>/scripts/bin/cli.mjs" bundle --to drawio --out <run-folder>/<run-slug>.drawio --title "<feature>" --canvas all --gap 120 <run-folder>
+node "<skill-dir>/scripts/bin/cli.mjs" bundle --to drawio --out <run-folder>/<run-slug>.drawio --title "<feature>" --canvas login,login-01-mfa <run-folder>
 ```
 
 `--canvas` adds a first page, named after `--title` (or `Canvas`), that holds the listed
@@ -62,13 +65,15 @@ node "<skill-dir>/scripts/bin/cli.mjs" relabel <file.drawio> --map <labels.json>
 ```
 
 Applies a JSON map of IR id (or `<diagram id>:<ir id>` for one page of a bundle, `title`
-for the page title) to new label text. Ids and geometry are untouched, so manual edits and
+for the page title, `canvas:title` for the canvas page; a label on a line is keyed by the id
+of its edge, message or flow) to new label text. Ids and geometry are untouched, so manual edits and
 the layout survive; a leading `«stereotype»` line and a bold title are kept, and the
 `↳ <sub-diagram>` line of a `ref` step follows the target page's new title when the map
 has `<target id>:title`. Hand-copied cells (generated ids) get the translation of a replaced
 cell with the same source text; every labelled text still untouched is listed once with
-the places it occurs, except labels without letters and texts named in the map's `$keep`
-list. Boxes are not resized: a label that wraps to more lines than its box holds, has an
+the places it occurs (`untouched` on stdout, one summary line among the warnings), except
+labels without letters and texts named in the map's `$keep` list. Each changed page records
+the labels it was laid out for, so `drift` does not take the kept layout for hand edits. Boxes are not resized: a label that wraps to more lines than its box holds, has an
 unbreakable word wider than its box, overflows a non-wrapping box, no longer fits inside
 a decision's rhombus (measured at the wrap width its label spacing leaves), or, for a name
 drawn below a client's screen figure, takes more lines at its wrap width than the old name did (by
@@ -141,9 +146,12 @@ moving shapes by hand, so the IR stays the source of truth.
 | node or action with `ref` | subroutine shape; in a bundle the label's second line is the target title and the cell is a `UserObject` with `link="data:page/id,<page id>"`, draw.io's page link |
 | message, state, component, class or entity with `ref` | keeps its own shape; the title line and the page link are the same as for a node. A message's row grows by one label line, so the title stands above its own arrow, and the linked edge is a `UserObject` around the edge cell; a class, entity or composite state header grows by one line, and by more when a long title wraps at the width of the table or of the composite |
 
-Cell ids are `<diagram-slug>:<ir-id>`; derived cells add a suffix such as `:label`, `:row-0`
-or `:actor`. Page ids in a bundle are the diagram ids, so links between pages stay stable
-across re-runs.
+Cell ids are `<page id>:<ir-id>`; derived cells add a suffix such as `:label`, `:row-0`
+or `:actor`. The page id is the diagram id (the IR file name without `.ir.json`) in lower
+case with every character outside `a-z0-9` as a hyphen, at its full length, so links between
+pages stay stable across re-runs and two long names never share a page. `bundle` refuses two
+IR files whose names give the same page id. Files written by 2.0.3 or older have page ids cut
+at 40 characters; `drift` and `relabel` read them as they are.
 
 ## Layout rules
 

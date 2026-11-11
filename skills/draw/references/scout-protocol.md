@@ -12,7 +12,10 @@ writes the file and runs the closing contract in `references/closing-contract.md
   check the diagram against the code.
 - The kind comes from the user: `SKILL.md` asks for it before this protocol starts. Never
   switch kinds on your own; if the code suggests another kind would fit better, say so in one
-  line and keep the one chosen.
+  line and keep the one chosen. One case is settled before this protocol starts: a request
+  for the architecture of the modules of one program is asked as a kind question in the
+  opening call (`SKILL.md`, "Modules are not resources"), so the kind you get here is
+  already the one that can show them.
 - Scope before reading. Ask the user for the entry point only when the request does not name
   one and the repository has more than one plausible candidate; otherwise pick the most
   specific match and say which one you chose.

@@ -22,7 +22,7 @@ Without `--out` the Mermaid text goes to stdout. Either way:
 
 ## Warnings
 
-Each warning has a `stage` (`feature-matrix`, `secret-scan`, `emit`), a JSON-pointer `path`
+Each warning has a `stage` (`feature-matrix`, `model`, `detail`, `secret-scan`, `emit`), a JSON-pointer `path`
 into the IR and a `message` that names the element and what changed. Print every warning to
 the user verbatim, as a bulleted list, before showing the diagram. Never drop one, never
 summarise several into "some features were degraded".
@@ -71,11 +71,12 @@ Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
 ## Combined file for a run
 
 ```bash
-node "<skill-dir>/scripts/bin/cli.mjs" bundle --to mermaid --out ./diagrams/<yyyymmdd>_<run-slug>/<run-slug>.md --title "<feature>" ./diagrams/<yyyymmdd>_<run-slug>/source/*.ir.json
+node "<skill-dir>/scripts/bin/cli.mjs" bundle --to mermaid --out ./diagrams/<yyyymmdd>_<run-slug>/<run-slug>.md --title "<feature>" ./diagrams/<yyyymmdd>_<run-slug>
 ```
 
-Writes every diagram of the run into one file (one heading and one fenced `mermaid` block per diagram, with a `Source:` line pointing at its IR), in the order given: main diagram
-first. Every IR is validated before anything is written; errors and warnings carry the
+Writes every diagram of the run into one file (one heading and one fenced `mermaid` block per diagram, with a `Source:` line pointing at its IR). Given the run folder, the IRs of its
+`source/` are taken in run order, main diagram first (see `target-drawio.md`); files given
+one by one keep the order given. Every IR is validated before anything is written; errors and warnings carry the
 `diagram` id they belong to. Individual files in `mermaid/` stay the reusable copies.
 
 Inside the bundle an element with `ref` (a node, an action, a message, a state, a component,
@@ -83,7 +84,8 @@ a class or an entity) shows the referenced diagram's title (`↳ <title>`) on a 
 line, the same text as the draw.io bundle, so the two files read alike; an
 `architecture-beta` label has no line break, so there the title follows on the same line. Mermaid gets no link: Markdown
 renderers such as GitHub strip `click` directives, and the sub-diagram is the next heading
-in the same file anyway. A `ref` the bundle does not hold keeps the slug and the CLI warns.
+in the same file anyway. An element whose part carries the very title the element has as
+its label keeps its one line: the heading below already says it. A `ref` the bundle does not hold keeps the slug and the CLI warns.
 A single `emit` always shows the slug. `--canvas` is refused for this target: the document
 already holds every diagram in order, which is what a canvas gives draw.io.
 
@@ -105,8 +107,17 @@ node "<skill-dir>/scripts/bin/cli.mjs" preview ./diagrams/order-checkout.mmd --m
 Renders the text with Mermaid 12.3 in a local Chromium through Playwright into a PNG in the
 system temp directory (the text is rendered locally; only the Mermaid library is fetched).
 The image is for your own inspection, not for the user; do not mention or offer it. Exit 1
-with a hint when Playwright is not installed; the step is optional. Look at the PNG as
-described in `SKILL.md` before reporting.
+with a hint when Playwright is not installed; the step is optional. Look at the PNG as the
+review gate of `closing-contract.md` describes before reporting.
+
+`preview <run-slug>.md` renders the combined file: one image per fenced block, in the order
+of the document, all listed under `files`. That is the only place where a `ref` shows the
+part's title, so the review gate previews it beside the single files.
+
+An architecture diagram is written as `architecture-beta` only while it can be drawn well:
+when a component inside a boundary has a label longer than 16 characters (a `ref` adds the
+part's title to it), Mermaid would stretch the boundary's frame over its neighbours, so the
+CLI writes the flowchart form instead and says so in a `layout:` warning.
 
 ## Where the output goes and how to paste it
 

@@ -109,7 +109,9 @@ function comparePage(actual, expected, layout = expected) {
     if (a.position !== g.position || a.points !== g.points) changes.push({ cell: id, change: 'moved' });
     if (a.size !== g.size) changes.push({ cell: id, change: 'resized', detail: `${g.size} -> ${a.size}` });
     if (a.parent !== e.parent || a.source !== e.source || a.target !== e.target) changes.push({ cell: id, change: 'reconnected' });
-    if (a.style !== e.style || a.link !== e.link) changes.push({ cell: id, change: 'restyled' });
+    // A style holds what the layout decided too (the anchors of a line, the spacing of a
+    // diamond), so it may be that of the layout the file was drawn with.
+    if ((a.style !== e.style && a.style !== g.style) || a.link !== e.link) changes.push({ cell: id, change: 'restyled' });
   }
   if (actual.name !== expected.name) changes.unshift({ cell: '(page)', change: 'renamed', detail: `"${expected.name}" -> "${actual.name}"` });
   return changes.map((c) => (c.detail === undefined ? { cell: c.cell, change: c.change } : c));

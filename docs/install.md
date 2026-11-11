@@ -133,7 +133,12 @@ leaves one already at this version alone. It copies into a temporary sibling and
 copies into place only when all of them are complete, so an interrupted copy never leaves a
 half-copied folder; if a move itself fails (a locked folder on Windows), one skill can end up
 updated and the other not, and running the installer again finishes the job. It never runs `npm`, never touches the network, and never deletes an existing copy:
-a differing one is moved to `<name>.bak-<timestamp>` first.
+a differing one is moved out of the skills folder first, to
+`<project>/.agents/zukai-backups/<name>-<timestamp>` (a backup inside `skills/` would still
+be a skill named `zukai` and compete with the new one). Backups that an earlier version left
+as `<name>.bak-<timestamp>` inside `skills/` are moved there on the next run. The copy holds
+what the skills run with (`SKILL.md`, `references/`, `scripts/bin/cli.mjs` and the feature
+matrix, about 2.3 MB); the sources, tests and fixtures of the CLI stay in the repository.
 
 To update, pull the repository and run the installer again. Exit codes:
 
@@ -144,8 +149,8 @@ To update, pull the repository and run the installer again. Exit codes:
 | 3 | An installed copy is newer than the source; nothing changed |
 
 In Codex, invoke the skills with `$zukai` and `$zukai-revise`, or let them route from their
-descriptions. To uninstall, delete both folders (`zukai/` and `zukai-revise/`) and any
-`*.bak-<timestamp>` copies you no longer need.
+descriptions. To uninstall, delete both folders (`zukai/` and `zukai-revise/`) and the
+`zukai-backups/` folder beside `skills/` when you no longer need its copies.
 
 ## Claude Code without the plugin (fallback)
 
@@ -234,7 +239,7 @@ not change with the name, so existing `.ir.json` files keep working.
 
 - Folder copy: run the installer again. It installs `zukai/` and moves an
   `it-diagrams/` folder it wrote earlier (recognised by its `.it-diagrams-version` file) to
-  `it-diagrams.bak-<timestamp>`, so the two do not compete. A folder with that name and no
+  `zukai-backups/it-diagrams-<timestamp>` beside the skills folder, so the two do not compete. A folder with that name and no
   version file is left untouched.
 
 ## Pre-release checks for maintainers

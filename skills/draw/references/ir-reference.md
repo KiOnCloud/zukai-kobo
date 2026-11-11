@@ -106,7 +106,7 @@ Collections: `participants` (at least one), `messages` (in time order), `blocks`
 | participant | `id`, `label`, `kind`: `participant` (default), `actor`, `database`, `boundary`, `control`, `entity` |
 | message | `id`, `from`, `to`, `label`, `kind`: `sync` (default), `async`, `return`; `ref`: diagram id of the sub-diagram that details what this call does (its IR file name without `.ir.json`); the label gets the part's title as a second line above the arrow |
 | block | `id`, `kind`: `alt`, `opt`, `loop`, `par`; `label`; `messages`: ids of every message inside the first section; `branches` (only `alt` and `par`): `[{ "label", "messages" }]` for each `else` or `and` section |
-| note | `id`, `label`, `participants`: one id (`position`: `left`, `right` (default), `over`) or two ids (always over both); `after`: the message id it follows, omit to place it first |
+| note | `id`, `label`, `participants`: one id (`position`: `left`, `right` (default), `over`) or two ids (always over both); `after`: the id of the message it follows, or the id of a block to stand below that block (after the last message of a block's last section a note would be drawn inside that section), omit to place it first |
 
 Block rules: a section lists every message between its first and its last one, including
 messages that belong to nested blocks. Sections of one block are adjacent. Two blocks are
@@ -304,6 +304,11 @@ parts do with each other belongs to the other kinds, so keep the business detail
   a security group, a permission, a route or a port.
 - A connection carries no step number. Which call comes first is the order of a `sequence`
   or `activity` diagram; here every connection holds at once.
+- The modules, packages or layers of one program are parts of one resource too. A picture of
+  them is a `class` diagram (one class per module with the stereotype `module`,
+  `dependency` relations for what imports what) or a `flowchart` of the path a call takes,
+  not an architecture diagram with one component per module. The CLI cannot tell a module
+  from a service, so this one is the author's to keep and the reviewer's to check.
 
 The CLI reports the breaches it can tell from the IR as `detail:` warnings on every emit:
 

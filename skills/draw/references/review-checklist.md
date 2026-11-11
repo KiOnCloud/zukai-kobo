@@ -65,7 +65,7 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
     that section, and the order of calls in a part of another kind linked with `ref`. A
     CLI warning that starts with `detail:` names such a breach and is resolved. It stays
     only when the user chose to keep it, which a `meta.notes` entry starting with
-    `detail accepted:` records (`closing-contract.md`); without that entry it is a `wrong`
+    `detail accepted:` records with the ids it covers in quotes (`closing-contract.md`); without that entry it is a `wrong`
     finding, and with it the breach it names is not raised again. The CLI reads a label by
     its form (a path, an identifier, a step number, two data words joined by a slash); a
     breach written as plain prose ("writes the sync date of each office") is for the

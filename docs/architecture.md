@@ -6,8 +6,8 @@ One page on how the skill is put together and the rule that keeps it honest.
 
 ```text
 clarify (interview)   ─┐
-scout (read code)     ─┼─> IR file (JSON) ─> validate ─> feature matrix ─> detail ─> secret scan ─> emit ─> mermaid | drawio | figjam
-brainstorm (idea) ─> clarify ┘                                                                        └─ figjam falls back to mermaid
+scout (read code)     ─┼─> IR file (JSON) ─> validate ─> feature matrix ─> model ─> detail ─> secret scan ─> emit ─> mermaid | drawio | figjam
+brainstorm (idea) ─> clarify ┘                                                                                  └─ figjam text is pasted by hand when no Figma tool is connected
 ```
 
 - **Input flows** are instructions, not code: `skills/draw/SKILL.md` routes on the
@@ -29,6 +29,12 @@ brainstorm (idea) ─> clarify ┘                                              
   and turns `degraded` cells into warnings that name the element and what is lost, and
   `unsupported` cells into errors. Tests assert the matrix covers every feature the enumerator
   can produce for every target, so a new enum value cannot ship without a decision per target.
+- **The model check** (`check-model.mjs`) reports what a valid IR can still get wrong, on
+  `validate` and on every emit: a decision with fewer than two ways out, a step connected to
+  nothing, a repeated edge, a state diagram without an initial state or with a state it never
+  reaches, a reply before its call, an entity with a foreign key and no relation, and (as
+  `size:`) more than 40 elements in one diagram. They are warnings: each has an honest
+  exception, which the author records in `meta.omitted`.
 - **The level of detail** (`check-detail.mjs`) is checked on every emit of an architecture
   diagram: several stores of one kind used by one component alone (a database drawn table
   by table; a store is known by its `kind` or by a database or storage icon), a plain
@@ -36,11 +42,16 @@ brainstorm (idea) ─> clarify ┘                                              
   numbers, and a connection label that reads as an endpoint path, a job or data path or a
   field name are reported as `detail:` warnings. They are warnings because the IR cannot show
   whether three buckets are one resource or three; the closing contract lets only the user
-  keep one, recorded as a `detail accepted:` entry in `meta.notes`.
-- **The secret scan** (`scan-secrets.mjs`) runs on every emit over every string in the IR:
-  URI credentials, known token prefixes, key=value secrets and high-entropy strings produce
-  warnings; the FigJam target refuses to emit on them unless `--allow-sensitive` is passed,
-  because its labels leave the machine.
+  keep one, recorded as a `detail accepted:` entry in `meta.notes` that quotes the ids the
+  warning named. A warning whose ids are all quoted there is not repeated.
+- **The secret scan** (`scan-secrets.mjs`) runs on `validate` and on every emit over every
+  string in the IR. Each finding has a kind, and the pipeline decides what a kind stops. A
+  credential by its form (a URI with a password, a known token prefix, a private key, a
+  `password=<value>` assignment whose word may be English, Vietnamese or Japanese) is written
+  by no target: `emit` and `bundle` refuse. A guess (a high-entropy string, an assignment of
+  a plain word, a mail address or telephone number) is a warning for a local file and a
+  refusal for FigJam, whose labels leave the machine. `--allow-sensitive` is the user's word
+  that a finding is not a secret; `drift`, which writes nothing, always compares with it.
 - **Emitters** are deterministic functions from IR to text: `emit-mermaid.mjs` (safe ids,
   entity-encoded labels, own-line id comments) and `emit-drawio.mjs` (uncompressed mxGraph
   XML; ELK layout through `layout-graph.mjs` for graph-shaped kinds, the fixed grid in
@@ -48,16 +59,22 @@ brainstorm (idea) ─> clarify ┘                                              
   stricter profile and the agent makes the MCP call.
 - **The CLI** (`cli.mjs`, bundled by esbuild into the committed `bin/cli.mjs`) exposes
   `validate`, `emit`, `bundle`, `relabel` and `preview`, plus `diff`, `drift`, `snapshot`,
-  `revisions` and `restore` for the revise skill; it exits 2 on validation errors with the
-  errors as JSON on stderr, and is invoked with the absolute skill directory because the
-  working directory is always the user's project.
+  `revisions` and `restore` for the revise skill, and `help`; it exits 2 on validation errors
+  and 1 on a usage error (an unknown target, an option without its value) with the errors as
+  JSON on stderr, and is invoked with the absolute skill directory because the working
+  directory is always the user's project. A run folder given to `bundle`, `diff` or `drift`
+  stands for the IRs of its `source/` in run order (`run-order.mjs`): the diagram named
+  after the run, its business view, then each part with its business view. A file-name sort
+  would put the parts first, since `-` sorts before `.`.
 - **The closing contract** (`skills/draw/references/closing-contract.md`) is the one place
   that says how every run ends: write, validate, emit, bundle, review, report. Both skills
   read it; neither copies it.
 
 ## Visual check
 
-`cli.mjs preview` renders a `.drawio` or `.mmd` file to a PNG in the system temp directory so
+`cli.mjs preview` renders a `.drawio` or `.mmd` file, or every block of the combined `.md` of
+a Mermaid run, to a PNG in the system temp directory (one path per input file, made from its
+name, type and a hash of its full path, so two files or two projects never share one) so
 the agent can look at the result and fix layout problems from the IR (label length, element
 order, direction, note placement). The image is the agent's working copy, not a deliverable. It is the one command that may touch the network, and only to fetch the renderer
 (draw.io's viewer page or the Mermaid library) into a local Chromium through Playwright; the
@@ -148,9 +165,13 @@ still used for the other graph kinds.
 the page-level cells (vertices and edge waypoints with parent `1`) are shifted so the content
 starts below a fixed title band, while children of lanes and containers keep their relative
 coordinates. `--canvas` reuses the same placement to lay several diagrams side by side on one
-extra first page. Elements with `ref` resolve against the bundle's diagram ids to the target's
+extra first page. A page id is the diagram id in lower case with other characters as
+hyphens, at its full length (`pageIdOf`); up to 2.0.3 it was cut at 40 characters, which gave
+two diagrams with a long common start one page, and `drift` still reads such a file by the
+old rule. Elements with `ref` resolve against the bundle's diagram ids to the target's
 title and a draw.io page link (`data:page/id,<page id>`, which needs a `UserObject` wrapper
-around the cell); outside a bundle they keep the slug. Every kind has one element that takes
+around the cell); outside a bundle they keep the slug. A part whose title is the label of
+the element that links to it adds no second line. Every kind has one element that takes
 `ref` (flowchart node, activity action, sequence message, state, architecture component,
 class, ER entity), so the `detailed` scope links a main diagram to its parts whatever the
 kind; the schema shares one `$defs/ref` and the matrix has one `<element>.ref` feature per
@@ -238,17 +259,28 @@ choices.
   the most titles in place, the title from the page name. Page ids are slugs of the diagram
   ids, so every match goes through `slugify`; cells draw.io wraps in `UserObject` or `object`
   and numeric character references are read like the emitted ones. An upgrade of the
-  emitters shows up as drift too; the skill says so instead of hiding it.
+  emitters shows up as drift too; the skill says so instead of hiding it. A file that
+  `relabel` rewrote in place keeps its old boxes, so `relabel` records in each page the
+  labels it was laid out for (a `zukaiLabels` property on the root cell, which draw.io keeps
+  on save) and `drift` compares positions with an emit of the IR that carries those labels
+  again, texts with a fresh emit. The combined `.md` of a Mermaid run is compared block by
+  block (`driftMarkdown`), which also returns the title it was written with.
 - **Revisions cover the whole run.** `revisions.mjs` copies every IR of the run into
   `history/rNNN/` together, never one file, because a main diagram, its `ref` parts and its
   business views must be restored as one consistent set. A revision is written into a
   temporary sibling and renamed into place, the newest five are kept, and a restore
   snapshots the current state first (marked `undoOf`, with the current bundle options and
-  any hand-edited outputs) so an undo can be undone. A revision with no IR is never
-  restored.
+  any hand-edited outputs) so an undo can be undone. Each record carries two stacks, `undo`
+  and `redo`: a change pushes its snapshot on `undo` and clears `redo`, a restore moves
+  revisions between the two, and `restore <run> undo|redo` takes one step, so undo and redo
+  walk one line of states instead of each redo undoing the last restore. A revision with no
+  IR is never written or restored. Hand-edited files kept with a revision (`extras/`) are
+  the only copy of the user's work: rotation moves them to `history/extras/<rev>/` and
+  reports them, and nothing in the CLI deletes them (the one store that grows without a
+  bound; it holds a few files per hand-edited redraw).
 - **Drafts never touch `source/`.** A what-if is built as complete copies of the run under
-  `drafts/<a|b|c>/` and compared with `diff` (`ir-diff.mjs`: elements added, removed and
-  changed per top-level collection, plus hints for a `ref` part or a business view that did
+  `drafts/<a|b|c>/` and compared with `diff` (`ir-diff.mjs`: elements added, removed, changed
+  and reordered per top-level collection, plus hints for a `ref` part or a business view that did
   not follow, for references left on a removed element, and for an added diagram that no
   element links to or that is a second architecture diagram of the run). The run is written
   only after the user confirms one draft, so dropping all drafts needs no undo.
@@ -278,5 +310,6 @@ one. The CLI is tested through the bundle from a different working directory. Fo
 `ir-diff.test.mjs` checks the change list on one edited model per kind and the cascade
 hints on a run, `drift.test.mjs` re-emits every fixture without drift and finds moved,
 reworded, copied and deleted cells (also on compressed pages and inside a bundle), and
-`revisions.test.mjs` covers rotation, multi-file restore, undoing an undo and an interrupted
-snapshot. `install.test.mjs` checks that both skills are installed side by side.
+`revisions.test.mjs` covers rotation, multi-file restore, undoing an undo, the undo and redo
+line, kept extras and an interrupted snapshot. `fixes-e2e.test.mjs` runs the committed bundle
+as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that both skills are installed side by side.

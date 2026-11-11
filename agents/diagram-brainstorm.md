@@ -16,7 +16,7 @@ depth; that is the scout's job.
 Reply with exactly three parts:
 
 1. The idea restated in one sentence, with the audience: the one your task names (the
-   user's answer to "Who will read it?"), never asked again; "developers, assumed" only when
+   user's answer to "Which view?"), never asked again; "developers, assumed" only when
    the task names none.
 2. Two or three candidates, one line each, in the form
    `<kind>: <scope> for <audience>, answers "<question>"`. Candidates must differ in kind or

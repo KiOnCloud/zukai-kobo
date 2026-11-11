@@ -112,13 +112,15 @@ one. It edits the model, never the output, and takes one of four routes:
 | Route | When | What happens |
 |---|---|---|
 | Direct | A clear, local change ("rename Pay to Pay by card", "add a stock check after login") | Asks only what the change leaves open (where it goes, where a failed check leads), saves the previous version, applies the change and runs the usual validate, emit and review |
-| Consult | A what-if ("what if approval came before payment?"), a change that removes elements or reaches a sub-diagram or the business view, or `--preview` | Builds two or three drafts under `drafts/` with a change list for each; nothing delivered changes until you pick one, adjust it and confirm |
+| Consult | A what-if ("what if approval came before payment?"), a change that removes elements, a change of structure that reaches a sub-diagram or the business view, or `--preview` | Builds two or three drafts under `drafts/` with a change list for each; nothing delivered changes until you pick one, adjust it and confirm |
 | New diagram | A diagram the run does not have yet ("add an architecture diagram", "also draw the sequence of the payment step") | Asks what `draw` would ask (kind, scope, view), applies the same diagram rules, then adds it to the run as a linked sub-diagram, a business view or a diagram of its own; detail asked of an architecture diagram becomes linked sub-diagrams, never a second, fuller architecture diagram |
-| Undo | "undo", "go back to r003" | Restores an earlier revision of the whole run; the undo can itself be undone |
+| Undo | "undo", "redo", "go back to r003" | Restores an earlier revision of the whole run; undo and redo walk back and forth along one line of states |
 
 Before overwriting a draw.io file it checks whether you edited it by hand in draw.io. A
 label-only change then keeps your layout; any other change asks first and keeps a copy of
-your edited file in the revision.
+your edited file in the revision. That copy is never deleted for you: when its revision is
+rotated out, it moves to `history/extras/`. That copy is never deleted for you: when its revision is
+rotated out, it moves to `history/extras/`.
 
 ```text
 /zukai:revise add a validation step after the card is entered
@@ -152,7 +154,7 @@ syntax and FigJam does not support them. The complete table of what each target 
 ## How it works
 
 ```text
-clarify | scout | brainstorm  ->  IR (JSON)  ->  validate  ->  feature matrix  ->  secret scan  ->  emit
+clarify | scout | brainstorm  ->  IR (JSON)  ->  validate  ->  feature matrix  ->  model and detail  ->  secret scan  ->  emit
 ```
 
 The IR is the only thing the agent writes. An excerpt of a sequence diagram:
@@ -197,6 +199,8 @@ diagrams/20261109_login-flow/
   drawio/<diagram>.drawio    each diagram on its own
   source/<diagram>.ir.json   the model the diagrams were generated from
   history/r001/ ... r005/    the five latest revisions of the whole run (written by revise)
+  history/extras/rNNN/       hand-edited files of revisions that were rotated out (kept until you delete them)
+  history/extras/rNNN/       hand-edited files of revisions that were rotated out (kept until you delete them)
   drafts/a/ b/ c/            drafts of a what-if, until one is confirmed or dropped
 ```
 
