@@ -1020,6 +1020,40 @@ describe('systems outside AWS in an AWS diagram', () => {
     }
   }, 30000);
 
+  it('joins a system and the one component it exchanges calls with by two straight lines side by side', async () => {
+    // The API calls the partner system and the partner calls the API back, written as two
+    // connections: on one way out of the API the two lines would lie on each other.
+    const pair = loadFixture('architecture', 'valid-aws-outside-pair');
+    for (const direction of DIRECTIONS) {
+      const { r, abs, figures, paths, cellOf } = await drawn(withDirection(pair, direction));
+      expect(r.warnings, direction).toEqual([]);
+      const { along, across } = axes(direction);
+      const frames = across(abs.get('a:cloud'));
+      const box = across(abs.get('a:partner'));
+      expect(box.hi <= frames.lo || box.lo >= frames.hi, `${direction}: beside the frames`).toBe(true);
+      const figure = (id) => middle(along(figures.find((f) => f.id === id).figure));
+      expect(Math.abs(figure('partner') - figure('api')), `${direction}: level with the API`).toBeLessThan(1);
+      // Each arrow points the way the IR says.
+      expect([cellOf('c6').source, cellOf('c6').target], direction).toEqual(['a:api', 'a:partner']);
+      expect([cellOf('c7').source, cellOf('c7').target], direction).toEqual(['a:partner', 'a:api']);
+      // Two straight lines across the flow, 20 px apart, one on each side of the middle.
+      const place = ['c6', 'c7'].map((id) => {
+        const path = paths.get(`a:${id}`);
+        expect(path, `${direction}: ${id}`).toHaveLength(2);
+        const [from, to] = path.map((pt) => along({ x: pt.x, y: pt.y, width: 0, height: 0 }).lo);
+        expect(Math.abs(from - to), `${direction}: ${id} straight`).toBeLessThan(1);
+        return from;
+      });
+      expect(Math.abs(place[0] - place[1]), direction).toBeCloseTo(20, 0);
+      expect((place[0] - figure('api')) * (place[1] - figure('api')), `${direction}: either side of the middle`).toBeLessThan(0);
+    }
+    // Two calls the same way are parallel connections and stay with the layout engine.
+    const twice = structuredClone(pair);
+    twice.connections.find((c) => c.id === 'c7').from = 'api';
+    twice.connections.find((c) => c.id === 'c7').to = 'partner';
+    expect((await drawn(twice)).r.ok).toBe(true);
+  }, 30000);
+
   it('stands a system that one component calls in line with the row on its side', async () => {
     // A partner system on a circle through the frames takes a row; a system the API alone
     // calls stands beside the frames on its own. On the same side the two are one row: their

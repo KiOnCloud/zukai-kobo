@@ -1,0 +1,32 @@
+---
+title: "Scheduled sync with a partner that calls back"
+---
+architecture-beta
+  %% id: cloud
+  group n1(cloud)[AWS Cloud]
+  %% id: region
+  group n2(cloud)[Region] in n1
+  %% id: rule
+  service n3(server)[EventBridge rule] in n2
+  %% id: lambda
+  service n4(server)[Sync function] in n2
+  %% id: alb
+  service n5(server)[Application Load Balancer] in n2
+  %% id: api
+  service n6(server)[API (ECS Fargate)] in n2
+  %% id: db
+  service n7(database)[DynamoDB (6 tables)] in n2
+  %% id: partner
+  service n8(cloud)[Partner API]
+  %% id: c1
+  n3:R --> L:n4
+  %% id: c2
+  n4:R --> L:n5
+  %% id: c3
+  n5:R --> L:n6
+  %% id: c4
+  n6:R --> L:n7
+  %% id: c6
+  n6:B --> T:n8
+  %% id: c7
+  n8:T --> B:n6

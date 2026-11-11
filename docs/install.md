@@ -206,9 +206,19 @@ two. Nothing else changes. A delivered diagram of that shape comes out arranged 
 when it is emitted again, so `/zukai:revise` reports it as changed since delivery before it
 redraws it.
 
-A system that one component calls and that calls the same component back still takes the
-long way when the two are written as two connections. Write them as one connection with
-`bidirectional`, as the IR reference asks when either side starts exchanges.
+A system that one component calls and that calls the same component back still took the
+long way in this version when the two were written as two connections; 2.0.3 fixes that.
+
+## Upgrading to 2.0.3
+
+Version 2.0.3 fixes the last case of a connection running round the AWS frames: a system
+outside the frames and one component that call each other, written as two connections (an
+API calls a partner, the partner calls the API back). The system now stands beside the
+frames, level with that component, and the two connections are two straight lines side by
+side. In a top-down diagram a system in the row along the frames is now placed by its
+figure, not by the box that holds its name, so it may stand a few pixels from where 2.0.2
+drew it. A delivered diagram of either shape comes out arranged differently when it is
+emitted again, so `/zukai:revise` reports it as changed since delivery before it redraws it.
 
 ## Upgrading from it-diagrams
 
