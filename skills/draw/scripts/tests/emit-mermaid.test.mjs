@@ -7,7 +7,8 @@ import { loadFixture, validFixtures } from './helpers.mjs';
 describe('emitMermaid', () => {
   for (const { kind, name, ir } of validFixtures()) {
     it(`matches the snapshot for ${kind}/${name}`, async () => {
-      const r = await emit(ir, 'mermaid');
+      // The adversarial fixture holds a connection string on purpose; the override stands for the user's word.
+      const r = await emit(ir, 'mermaid', { allowSensitive: true });
       expect(r.errors).toEqual([]);
       expect(r.ok).toBe(true);
       expect(r.output.endsWith('\n')).toBe(true);
@@ -22,7 +23,7 @@ describe('emitMermaid', () => {
   });
 
   it('never writes an IR id as a Mermaid identifier', async () => {
-    const r = await emit(loadFixture('adversarial', 'labels'), 'mermaid');
+    const r = await emit(loadFixture('adversarial', 'labels'), 'mermaid', { allowSensitive: true });
     const body = r.output.split('\n').filter((l) => !l.trim().startsWith('%%') && !l.startsWith('title:'));
     for (const id of ['end', 'graph', 'a--b', 'subgraph', 'click', 'style', 'direction']) {
       const escaped = id.replace(/-/g, '\\-');
@@ -34,7 +35,7 @@ describe('emitMermaid', () => {
   });
 
   it('keeps no raw quote, angle bracket, newline or directive inside a label', async () => {
-    const r = await emit(loadFixture('adversarial', 'labels'), 'mermaid');
+    const r = await emit(loadFixture('adversarial', 'labels'), 'mermaid', { allowSensitive: true });
     const body = r.output.replace(/^---\n[\s\S]*?\n---\n/, '');
     const labels = [...body.matchAll(/"([^"]*)"/g)].map((m) => m[1]);
     expect(labels.length).toBeGreaterThan(10);

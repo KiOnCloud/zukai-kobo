@@ -1,7 +1,8 @@
 # Consult protocol
 
 Used by the revise skill when a request asks what a change would look like, when it removes
-elements or reaches a `ref` part or a business view, or when `--preview` is given. The user
+elements, when a change of structure has to be carried into a `ref` part or a business view,
+or when `--preview` is given (the route table of `SKILL.md` decides). The user
 sees real drafts of the run, compares them, adjusts one and confirms it; only then is the run
 written. Paths below are relative to the run folder; `<draw-dir>` and the CLI are located as
 `SKILL.md` describes.
@@ -11,7 +12,11 @@ drafts/a/source/*.ir.json      a full copy of the run's IRs with draft a's chang
 drafts/a/drawio/<slug>.drawio  or mermaid/<slug>.mmd: each diagram of the draft
 drafts/a/<run-slug>.drawio     or <run-slug>.md: the draft as one file
 drafts/b/ …                    the next draft, same layout
+drafts/consult.json            { "request", "axis", "drafts": [{ "id": "a", "name" }] }
 ```
+
+`consult.json` is written with the first draft and kept up to date: it is what a later
+session reads to resume this consult without guessing what the drafts were for.
 
 ## 1. Find the axis of choice
 
@@ -37,9 +42,12 @@ For each draft:
 1. `validate` every IR; on errors fix only the listed paths and validate again.
 2. Emit each diagram into `drafts/<x>/drawio/` or `drafts/<x>/mermaid/` with
    `emit --to <target> --out`, then `bundle` into `drafts/<x>/<run-slug>.<drawio|md>` with
-   the run's `bundle` options, adjusted to the draft's diagrams as the closing contract's
-   revise section says (a canvas list loses removed diagrams and gains new ones).
-3. `diff <run>/source <run>/drafts/<x>/source` for the change list and its hints.
+   the run's `bundle` options (from `drift` on the combined file, `.drawio` or `.md`),
+   adjusted to the draft's diagrams as the closing contract's revise section says (a canvas
+   list loses removed diagrams and gains new ones). Give `bundle` the folder `drafts/<x>`,
+   so the draft is written in run order.
+3. `diff <run>/source <run>/drafts/<x>/source` for the change list and its hints. A draft
+   that only moves elements shows up under `reordered`.
 
 Print every CLI warning verbatim. No review gate runs on drafts: the review runs once, on the
 confirmed result.
@@ -61,12 +69,16 @@ description), plus "drop all drafts". The user can also answer with a change to 
 ## 5. Adjust
 
 A change asked for one draft is made in that draft's `source/`, then step 3 runs again for
-it and step 4 shows it again with the other drafts gone. Repeat until the user confirms.
+it and step 4 shows it again alone. The other drafts are left out of the presentation, not
+deleted: they stay on disk until the user confirms or drops, so "show me B again" still
+works. Repeat until the user confirms.
 
 ## 6. Confirm
 
 1. `snapshot <run> --request "<the request> (draft <x>)" --bundle @<file>`, plus
-   `--extra` for files that drifted (the skill's step 3).
+   `--extra` for files that drifted (the skill's step 3). The revision it prints is the one
+   a `meta.notes` entry of the draft refers to ("no longer reflects the code from r004
+   on"): write the number into that entry now, since the draft was made before it existed.
 2. Copy `drafts/<x>/source/*.ir.json` over `source/`; delete IRs from `source/` that the
    draft does not have, with their `drawio/<slug>.drawio` or `mermaid/<slug>.mmd`.
 3. Delete `drafts/`.

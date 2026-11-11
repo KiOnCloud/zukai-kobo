@@ -8,7 +8,7 @@ import { XMLParser } from 'fast-xml-parser';
  */
 export function checkDrawioStructure(xml) {
   const problems = [];
-  const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '', allowBooleanAttributes: true, isArray: (name) => ['diagram', 'mxCell', 'mxPoint', 'UserObject'].includes(name) });
+  const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '', allowBooleanAttributes: true, isArray: (name) => ['diagram', 'mxCell', 'mxPoint', 'UserObject', 'object'].includes(name) });
   let doc;
   try {
     doc = parser.parse(xml, true);
@@ -26,7 +26,9 @@ export function checkDrawioStructure(xml) {
     const root = d.mxGraphModel?.root;
     if (!root) { problems.push('diagram has no mxGraphModel/root'); continue; }
     // A UserObject wraps one mxCell and carries its id, label and link (draw.io's link form).
-    const wrapped = (root.UserObject ?? []).map((u) => {
+    // `object` is the same wrapper as draw.io writes it for a cell with properties (Edit
+    // Data); `relabel` uses it on the root cell to record the labels a page was laid out for.
+    const wrapped = [...(root.UserObject ?? []), ...(root.object ?? [])].map((u) => {
       const inner = (u.mxCell ?? [])[0] ?? {};
       if (u.mxCell?.length !== 1) problems.push(`UserObject "${u.id}" must wrap exactly one mxCell`);
       return { ...inner, id: u.id, value: u.label, link: u.link };

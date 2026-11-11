@@ -1,6 +1,6 @@
 ---
 name: diagram-brainstorm
-description: Read-only accelerator for the Zukai brainstorm mode. From a raw idea it proposes two or three candidate diagram sets (kind, scope, audience, the question each answers) and recommends a default. Use when the main session runs /zukai:draw brainstorm and wants the candidates drafted in a separate context.
+description: Read-only accelerator for the Zukai brainstorm mode. From a raw idea it proposes two or three candidate diagrams (kind, subject, audience, the question each answers) and recommends a default. Use when the main session runs /zukai:draw brainstorm and wants the candidates drafted in a separate context.
 tools: Read, Grep, Glob
 model: inherit
 ---
@@ -16,11 +16,11 @@ depth; that is the scout's job.
 Reply with exactly three parts:
 
 1. The idea restated in one sentence, with the audience: the one your task names (the
-   user's answer to "Who will read it?"), never asked again; "developers, assumed" only when
+   user's answer to "Which view?"), never asked again; "developers, assumed" only when
    the task names none.
 2. Two or three candidates, one line each, in the form
-   `<kind>: <scope> for <audience>, answers "<question>"`. Candidates must differ in kind or
-   scope.
+   `<kind>: <subject> for <audience>, answers "<question>"` (the subject is what the diagram covers, not the `overview` or `detailed` scope). Candidates must differ in kind or
+   subject.
 3. The recommended default and why, in one sentence.
 
 Do not write IR; the main session asks the user to pick and continues with the clarify

@@ -1,14 +1,14 @@
 ---
 name: draw
-description: Produce IT diagrams (sequence, flowchart, state, ER, class, architecture) from clarified requirements, an existing codebase or a raw idea. Writes a validated JSON diagram model (IR) first, then emits Mermaid, draw.io (.drawio, editable shapes) or FigJam (via the Figma MCP server) with deterministic scripts; never hand-writes diagram syntax. Use for "draw the login sequence", "diagram this service", "architecture of the order flow", "ER diagram from these entities", or any request to visualise a system, process or data model. To change a diagram that was already delivered, use the revise skill.
+description: Produce IT diagrams (sequence, flowchart, activity with swimlanes, state, ER, class, architecture) from clarified requirements, an existing codebase or a raw idea. Writes a validated JSON diagram model (IR) first, then emits Mermaid, draw.io (.drawio, editable shapes) or FigJam (via the Figma MCP server) with deterministic scripts; never hand-writes diagram syntax. Use for "draw the login sequence", "diagram this service", "architecture of the order flow", "ER diagram from these entities", or any request to visualise a system, process or data model. To change a diagram that was already delivered, use the revise skill.
 ---
 
 # Zukai
 
 Turn a request into a diagram through one fixed contract: choose a mode, build a JSON IR,
 validate it, then emit the target. The model writes IR only. Mermaid text, draw.io XML and
-FigJam boards come from the bundled CLI, which validates, checks the feature matrix, scans for
-secrets and emits deterministically.
+FigJam boards come from the bundled CLI, which validates, checks the feature matrix, the model
+and the level of detail, scans for secrets and emits deterministically.
 
 ## Locate the skill directory
 
@@ -23,14 +23,33 @@ node "<skill-dir>/scripts/bin/cli.mjs" validate <ir.json>
 node "<skill-dir>/scripts/bin/cli.mjs" emit --to <mermaid|drawio|figjam> <ir.json> [--out <file>]
 ```
 
-Node 22.13 or newer is required; the CLI has no other dependency and never touches the network.
+Node 22.13 or newer is required; the CLI has no other dependency. One command reaches the
+network: `preview`, the optional review image, fetches its renderer when draw.io desktop is not
+installed (the diagram itself is rendered locally). Every other command works offline.
+`cli.mjs help` prints every command.
 
 ## Arguments and modes
 
 The invocation arguments select the mode and target. Claude Code appends them as
 `ARGUMENTS: <text>`; in other runtimes read them from the user's request.
 
-- First word is the mode: `clarify`, `scout` or `brainstorm`.
+- First word is the mode: `clarify`, `scout` or `brainstorm`. Any other first word is part of
+  the request, and the mode is asked; when it is a mode misspelt by a letter or two
+  (`clarfy`, `scuot`), say in one line which mode you read it as and go on with that mode.
+- No arguments and no request at all: there is nothing to draw yet. Ask one thing first, as
+  plain text: what the diagram should show (the feature, the process or the part of the
+  code). The opening call below comes after the answer, because its suggestions are made
+  from the request.
+- A flag with a value the skill does not have (`--kind gantt`, `--to pdf`, `--scope full`,
+  `--audience sales`) fixes nothing: say in one line which values exist (the kinds of the
+  table below; `drawio`, `mermaid`, `figjam`; `overview`, `detailed`; `technical`,
+  `business`, `both`) and ask that question in the opening call; for an unknown `--to` that
+  is one more question there, "Which target?", with the three targets as options and
+  `drawio` suggested. `AskUserQuestion` takes four questions: when the target question
+  would be a fifth, ask it first, alone, and the others after the answer. A flag with no
+  request behind it (`/zukai:draw --kind sequence`) is the case of no request above: ask
+  what the diagram should show first. Never pass such a value to
+  the CLI and never pick the nearest one in the user's place.
 - `--to <target>` picks `drawio` (default: editable file, the form PMs review), `mermaid`
   (text for Markdown) or `figjam`.
 - `--kind <kind>` fixes the diagram kind (see the next section); without it the kind is
@@ -104,7 +123,11 @@ question asks for that, not for the reader's name. Question "Which view?" (in Vi
   one instead when the request mentions such a reader without stating it as the audience.
 - `both`, such as "Cả hai (both)": one technical IR and one `<slug>-business.ir.json` per
   diagram in the same run folder, derived as `variants.md` describes; the report lists them
-  as two views of the same subject.
+  as two views of the same subject. It doubles the run: with `detailed` and two parts that
+  is six diagrams. The option's description says so ("hai bản cho mỗi diagram"), and before
+  writing the IRs you state the number in one line. When the request holds no technical
+  names at all (a business process told in the reader's words), the two views would be near
+  copies: say so and suggest `business` alone; the user still decides.
 
 When the runtime offers the `AskUserQuestion` tool (Claude Code does), use it, once, with
 the mode question (only if the mode is missing; options `clarify`, `scout`, `brainstorm`
@@ -114,10 +137,17 @@ question in the same call; that is at most four questions, the tool's limit. The
 allows four options per question, so the kind question offers the three kinds that fit the
 request best, best fit first and labelled "(suggested)", each with its one-line description
 below; its question text names the other kinds and says to pick "Other" and type one of
-them. In `brainstorm` mode the kind question is skipped and the audience answer fills the
-audience slot of the brainstorm protocol, which then does not ask again. Without that tool,
-send one text message with the full numbered list below, mark the suggestion, add the scope
-and audience as numbered items, and accept a number, a name or "default".
+them. When fewer than three kinds fit the request, offer only those that do. In `brainstorm`
+mode the kind question is skipped and the audience answer fills the audience slot of the
+brainstorm protocol, which then does not ask again; when the mode itself is being asked in
+this call, the kind question stays, and its answer is dropped if the user picks
+`brainstorm`. Without that tool, send one text message with one numbered question per item
+that is still open (mode, kind, scope, view, and the target when `--to` named an unknown one), each with its own lettered options (`1a`,
+`2b`), the suggestion marked; the kind question lists all seven kinds of the table below
+(for a request about the modules of one program, the three kinds of "Modules are not
+resources" first and in that order, then the rest) and is left out when `--kind` was given
+or the mode is `brainstorm`. Accept an option, a
+name or "default".
 
 | # | Kind | One-line description for the user | Best target |
 |---|---|---|---|
@@ -172,13 +202,22 @@ diagram with the tables, handlers and numbered steps drawn into it. The CLI repo
 breaches it can see as `detail:` warnings: fix the IR and emit again before the review. Only
 the user can keep one, as the closing contract says.
 
+Modules are not resources. A request for "the architecture of the modules" of one program
+(a CLI, a library, one service) asks for the parts of a single deployed resource, which an
+`architecture` diagram draws as one box, and the CLI cannot see that ten components are
+modules. So the kind question of the opening call is still asked, even when the request
+says "architecture": offer `class` first (one class per module with the stereotype
+`module`, `dependency` relations for the imports: who depends on whom), `flowchart` second
+(the path one call takes through the modules) and `architecture` third (what is deployed and
+what it talks to), each with that consequence in its description.
+
 ## Targets
 
 | Target | Output | Condition | Reference |
 |---|---|---|---|
 | `drawio` | `.drawio` file with editable shapes, laid out automatically (default) | always available | `references/target-drawio.md` |
 | `mermaid` | Mermaid text to paste into Markdown | always available | `references/target-mermaid.md` |
-| `figjam` | New or existing FigJam board | a Figma MCP tool named `generate_diagram` is available in the session; otherwise fall back to `mermaid` and say so | `references/target-figjam.md` |
+| `figjam` | New or existing FigJam board | a Figma MCP tool named `generate_diagram` is available in the session; otherwise hand the user the `figjam` text to paste, as section 5 of the reference says (never the `mermaid` text), and say so | `references/target-figjam.md` |
 
 The feature matrix (`docs/feature-matrix.md` in the repository, data in
 `scripts/src/feature-matrix.json`) decides per kind, target and feature whether something is

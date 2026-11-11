@@ -3,7 +3,7 @@ import { awsIcon, awsGroup } from './aws-icons.mjs';
 import { layoutGraph, backEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, LABEL_PAD } from './layout-graph.mjs';
 import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
-import { widestLine, roomFor, safeWidth } from './text-metrics.mjs';
+import { widestLine, roomFor, safeWidth, sameText } from './text-metrics.mjs';
 
 /**
  * Emit an uncompressed .drawio file with individually editable shapes. Graph-shaped kinds
@@ -34,16 +34,18 @@ const TITLE_STYLE = 'text;html=1;align=left;verticalAlign=middle;fontSize=16;fon
  * still get their own pages after it, which is where page links from `ref` steps land. Cell
  * ids stay unique because every diagram uses its own id prefix.
  * @param {Array<{ ir: object, diagramId?: string }>} entries
- * @param {{ canvas?: string[], gap?: number, title?: string }} [options] `canvas` lists diagram ids in
- *   the order they go on the canvas page; `title` names that page
+ * @param {{ canvas?: string[], gap?: number, title?: string, legacyIds?: boolean }} [options] `canvas` lists diagram ids in
+ *   the order they go on the canvas page; `title` names that page; `legacyIds` gives the page
+ *   ids of 2.0.3 and older (cut at 40 characters), so `drift` can rebuild such a file
  */
 export async function emitDrawioBundle(entries, options = {}) {
   const warnings = [];
   const ids = entries.map((entry, i) => entry.diagramId ?? `${slugify(entry.ir.title)}-${i + 1}`);
-  const refs = bundleRefs(entries.map((entry, i) => ({ id: ids[i], ir: entry.ir })));
+  const slug = options.legacyIds ? slugify : pageIdOf;
+  const refs = bundleRefs(entries.map((entry, i) => ({ id: ids[i], ir: entry.ir })), slug);
   const rendered = [];
   for (const [i, entry] of entries.entries()) {
-    const page = await emitDrawioPage(entry.ir, { diagramId: ids[i], refs });
+    const page = await emitDrawioPage(entry.ir, { diagramId: ids[i], refs, slug });
     rendered.push(page);
     warnings.push(...page.warnings.map((w) => ({ ...w, diagram: page.diagramId })));
   }
@@ -58,6 +60,7 @@ export async function emitDrawioBundle(entries, options = {}) {
   if (options.canvas && options.canvas.length > 0) {
     const gap = options.gap ?? 120;
     const byId = new Map(rendered.map((p, i) => [ids[i], p]));
+    const taken = new Set(rendered.map((p) => p.diagramId));
     const cells = [];
     let x = 0;
     for (const id of options.canvas) {
@@ -66,7 +69,7 @@ export async function emitDrawioBundle(entries, options = {}) {
       x += PAGE_MARGIN + placed.width + gap;
     }
     let canvasId = 'canvas';
-    while (ids.includes(canvasId)) canvasId = `${canvasId}-1`;
+    while (taken.has(canvasId)) canvasId = `${canvasId}-1`;
     let name = options.title ?? 'Canvas';
     if (rendered.some((p) => p.name === name)) name = `${name} (canvas)`;
     pages.push({ diagramId: canvasId, name, cells });
@@ -80,8 +83,8 @@ export async function emitDrawioBundle(entries, options = {}) {
  * the emitters show and link to.
  * @param {Array<{ id: string, ir: object }>} entries
  */
-export function bundleRefs(entries) {
-  return new Map(entries.map((e) => [e.id, { pageId: slugify(e.id), title: e.ir.title }]));
+export function bundleRefs(entries, slug = pageIdOf) {
+  return new Map(entries.map((e) => [e.id, { pageId: slug(e.id), title: e.ir.title }]));
 }
 
 /**
@@ -92,6 +95,9 @@ export function bundleRefs(entries) {
 function refLabel(label, ref, refs, path, warnings) {
   if (!ref) return { label, link: undefined };
   const target = refs?.get(ref);
+  // A part is titled after the step it details, so its title often is the step's own label:
+  // the step then keeps its one line and its link, instead of reading "X / ↳ X".
+  if (target && sameText(target.title, label)) return { label, link: pageLink(target.pageId) };
   if (target) return { label: `${label}\n↳ ${target.title}`, link: pageLink(target.pageId) };
   if (refs) warnings.push({ path, message: `ref "${ref}" is not in this bundle: the step shows the slug and has no page link`, hint: 'bundle the referenced diagram too, or fix the ref' });
   return { label: `${label}\n↳ ${ref}`, link: undefined };
@@ -99,7 +105,7 @@ function refLabel(label, ref, refs, path, warnings) {
 
 async function emitDrawioPage(ir, options = {}) {
   const warnings = [];
-  const slug = options.diagramId ? slugify(options.diagramId) : slugify(ir.title);
+  const slug = options.diagramId ? (options.slug ?? pageIdOf)(options.diagramId) : slugify(ir.title);
   const cid = (id) => `${slug}:${id}`;
   const refs = options.refs;
   let cells;
@@ -116,8 +122,23 @@ async function emitDrawioPage(ir, options = {}) {
   return { diagramId: slug, name: ir.title, cells, warnings };
 }
 
+/**
+ * The slug of a title, for a diagram that was given no id: short enough to read in a cell id.
+ * Page ids were this slug of the diagram id up to 2.0.3, so it is also how `drift` reads a
+ * file delivered by those versions.
+ */
 export function slugify(title) {
   const s = String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/g, '');
+  return s || 'diagram';
+}
+
+/**
+ * The page id (and cell-id prefix) of a diagram id. A diagram id is a file name the skill
+ * chose (`<slug>-NN-<part>-business`), so it is kept whole: cut at 40 characters, two
+ * diagrams with a long common start shared one page id and every cell id.
+ */
+export function pageIdOf(diagramId) {
+  const s = String(diagramId).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return s || 'diagram';
 }
 
@@ -137,9 +158,11 @@ const SHAPE_PAD = { io: SLANT / 2 + LABEL_PAD, queue: SLANT / 2 + LABEL_PAD };
 const padOf = (shape) => SHAPE_PAD[shape] ?? LABEL_PAD;
 /**
  * The text area of a shape for `measureNode`. A subroutine's side bars take a tenth of its
- * width each, and draw.io wraps its label between them with 2 px of its own on each side.
+ * width each, and draw.io wraps its label between them with 2 px of its own on each side;
+ * SUBROUTINE_PAD more keeps a full line (the slug of a `ref` often is one) off the bars.
  */
-const textArea = (shape) => (shape === 'subroutine' ? { pad: 2, share: 0.1 } : { pad: padOf(shape) });
+const SUBROUTINE_PAD = 4;
+const textArea = (shape) => (shape === 'subroutine' ? { pad: 2 + SUBROUTINE_PAD, share: 0.1 } : { pad: padOf(shape) });
 /**
  * Label spacing that draws the room `measureNode` counted on each side of a node's text.
  * draw.io keeps 2 px of its own, so the rest is added: the text wraps `pad` px inside the
@@ -154,7 +177,7 @@ export const STYLE = {
   decision: 'rhombus;whiteSpace=wrap;html=1;',
   io: `shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;size=${SLANT};${labelPad('io')}`,
   // The side bars of a subroutine already bound its label, a tenth of the width in from each side (see textArea).
-  subroutine: 'shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;',
+  subroutine: `shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;spacingLeft=${SUBROUTINE_PAD};spacingRight=${SUBROUTINE_PAD};`,
   note: `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;${labelPad('note')}`,
   container: 'swimlane;whiteSpace=wrap;html=1;startSize=30;',
   flowEdge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;',
@@ -570,7 +593,7 @@ const BRANCH_LABEL_FAR = 60;
  * @param {Array<{x:number,y:number,width:number,height:number}>} boxes the steps of the chart, absolute
  * @param {Array<{x:number,y:number,width:number,height:number}>} frames the groups, absolute; an answer lies inside or outside one, never across its border
  */
-function placeBranchLabels(layout, edges, boxes, frames) {
+function placeBranchLabels(layout, edges, boxes, frames, direction) {
   const pathOf = (e) => { const r = layout.edges.get(e.id); return r?.start && r?.end ? [r.start, ...(r.points ?? []), r.end] : undefined; };
   const step = (a, b) => ({ length: Math.hypot(b.x - a.x, b.y - a.y), x: Math.sign(Math.round(b.x - a.x)), y: Math.sign(Math.round(b.y - a.y)) });
   // Length of the line two paths from one point have in common before they part.
@@ -614,18 +637,48 @@ function placeBranchLabels(layout, edges, boxes, frames) {
       const other = pathOf(o);
       if (other && Math.hypot(other[0].x - path[0].x, other[0].y - path[0].y) < 0.5) parted = Math.max(parted, shared(path, other));
     }
-    if (route.label && alongOf(path, route.label) - parted <= BRANCH_LABEL_FAR) continue;
     const width = Math.ceil(widestLine(e.label)) + 4;
     const height = 16 * String(e.label).split(/\r\n?|\n/).length;
+    const insideOf = (box) => (f) => box.x >= f.x && box.y >= f.y && box.x + box.width <= f.x + f.width && box.y + box.height <= f.y + f.height;
+    const takenAt = (box) => boxes.some((n) => overlaps(box, n)) || frames.some((f) => overlaps(box, f) && !insideOf(box)(f))
+      || edges.some((o) => { if (o === e) return false; const q = pathOf(o); return q?.some((p, i) => i > 0 && onLine(box, q[i - 1], p)) || (o.label && layout.edges.get(o.id)?.label && overlaps(box, layout.edges.get(o.id).label)); });
+    // In a left-to-right chart the branches part a few pixels from the tip, one going on
+    // straight and the others turning up or down, and the layout writes every answer in the
+    // corner of that split, where each reads as the answer of the line next to it. A branch
+    // that turns gets its answer beside the middle of the stretch it runs across the flow,
+    // away from the straight line; the branch that goes on gets it above its line, past the
+    // split.
+    if (acrossIsVertical(direction) && parted + 1 < total) {
+      const first = pointAlong(path, parted + 1);
+      let own;
+      if (first.vertical) {
+        // The stretch across the flow, from the split to its next corner.
+        let left = parted + 1;
+        let seg;
+        for (let i = 1; i < path.length && !seg; i++) {
+          const l = Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+          if (left <= l) seg = { a: path[i - 1], b: path[i], from: l - (l - left) - 1 }; else left -= l;
+        }
+        const startY = seg.a.y + first.dir * seg.from;
+        if (Math.abs(seg.b.y - startY) >= height + 2 * BRANCH_LABEL_GAP) {
+          const mid = (startY + seg.b.y) / 2;
+          own = [{ x: seg.a.x + LABEL_GAP, y: mid - height / 2, width, height }, { x: seg.a.x - LABEL_GAP - width, y: mid - height / 2, width, height }].find((b) => !takenAt(b));
+        }
+      } else {
+        const at = pointAlong(path, Math.min(parted + BRANCH_LABEL_GAP, total / 2)).point;
+        const above = { x: first.dir > 0 ? at.x : at.x - width, y: at.y - LABEL_GAP - height, width, height };
+        if (!takenAt(above)) own = above;
+      }
+      if (own) { route.label = own; continue; }
+    }
+    if (route.label && alongOf(path, route.label) - parted <= BRANCH_LABEL_FAR) continue;
     const { point, vertical, dir } = pointAlong(path, Math.min(parted + BRANCH_LABEL_GAP, total / 2));
     // Beside a vertical stretch the text starts right of the line; along a horizontal one it
     // stands above the line and runs on from the point in the direction of the branch.
     const box = vertical
       ? { x: point.x + LABEL_GAP, y: dir > 0 ? point.y : point.y - height, width, height }
       : { x: dir > 0 ? point.x : point.x - width, y: point.y - LABEL_GAP - height, width, height };
-    const inside = (f) => box.x >= f.x && box.y >= f.y && box.x + box.width <= f.x + f.width && box.y + box.height <= f.y + f.height;
-    const taken = boxes.some((n) => overlaps(box, n)) || frames.some((f) => overlaps(box, f) && !inside(f))
-      || edges.some((o) => { if (o === e) return false; const q = pathOf(o); return q?.some((p, i) => i > 0 && onLine(box, q[i - 1], p)) || (o.label && layout.edges.get(o.id)?.label && overlaps(box, layout.edges.get(o.id).label)); });
+    const taken = takenAt(box);
     // A place the layout gave stays when the one next to the decision is taken.
     if (taken && route.label) continue;
     route.label = box;
@@ -683,7 +736,7 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   const decisions = new Set(ir.nodes.filter((n) => n.shape === 'decision' && !n.ref).map((n) => n.id));
   // The answer on a branch that leads back is written by the emitter beside the side tip it
   // leaves (see placeBranchLabels), so it takes no room in the layout.
-  const edges = ir.edges.map((e) => ({ id: e.id, from: e.from, to: e.to, label: e.label, style: STYLE.flowEdge, layoutReversed: back.has(e.id) || undefined, labelPlacedByCaller: (decisions.has(e.from) && back.has(e.id)) || undefined, branch: decisions.has(e.from) || undefined }));
+  const edges = ir.edges.map((e) => ({ id: e.id, from: e.from, to: e.to, label: e.label, style: STYLE.flowEdge, layoutReversed: back.has(e.id) || undefined, backSide: back.has(e.id) || undefined, labelPlacedByCaller: (decisions.has(e.from) && back.has(e.id)) || undefined, branch: decisions.has(e.from) || undefined }));
   const loopExtra = sideLoopRoom(edges, ir.direction);
   const nodes = ir.nodes.map((n, i) => {
     const shape = n.ref ? 'subroutine' : (n.shape ?? 'process');
@@ -708,7 +761,7 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   if (unplaced) warnings.push({ path: '/groups', message: 'layout: a flow crosses the title of a group; no free place was found for it along the top of the group', hint: 'shorten the group label or change "direction"' });
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
-  placeBranchLabels(layout, edges, nodes.map((n) => drawBox(n, absoluteBox(n.id, layout, parentOf))), containers.map((c) => absoluteBox(c.id, layout, parentOf)));
+  placeBranchLabels(layout, edges, nodes.map((n) => drawBox(n, absoluteBox(n.id, layout, parentOf))), containers.map((c) => absoluteBox(c.id, layout, parentOf)), ir.direction);
   return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
 }
 
@@ -768,19 +821,20 @@ export function rowHeight(text, width) {
 /** Lines a bold title takes in a header of the given width: its own line breaks plus word wrap. */
 const headerLines = (text, width) => wrapText(text, Math.max(safeWidth(width - 8), 1), { bold: true }).lines;
 
-function tableNode(id, header, rows, { headerHeight: minHeaderHeight = ROW, link } = {}) {
+function tableNode(id, header, rows, { headerHeight: minHeaderHeight = ROW, rowHeights, link } = {}) {
   const widest = Math.max(widestLine(header, { bold: true }), ...rows.map((r) => widestLine(r.text ?? '')));
   const width = Math.min(TABLE_MAX_WIDTH, Math.max(160, roomFor(widest) + 24));
   // The header grows with its lines as a row does: a stereotype, the title of a ref, and
   // any of them that is wider than the table and wraps.
   const headerHeight = Math.max(minHeaderHeight, ROW + HEADER_LINE * (headerLines(header, width) - 1));
-  const heightOf = (r) => (r.separator ? 8 : rowHeight(r.text, width));
-  const height = headerHeight + rows.reduce((h, r) => h + heightOf(r), 0);
+  // A row that several relations end at on one side is as tall as their markers need (`rowHeights`).
+  const heightOf = (r, i) => (r.separator ? 8 : Math.max(rowHeight(r.text, width), rowHeights?.get(i) ?? 0));
+  const height = headerHeight + rows.reduce((h, r, i) => h + heightOf(r, i), 0);
   let y = headerHeight;
   const rowTops = [];
   const children = rows.map((r, i) => {
     const rowY = y;
-    const h = heightOf(r);
+    const h = heightOf(r, i);
     rowTops.push({ y: rowY, height: h });
     y += h;
     return (parentId) => (r.separator
@@ -832,7 +886,7 @@ async function emitEr(ir, cid, warnings, refs) {
   });
   // The header is as tall as its anchor band or its title lines (a ref adds one), whichever is more.
   const shown = new Map(ir.entities.map((e, i) => [e.id, refLabel(e.label, e.ref, refs, `/entities/${i}/ref`, warnings)]));
-  const buildNodes = (headerHeights) => ir.entities.map((e) => tableNode(e.id, shown.get(e.id).label, rowsOf(e), { headerHeight: headerHeights.get(e.id) ?? ROW, link: shown.get(e.id).link }));
+  const buildNodes = (headerHeights, rowHeights = new Map()) => ir.entities.map((e) => tableNode(e.id, shown.get(e.id).label, rowsOf(e), { headerHeight: headerHeights.get(e.id) ?? ROW, rowHeights: rowHeights.get(e.id), link: shown.get(e.id).link }));
   const edgeStyle = (r) => `${STYLE.erEdge}startArrow=${ER_ARROW[r.fromCardinality]};startFill=0;endArrow=${ER_ARROW[r.toCardinality]};endFill=0;${r.identifying === false ? 'dashed=1;' : ''}`;
   const edges = ir.relations.map((r) => ({ id: r.id, from: r.from, to: r.to, label: r.label, style: edgeStyle(r) }));
   const spacing = { nodeNode: 60, layer: 80 };
@@ -861,7 +915,10 @@ async function emitEr(ir, cid, warnings, refs) {
   // Header anchors per entity side; the header grows so they sit 20 px apart.
   const groups = new Map();
   for (const end of ends) {
-    const key = `${end.entity}|${end.side}|${end.row ?? 'header'}`;
+    // An end on the top or the bottom side is spread across the width whatever row it names,
+    // so all ends of that side form one group; two of them would otherwise share the middle.
+    const across = end.side === 'top' || end.side === 'bottom';
+    const key = `${end.entity}|${end.side}|${across ? 'header' : end.row ?? 'header'}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(end);
   }
@@ -873,7 +930,17 @@ async function emitEr(ir, cid, warnings, refs) {
     if (side === 'top' || side === 'bottom') continue;
     headerHeights.set(entity, Math.max(headerHeights.get(entity) ?? ROW, ROW + ER_ANCHOR_PITCH * (group.length - 1)));
   }
-  nodes = buildNodes(headerHeights);
+  // The same for an attribute row that several relations end at on one side (a key that
+  // two tables refer to): 8 px apart their markers would lie on top of each other.
+  const rowHeights = new Map();
+  for (const [key, group] of groups) {
+    const [entity, side, row] = key.split('|');
+    if (row === 'header' || group.length < 2 || side === 'top' || side === 'bottom' || side === 'loop') continue;
+    if (!rowHeights.has(entity)) rowHeights.set(entity, new Map());
+    const rows = rowHeights.get(entity);
+    rows.set(Number(row), Math.max(rows.get(Number(row)) ?? 0, ROW + ER_ANCHOR_PITCH * (group.length - 1)));
+  }
+  nodes = buildNodes(headerHeights, rowHeights);
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   // A self-relation needs room beside its entity (the loop takes the side with fewer ports);
   // ELK gets the entity that much wider on both sides and the table is drawn centred in it.
@@ -908,8 +975,8 @@ async function emitEr(ir, cid, warnings, refs) {
       order.push(group.map((end) => `${end.r.id}:${end.end}`).join(','));
       group.forEach((end, k) => {
         const n = nodeById.get(end.entity);
-        const along = end.row !== undefined
-          ? n.rowTops[end.row].y + n.rowTops[end.row].height / 2 + (group.length > 1 ? (k - (group.length - 1) / 2) * 8 : 0)
+        const along = end.row !== undefined && (end.side === 'left' || end.side === 'right' || end.side === 'loop')
+          ? n.rowTops[end.row].y + n.rowTops[end.row].height / 2 + (group.length > 1 ? (k - (group.length - 1) / 2) * (end.side === 'left' || end.side === 'right' ? ER_ANCHOR_PITCH : 8) : 0)
           : ROW / 2 + ER_ANCHOR_PITCH * k;
         end.relY = along / n.height;
         if (end.side === 'loop') return;
@@ -974,6 +1041,14 @@ async function emitClass(ir, cid, warnings, refs) {
     }
     return { id: r.id, from: r.from, to: r.to, label: r.label, style: `${STYLE.classEdge}${def.style}`, endLabels, markers: { from: def.from, to: def.to } };
   });
+  // A self-relation drawn beside its class needs room there for the loop and its label, or
+  // the label lands on the neighbouring class: the layout gets the class that much wider on
+  // both sides and the table is drawn centred in it, as for an ER entity.
+  for (const [id, extra] of sideLoopRoom(edges, ir.direction)) {
+    const n = nodes.find((x) => x.id === id);
+    n.drawWidth = n.width;
+    n.width += 2 * extra;
+  }
   const layout = await layoutGraph({ nodes, edges, direction: ir.direction, spacing: { nodeNode: 60, layer: 80, ...loopSpacing(ir.direction) } });
   return graphCells(cid, layout, { containers: [], nodes, edges, direction: ir.direction }, warnings);
 }

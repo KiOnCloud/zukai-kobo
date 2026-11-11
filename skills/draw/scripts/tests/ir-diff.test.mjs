@@ -10,7 +10,7 @@ const collectionsOf = (ir) => Object.keys(ir).filter((k) => Array.isArray(ir[k])
 describe('diffIr', () => {
   it('reports nothing for two identical models', () => {
     for (const { ir } of validFixtures()) {
-      expect(diffIr(ir, clone(ir))).toEqual({ replaced: false, fields: [], added: [], removed: [], changed: [] });
+      expect(diffIr(ir, clone(ir))).toEqual({ replaced: false, fields: [], added: [], removed: [], changed: [], reordered: [] });
     }
   });
 

@@ -9,6 +9,11 @@
  * `messages`, `states`, ...). Nested arrays (`attributes`, `methods`, `branches`) belong to
  * their element and are compared as one value of it. Output is ordered by collection, then
  * id, so the same pair of models always gives the same list.
+ *
+ * The order of a collection is part of the model: it is the order of the messages of a
+ * sequence diagram and of its lifelines, and the order every layout starts from. Elements
+ * both models have that no longer stand in the same order are reported as `reordered`, with
+ * the fewest elements whose move explains the new order and what each now follows.
  */
 
 /** Top-level scalar fields worth reporting; `meta` is compared field by field. */
@@ -17,7 +22,7 @@ const META_FIELDS = ['source', 'audience', 'lang', 'omitted', 'notes'];
 /** Keys whose values name an element (or, for `ref`, a diagram) by id, from the IR schema. */
 const REF_KEYS = new Set(['from', 'to', 'children', 'participants', 'after', 'ref', 'lane']);
 
-const labelOf = (item) => item.label ?? item.name ?? item.title ?? '';
+const labelOf = (item) => item.label ?? item.name ?? item.title ?? item.guard ?? item.event ?? '';
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 /** Arrays of id-carrying objects at the top level of an IR, by collection name. */
@@ -31,10 +36,28 @@ function collections(ir) {
   return out;
 }
 
+/** The longest run of ids that keeps its order in both lists (both hold the same ids). */
+function keptOrder(before, after) {
+  const pos = new Map(before.map((id, i) => [id, i]));
+  const seq = after.map((id) => pos.get(id));
+  // Longest increasing subsequence, O(n^2): collections are a few dozen elements.
+  const len = seq.map(() => 1);
+  const prev = seq.map(() => -1);
+  let best = -1;
+  for (let i = 0; i < seq.length; i++) {
+    for (let j = 0; j < i; j++) if (seq[j] < seq[i] && len[j] + 1 > len[i]) { len[i] = len[j] + 1; prev[i] = j; }
+    if (best < 0 || len[i] > len[best]) best = i;
+  }
+  const kept = new Set();
+  for (let i = best; i >= 0; i = prev[i]) kept.add(after[i]);
+  return kept;
+}
+
 /**
  * @param {object} oldIr
  * @param {object} newIr
- * @returns {{ replaced: boolean, fields: Array<{ field: string, from: unknown, to: unknown }>,
+ * @returns {{ replaced: boolean,
+ *   reordered: Array<{ collection: string, moved: Array<{ id: string, label: string, after: string | null }> }>, fields: Array<{ field: string, from: unknown, to: unknown }>,
  *   added: Array<{ collection: string, id: string, label: string }>,
  *   removed: Array<{ collection: string, id: string, label: string }>,
  *   changed: Array<{ collection: string, id: string, label: string, fields: string[] }> }}
@@ -51,6 +74,7 @@ export function diffIr(oldIr, newIr) {
   const added = [];
   const removed = [];
   const changed = [];
+  const reordered = [];
   const before = collections(oldIr);
   const after = collections(newIr);
   const names = [...new Set([...before.keys(), ...after.keys()])].sort();
@@ -68,11 +92,19 @@ export function diffIr(oldIr, newIr) {
         if (keys.length > 0) changed.push({ collection: name, id, label: labelOf(y), fields: keys });
       }
     }
+    const was = [...a.keys()].filter((id) => b.has(id));
+    const now = [...b.keys()].filter((id) => a.has(id));
+    if (was.some((id, i) => id !== now[i])) {
+      const kept = keptOrder(was, now);
+      const order = [...b.keys()];
+      const moved = now.filter((id) => !kept.has(id)).map((id) => ({ id, label: labelOf(b.get(id)), after: order[order.indexOf(id) - 1] ?? null }));
+      reordered.push({ collection: name, moved });
+    }
   }
-  return { replaced, fields, added, removed, changed };
+  return { replaced, fields, added, removed, changed, reordered };
 }
 
-const isEmpty = (d) => !d.replaced && d.fields.length === 0 && d.added.length === 0 && d.removed.length === 0 && d.changed.length === 0;
+const isEmpty = (d) => !d.replaced && d.fields.length === 0 && d.added.length === 0 && d.removed.length === 0 && d.changed.length === 0 && d.reordered.length === 0;
 
 /** Every string an IR uses as a reference (endpoints, lanes, `ref`, `after`, ...), with its path. */
 function references(value, path = '') {
@@ -118,7 +150,7 @@ export function diffRun(oldEntries, newEntries) {
     const oldCols = collections(before.get(d.id));
     const newCols = collections(after.get(d.id));
     const refsOf = (item) => [item?.ref].filter((r) => typeof r === 'string');
-    for (const e of [...d.added, ...d.removed, ...d.changed]) {
+    for (const e of [...d.added, ...d.removed, ...d.changed, ...d.reordered.flatMap((r) => r.moved.map((m) => ({ collection: r.collection, id: m.id })))]) {
       const parts = new Set([...refsOf(oldCols.get(e.collection)?.get(e.id)), ...refsOf(newCols.get(e.collection)?.get(e.id))]);
       for (const part of parts) {
         if (after.has(part) && !touched.has(part)) hint(d.id, `part ${part} may need the same change (${e.collection} ${e.id} carries ref "${part}")`);
@@ -127,7 +159,7 @@ export function diffRun(oldEntries, newEntries) {
     const business = `${d.id}-business`;
     // Only a change the reader of the business view could see: elements, title or kind, not
     // bookkeeping in `meta`.
-    const visible = d.replaced || d.added.length + d.removed.length + d.changed.length > 0 || d.fields.some((f) => !f.field.startsWith('meta.'));
+    const visible = d.replaced || d.added.length + d.removed.length + d.changed.length + d.reordered.length > 0 || d.fields.some((f) => !f.field.startsWith('meta.'));
     if (visible && !d.id.endsWith('-business') && before.has(business) && after.has(business) && !touched.has(business)) {
       hint(d.id, `business view not updated: ${business} is unchanged`);
     }

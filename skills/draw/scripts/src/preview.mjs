@@ -13,11 +13,50 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
+import { createHash } from 'node:crypto';
 import { pngSize, decodePng, cropPng, encodePng } from './png.mjs';
 
 export { pngSize };
 
 const MERMAID_CDN = 'https://cdn.jsdelivr.net/npm/mermaid@12.3.0/dist/mermaid.esm.min.mjs';
+/**
+ * Cut the white off the sides of a tile, keeping `margin` px beside what is drawn. A canvas holds
+ * diagrams of different heights side by side, so a tile as tall as the tallest one is mostly
+ * white where a short diagram stands. Returns false for a tile with nothing on it; a file
+ * that cannot be read is left as it is.
+ */
+function trimTile(file, margin, vertical) {
+  let png;
+  try {
+    png = decodePng(readFileSync(file));
+  } catch {
+    return true;
+  }
+  const { width, height, bpp, pixels } = png;
+  const stride = width * bpp;
+  let x0 = width; let y0 = height; let x1 = -1; let y1 = -1;
+  for (let y = 0; y < height; y++) {
+    const row = pixels.subarray(y * stride, (y + 1) * stride);
+    for (let x = 0; x < width; x++) {
+      let white = true;
+      for (let k = 0; k < bpp; k++) if (row[x * bpp + k] !== 255) { white = false; break; }
+      if (white) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  if (x1 < 0) return false;
+  // Only across the direction the tiles follow each other in: along it every tile keeps its
+  // length, and with it the band it shares with the next one.
+  const clip = vertical
+    ? { x: Math.max(0, x0 - margin), y: 0, width: Math.min(width, x1 + 1 + margin) - Math.max(0, x0 - margin), height }
+    : { x: 0, y: Math.max(0, y0 - margin), width, height: Math.min(height, y1 + 1 + margin) - Math.max(0, y0 - margin) };
+  if (clip.width < width || clip.height < height) writeFileSync(file, encodePng(cropPng(png, clip)));
+  return true;
+}
+
 /** White space kept around the drawing in a preview, CSS px. */
 const MARGIN = 20;
 /** The viewer fits the drawing to the window minus `border`, so a window of extent + 2 * MARGIN shows it at scale 1. */
@@ -256,8 +295,12 @@ async function shoot(browser, url, setup, locate, measure, out, maxPx, fixed) {
   for (const [i, frame] of tileFrames(region.width, region.height, maxLen, overlap).entries()) {
     const file = `${base}-${i + 1}.png`;
     await page.screenshot({ path: file, clip: { ...frame, x: frame.x + region.x, y: frame.y + region.y } });
+    // A canvas of diagrams of different heights leaves tiles with nothing on them: a
+    // reviewer who opens one learns nothing, so they are not listed.
+    if (!trimTile(file, Math.round(margin * scale), region.height >= region.width)) { rmSync(file, { force: true }); continue; }
     files.push(file);
   }
+  if (files.length === 0) return { ok: false, message: 'the drawing rendered as an empty image' };
   await page.close();
   return { ok: true, scale, files, tiled: true, overlap: Math.round(overlap * scale) };
 }
@@ -353,7 +396,56 @@ async function renderMermaidWeb(pw, text, out, maxPx) {
 }
 
 /**
- * @param {string} file path to a .drawio or .mmd file
+ * Where a preview goes when no `--out` is given: the system temp directory, under a name
+ * made of the file's name, its extension and a hash of its full path. One file always
+ * renders to the same path, so a second run replaces the first image, while `x.drawio` and
+ * `x.mmd`, or two projects with a diagram of the same name, never share one.
+ */
+export function defaultPreviewPath(input) {
+  const ext = extname(input).toLowerCase();
+  const hash = createHash('sha256').update(input).digest('hex').slice(0, 8);
+  return join(tmpdir(), 'zukai-preview', `${basename(input, ext)}-${ext.slice(1) || 'file'}-${hash}.png`);
+}
+
+/** The fenced `mermaid` blocks of a Markdown document, in order. */
+export function mermaidBlocks(markdown) {
+  return [...markdown.matchAll(/^```mermaid[^\n]*\n([\s\S]*?)^```[ \t]*$/gm)].map((m) => m[1]);
+}
+
+/**
+ * The combined Markdown file of a Mermaid run: every block is rendered to its own PNG
+ * (`<out>-d<N>.png`, tiles of one block as `-d<N>-<tile>.png`), so the review sees the text
+ * the user receives, where a `ref` shows the part's title instead of its slug.
+ */
+async function previewMarkdown(file, text, out, cwd, maxPx) {
+  const blocks = mermaidBlocks(text);
+  if (blocks.length === 0) return { ok: false, errors: [{ path: file, message: 'no fenced mermaid block in this Markdown file', hint: 'preview takes the combined <run-slug>.md that bundle wrote' }] };
+  const pw = loadPlaywright(cwd);
+  if (!pw) {
+    const root = npmGlobalRoot();
+    return { ok: false, errors: [{ path: file, message: `no renderer available (Playwright not found; looked in ${cwd}, next to the CLI${root ? `, and in ${root}` : ''})`, hint: 'Mermaid previews need Playwright: run `npm install -g playwright && npx playwright install chromium`; the preview step is optional, and a review without an image must say so' }] };
+  }
+  const base = out.replace(/\.png$/i, '');
+  const files = [];
+  let scale = 1;
+  let tiled = false;
+  let overlap;
+  try {
+    for (const [i, block] of blocks.entries()) {
+      const r = await renderMermaidWeb(pw, block, `${base}-d${i + 1}.png`, maxPx);
+      if (!r.ok) return { ok: false, errors: [{ path: file, message: `block ${i + 1}: ${r.message}` }] };
+      files.push(...r.files);
+      scale = Math.min(scale, r.scale ?? 1);
+      if (r.tiled) { tiled = true; overlap = r.overlap; }
+    }
+  } catch (e) {
+    return { ok: false, errors: [{ path: file, message: `preview failed (browser render: ${String(e.message).slice(0, 200)})`, hint: 'the browser needs network access to load the renderer; the diagram itself is rendered locally' }] };
+  }
+  return { ok: true, out: files[0], files, tiled, overlap, scale, renderer: 'mermaid-web', blocks: blocks.length, errors: [] };
+}
+
+/**
+ * @param {string} file path to a .drawio or .mmd file, or to the combined .md of a Mermaid run
  * @param {{ out?: string, cwd?: string, maxPx?: number, renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
  *   `maxPx` caps the longest side of every PNG, border included; a very tall or wide diagram
  *   that would fall below scale 0.6 is instead cut into tiles at scale 1 that overlap by the
@@ -366,9 +458,9 @@ export async function preview(file, options = {}) {
   const input = resolve(cwd, file);
   const ext = extname(input).toLowerCase();
   // The PNG is for the agent's own inspection, not a deliverable: keep it out of the project.
-  const out = options.out ? resolve(cwd, options.out) : join(tmpdir(), 'zukai-preview', `${basename(input, ext)}.png`);
-  if (ext !== '.drawio' && ext !== '.mmd') {
-    return { ok: false, errors: [{ path: file, message: 'preview takes a .drawio or .mmd file' }] };
+  const out = options.out ? resolve(cwd, options.out) : defaultPreviewPath(input);
+  if (ext !== '.drawio' && ext !== '.mmd' && ext !== '.md') {
+    return { ok: false, errors: [{ path: file, message: 'preview takes a .drawio or .mmd file, or the combined .md file of a Mermaid run' }] };
   }
   let text;
   try {
@@ -377,6 +469,7 @@ export async function preview(file, options = {}) {
     return { ok: false, errors: [{ path: file, message: `cannot read file: ${e.message}` }] };
   }
   mkdirSync(dirname(out), { recursive: true });
+  if (ext === '.md') return previewMarkdown(file, text, out, cwd, options.maxPx);
   const attempts = [];
   if (ext === '.drawio' && options.renderer !== 'drawio-web') {
     const { bin, tried } = findDrawioBinary();

@@ -9,6 +9,11 @@
  * label that names what travels over it. A label is read by its form (a path, an
  * identifier, two data words joined by a slash, a leading step number), so a breach written
  * as plain prose is left to the review.
+ *
+ * Only the user can keep a breach, and the choice is written into `meta.notes` as an entry
+ * that starts with `detail accepted:` and quotes the ids the warning named. A warning whose
+ * ids are all quoted in such entries is not repeated; a new element of the same kind brings
+ * it back, because its id was never accepted.
  */
 
 import { awsIcon } from './aws-icons.mjs';
@@ -19,6 +24,8 @@ const STORE_ICON_CATEGORIES = new Set(['Databases', 'Storage']);
 /** How many components of one kind, used by one component alone, read as the parts of one resource. */
 const PARTS_MIN = 3;
 
+/** An HTTP method before a path of any length: `POST /redeem`. */
+const METHOD_PATH = /\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/[\w{:]/;
 /** An absolute path with two or more named parts: `/hubs/imageProcessing`, `/api/v1/orders`. */
 const ENDPOINT_PATH = /(?:^|[\s(,;])\/[A-Za-z][\w.-]*\/[A-Za-z{:][\w.{}:-]*/;
 /** Two names joined by a slash where one is written like an identifier: `batch-job/sync-orders`. */
@@ -46,14 +53,17 @@ const list = (ir, key) => (Array.isArray(ir[key]) ? ir[key].filter(isObj) : []);
 const quoted = (ids) => ids.map((id) => `"${id}"`).join(', ');
 const iconCategory = (c) => (typeof c.icon === 'string' ? awsIcon(c.icon)?.category : undefined);
 const isStore = (c) => STORE_KINDS.has(c.kind ?? 'service') || STORE_ICON_CATEGORIES.has(iconCategory(c));
+const ACCEPTED = /^\s*detail accepted:/i;
 
 /**
  * @param {object} ir a valid IR
- * @returns {{ warnings: Array<{path:string,message:string,hint:string}> }}
+ * @returns {{ warnings: Array<{path:string,message:string,hint:string}>, accepted: number }}
+ *   `accepted` counts the breaches that a `detail accepted:` note covers
  */
 export function checkDetail(ir) {
-  const warnings = [];
-  if (!isObj(ir) || ir.kind !== 'architecture') return { warnings };
+  const found = [];
+  const warnings = { push: (w) => found.push(w) };
+  if (!isObj(ir) || ir.kind !== 'architecture') return { warnings: [], accepted: 0 };
   const components = list(ir, 'components');
   const connections = list(ir, 'connections');
   const byId = new Map(components.map((c) => [c.id, c]));
@@ -72,6 +82,7 @@ export function checkDetail(ir) {
     if (!oneIcon && !oneStoreKind) return;
     for (const c of children) reported.add(c.id);
     warnings.push({
+      ids: [b.id, ...b.children],
       path: `/boundaries/${i}`,
       message: `detail: boundary "${b.id}" holds only ${children.length} components of one kind (${quoted(b.children)}); a boundary groups what shares a network, an account or an owner, never the parts of one resource`,
       hint: `draw one component for the resource and drop the boundary, with the number of its parts in the label where a reader needs it ("DynamoDB (${children.length} tables)"); keep the boundary only when these are separate resources of one owner or one network`,
@@ -96,6 +107,7 @@ export function checkDetail(ir) {
     if (parts.length < PARTS_MIN) continue;
     const user = key.split('|')[0];
     warnings.push({
+      ids: parts.map((p) => p.c.id),
       path: `/components/${parts[0].i}`,
       message: `detail: ${parts.length} components (${quoted(parts.map((p) => p.c.id))}) are stores of one kind that only "${user}" uses; an architecture diagram shows a resource once, not its tables or its parts`,
       hint: `draw one component and put the number in its label ("DynamoDB (${parts.length} tables)"); keep them apart only when they are separate resources that differ in network place, access or backup, and move the names to an er diagram or to meta.notes`,
@@ -106,6 +118,7 @@ export function checkDetail(ir) {
   const steps = connections.map((c, i) => ({ c, i })).filter(({ c }) => typeof c.label === 'string' && STEP_NUMBER.test(c.label));
   if (steps.length >= 2) {
     warnings.push({
+      ids: steps.map(({ c }) => c.id),
       path: `/connections/${steps[0].i}/label`,
       message: `detail: ${steps.length} connection labels start with a step number (${quoted(steps.map(({ c }) => c.id))}); an architecture diagram shows how the parts reach each other, not the order of calls`,
       hint: 'the order of calls is a sequence or activity diagram: give it its own diagram, link it with `ref` on the component it details, and label each connection with its protocol or purpose ("HTTPS", "read / write")',
@@ -115,13 +128,18 @@ export function checkDetail(ir) {
   // A connection labelled with what travels over it instead of how it travels.
   connections.forEach((c, i) => {
     if (typeof c.label !== 'string') return;
-    const what = ENDPOINT_PATH.test(c.label) ? 'an endpoint path' : JOB_PATH.test(c.label) ? 'a job or resource path' : CAMEL_CASE.test(c.label) ? 'a field or method name' : namesData(c.label) ? 'a resource or data path' : namesJob(c.label) ? 'the name of a job or a route' : undefined;
+    const what = METHOD_PATH.test(c.label) || ENDPOINT_PATH.test(c.label) ? 'an endpoint path' : JOB_PATH.test(c.label) ? 'a job or resource path' : CAMEL_CASE.test(c.label) ? 'a field or method name' : namesData(c.label) ? 'a resource or data path' : namesJob(c.label) ? 'the name of a job or a route' : undefined;
     if (!what) return;
     warnings.push({
+      ids: [c.id],
       path: `/connections/${i}/label`,
       message: `detail: the label of connection "${c.id}" ("${c.label}") reads as ${what}; an architecture diagram labels a connection with its protocol, its port or what it is for in the infrastructure`,
       hint: 'write the protocol or the purpose ("HTTPS", "HTTP :8080", "read / write", "pull image"); what is sent over the connection belongs to a sequence or activity diagram',
     });
   });
-  return { warnings };
+  // What the user chose to keep: every id the warning named is quoted in a `detail accepted:` note.
+  const notes = (Array.isArray(ir.meta?.notes) ? ir.meta.notes : []).filter((n) => typeof n === 'string' && ACCEPTED.test(n));
+  const acceptedIds = new Set(notes.flatMap((n) => [...n.matchAll(/["“`']([A-Za-z0-9_-]{1,64})["”`']/g)].map((m) => m[1])));
+  const kept = found.filter((w) => !w.ids.every((id) => acceptedIds.has(id)));
+  return { warnings: kept.map(({ ids, ...w }) => w), accepted: found.length - kept.length };
 }

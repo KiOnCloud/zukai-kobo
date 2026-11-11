@@ -159,7 +159,11 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     // A label of several lines (a `ref` adds one) stands above its arrow, so its row grows.
     rows.push({ type: 'message', id: msg.id, height: m.rowPitch + m.labelHeight * (lineCount(msg.label) - 1) });
     for (const note of notes) if (note.after === msg.id) rows.push(noteRow(note));
-    for (const b of blocks.filter((b) => b.end === i).sort(innerFirst)) rows.push({ type: 'block-close', block: b.id, height: m.blockCloseHeight });
+    for (const b of blocks.filter((b) => b.end === i).sort(innerFirst)) {
+      rows.push({ type: 'block-close', block: b.id, height: m.blockCloseHeight });
+      // A note that follows the block stands below its frame (and inside the frames around it).
+      for (const note of notes) if (note.after === b.id) rows.push(noteRow(note));
+    }
   });
   let y = m.topMargin + m.headerHeight + m.rowPitch / 2;
   for (const row of rows) {
@@ -243,7 +247,10 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     let left = Math.min(...xs) - m.participantWidth / 2 - inset;
     let right = Math.max(...xs) + m.participantWidth / 2 + inset;
     for (const note of notes) {
-      if (note.after === undefined || !b.all.includes(note.after)) continue;
+      // A note belongs to the frame of its message, and to every frame around the block it follows.
+      const followed = blocks.find((x) => x.id === note.after);
+      const inside = followed ? followed.id !== b.id && followed.all.length < b.all.length && b.all.includes(followed.all[0]) : b.all.includes(note.after);
+      if (note.after === undefined || !inside) continue;
       const nb = noteBoxes.get(note.id);
       left = Math.min(left, nb.x - inset);
       right = Math.max(right, nb.x + nb.width + inset);

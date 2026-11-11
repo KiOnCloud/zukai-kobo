@@ -25,10 +25,10 @@ and every shared reference comes from `<draw-dir>`:
 
 ```bash
 node "<draw-dir>/scripts/bin/cli.mjs" diff <old.ir.json|old-dir> <new.ir.json|new-dir>
-node "<draw-dir>/scripts/bin/cli.mjs" drift <file.drawio> <ir.json|run-dir>...
+node "<draw-dir>/scripts/bin/cli.mjs" drift <file.drawio|run-slug.md> <ir.json|run-dir>...
 node "<draw-dir>/scripts/bin/cli.mjs" snapshot <run-dir> --request "<text>" [--extra <file>]... [--bundle @<file>]
 node "<draw-dir>/scripts/bin/cli.mjs" revisions <run-dir>
-node "<draw-dir>/scripts/bin/cli.mjs" restore <run-dir> <rNNN> [--extra <file>]... [--bundle @<file>]
+node "<draw-dir>/scripts/bin/cli.mjs" restore <run-dir> <rNNN|undo|redo> [--extra <file>]... [--bundle @<file>]
 ```
 
 `--extra` paths are read from the working directory like every other path. `--bundle` takes
@@ -39,6 +39,14 @@ Shared references: `<draw-dir>/references/ir-reference.md` (IR fields per kind),
 `variants.md` (business views and language variants), `closing-contract.md` (how every
 change ends), `review-checklist.md` and the `target-*.md` files.
 
+## Asking the user
+
+Every question of this skill and of the consult protocol is written for `AskUserQuestion`.
+A runtime without that tool (Codex) asks the same question as one text message: the
+question, its options as a lettered list with the suggested one first and marked, and "reply
+with a letter or your own words". Where the text names no suggestion, none is marked and
+the user's answer is awaited; never pick for them.
+
 ## Arguments
 
 Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them from the request.
@@ -47,7 +55,9 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
 [<run-folder|ir-path>] [--preview|--apply] <request>
 ```
 
-- A path first selects the run (an IR path means the run folder that holds it).
+- A path first selects the run (an IR path means the run folder that holds it). The first
+  argument is a path when it names something that exists on disk, or ends in `.ir.json`, or
+  contains a `/`; anything else is the first word of the request.
 - `--preview` forces the consult route, `--apply` the direct route. Both together is an
   error: say so and stop. They choose between those two routes only: neither turns a request
   for a new diagram into an edit.
@@ -56,18 +66,26 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
 
 A run is a folder `diagrams/<yyyymmdd>_<run-slug>/` with a `source/` folder of IR files.
 
-1. A path argument wins.
-2. Otherwise a run made or revised earlier in this conversation, when the request does not
-   name another one.
-3. Otherwise list the runs under `diagrams/` in the working directory. One run whose slug or
-   diagram titles match the request: use it and say which. None or several: ask once with
-   `AskUserQuestion`, up to four runs, newest first, labelled by date and slug, each with its
-   diagram titles as the description.
+1. A path argument wins. A path that does not exist, or that is neither a run folder nor an
+   IR inside one, is an error: say which path it was and what is missing (`source/`), list
+   the runs under `diagrams/`, and stop. Never fall back to another run in its place.
+2. Otherwise the runs made or revised earlier in this conversation. One run: use it, unless
+   the request names another. Several: the one the request points at, by its slug, a
+   diagram title or the labels of its elements (a request about "the validation step"
+   belongs to the run that has one). When that singles out no run, ask as in rule 3; the
+   most recent one is not a default.
+3. Otherwise list the runs under `diagrams/` in the working directory and read their IRs.
+   One run whose slug, diagram titles or element labels match the request: use it and say
+   which. None or several: ask once with `AskUserQuestion`, up to four runs, newest first,
+   labelled by date and slug, each with its diagram titles as the description.
 4. No run at all: stop and say that nothing was delivered yet, so the draw skill is the one
    to use (`/zukai:draw` in the plugin, `/zukai` or `$zukai` in a copied install).
 
-A `drafts/` folder left in the run by an earlier session is reported first: offer to resume
-that consult (go to the consult protocol, step 4) or drop it (delete `drafts/`).
+Once the run is found, a `drafts/` folder left in it by an earlier session is reported
+first: offer to resume that consult (go to the consult protocol, step 4, with the request and
+the draft names from `drafts/consult.json`) or drop it (delete `drafts/`). On "resume" the
+new request waits until that consult is confirmed or dropped; on "drop" it goes on from
+step 2.
 
 ## 2. Read the state
 
@@ -83,23 +101,42 @@ file's result: it holds the `--title`, `--canvas` and `--gap` the file was built
 When nothing drifted, continue. When something did, tell the user in plain words what
 differs ("the box 'Approve' was moved", "the label 'Pay' reads 'Pay now'"). The CLI compares
 with what this version of the skill would draw, so an upgrade between delivery and now shows
-up the same way; say that once. Then:
+up the same way; say that once. Two marks in the result need a sentence each:
+
+- `relabelled: <n>` on a page: an earlier label-only revision rewrote that page in place.
+  Its boxes are compared with the layout they were drawn for, so the changes listed are
+  hand edits only. With `unresolved` in the result the CLI could not put an old label back
+  and compares positions with a fresh drawing instead: then say that the moves it lists may
+  come from the rewording, not from the user.
+- `legacyIds: true`: the file was delivered by version 2.0.3 or older, whose page ids were
+  cut at 40 characters. It is compared as it was written; a redraw gives it full ids.
+
+Then:
 
 - A label-only request keeps the hand edits: after the snapshot, change the labels in the IR
   (validate it), write a map to a temporary file outside the run folder, and run
   `relabel <file> --map <map> --out <file>` on each drifted draw.io file instead of emitting
   it again. Key the map by `<page id>:<ir id>` (`"checkout:pay": "Pay by card"`; the page id
-  is the `diagram` that `drift` printed for that page): in the
-  combined file a bare id would also rename the same id on every other page. `relabel`
+  is the `diagram` that `drift` printed for that page, which is the diagram id in lower
+  case): in the combined file a bare id would also rename the same id on every other page,
+  the business view first of all. Write one map per file, with the keys of that file only:
+  a key for a page the file does not have comes back as `unmatched`. `relabel`
   reports how many cells it changed by matching text (`byText`); name them in the report,
-  since a hand-copied shape is renamed that way too. These files stay out of the closing
+  since a hand-copied shape is renamed that way too, and so is the same text on another
+  page. The labels the map left alone come back as one warning line; that is expected for
+  a rewording and needs no `$keep` list. These files stay out of the closing
   contract's emit and bundle steps (its revise section says how). Files that did not drift
   are emitted as usual.
 - Any other request redraws the files and loses the hand edits. Ask once: "redraw and lose
   these edits" or "stop". On redraw, pass every drifted file to `snapshot` with `--extra`, so
-  it is kept under `history/rNNN/extras/`, and say where.
+  it is kept under `history/rNNN/extras/`, and say where. The CLI never deletes these
+  copies: when their revision is rotated out, they move to `history/extras/rNNN/` and the
+  command that did it lists them as `keptExtras`; pass that on to the user.
 
-Mermaid runs skip this step: text output has no layout to lose.
+Mermaid runs have no layout to lose, but the same command reads their combined file:
+`drift <run>/<run-slug>.md <run>` returns the `bundle` object (the title the file was
+written with) and names a diagram whose text was edited by hand. Treat such an edit like a
+hand edit in draw.io: ask before redrawing, and keep the file with `--extra`.
 
 ## 4. Choose the route
 
@@ -107,8 +144,8 @@ Mermaid runs skip this step: text output has no layout to lose.
 |---|---|---|
 | Undo | "undo", "revert", "go back", "quay lại", "hoàn tác", or a revision named (`r003`) | step 7 |
 | New diagram | the request asks for a diagram the run does not have: another kind, another view, a part that details one element, a second version of a delivered diagram at another level of detail ("add an architecture diagram", "also draw the sequence", "a detailed version of it", "thêm sơ đồ kiến trúc", "vẽ thêm", "bổ sung diagram") | step 8 |
-| Consult | what-if or question phrasing ("what if", "should we", "try", "nếu … thì sao", "có nên", "thử"); or a change that removes elements, or reaches a `ref` part or a `-business` view; or `--preview` | step 6 |
-| Direct | everything else, or `--apply` | step 5 |
+| Consult | what-if or question phrasing ("what if", "should we", "try", "nếu … thì sao", "có nên", "thử"); or a change that removes elements; or a change of structure (a step, branch, participant or connection added, moved or reconnected) that has to be carried into a `ref` part or a `-business` view; or `--preview` | step 6 |
+| Direct | everything else, or `--apply`. A change of wording only (a label, a title, a guard) is always direct, in however many parts and views the same wording appears: it is carried into each of them in step 5 | step 5 |
 
 The table is read top to bottom and the first row that fits wins, so a request for a new
 diagram never reaches the direct route, whatever its wording. Say which route was taken and
@@ -131,7 +168,10 @@ why, in one line, in the user's language.
    have: set `meta.source` to `"manual"` and add a `meta.notes` entry saying from which
    revision on it no longer reflects the code.
 4. `diff <run>/history/<rNNN>/source <run>/source` and read every hint it prints. A hint
-   about a part or a business view is either applied now or answered in the report.
+   about a part or a business view is either applied now or answered in the report. The
+   list has four parts: `added`, `removed`, `changed` (with the fields that differ) and
+   `reordered` (the elements that moved and what each now follows), since the order of
+   messages, participants and lanes is part of what the reader sees.
 5. Run `<draw-dir>/references/closing-contract.md` in full (its section "When revise calls
    this contract" says what changes for a revision).
 
@@ -143,26 +183,31 @@ run. Nothing in `source/` or in the delivered files changes before that confirma
 
 ## 7. Undo route
 
-1. `revisions <run>`. Show them newest first as `rNNN · date · request`. A revision that a
-   restore wrote carries `undoOf: rNNN` (the revision it went back to).
+1. `revisions <run>`. Show them newest first as `rNNN · date · request`. The result also
+   says where one step leads from the state the run is in now: `undo` is the revision a
+   plain undo restores, `redo` the one a redo restores, `null` when there is none. The CLI
+   keeps both along one line of states, so "undo, undo, redo, redo" ends where it started.
 2. Pick the target:
    - a named revision is used as given;
-   - "undo the undo", "redo": the newest revision, when it carries `undoOf`;
-   - a plain "undo" or "the last change": the newest revision that steps back from where the
-     run is now. When the newest revision carries `undoOf: rX`, that is the newest revision
-     older than `rX` without `undoOf` (so a second "undo" goes further back instead of
-     redoing); otherwise it is the newest revision. When there is none, say there is
-     nothing earlier to go back to;
+   - a plain "undo" or "the last change": `undo`. When it is `null`, say there is nothing
+     earlier to go back to;
+   - "undo the undo", "redo": `redo`. When it is `null`, say there is nothing to redo (a
+     change made after an undo starts a new line, and what was undone can then only be
+     restored by naming its revision);
    - anything else: ask which, with `AskUserQuestion` (the four newest as options).
-3. `restore <run> <rNNN> --bundle @<file> [--extra <file>]...`, with the current `bundle`
+
+   Never work the target out from the list yourself: pass the word. `restore <run> undo`
+   and `restore <run> redo` take the step and fail with a plain message when there is none.
+3. `restore <run> <rNNN|undo|redo> --bundle @<file> [--extra <file>]...`, with the current `bundle`
    options from step 3 and, when the user agreed to redraw drifted files, those files as
    `--extra`. Never run a separate `snapshot` first: it would rotate the oldest revision
    away, which may be the target. `restore` snapshots the current state itself, so the undo
    can be undone; say which revision holds the state you just left.
 4. Rebuild the outputs: run the closing contract with the `bundle` options that `restore`
-   printed (those of the restored revision). When that revision kept hand-edited files under
-   `history/rNNN/extras/`, say so: they match the restored IRs and can be copied back over
-   the emitted files if the user wants their old layout.
+   printed (those of the restored revision). When that revision kept hand-edited files,
+   `restore` lists them as `extras` (under `history/rNNN/extras/`, or `history/extras/rNNN/`
+   once the revision was rotated out); say so: they match the restored IRs and can be copied
+   back over the emitted files if the user wants their old layout.
 
 ## 8. New diagram route
 

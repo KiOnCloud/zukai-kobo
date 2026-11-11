@@ -48,10 +48,10 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
     const box = checkDrawioStructure(r.output).cells.find((c) => c.id === 'returns:approve');
     expect(box.style).toMatch(/^shape=process;/);
     const width = Number(box.mxGeometry.width);
-    // Three lines in the whole width of the box, four between the bars, which take a fifth of it: the box holds three.
+    // Three lines in the whole width of the box, four between the bars (a fifth of the width, and 4 px of label spacing a side): the box holds three.
     const label = 'Approve the request, print the return shipping label and email it to them';
     expect(wrapText(label, width - 8).lines).toBe(3);
-    expect(wrapText(label, 0.8 * width - 4).lines).toBe(4);
+    expect(wrapText(label, 0.8 * width - 4 - 8).lines).toBe(4);
     const out = relabelDrawio(r.output, { approve: label });
     expect(out.warnings).toHaveLength(1);
     expect(out.warnings[0].message).toMatch(/wraps to 4 lines/);
@@ -72,7 +72,7 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
     expect(oneLine.warnings).toHaveLength(1);
     expect(oneLine.warnings[0].message).toMatch(/needs about 117 px in a 140x80 diamond that holds 113 px on one line/);
     const twoLines = relabelDrawio(plain.output, { eligible: 'Are all the items in stock?' });
-    expect(twoLines.warnings[0].message).toMatch(/wraps to 2 lines in a 140x80 diamond that holds 0 at that width/);
+    expect(twoLines.warnings[0].message).toMatch(/wraps to 2 lines, which reach the slanted sides of its 140x80 diamond/);
     const longer = relabelDrawio(r.output, { ok: 'Is the file a PDF or a PNG, and is its size under the limit configured for the tenant and the folder?' });
     expect(longer.warnings).toHaveLength(1);
     expect(longer.warnings[0].path).toBe('upload:ok');
@@ -241,7 +241,8 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
     expect(run.status).toBe(0);
     expect(JSON.parse(run.stdout)).toMatchObject({ ok: true, out: join(dir, 'returns.vi.drawio'), replaced: 1, byText: 0, unmatched: ['ghost'] });
     expect(JSON.parse(run.stdout).untouched.length).toBeGreaterThan(3);
-    expect(JSON.parse(run.stdout).warnings).toBeGreaterThan(3);
+    // One warning for the unmatched key and one for all the labels the map left alone.
+    expect(JSON.parse(run.stdout).warnings).toBe(2);
     expect(JSON.parse(run.stderr).warnings[0].message).toContain('ghost');
     expect(readFileSync(join(dir, 'returns.vi.drawio'), 'utf8')).toContain('value="Duyệt&lt;br&gt;↳ return-request-label"');
     const bad = spawnSync(process.execPath, [join(scriptsDir, 'bin', 'cli.mjs'), 'relabel', 'vi.json', '--map', 'vi.json', '--out', 'x.drawio'], { cwd: dir, encoding: 'utf8' });

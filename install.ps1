@@ -15,7 +15,14 @@ powershell -ExecutionPolicy Bypass -File install.ps1 -Target codex -Dest C:\work
 Exit codes: 0 installed or already up to date, 1 usage or I/O error,
             3 the installed copy is newer than this source.
 The script only copies files. It never runs npm, never touches the network, and never
-deletes an existing install: a differing destination is moved to <dest>.bak-<timestamp>.
+deletes an existing install: a differing destination is moved out of the skills folder, to
+<project>\.agents\zukai-backups\<name>-<timestamp> (.claude\zukai-backups for claude-project).
+A backup left inside the skills folder would still be a skill named zukai, and two skills
+with one name compete for routing.
+
+The copy holds what the skills run with: SKILL.md, references\, the bundled CLI
+(scripts\bin\cli.mjs) and the feature matrix. The sources, tests and fixtures of the CLI
+stay in the repository.
 #>
 [CmdletBinding()]
 param(
@@ -61,6 +68,28 @@ if (-not (Test-Path $Dest -PathType Container)) { Write-Error "Destination proje
 $destRoot = (Resolve-Path $Dest).Path
 $destDir = Join-Path $destRoot $subdir
 $legacySkill = Join-Path $destDir $legacyName
+$backupDir = Join-Path (Split-Path -Parent $destDir) 'zukai-backups'
+
+# Move a folder out of the skills folder and return where it went.
+function Move-ToBackup([string]$Path, [string]$Name) {
+  New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+  $target = Join-Path $backupDir $Name
+  $n = 1
+  while (Test-Path $target) { $n++; $target = Join-Path $backupDir "$Name-$n" }
+  Move-Item -Path $Path -Destination $target
+  return $target
+}
+
+# Backups that an earlier version of this script left inside the skills folder
+# (<name>.bak-<timestamp>) still carry a SKILL.md with the skill's name: move them out too.
+function Move-OldBackups {
+  foreach ($name in @('zukai', 'zukai-revise', $legacyName)) {
+    Get-ChildItem -Path $destDir -Directory -Filter "$name.bak-*" -Force -ErrorAction SilentlyContinue | ForEach-Object {
+      $stamp = $_.Name.Substring(("$name.bak-").Length)
+      Write-Output "Backup from an earlier install moved out of the skills folder: $(Move-ToBackup $_.FullName "$name-$stamp")"
+    }
+  }
+}
 
 # Decide for both skills before touching anything. A copy already at this version is left
 # alone (backing it up would leave a second copy with the same name competing for routing);
@@ -89,7 +118,11 @@ foreach ($s in $skills) {
     Write-Output "Installing $($s.Name) $srcVersion to $($s.Dest)"
   }
 }
-if ($todo.Count -eq 0) { Write-Output "zukai $srcVersion already up to date at $destDir (zukai, zukai-revise)"; exit 0 }
+if ($todo.Count -eq 0) {
+  Move-OldBackups
+  Write-Output "zukai $srcVersion already up to date at $destDir (zukai, zukai-revise)"
+  exit 0
+}
 
 New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 $tmp = Join-Path $destDir ".zukai.tmp-$PID"
@@ -105,6 +138,18 @@ try {
       Copy-Item -Path $_.FullName -Destination $copy -Recurse -Force
     }
     Get-ChildItem -Path $copy -Recurse -Directory -Filter node_modules -Force | Remove-Item -Recurse -Force
+    # The CLI runs from its bundle; what only a rebuild or a test needs stays in the repository.
+    # The feature matrix is the one source file the skill text points at.
+    $scripts = Join-Path $copy 'scripts'
+    if (Test-Path (Join-Path $scripts 'src')) {
+      $matrix = [System.IO.File]::ReadAllBytes((Join-Path $scripts 'src\feature-matrix.json'))
+      foreach ($dev in @('src', 'tests', 'fixtures', 'tools', 'build.mjs', 'package-lock.json')) {
+        $devPath = Join-Path $scripts $dev
+        if (Test-Path $devPath) { Remove-Item -Recurse -Force $devPath }
+      }
+      New-Item -ItemType Directory -Path (Join-Path $scripts 'src') | Out-Null
+      [System.IO.File]::WriteAllBytes((Join-Path $scripts 'src\feature-matrix.json'), $matrix)
+    }
     Set-Content -Path (Join-Path $copy $s.Marker) -Value $srcVersion -NoNewline
     Add-Content -Path (Join-Path $copy $s.Marker) -Value ""
 
@@ -124,17 +169,15 @@ try {
   # A copy installed under the old name would compete with this one for routing. Move it
   # aside only when its version marker shows this installer wrote it.
   if (Test-Path (Join-Path $legacySkill $legacyMarker)) {
-    Move-Item -Path $legacySkill -Destination "$legacySkill.bak-$stamp"
-    Write-Output "Install under the old name moved to $legacySkill.bak-$stamp"
+    Write-Output "Install under the old name moved to $(Move-ToBackup $legacySkill "$legacyName-$stamp")"
   }
+  Move-OldBackups
 
   # Both copies are complete before either is moved in; only a failure between these moves
   # (a locked folder) can leave one updated, and running the installer again finishes the job.
   foreach ($s in $todo) {
     if (Test-Path $s.Dest) {
-      $bak = "$($s.Dest).bak-$stamp"
-      Move-Item -Path $s.Dest -Destination $bak
-      Write-Output "Previous install of $($s.Name) moved to $bak"
+      Write-Output "Previous install of $($s.Name) moved to $(Move-ToBackup $s.Dest "$($s.Name)-$stamp")"
     }
     Move-Item -Path (Join-Path $tmp $s.Name) -Destination $s.Dest
     Write-Output "Installed $($s.Name) $srcVersion to $($s.Dest)"

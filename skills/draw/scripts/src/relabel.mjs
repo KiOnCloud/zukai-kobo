@@ -29,6 +29,12 @@ import { wrapText } from './layout-graph.mjs';
  * wrap width against the lines the old label took. A cell and its copies (the canvas page) give one warning naming the
  * pages. Compressed input (draw.io's default for older files) is inflated; output is
  * uncompressed.
+ *
+ * The file then no longer is what a fresh emit of its IR draws: the boxes keep the sizes and
+ * places they had for the old labels. So that `drift` can still tell a hand edit from that,
+ * every page records the label each relabelled cell was laid out for (the first one, however
+ * often it is relabelled) in a `zukaiLabels` property of its root cell, which draw.io keeps
+ * on save like any property set with Edit Data.
  * @param {string} xml the .drawio file
  * @param {Record<string, string | string[]>} map new labels by key, plus optional `$keep`
  * @returns {{ output: string, replaced: number, byText: number, unmatched: string[],
@@ -65,10 +71,11 @@ export function relabelDrawio(xml, map) {
         name: c[1], attrText: c[2], attrs: a, index: c.index, length: c[0].length, selfClosing: c[0].endsWith('/>'),
         labelAttr: c[1] === 'UserObject' ? 'label' : 'value',
         style: a.style ?? (inner ? parseAttrs(inner[1]).style : '') ?? '',
+        parent: a.parent ?? (inner ? parseAttrs(inner[1]).parent : undefined),
         geometry: geometry ? parseAttrs(geometry[1]) : null,
       });
     }
-    pages.push({ match: m, attrs: m[1], body: m[2], page, pageId, cells });
+    pages.push({ match: m, attrs: m[1], body: m[2], page, pageId, cells, basis: readLabelBasis(m[2]) });
   }
 
   // Pass 1: by key.
@@ -132,6 +139,20 @@ export function relabelDrawio(xml, map) {
       if (c.newText !== undefined && c.geometry && !c.selfClosing && c.geometry.width !== undefined && c.geometry.relative !== '1') {
         const spacing = ['spacingLeft', 'spacingRight'].reduce((sum, key) => sum + Number(c.style.match(new RegExp(`${key}=(\\d+)`))?.[1] ?? 0), 0);
         const wraps = /whiteSpace=wrap/.test(c.style);
+        // A name below a figure wraps at the width of the old name. The figure does not hold
+        // the text, so that width can follow the new name without moving anything: it grows
+        // (up to BELOW_MAX) until the name takes no more lines than the old one did.
+        if (/verticalLabelPosition=bottom/.test(c.style) && wraps && /labelWidth=\d+/.test(c.style)) {
+          const was = Number(c.style.match(/labelWidth=(\d+)/)[1]);
+          const room = wrappedLines(c.parts.main, was);
+          const limit = Math.max(was, Math.min(BELOW_MAX, roomBelow(c, p.cells)));
+          let width = was;
+          while (width + 4 <= limit && wrappedLines(c.newText, width) > room) width += 4;
+          if (width !== was && wrappedLines(c.newText, width) <= room) {
+            c.style = c.style.replace(/labelWidth=\d+/, `labelWidth=${width}`);
+            c.restyled = true;
+          }
+        }
         const problem = /verticalLabelPosition=bottom/.test(c.style)
           ? checkFitBelow(c.parts.main, c.newText, Number(c.style.match(/labelWidth=(\d+)/)?.[1] ?? c.geometry.width), wraps)
           : checkFit(c.parts.main, c.newText, Number(c.geometry.width), Number(c.geometry.height), wraps, { spacing, rhombus: /^rhombus;/.test(c.style), bars: /^shape=process;/.test(c.style) });
@@ -140,11 +161,21 @@ export function relabelDrawio(xml, map) {
           fitProblems.get(c.attrs.id).pages.unshift(p.pageId);
         }
       }
-      const tag = `<${c.name}${c.attrText.replace(new RegExp(`\\s${c.labelAttr}="[^"]*"`), ` ${c.labelAttr}="${xmlAttr(value)}"`)}>`;
-      body += p.body.slice(cursor, c.index) + tag;
+      let attrText = c.attrText.replace(new RegExp(`\\s${c.labelAttr}="[^"]*"`), ` ${c.labelAttr}="${xmlAttr(value)}"`);
+      const widened = c.restyled ? c.style.match(/labelWidth=\d+/)[0] : undefined;
+      // The style is on the cell itself, or on the mxCell inside a UserObject.
+      if (widened && c.name === 'mxCell') attrText = attrText.replace(/labelWidth=\d+/, widened);
+      body += p.body.slice(cursor, c.index) + `<${c.name}${attrText}>`;
       cursor = c.index + c.length;
+      if (widened && c.name !== 'mxCell') {
+        const inner = /^\s*<mxCell\b[^>]*?labelWidth=\d+/.exec(p.body.slice(cursor));
+        if (inner) { body += inner[0].replace(/labelWidth=\d+$/, widened); cursor += inner[0].length; }
+      }
     }
     body += p.body.slice(cursor);
+    const basis = { ...p.basis };
+    for (const c of p.cells) if (c.newText !== undefined && c.parts.main !== c.newText && !Object.hasOwn(basis, c.attrs.id)) basis[c.attrs.id] = c.parts.main;
+    if (Object.keys(basis).length > 0) body = writeLabelBasis(body, basis);
     const attrs = p.newName !== undefined ? p.attrs.replace(/\sname="[^"]*"/, ` name="${xmlAttr(p.newName)}"`) : p.attrs;
     out = out.slice(0, p.match.index) + `<diagram${attrs}>${body}</diagram>` + out.slice(p.match.index + p.match[0].length);
   }
@@ -153,6 +184,36 @@ export function relabelDrawio(xml, map) {
   }
   const unmatched = keys.filter((k) => !matched.has(k));
   return { output: out, replaced, byText, unmatched, untouched, warnings };
+}
+
+const ROOT_PLAIN = /<mxCell\s+id="0"\s*\/>/;
+const ROOT_OBJECT = /<(object|UserObject)\b([^>]*\sid="0"[^>]*)>/;
+
+/**
+ * The labels the cells of a page were laid out for, as an earlier relabel recorded them:
+ * cell id to the text the cell carried when the page was emitted.
+ * @param {string} body the content of a `<diagram>`
+ * @returns {Record<string, string>}
+ */
+export function readLabelBasis(body) {
+  const m = ROOT_OBJECT.exec(body);
+  if (!m) return {};
+  try {
+    const parsed = JSON.parse(parseAttrs(m[2]).zukaiLabels ?? '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? Object.fromEntries(Object.entries(parsed).filter(([, v]) => typeof v === 'string')) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLabelBasis(body, basis) {
+  const value = xmlAttr(JSON.stringify(basis));
+  const existing = ROOT_OBJECT.exec(body);
+  if (existing) {
+    const attrs = /\szukaiLabels="[^"]*"/.test(existing[2]) ? existing[2].replace(/\szukaiLabels="[^"]*"/, ` zukaiLabels="${value}"`) : ` zukaiLabels="${value}"${existing[2]}`;
+    return body.slice(0, existing.index) + `<${existing[1]}${attrs}>` + body.slice(existing.index + existing[0].length);
+  }
+  return body.replace(ROOT_PLAIN, `<object label="" zukaiLabels="${value}" id="0"><mxCell/></object>`);
 }
 
 /** draw.io compresses page content as base64(deflate-raw(uriencoded(xml))); turn it back into XML. */
@@ -214,6 +275,12 @@ const widest = (text) => Math.ceil(widestLine(text));
  * about 15 px.
  */
 const TEXT_INSET = 8;
+/** How much wider than drawn the text metrics may measure a line (see text-metrics.mjs). */
+const WIDTH_SLACK = 1.03;
+/** The widest a name below a figure may become when a relabel lets it grow, in px. */
+const BELOW_MAX = 200;
+/** Room kept between a name below a figure and the line of the frame around it, in px. */
+const FRAME_CLEAR = 6;
 const LINE = 15;
 
 /**
@@ -241,7 +308,10 @@ function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus
     const now = block(newText);
     if (now.fill <= 1 || now.fill <= block(oldText).fill) return undefined;
     if (now.lines === 1) return `the new label needs about ${Math.ceil(now.widest)} px in a ${width}x${height} diamond that holds ${Math.floor(width * (1 - LINE / height))} px on one line`;
-    return `the new label wraps to ${now.lines} lines in a ${width}x${height} diamond that holds ${Math.floor((height * (1 - usable / width)) / LINE)} at that width`;
+    const holds = Math.floor((height * (1 - usable / width)) / LINE);
+    return holds >= 1
+      ? `the new label wraps to ${now.lines} lines in a ${width}x${height} diamond that holds ${holds} at that width`
+      : `the new label wraps to ${now.lines} lines, which reach the slanted sides of its ${width}x${height} diamond`;
   }
   // A subroutine keeps its label between its side bars, which take a tenth of the width each.
   const usable = Math.max((bars ? 0.8 * width : width) - spacing - (bars ? 4 : TEXT_INSET), 1);
@@ -257,6 +327,32 @@ function checkFit(oldText, newText, width, height, wraps, { spacing = 0, rhombus
 }
 
 /**
+ * How wide a name below a figure may become where the figure stands: twice the distance from
+ * its centre to the nearer side of the frame it lies in (a name must not cross a frame line)
+ * and to the middle between it and each figure beside it on its row (their names share that
+ * room). Coordinates of cells with one parent are relative to that parent, so they compare.
+ */
+function roomBelow(cell, cells) {
+  const g = cell.geometry;
+  const box = (x) => ({ x: Number(x.geometry?.x ?? 0), y: Number(x.geometry?.y ?? 0), width: Number(x.geometry?.width ?? 0), height: Number(x.geometry?.height ?? 0) });
+  const own = box(cell);
+  const centre = own.x + own.width / 2;
+  let half = Infinity;
+  // A self-closing cell (the page's own layer) has no geometry of its own.
+  const frame = cells.find((x) => x.attrs.id === cell.parent && !x.selfClosing && x.geometry?.width !== undefined);
+  if (frame) half = Math.min(half, centre - FRAME_CLEAR, Number(frame.geometry.width) - centre - FRAME_CLEAR);
+  for (const other of cells) {
+    if (other === cell || other.selfClosing || other.parent !== cell.parent || !other.geometry || other.geometry.relative === '1' || other.geometry.width === undefined) continue;
+    if (!/verticalLabelPosition=bottom/.test(other.style)) continue;
+    const o = box(other);
+    // On one row: the names stand side by side below the two figures.
+    if (o.y + o.height <= own.y || own.y + own.height <= o.y) continue;
+    half = Math.min(half, Math.abs(o.x + o.width / 2 - centre) / 2 - FRAME_CLEAR / 2);
+  }
+  return g && Number.isFinite(half) ? Math.floor(2 * half) : Infinity;
+}
+
+/**
  * Fit check for a label drawn below its shape (an actor's name): the shape does not hold the
  * text, the layout left room under it for the lines the old label took at the label's wrap
  * width. The new label fits when it takes no more lines and has no word wider than that
@@ -268,7 +364,10 @@ function checkFitBelow(oldText, newText, width, wraps) {
     return need(newText) > Math.max(need(oldText), width) ? `the new label needs about ${need(newText)} px below its shape, where the old one took ${need(oldText)} px` : undefined;
   }
   if (widestWord(newText) > width && widestWord(oldText) <= width) return `a word of the new label is wider than the ${width} px the label below the shape wraps at`;
-  const lines = wrappedLines(newText, width);
+  // The text widths err on the wide side by up to 3 % (they size boxes, where too wide is
+  // safe). A warning must not: a label that the browser still fits on its line, such as eight
+  // full-width characters in 97 px, would be reported as wrapping.
+  const lines = wrappedLines(newText, width * WIDTH_SLACK);
   const room = wrappedLines(oldText, width);
   return lines > room ? `the new label wraps to ${lines} lines below its shape, where the layout left room for ${room}` : undefined;
 }

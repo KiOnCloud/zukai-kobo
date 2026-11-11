@@ -32,6 +32,8 @@ export const ACTIVITY_METRICS = {
   topGap: 30,
   bottomGap: 30,
   guardRoom: 32,
+  // Room between a join that was moved below the guard room and the node it leads into.
+  joinClear: 12,
 };
 
 /** Soft draw.io colours per lane index: header fill, body fill, stroke. */
@@ -110,7 +112,7 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
    * can do that is only known once nodes have positions, so the caller runs this to a fixed
    * point.
    */
-  const arrange = (columns) => {
+  const arrange = (columns, sides = new Map()) => {
     // Route plan. Each edge's horizontal runs claim a track in a row gap and, for non-adjacent
     // rows, a track in the source lane's gutter. Edges into the same target share a track;
     // everything else gets its own, so distinct flows never lie on one line.
@@ -161,8 +163,11 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
         }
         if (!best || score < best.score) best = { lane, side, score };
       }
+      // The score counts runs between lanes only. Where it cannot tell the two sides of a
+      // lane apart, the caller tries the other one and keeps it when fewer flows cross.
+      const forced = sides.get(id);
       pl.gutterLane = best.lane;
-      pl.side = best.side;
+      pl.side = forced ?? best.side;
     }
     for (const pl of plans.values()) {
       if (pl.type === 'adjacent') claim(gapTracks, pl.rs, pl.key);
@@ -368,10 +373,30 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
       }
       list.splice(0, list.length, ...sorted);
     }
+    // A guarded branch that goes straight down to a node other flows also reach: they join it
+    // on the track of that node. In its usual place that track lies above the room kept for
+    // the guard, so the guard would stand below the join and read as the guard of the joined
+    // flow. When the track is the lowest of its gap anyway, it moves below that room, and the
+    // branch keeps a stretch of its own for the guard between the last split and the join.
+    const lateJoin = new Map(); // gap index -> track key
+    for (const f of ir.flows) {
+      const pl = plans.get(f.id);
+      if (!f.guard || pl.type !== 'adjacent' || !guardRoom.has(pl.rs)) continue;
+      if (!ir.flows.some((o) => o !== f && o.from === f.from && plans.get(o.id).type !== 'self')) continue;
+      // Straight down or with a turn towards a node in another lane: either way the branch
+      // meets, on that track, a flow that comes from another node.
+      const joined = ir.flows.some((o) => {
+        const q = plans.get(o.id);
+        return o.to === f.to && o.from !== f.from && (q.type === 'adjacent' ? q.rs === pl.rs : (q.type === 'skip' || q.type === 'column') && q.rt - 1 === pl.rs);
+      });
+      if (!joined && Math.abs(centerX(f.from) - centerX(f.to)) > 0.5) continue;
+      if ((gapTracks.get(pl.rs) ?? []).at(-1) === pl.key) lateJoin.set(pl.rs, pl.key);
+    }
     const gapY = (g, key) => {
       const top = rowTop[g] + rowHeight[g];
       const list = gapTracks.get(g) ?? [];
       const i = Math.max(list.indexOf(key), 0);
+      if (lateJoin.get(g) === key) return top + gapHeight(g) - m.joinClear;
       return top + (trackSpan(g) * (i + 1)) / (list.length + 1);
     };
     const gapAboveY = (r, key) => (r === 0 ? m.topMargin + m.headerHeight + m.topGap / 2 : gapY(r - 1, key));
@@ -462,19 +487,66 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
     }
     return free;
   };
-  let columns = new Set();
-  let arranged = arrange(columns);
-  for (let pass = 0; pass < 3; pass++) {
-    const next = freeColumns(arranged);
-    if (next.size === columns.size && [...next].every((id) => columns.has(id))) break;
-    columns = next;
-    arranged = arrange(columns);
-  }
-  // Keep only columns that are still free in the final arrangement.
-  const still = freeColumns(arranged);
-  if ([...columns].some((id) => !still.has(id))) {
-    columns = new Set([...columns].filter((id) => still.has(id)));
-    arranged = arrange(columns);
+  /** The arrangement for one choice of gutter sides, with the long flows that can run down their own column. */
+  const settle = (sides) => {
+    let columns = new Set();
+    let arranged = arrange(columns, sides);
+    for (let pass = 0; pass < 3; pass++) {
+      const next = freeColumns(arranged);
+      if (next.size === columns.size && [...next].every((id) => columns.has(id))) break;
+      columns = next;
+      arranged = arrange(columns, sides);
+    }
+    // Keep only columns that are still free in the final arrangement.
+    const still = freeColumns(arranged);
+    if ([...columns].some((id) => !still.has(id))) {
+      columns = new Set([...columns].filter((id) => still.has(id)));
+      arranged = arrange(columns, sides);
+    }
+    return arranged;
+  };
+  /** The segments of every flow of an arrangement, and how many pairs of flows cross in it. */
+  const segmentsOf = (A) => {
+    const list = [];
+    for (const f of ir.flows) {
+      const s = A.nodes.get(f.from);
+      const t = A.nodes.get(f.to);
+      const e = A.edges.get(f.id);
+      const path = [{ x: s.x + e.exit.x * s.width, y: s.y + e.exit.y * s.height }, ...e.points, { x: t.x + e.entry.x * t.width, y: t.y + e.entry.y * t.height }];
+      for (let i = 1; i < path.length; i++) list.push({ id: f.id, a: path[i - 1], b: path[i] });
+    }
+    return list;
+  };
+  const crossingsOf = (A) => {
+    const list = segmentsOf(A);
+    const pairs = new Set();
+    for (const p of list) {
+      if (Math.abs(p.a.y - p.b.y) > 0.5) continue;
+      for (const q of list) {
+        if (p.id === q.id || Math.abs(q.a.x - q.b.x) > 0.5) continue;
+        if (q.a.x > Math.min(p.a.x, p.b.x) + 0.5 && q.a.x < Math.max(p.a.x, p.b.x) - 0.5 && p.a.y > Math.min(q.a.y, q.b.y) + 0.5 && p.a.y < Math.max(q.a.y, q.b.y) - 0.5) pairs.add([p.id, q.id].sort().join('|'));
+      }
+    }
+    return pairs.size;
+  };
+  // A long flow takes the right gutter of its lane unless a run between lanes speaks against
+  // it. Inside one lane nothing does, and a branch on the left of its row then goes round the
+  // far right across its siblings. While flows cross, each long flow that goes down a gutter
+  // is tried on the other side of that lane, and the side with fewer crossings is kept.
+  const sides = new Map();
+  let arranged = settle(sides);
+  let crossings = crossingsOf(arranged);
+  if (crossings > 0) {
+    const long = ir.flows.filter((f) => ['skip', 'back'].includes(arranged.plans.get(f.id).type)).slice(0, 12);
+    for (const f of long) {
+      if (crossings === 0) break;
+      const now = arranged.plans.get(f.id);
+      if (now.type !== 'skip' && now.type !== 'back') continue;
+      const trial = new Map(sides).set(f.id, now.side === 'R' ? 'L' : 'R');
+      const other = settle(trial);
+      const count = crossingsOf(other);
+      if (count < crossings) { sides.set(f.id, trial.get(f.id)); arranged = other; crossings = count; }
+    }
   }
   const { lanes, nodes, edges, height, right: x } = arranged;
   const warnings = [];
@@ -543,7 +615,9 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
     const lanesOf = [a, b].flatMap((id) => { const f = ir.flows.find((x) => x.id === id); return [byId.get(f.from).lane, byId.get(f.to).lane]; });
     const oneLane = lanesOf.every((lane) => lane === lanesOf[0]);
     warnings.push(oneLane
-      ? { path: '/flows', message: `layout: flows "${a}" and "${b}" cross inside lane "${lanesOf[0]}"; no column order that avoids it was found`, hint: 'the lanes do not force this crossing; moving one of the nodes to another lane avoids it, or report the shape so the column order can learn it' }
+      ? { path: '/flows', message: `layout: flows "${a}" and "${b}" cross inside lane "${lanesOf[0]}"; no column order that avoids it was found`, hint: ir.lanes.length > 1
+        ? 'the lanes do not force this crossing; moving one of the nodes to another lane avoids it, and nodes that share a row keep their order in `actions` and `controls`, so reordering those can move it'
+        : 'nodes that share a row keep their order in `actions` and `controls`, so reordering those can move it; a branch that ends the flow can also take a final node of its own instead of a long line to a shared merge' }
       : { path: '/flows', message: `layout: flows "${a}" and "${b}" cross; no route around it was found, so the crossing is drawn with a line jump`, hint: 'a crossing that the lanes of the nodes force can be accepted: the jump shows that the two lines do not meet; reordering flows does not change the route, but nodes that share a row of one lane keep their order in `actions` and `controls` when nothing else separates them, so reordering those can move it' });
   }
 

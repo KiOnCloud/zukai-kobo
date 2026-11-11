@@ -19,7 +19,7 @@ describe('cli (committed bundle, run from a different working directory)', () =>
   it('validate exits 0 and prints kind and title for a valid file', () => {
     const r = run(['validate', join(fixturesDir, 'flowchart', 'valid.json')]);
     expect(r.code).toBe(0);
-    expect(JSON.parse(r.stdout)).toEqual({ ok: true, kind: 'flowchart', title: 'Order checkout' });
+    expect(JSON.parse(r.stdout)).toEqual({ ok: true, kind: 'flowchart', title: 'Order checkout', warnings: 0 });
   });
 
   it('validate exits 2 and prints every error as JSON on stderr', () => {
@@ -55,7 +55,8 @@ describe('cli (committed bundle, run from a different working directory)', () =>
   it('emit exits 2 on an invalid document and 1 on a missing file, bad JSON or bad usage', () => {
     expect(run(['emit', '--to', 'mermaid', join(fixturesDir, 'er', 'invalid-unknown-entity.json')]).code).toBe(2);
     expect(run(['emit', '--to', 'mermaid', join(otherCwd, 'missing.json')]).code).toBe(1);
-    expect(run(['emit', '--to', 'visio', join(fixturesDir, 'er', 'valid.json')]).code).toBe(2);
+    // An unknown target is a usage error, like an unknown command.
+    expect(run(['emit', '--to', 'visio', join(fixturesDir, 'er', 'valid.json')]).code).toBe(1);
     expect(run(['emit', join(fixturesDir, 'er', 'valid.json')]).code).toBe(1);
     expect(run(['frobnicate']).code).toBe(1);
     expect(run(['validate', join(scriptsDir, 'package.json')]).code).toBe(2);

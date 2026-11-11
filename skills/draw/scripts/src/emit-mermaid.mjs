@@ -1,3 +1,4 @@
+import { sameText } from './text-metrics.mjs';
 import { encodeLabel, encodeInline, encodeMember, identifierToken, architectureLabel, figjamLabel, safeIds, frontMatter } from './mermaid-text.mjs';
 
 /**
@@ -33,7 +34,9 @@ export function emitMermaid(ir, options = {}) {
   };
   // An element that a sub-diagram details shows that diagram on a second label line (FigJam
   // labels have no line break, so there it follows on the same line).
-  t.withRef = (text, ref, path) => (ref ? `${text}${profile === 'figjam' ? ' ' : '<br/>'}${t.label(t.refText(ref, path))}` : text);
+  // A part titled exactly like the element it details adds nothing: the element keeps its one line.
+  t.repeats = (ref, own) => ref !== undefined && own !== undefined && options.refs?.get(ref) !== undefined && sameText(options.refs.get(ref).title, own);
+  t.withRef = (text, ref, path, own) => (ref && !t.repeats(ref, own) ? `${text}${profile === 'figjam' ? ' ' : '<br/>'}${t.label(t.refText(ref, path))}` : text);
   switch (ir.kind) {
     case 'flowchart': emitFlowchart(ir, emit, t); break;
     case 'sequence': emitSequence(ir, emit, t, options.stable === true); break;
@@ -44,6 +47,15 @@ export function emitMermaid(ir, options = {}) {
       // architecture-beta places services by the sides its edges name; a graph the grid planner
       // cannot place consistently is emitted as a flowchart instead of a broken picture.
       const plan = profile === 'figjam' ? null : planArchitectureGrid(ir);
+      // architecture-beta sizes a group frame by the unwrapped label of each member, so a
+      // long name (a `ref` adds the part's title to it) stretches the frame over its
+      // neighbours. Past the length that still fits its grid cell the flowchart form is used.
+      if (plan && !plan.fallback && (ir.boundaries ?? []).length > 0) {
+        const shown = (c) => (c.ref && !t.repeats(c.ref, c.label) ? `${c.label} ${options.refs?.get(c.ref) ? `↳ ${options.refs.get(c.ref).title}` : `↳ ${c.ref}`}` : c.label);
+        const units = (text) => [...text].reduce((n, ch) => n + (/[\u1100-\uffdc]/.test(ch) ? 2 : 1), 0);
+        const long = ir.components.find((c) => units(shown(c)) > ARCH_LABEL_MAX);
+        if (long) plan.fallback = `the label of "${long.id}"${shown(long) === long.label ? '' : ', with the line its ref adds,'} is longer than ${ARCH_LABEL_MAX} characters, which stretches the frame of its boundary over its neighbours`;
+      }
       if (profile === 'figjam' || plan.fallback) {
         if (plan?.fallback) warnings.push({ path: '/connections', fallback: 'flowchart', message: `layout: architecture-beta cannot place this diagram without overlaps (${plan.fallback}); emitted as a flowchart with boundaries as subgraphs, or use --to drawio` });
         emitArchitectureAsFlowchart(ir, emit, t);
@@ -91,7 +103,7 @@ function emitFlowchart(ir, emit, t) {
 
   const nodeLine = (n) => {
     const id = ids.get(n.id);
-    const text = t.withRef(t.label(n.label, pathOf.get(n.id)), n.ref, refPathOf.get(n.id));
+    const text = t.withRef(t.label(n.label, pathOf.get(n.id)), n.ref, refPathOf.get(n.id), n.label);
     const label = `"${text}"`;
     if (n.ref) return `${id}[[${label}]]`;
     switch (n.shape ?? 'process') {
@@ -193,16 +205,24 @@ function emitSequence(ir, emit, t, stable) {
       depth++;
     }
     emit(idComment(indent(), m.id));
-    emit(`${indent()}${ids.get(m.from)}${MESSAGE_ARROW[m.kind ?? 'sync']}${ids.get(m.to)}: ${t.withRef(t.label(m.label, `/messages/${i}/label`), m.ref, `/messages/${i}/ref`)}`);
+    emit(`${indent()}${ids.get(m.from)}${MESSAGE_ARROW[m.kind ?? 'sync']}${ids.get(m.to)}: ${t.withRef(t.label(m.label, `/messages/${i}/label`), m.ref, `/messages/${i}/ref`, m.label)}`);
     notes.forEach((n, ni) => {
       if (n.after === m.id) {
         emit(idComment(indent(), n.id));
         emit(noteLine(indent(), n, ni));
       }
     });
-    for (let k = blocks.filter((x) => x.end === i).length; k > 0; k--) {
+    // Innermost block first; a note that follows a block is written after its `end`, so it
+    // stands below the frame instead of inside its last branch.
+    for (const b of blocks.filter((x) => x.end === i).sort((a, c) => outerFirst(c, a))) {
       depth--;
       emit(`${indent()}end`);
+      notes.forEach((n, ni) => {
+        if (n.after === b.id) {
+          emit(idComment(indent(), n.id));
+          emit(noteLine(indent(), n, ni));
+        }
+      });
     }
   });
 }
@@ -214,7 +234,7 @@ function emitState(ir, emit, t) {
   const states = ir.states;
   const byId = new Map(states.map((s) => [s.id, s]));
   const pathOf = new Map(states.map((s, i) => [s.id, `/states/${i}/label`]));
-  const text = (s) => t.withRef(t.label(s.label, pathOf.get(s.id)), s.ref, pathOf.get(s.id).replace(/label$/, 'ref'));
+  const text = (s) => t.withRef(t.label(s.label, pathOf.get(s.id)), s.ref, pathOf.get(s.id).replace(/label$/, 'ref'), s.label);
   for (const s of states) ids.add(s.id);
   const kindOf = (id) => byId.get(id)?.kind ?? 'simple';
   const parentOf = new Map();
@@ -311,7 +331,7 @@ function emitEr(ir, emit, t, stable) {
   ir.entities.forEach((e, i) => {
     ids.add(e.id);
     emit(idComment('  ', e.id));
-    const head = `  ${ids.get(e.id)}["${t.withRef(t.label(e.label, `/entities/${i}/label`), e.ref, `/entities/${i}/ref`)}"]`;
+    const head = `  ${ids.get(e.id)}["${t.withRef(t.label(e.label, `/entities/${i}/label`), e.ref, `/entities/${i}/ref`, e.label)}"]`;
     const attrs = e.attributes ?? [];
     if (attrs.length === 0) {
       emit(head);
@@ -345,7 +365,7 @@ function emitClass(ir, emit, t) {
   ir.classes.forEach((c, i) => {
     ids.add(c.id);
     emit(idComment('  ', c.id));
-    const head = `  class ${ids.get(c.id)}["${t.withRef(t.label(c.label, `/classes/${i}/label`), c.ref, `/classes/${i}/ref`)}"]`;
+    const head = `  class ${ids.get(c.id)}["${t.withRef(t.label(c.label, `/classes/${i}/label`), c.ref, `/classes/${i}/ref`, c.label)}"]`;
     const members = [];
     if (c.stereotype) {
       const st = identifierToken(c.stereotype, '-');
@@ -388,6 +408,8 @@ function emitClass(ir, emit, t) {
   });
 }
 
+/** The longest component label (in half-width characters) whose group frame still stays inside its grid cell. */
+const ARCH_LABEL_MAX = 16;
 const ARCH_ICON = { service: 'server', database: 'database', queue: 'server', cache: 'server', client: 'internet', external: 'cloud' };
 /** Neighbour cells per direction, preferred first: along the flow, across it, then backwards. */
 const ARCH_STEPS = {
@@ -422,7 +444,14 @@ export function planArchitectureGrid(ir) {
     const first = steps.map(([dx, dy]) => (reverse ? [anchor[0] - dx, anchor[1] - dy] : [anchor[0] + dx, anchor[1] + dy]));
     const diagonals = [[1, 1], [-1, 1], [1, -1], [-1, -1]].map(([dx, dy]) => [anchor[0] + dx, anchor[1] + dy]);
     const candidates = [...first, ...diagonals, ...ring(anchor, 2), ...ring(anchor, 3)];
-    return candidates.find((c) => !taken.has(key(c)));
+    const free = candidates.find((c) => !taken.has(key(c)));
+    if (free) return free;
+    // A hub with more neighbours than the 48 cells around it: keep widening the ring, which
+    // always ends at a free cell. Such a graph falls back to the flowchart form anyway.
+    for (let r = 4; ; r++) {
+      const cell = ring(anchor, r).find((c) => !taken.has(key(c)));
+      if (cell) return cell;
+    }
   };
   for (const c of ir.connections) {
     if (!cells.has(c.from) && !cells.has(c.to)) place(c.from, cells.size === 0 ? [0, 0] : near([0, 0], false) ?? [cells.size, 0]);
@@ -479,7 +508,7 @@ function emitArchitecture(ir, emit, t, plan) {
   const label = (el, path) => {
     const own = architectureLabel(el.label);
     if (own.altered) t.warnings.push({ path, message: `label of "${el.id}" contains characters architecture-beta cannot show; written as "${own.label}"` });
-    if (!el.ref) return own.label;
+    if (!el.ref || t.repeats(el.ref, el.label)) return own.label;
     const refPath = path.replace(/label$/, 'ref');
     const title = architectureLabel(t.refText(el.ref, refPath));
     if (title.altered) t.warnings.push({ path: refPath, message: `the title that ref "${el.ref}" shows on "${el.id}" contains characters architecture-beta cannot show; written as "${title.label}"` });
@@ -529,7 +558,7 @@ function emitArchitectureAsFlowchart(ir, emit, t) {
   for (const g of boundaries) for (const c of g.children) parent.set(c, g.id);
   const nodeById = new Map(flow.nodes.map((n) => [n.id, n]));
   const groupById = new Map(boundaries.map((g) => [g.id, g]));
-  const nodeLine = (n, i) => `${ids.get(n.id)}${shape[n.shape](`"${t.withRef(t.label(n.label, `/components/${i}/label`), n.ref, `/components/${i}/ref`)}"`)}`;
+  const nodeLine = (n, i) => `${ids.get(n.id)}${shape[n.shape](`"${t.withRef(t.label(n.label, `/components/${i}/label`), n.ref, `/components/${i}/ref`, n.label)}"`)}`;
   const emitGroup = (g, indent) => {
     emit(idComment(indent, g.id));
     emit(`${indent}subgraph ${ids.get(g.id)}["${t.label(g.label, `/boundaries/${boundaries.indexOf(g)}/label`)}"]`);
@@ -609,7 +638,7 @@ function emitActivity(ir, emit, t, stable, bundled) {
     ir.actions.forEach((a, i) => {
       if (a.lane !== laneId) return;
       const text = t.label(a.label, `/actions/${i}/label`);
-      out.push({ id: a.id, line: a.ref ? `${ids.get(a.id)}[["${t.withRef(text, a.ref, `/actions/${i}/ref`)}"]]` : `${ids.get(a.id)}["${text}"]` });
+      out.push({ id: a.id, line: a.ref ? `${ids.get(a.id)}[["${t.withRef(text, a.ref, `/actions/${i}/ref`, a.label)}"]]` : `${ids.get(a.id)}["${text}"]` });
     });
     controls.forEach((c, i) => { if ((c.lane ?? null) === laneId) out.push({ id: c.id, line: controlLine(c, i) }); });
     return out;

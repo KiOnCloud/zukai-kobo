@@ -20,7 +20,7 @@ describe('mermaid.parse on every emitted diagram', () => {
 
   for (const { kind, name, ir } of validFixtures()) {
     it(`parses ${kind}/${name}`, async () => {
-      const r = await emit(ir, 'mermaid');
+      const r = await emit(ir, 'mermaid', { allowSensitive: true });
       expect(r.ok).toBe(true);
       const parsed = await mermaid.parse(r.output);
       // An architecture the grid planner cannot place is emitted as a flowchart on purpose.

@@ -62,7 +62,11 @@ describe('checkReferences', () => {
       const ir = base();
       ir.notes[0].participants = ['nobody'];
       ir.notes[1].after = 'm99';
-      expect(messages(checkReferences(ir))).toEqual(['/notes/0/participants/0: unknown participant "nobody"', '/notes/1/after: unknown message "m99"']);
+      expect(messages(checkReferences(ir))).toEqual(['/notes/0/participants/0: unknown participant "nobody"', '/notes/1/after: unknown message or block "m99"']);
+      // A note may follow a whole block: it then stands below the frame.
+      const after = base();
+      after.notes[1].after = after.blocks[0].id;
+      expect(messages(checkReferences(after))).toEqual([]);
     });
   });
 

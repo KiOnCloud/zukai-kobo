@@ -21,8 +21,10 @@ node "<skill-dir>/scripts/bin/cli.mjs" emit --to figjam ./diagrams/order-checkou
 
 - Exit 0: the Mermaid text is on stdout; warnings are one JSON object on stderr.
 - Exit 2 with errors starting `refusing to emit for figjam`: the secret scan found something
-  that looks like a credential. Diagram labels are sent to Figma, so remove the value from
-  the IR. Only if the user confirms it is not a secret, run again with `--allow-sensitive`.
+  that looks like a credential, a token or personal data. Diagram labels are sent to Figma,
+  so replace the value in the IR with a placeholder. Only if the user confirms it is not a
+  secret, run again with `--allow-sensitive`. The scan reads `meta` too, so a secret in a
+  note stops the emit although notes are not sent: fix it there as well.
 - Exit 2 with `kind "class" is unsupported on target "figjam"`: FigJam cannot draw class
   diagrams. Offer `--to mermaid` or `--to drawio` instead; do not try to disguise a class
   diagram as a flowchart.
@@ -33,6 +35,11 @@ its sense: `<=`, `>=`, `!=` are written as ≤, ≥, ≠, and `<`, `>`, `%`, `&`
 forms ＜, ＞, ％, ＆),
 architecture diagrams become flowcharts with boundaries as subgraphs, and an ER diagram is
 laid out top to bottom whatever its `direction`. Every one of these shows up as a warning. Print all warnings to the user before calling Figma.
+
+Keep the text and review it before anything is sent: write it into the run folder with
+`--out <run-folder>/figjam/<slug>.mmd`, run `preview` on that file, and run the review gate
+of the closing contract on the image. The board is made only after the review passed,
+because that is the moment the labels leave the machine.
 
 ## 3. Tell the user what leaves the machine
 
@@ -70,7 +77,15 @@ their `kind`, frames are plain subgraphs, and one warning per field says so.
 
 ## 5. Fallback when Figma is not available
 
-Run `emit --to mermaid` instead, print the text in a fenced `mermaid` block, and tell the
-user: open the FigJam board, use Insert (or the `/` quick-insert) > Mermaid (or the
-"Diagram from code" option), paste the text, and insert. Say which warnings applied so they
-know what the pasted version may lack.
+The text to paste is the one section 2 made: the output of `emit --to figjam`, never of
+`emit --to mermaid`. The `mermaid` target writes front matter and entity codes that the
+`figjam` profile leaves out because FigJam does not take them, and it only warns about a
+guess of the secret scan (a mail address, a token-like string) that the `figjam` target
+refuses, while this text is about to be pasted into Figma all the same.
+
+Print the `figjam` text in a fenced `mermaid` block and tell the user: open the FigJam board,
+use Insert (or the `/` quick-insert) > Mermaid (or the "Diagram from code" option), paste the
+text, and insert. List the warnings of that same emit, so they know what the pasted version
+lacks. When `emit --to figjam` itself refuses (a class or activity diagram, or a finding of
+the secret scan), there is nothing to paste: say why, and offer `--to drawio` or
+`--to mermaid` as a file of its own.

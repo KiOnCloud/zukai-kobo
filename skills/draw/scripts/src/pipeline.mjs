@@ -1,15 +1,16 @@
 import { validateIr } from './validate-ir.mjs';
 import { checkFeatureMatrix, TARGETS } from './check-feature-matrix.mjs';
-import { scanSecrets } from './scan-secrets.mjs';
+import { scanSecrets, DEFINITE_KINDS } from './scan-secrets.mjs';
+import { checkModel } from './check-model.mjs';
 import { checkDetail } from './check-detail.mjs';
 import { emitMermaid } from './emit-mermaid.mjs';
-import { emitDrawio, emitDrawioBundle, bundleRefs } from './emit-drawio.mjs';
+import { emitDrawio, emitDrawioBundle, bundleRefs, slugify, pageIdOf } from './emit-drawio.mjs';
 
 export { TARGETS };
 
 /**
  * Validate an IR and emit it for one target. Order: schema and references, feature matrix,
- * level of detail, secret scan, emitter. Errors stop the pipeline; warnings accumulate across every stage.
+ * model and size, level of detail, secret scan, emitter. Errors stop the pipeline; warnings accumulate across every stage.
  * @param {unknown} ir
  * @param {string} target
  * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, refs?: Map<string, { pageId: string, title: string }> }} [options]
@@ -24,15 +25,19 @@ export async function emit(ir, target, options = {}) {
   const warnings = [...matrix.warnings.map((w) => ({ stage: 'feature-matrix', ...w }))];
   if (!matrix.ok) return { ok: false, errors: matrix.errors, warnings };
 
+  warnings.push(...checkModel(ir).warnings.map((w) => ({ stage: 'model', ...w })));
   warnings.push(...checkDetail(ir).warnings.map((w) => ({ stage: 'detail', ...w })));
 
   const secrets = scanSecrets(ir);
   warnings.push(...secrets.warnings.map((w) => ({ stage: 'secret-scan', ...w })));
-  // FigJam labels leave the machine, so possible secrets block the emit unless overridden.
-  if (target === 'figjam' && secrets.warnings.length > 0 && !options.allowSensitive) {
+  // FigJam labels leave the machine, so anything the scan finds blocks that emit. A local
+  // file is the user's, so a guess is written with its warning; a credential by its form
+  // is written nowhere. `allowSensitive` is the user's word that a finding is not a secret.
+  const blocking = options.allowSensitive ? [] : secrets.warnings.filter((w) => target === 'figjam' || DEFINITE_KINDS.has(w.kind));
+  if (blocking.length > 0) {
     return {
       ok: false,
-      errors: secrets.warnings.map((w) => ({ path: w.path, message: `refusing to emit for figjam: ${w.message}`, hint: 'remove the value from the IR, or pass --allow-sensitive if it is not a secret' })),
+      errors: blocking.map((w) => ({ path: w.path, message: `refusing to emit for ${target}: ${w.message}`, hint: 'replace the value in the IR with a placeholder such as <db password>, or pass --allow-sensitive if it is not a secret' })),
       warnings,
     };
   }
@@ -92,7 +97,18 @@ export async function bundle(entries, target, options = {}) {
   const errors = [];
   const warnings = [];
   const outputs = [];
-  const refs = bundleRefs(entries);
+  if (target === 'drawio') {
+    // Page ids are slugs of the diagram ids; two diagrams with one page id would share every cell id.
+    const pageIds = new Map();
+    for (const e of entries) {
+      const pageId = (options.legacyIds ? slugify : pageIdOf)(e.id);
+      if (pageIds.has(pageId)) {
+        return { ok: false, errors: [{ path: '/', message: `diagrams "${pageIds.get(pageId)}" and "${e.id}" would share the page id "${pageId}"`, hint: 'rename one of the IR files: a page id is the file name in lower case with every other character as a hyphen' }], warnings: [] };
+      }
+      pageIds.set(pageId, e.id);
+    }
+  }
+  const refs = bundleRefs(entries, options.legacyIds ? slugify : pageIdOf);
   for (const [i, entry] of entries.entries()) {
     const r = await emit(entry.ir, target, { ...options, diagramId: entry.id, refs });
     const tag = (x) => ({ diagram: entry.id, index: i, ...x });
@@ -111,6 +127,20 @@ export async function bundle(entries, target, options = {}) {
     }
     return { ok: true, output: parts.join('\n'), errors: [], warnings };
   }
-  const result = await emitDrawioBundle(entries.map((e) => ({ ir: e.ir, diagramId: e.id })), { canvas, gap: options.gap, title: options.title });
+  const result = await emitDrawioBundle(entries.map((e) => ({ ir: e.ir, diagramId: e.id })), { canvas, gap: options.gap, title: options.title, legacyIds: options.legacyIds });
   return { ok: true, output: result.output, errors: [], warnings, canvas };
+}
+
+/**
+ * What `validate` reports beside the errors: the warnings that do not depend on a target
+ * (model and size, level of detail, secret scan), so they are read before anything is drawn.
+ * @param {object} ir a valid IR
+ */
+export function inspect(ir) {
+  return [
+    ...checkModel(ir).warnings.map((w) => ({ stage: 'model', ...w })),
+    ...checkDetail(ir).warnings.map((w) => ({ stage: 'detail', ...w })),
+    // A credential by its form stops every emit: said here, so `ok: true` is not read as "will emit".
+    ...scanSecrets(ir).warnings.map((w) => ({ stage: 'secret-scan', ...w, ...(DEFINITE_KINDS.has(w.kind) ? { blocks: 'emit', hint: 'emit and bundle refuse this value on every target: replace it with a placeholder such as <db password>' } : {}) })),
+  ];
 }
