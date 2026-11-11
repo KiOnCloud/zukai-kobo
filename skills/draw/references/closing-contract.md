@@ -72,6 +72,16 @@ Rules that hold in every mode:
   (`order-service`, `m3`), never from counters alone.
 - Labels are what the reader sees. Write them in the user's language. File names, ids and
   the `meta.notes` paths are English ASCII, so the files sort, diff and reference cleanly.
+- A `detail:` warning says that an architecture diagram shows the inside of a resource or
+  the order of calls (`ir-reference.md`, Level of detail). Fix the IR and emit again before
+  the review gate; the author never accepts one. Only the user can keep it: ask once
+  (`AskUserQuestion` where the runtime has it), saying in plain words what the warning
+  found, with the fix as the first option (one component per resource, the detail in a part
+  of the kind that shows it, linked with `ref`) and "keep as drawn" as the second. On
+  "keep", add one `meta.notes` entry per kept warning that starts with `detail accepted:`
+  and names what was kept ("detail accepted: the six DynamoDB tables stay separate
+  components"), so the reviewer and a later revision know the choice was the user's; the
+  report lists these entries.
 - For draw.io, the CLI reports `layout:` warnings when two labels or a note would still
   overlap after automatic placement. Treat them like any other warning: show them, then offer
   to shorten the label or move the note and emit again.
@@ -95,7 +105,7 @@ the run folder and its run slug, never a new folder, and changes these steps:
   applied with `relabel` (the IR gets the same wording); any other finding is listed in the
   report and applied only if the user agrees to redraw that file, after a `snapshot` with
   the file as `--extra`.
-- Step 5 adds the route taken (direct, consult or undo), the revision written
+- Step 5 adds the route taken (direct, consult, new diagram or undo), the revision written
   (`history/rNNN`), the change list from `diff` in plain words and the outcome of the drift
   check.
 - Step 6 is skipped unless the user asks for another target.

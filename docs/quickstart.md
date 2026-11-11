@@ -75,12 +75,14 @@ Example: `/zukai:draw scout --kind activity --scope overview the refund flow`.
   ```text
   /zukai:revise rename "Pay" to "Pay by card"
   /zukai:revise what if the stock check came before payment?
+  /zukai:revise add a sequence diagram of the payment step
   /zukai:revise undo
   ```
 
   A clear change is applied at once, after the previous version is saved in `history/`. A
   what-if gets two or three drafts under `drafts/` to compare; nothing delivered changes
-  until you confirm one. If you moved boxes in draw.io, a label change keeps your layout
+  until you confirm one. A new diagram is asked about like any `draw` request (kind, scope,
+  view) and joins the run, linked from the step it details. If you moved boxes in draw.io, a label change keeps your layout
   and any other change asks before redrawing.
 - By hand: edit `source/<diagram>.ir.json` and ask the skill to emit again, or run the CLI
   yourself:
