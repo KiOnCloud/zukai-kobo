@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "End-to-end verification"
-status: in-progress
+status: completed
 priority: P1
 effort: 0.5d
 dependencies: [5]
@@ -52,3 +52,9 @@ plus a second run with target Mermaid.
   - Not fixed: when two diagram ids share their first 40 characters, they get the same page id. This was already the case before this work and lives in the emitter's `slugify`.
   - Not executed: the model-driven parts. These are route choice, the clarify question (scenario 2), finding a run from a new session (scenario 10) and stopping when no run exists (scenario 12). They need `/zukai:revise` run in a Claude Code session with the plugin installed.
   - Not executed: `install.ps1`, because no PowerShell is available. It was reviewed line by line against `install.sh` instead.
+- Skill e2e, run with headless Claude Code (`claude -p --plugin-dir <repo>`) on scratch projects that each hold a delivered run (main + `ref` part, draw.io). Every case passed:
+  - **Direct.** The label changed in the IR and both draw.io files, `history/r001` was written and the combined file shows no drift.
+  - **Consult.** Three drafts were built under `drafts/a|b|c` and the delivered files stayed byte-identical. Resuming with "pick draft a" wrote `r001`, deleted `drafts/` and put the stock check into the main IR. The review passed in round 1.
+  - **Hand-edited file.** The drift was reported and `relabel` was used. The moved box kept its position in both files (single x=174, combined 427/150).
+  - **Undo.** The label is back, the snapshot carries `undoOf: r001` and the outputs were rebuilt.
+  - **No run.** Revise stopped without creating `diagrams/` and pointed at the draw skill.
