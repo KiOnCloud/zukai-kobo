@@ -113,7 +113,10 @@ describe('diffRun', () => {
     const d = diffRun(run(main), [{ id: 'checkout', ir: main }, { id: 'checkout-02-ship', ir: part }]);
     expect(d.diagramsAdded).toEqual(['checkout-02-ship']);
     expect(d.diagramsRemoved).toEqual(['checkout-01-pay', 'checkout-business']);
-    expect(d.hints).toEqual([{ diagram: 'checkout', message: 'removed diagram checkout-01-pay is still the ref of /nodes/1/ref' }]);
+    expect(d.hints).toEqual([
+      { diagram: 'checkout-02-ship', message: 'new diagram checkout-02-ship is not the ref of any element: link it from the element it details, or say in the report that it stands on its own' },
+      { diagram: 'checkout', message: 'removed diagram checkout-01-pay is still the ref of /nodes/1/ref' },
+    ]);
   });
 
   it('reports a change of meta.source, and does not ask the business view to follow it', () => {
@@ -127,5 +130,49 @@ describe('diffRun', () => {
   it('hints at a business view left behind by a removed technical diagram', () => {
     const d = diffRun(run(main), [{ id: 'checkout-01-pay', ir: part }, { id: 'checkout-business', ir: business }]);
     expect(d.hints).toContainEqual({ diagram: 'checkout-business', message: 'checkout was removed but its business view checkout-business stays' });
+  });
+
+  const unlinked = (id) => ({ diagram: id, message: `new diagram ${id} is not the ref of any element: link it from the element it details, or say in the report that it stands on its own` });
+  const arch = (title) => ({
+    schemaVersion: 1, kind: 'architecture', title,
+    nodes: [{ id: 'api', label: 'API' }, { id: 'db', label: 'DB' }],
+    edges: [{ id: 'e1', from: 'api', to: 'db' }],
+  });
+
+  it('gives no hint for an added part that an element of the main diagram references', () => {
+    const next = clone(main);
+    next.nodes[2].ref = 'checkout-02-done';
+    const d = diffRun(run(main), [...run(next), { id: 'checkout-02-done', ir: part }]);
+    expect(d.diagramsAdded).toEqual(['checkout-02-done']);
+    expect(d.hints.filter((h) => h.diagram === 'checkout-02-done')).toEqual([]);
+  });
+
+  it('hints at an added diagram that no element references', () => {
+    const d = diffRun(run(main), [...run(main), { id: 'checkout-02-ship', ir: part }, { id: 'checkout-03-tax', ir: part }]);
+    expect(d.hints).toEqual([unlinked('checkout-02-ship'), unlinked('checkout-03-tax')]);
+  });
+
+  it('hints at an added architecture diagram beside an existing one, and drops the link hint once it is referenced', () => {
+    const old = [{ id: 'shop', ir: arch('Shop') }];
+    const second = (id) => `${id} is a second architecture diagram beside shop: an architecture diagram shows each resource once, so the detail of shop belongs in a part of another kind (sequence, activity, er) linked with ref`;
+    const d = diffRun(old, [...old, { id: 'shop-02-detail', ir: arch('Shop detail') }, { id: 'shop-business', ir: arch('Shop (business)') }]);
+    expect(d.hints).toEqual([unlinked('shop-02-detail'), { diagram: 'shop-02-detail', message: second('shop-02-detail') }]);
+
+    const linked = arch('Shop');
+    linked.nodes[0].ref = 'shop-02-detail';
+    const r = diffRun(old, [{ id: 'shop', ir: linked }, { id: 'shop-02-detail', ir: arch('Shop detail') }]);
+    expect(r.hints).toEqual([{ diagram: 'shop-02-detail', message: second('shop-02-detail') }]);
+  });
+
+  it('gives no hint for an added business view', () => {
+    const d = diffRun([{ id: 'shop', ir: arch('Shop') }], [{ id: 'shop', ir: arch('Shop') }, { id: 'shop-business', ir: arch('Shop (business)') }]);
+    expect(d.diagramsAdded).toEqual(['shop-business']);
+    expect(d.hints).toEqual([]);
+  });
+
+  it('gives no added-diagram hints on a first delivery', () => {
+    const d = diffRun([], [{ id: 'shop', ir: arch('Shop') }, { id: 'shop-02-detail', ir: arch('Shop detail') }]);
+    expect(d.diagramsAdded).toEqual(['shop', 'shop-02-detail']);
+    expect(d.hints).toEqual([]);
   });
 });
