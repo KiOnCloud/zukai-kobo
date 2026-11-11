@@ -67,12 +67,12 @@ describe('drawio-xml', () => {
     });
 
     it('sizes a subroutine for the text area between its side bars', async () => {
-      // draw.io wraps the label of a subroutine at 80 % of its width, less 2 px a side.
+      // draw.io wraps the label of a subroutine at 80 % of its width, less 2 px and the 4 px of label spacing a side.
       const label = 'Approve and send label\n↳ return-request-label';
       const plain = measureNode(label);
-      const sub = measureNode(label, { pad: 2, share: 0.1 });
+      const sub = measureNode(label, { pad: 6, share: 0.1 });
       expect(sub.width).toBeGreaterThan(plain.width);
-      expect(wrapText(label, 0.8 * sub.width - 4).lines).toBe(2);
+      expect(wrapText(label, 0.8 * sub.width - 12).lines).toBe(2);
       expect(sub.height).toBe(60);
       const r = await emit(loadFixture('activity', 'valid-two-lanes'), 'drawio', { diagramId: 'g' });
       const approve = checkDrawioStructure(r.output).cells.find((c) => c.id === 'g:approve');
@@ -119,7 +119,7 @@ describe('drawio-xml', () => {
       // The labelled node shapes that are 40 px tall for one line and 20 px taller for each further one,
       // and the subroutine, whose label draw.io wraps between its side bars.
       const plain = /^(rounded=1;)?whiteSpace=wrap;html=1;(arcSize=30;)?(dashed=1;)?spacingLeft=10;spacingRight=10;$/;
-      const subroutine = /^shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;$/;
+      const subroutine = /^shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;spacingLeft=4;spacingRight=4;$/;
       const boxes = [];
       const hard = [{ kind: 'er', name: 'long-url', ir: URL_ER }, { kind: 'flowchart', name: 'hyphens', ir: HYPHEN_FLOW }];
       for (const f of [...validFixtures(), ...hard]) {
@@ -130,7 +130,7 @@ describe('drawio-xml', () => {
           const at = `${f.kind}/${f.name} ${c.id}`;
           // A table row is 26 px for one line and 14 px taller for each further one, with 4 + 2 px of spacing a side; it clips what does not fit.
           if (/^text;.*overflow=hidden/.test(c.style ?? '')) boxes.push({ at, html: c.value, ...b, wrap: b.width - 12 + 2, base: 26, line: 14, row: true });
-          else if (plain.test(c.style ?? '') || subroutine.test(c.style ?? '')) boxes.push({ at, html: c.value, ...b, wrap: subroutine.test(c.style) ? Math.round(0.8 * b.width - 4 + 2) : b.width - 24 + 2, base: 40, line: 20 });
+          else if (plain.test(c.style ?? '') || subroutine.test(c.style ?? '')) boxes.push({ at, html: c.value, ...b, wrap: subroutine.test(c.style) ? Math.round(0.8 * b.width - 4 - 8 + 2) : b.width - 24 + 2, base: 40, line: 20 });
         }
       }
       expect(boxes.filter((b) => !b.row).length).toBeGreaterThan(100);

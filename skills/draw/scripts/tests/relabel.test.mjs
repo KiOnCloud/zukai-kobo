@@ -48,10 +48,10 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
     const box = checkDrawioStructure(r.output).cells.find((c) => c.id === 'returns:approve');
     expect(box.style).toMatch(/^shape=process;/);
     const width = Number(box.mxGeometry.width);
-    // Three lines in the whole width of the box, four between the bars, which take a fifth of it: the box holds three.
+    // Three lines in the whole width of the box, four between the bars (a fifth of the width, and 4 px of label spacing a side): the box holds three.
     const label = 'Approve the request, print the return shipping label and email it to them';
     expect(wrapText(label, width - 8).lines).toBe(3);
-    expect(wrapText(label, 0.8 * width - 4).lines).toBe(4);
+    expect(wrapText(label, 0.8 * width - 4 - 8).lines).toBe(4);
     const out = relabelDrawio(r.output, { approve: label });
     expect(out.warnings).toHaveLength(1);
     expect(out.warnings[0].message).toMatch(/wraps to 4 lines/);

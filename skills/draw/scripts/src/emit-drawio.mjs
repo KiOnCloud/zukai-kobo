@@ -3,7 +3,7 @@ import { awsIcon, awsGroup } from './aws-icons.mjs';
 import { layoutGraph, backEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, LABEL_PAD } from './layout-graph.mjs';
 import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
-import { widestLine, roomFor, safeWidth } from './text-metrics.mjs';
+import { widestLine, roomFor, safeWidth, sameText } from './text-metrics.mjs';
 
 /**
  * Emit an uncompressed .drawio file with individually editable shapes. Graph-shaped kinds
@@ -95,6 +95,9 @@ export function bundleRefs(entries, slug = pageIdOf) {
 function refLabel(label, ref, refs, path, warnings) {
   if (!ref) return { label, link: undefined };
   const target = refs?.get(ref);
+  // A part is titled after the step it details, so its title often is the step's own label:
+  // the step then keeps its one line and its link, instead of reading "X / ↳ X".
+  if (target && sameText(target.title, label)) return { label, link: pageLink(target.pageId) };
   if (target) return { label: `${label}\n↳ ${target.title}`, link: pageLink(target.pageId) };
   if (refs) warnings.push({ path, message: `ref "${ref}" is not in this bundle: the step shows the slug and has no page link`, hint: 'bundle the referenced diagram too, or fix the ref' });
   return { label: `${label}\n↳ ${ref}`, link: undefined };
@@ -155,9 +158,11 @@ const SHAPE_PAD = { io: SLANT / 2 + LABEL_PAD, queue: SLANT / 2 + LABEL_PAD };
 const padOf = (shape) => SHAPE_PAD[shape] ?? LABEL_PAD;
 /**
  * The text area of a shape for `measureNode`. A subroutine's side bars take a tenth of its
- * width each, and draw.io wraps its label between them with 2 px of its own on each side.
+ * width each, and draw.io wraps its label between them with 2 px of its own on each side;
+ * SUBROUTINE_PAD more keeps a full line (the slug of a `ref` often is one) off the bars.
  */
-const textArea = (shape) => (shape === 'subroutine' ? { pad: 2, share: 0.1 } : { pad: padOf(shape) });
+const SUBROUTINE_PAD = 4;
+const textArea = (shape) => (shape === 'subroutine' ? { pad: 2 + SUBROUTINE_PAD, share: 0.1 } : { pad: padOf(shape) });
 /**
  * Label spacing that draws the room `measureNode` counted on each side of a node's text.
  * draw.io keeps 2 px of its own, so the rest is added: the text wraps `pad` px inside the
@@ -172,7 +177,7 @@ export const STYLE = {
   decision: 'rhombus;whiteSpace=wrap;html=1;',
   io: `shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;size=${SLANT};${labelPad('io')}`,
   // The side bars of a subroutine already bound its label, a tenth of the width in from each side (see textArea).
-  subroutine: 'shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;',
+  subroutine: `shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;spacingLeft=${SUBROUTINE_PAD};spacingRight=${SUBROUTINE_PAD};`,
   note: `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;${labelPad('note')}`,
   container: 'swimlane;whiteSpace=wrap;html=1;startSize=30;',
   flowEdge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;',
@@ -992,6 +997,14 @@ async function emitClass(ir, cid, warnings, refs) {
     }
     return { id: r.id, from: r.from, to: r.to, label: r.label, style: `${STYLE.classEdge}${def.style}`, endLabels, markers: { from: def.from, to: def.to } };
   });
+  // A self-relation drawn beside its class needs room there for the loop and its label, or
+  // the label lands on the neighbouring class: the layout gets the class that much wider on
+  // both sides and the table is drawn centred in it, as for an ER entity.
+  for (const [id, extra] of sideLoopRoom(edges, ir.direction)) {
+    const n = nodes.find((x) => x.id === id);
+    n.drawWidth = n.width;
+    n.width += 2 * extra;
+  }
   const layout = await layoutGraph({ nodes, edges, direction: ir.direction, spacing: { nodeNode: 60, layer: 80, ...loopSpacing(ir.direction) } });
   return graphCells(cid, layout, { containers: [], nodes, edges, direction: ir.direction }, warnings);
 }

@@ -104,3 +104,9 @@ const FIT = 1.04;
 export const roomFor = (px) => Math.ceil(px * FIT);
 /** The width that is sure to hold a line of `px`: the reverse of `roomFor`, for text that is clipped if it wraps. */
 export const safeWidth = (px) => px / FIT;
+
+/** Whether two labels read the same: case, spacing and a «stereotype» line aside. */
+export const sameText = (a, b) => {
+  const norm = (t) => String(t).replace(/^«[^»]*»\s*/, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+  return norm(a) === norm(b);
+};

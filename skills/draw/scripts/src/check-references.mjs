@@ -130,7 +130,9 @@ function checkSequence(ir, err) {
     (Array.isArray(n.participants) ? n.participants : []).forEach((p, j) => {
       if (typeof p === 'string' && !participants.has(p)) err(`/notes/${i}/participants/${j}`, `unknown participant "${p}"`);
     });
-    if (typeof n.after === 'string' && !order.has(n.after)) err(`/notes/${i}/after`, `unknown message "${n.after}"`, 'after must be the id of a message, or omitted to place the note first');
+    // A note follows a message, or a whole block: after the block's id it stands below the frame.
+    const blockIds = idSet(list(ir, 'blocks'));
+    if (typeof n.after === 'string' && !order.has(n.after) && !blockIds.has(n.after)) err(`/notes/${i}/after`, `unknown message or block "${n.after}"`, 'after must be the id of a message or of a block (the note then stands below the block), or omitted to place the note first');
   });
 
   // Blocks reference the messages they contain (all of them, including those of nested blocks).

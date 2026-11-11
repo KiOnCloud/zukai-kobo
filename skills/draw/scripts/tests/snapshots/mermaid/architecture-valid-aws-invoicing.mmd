@@ -1,44 +1,49 @@
 ---
 title: "Invoicing system on AWS (current state)"
 ---
-architecture-beta
-  %% id: account
-  group n1(cloud)[AWS account]
-  %% id: region
-  group n2(cloud)[ap-northeast-1] in n1
-  %% id: vpc
-  group n3(cloud)[VPC] in n2
-  %% id: public-subnet
-  group n4(cloud)[Public subnet] in n3
-  %% id: private-subnet
-  group n5(cloud)[Private subnet] in n3
+flowchart TB
   %% id: users
-  service n6(internet)[Users]
-  %% id: alb
-  service n7(server)[Application Load Balancer] in n4
-  %% id: invoice-api
-  service n8(server)[Invoice API (ECS on Fargate)] in n5
-  %% id: invoice-db
-  service n9(database)[RDS PostgreSQL] in n5
+  n1(("Users"))
   %% id: tax-rate-api
-  service n10(cloud)[Third-party tax rate API]
-  %% id: invoice-queue
-  service n11(server)[SQS queue] in n2
-  %% id: pdf-lambda
-  service n12(server)[Lambda function] in n2
-  %% id: pdf-bucket
-  service n13(database)[S3 bucket] in n2
+  n5>"Third-party tax rate API"]
+  %% id: account
+  subgraph n9["AWS account"]
+    %% id: region
+    subgraph n10["ap-northeast-1"]
+      %% id: vpc
+      subgraph n11["VPC"]
+        %% id: public-subnet
+        subgraph n12["Public subnet"]
+          %% id: alb
+          n2["Application Load Balancer"]
+        end
+        %% id: private-subnet
+        subgraph n13["Private subnet"]
+          %% id: invoice-api
+          n3["Invoice API (ECS on Fargate)"]
+          %% id: invoice-db
+          n4[("RDS PostgreSQL")]
+        end
+      end
+      %% id: invoice-queue
+      n6[["SQS queue"]]
+      %% id: pdf-lambda
+      n7["Lambda function"]
+      %% id: pdf-bucket
+      n8[("S3 bucket")]
+    end
+  end
   %% id: users-to-alb
-  n6:B --> T:n7
+  n1 -->|"HTTPS"| n2
   %% id: alb-to-api
-  n7:B --> T:n8
+  n2 -->|"forwards requests"| n3
   %% id: api-to-db
-  n8:B --> T:n9
+  n3 -->|"reads and writes"| n4
   %% id: api-to-tax
-  n8:R --> L:n10
+  n3 -->|"gets tax rates (HTTPS)"| n5
   %% id: api-to-queue
-  n8:L --> R:n11
+  n3 -->|"invoice issued"| n6
   %% id: queue-to-lambda
-  n11:B --> T:n12
+  n6 -->|"invoice issued"| n7
   %% id: lambda-to-bucket
-  n12:B --> T:n13
+  n7 -->|"stores rendered PDF"| n8
