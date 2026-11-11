@@ -1,0 +1,229 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="booking-api-on-ecs-fargate" name="Booking API on ECS Fargate">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="booking-api-on-ecs-fargate:region" value="ap-northeast-1 (Tokyo)" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_region;strokeColor=#00A4A6;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#147EBA;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="264" y="182" width="1479" height="1064" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:vpc" value="VPC" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_vpc2;strokeColor=#8C4FFF;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#AAB7B8;dashed=0;" vertex="1" parent="booking-api-on-ecs-fargate:region">
+          <mxGeometry x="260" y="291" width="691" height="322" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:public" value="Public subnets" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#7AA116;fillColor=#F2F6E8;verticalAlign=top;align=left;spacingLeft=30;fontColor=#248814;dashed=0;" vertex="1" parent="booking-api-on-ecs-fargate:vpc">
+          <mxGeometry x="22" y="42" width="132" height="174" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:private" value="Private subnets" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#00A4A6;fillColor=#E6F6F7;verticalAlign=top;align=left;spacingLeft=78;fontColor=#147EBA;dashed=0;" vertex="1" parent="booking-api-on-ecs-fargate:vpc">
+          <mxGeometry x="407" y="136" width="262" height="174" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:browser" value="Staff browser" style="shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=79;" vertex="1" parent="1">
+          <mxGeometry x="66" y="574" width="54" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:alb" value="Application Load Balancer (HTTPS)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elastic_load_balancing;labelWidth=107;" vertex="1" parent="booking-api-on-ecs-fargate:public">
+          <mxGeometry x="27" y="42" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:api" value="Booking API (ECS Fargate, 2 tasks)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.fargate;labelWidth=107;" vertex="1" parent="booking-api-on-ecs-fargate:private">
+          <mxGeometry x="27" y="42" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:registry" value="ECR (API image)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecr;labelWidth=101;" vertex="1" parent="booking-api-on-ecs-fargate:region">
+          <mxGeometry x="52" y="501" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:alb_logs" value="S3 load balancer logs" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;labelWidth=124;" vertex="1" parent="booking-api-on-ecs-fargate:region">
+          <mxGeometry x="1349" y="42" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:secrets" value="Secrets Manager" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.secrets_manager;labelWidth=100;" vertex="1" parent="booking-api-on-ecs-fargate:region">
+          <mxGeometry x="1349" y="198" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:tables" value="DynamoDB (9 tables, on-demand)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;labelWidth=112;" vertex="1" parent="booking-api-on-ecs-fargate:region">
+          <mxGeometry x="1349" y="354" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:files" value="S3 attachments" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;labelWidth=92;" vertex="1" parent="booking-api-on-ecs-fargate:region">
+          <mxGeometry x="1349" y="525" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:jobs" value="SQS reminders" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;labelWidth=91;" vertex="1" parent="booking-api-on-ecs-fargate:region">
+          <mxGeometry x="1349" y="837" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:mail" value="Simple Email Service" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.simple_email_service;labelWidth=122;" vertex="1" parent="booking-api-on-ecs-fargate:region">
+          <mxGeometry x="1349" y="681" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:logs" value="CloudWatch Logs (30 days)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch_2;labelWidth=157;" vertex="1" parent="booking-api-on-ecs-fargate:region">
+          <mxGeometry x="1111" y="946" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:idp" value="Identity provider" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#232F3D;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.generic_application;labelWidth=94;" vertex="1" parent="1">
+          <mxGeometry x="958" y="1310" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:realtime" value="Firebase Realtime Database" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#FFA000;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.firebase;labelWidth=161;" vertex="1" parent="1">
+          <mxGeometry x="969" y="12" width="56" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:records" value="Hospital records system" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#232F3D;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.traditional_server;labelWidth=137;" vertex="1" parent="1">
+          <mxGeometry x="1891.5" y="642" width="45" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:browser" target="booking-api-on-ecs-fargate:alb">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c1:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c1">
+          <mxGeometry x="0.21" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:alb" target="booking-api-on-ecs-fargate:api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="713" y="609"/>
+              <mxPoint x="713" y="677"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c2:label" value="HTTP :8080" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c2">
+          <mxGeometry x="0.18" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:registry" target="booking-api-on-ecs-fargate:api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="866" y="722"/>
+              <mxPoint x="866" y="703"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c3:label" value="pull image" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c3">
+          <mxGeometry x="0.03" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:alb" target="booking-api-on-ecs-fargate:alb_logs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1250" y="583"/>
+              <mxPoint x="1250" y="263"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c4:label" value="access logs" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c4">
+          <mxGeometry x="0.69" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.128;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:api" target="booking-api-on-ecs-fargate:secrets">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1270" y="661"/>
+              <mxPoint x="1270" y="419"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c5:label" value="read keys at start" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c5">
+          <mxGeometry x="0.51" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.256;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:api" target="booking-api-on-ecs-fargate:tables">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1290" y="671"/>
+              <mxPoint x="1290" y="575"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c6:label" value="read / write" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c6">
+          <mxGeometry x="0.41" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:api" target="booking-api-on-ecs-fargate:files">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1136" y="690"/>
+              <mxPoint x="1136" y="691"/>
+              <mxPoint x="1310" y="691"/>
+              <mxPoint x="1310" y="746"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c7:label" value="store files" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c7">
+          <mxGeometry x="0.37" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.756;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:api" target="booking-api-on-ecs-fargate:jobs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1096" y="710"/>
+              <mxPoint x="1096" y="711"/>
+              <mxPoint x="1270" y="711"/>
+              <mxPoint x="1270" y="1058"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c8:label" value="reminder due" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c8">
+          <mxGeometry x="0.57" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.628;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:api" target="booking-api-on-ecs-fargate:mail">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1116" y="700"/>
+              <mxPoint x="1116" y="701"/>
+              <mxPoint x="1290" y="701"/>
+              <mxPoint x="1290" y="902"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c9:label" value="send mail" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c9">
+          <mxGeometry x="0.49" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.872;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:api" target="booking-api-on-ecs-fargate:logs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1076" y="719"/>
+              <mxPoint x="1076" y="721"/>
+              <mxPoint x="1250" y="721"/>
+              <mxPoint x="1250" y="1167"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c10:label" value="JSON logs" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c10">
+          <mxGeometry x="0.12" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=42;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:api" target="booking-api-on-ecs-fargate:idp">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c11:label" value="verify token" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c11">
+          <mxGeometry x="0.88" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=28;entryPerimeter=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:api" target="booking-api-on-ecs-fargate:realtime">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c12:label" value="publish version" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c12">
+          <mxGeometry x="0.88" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.372;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-ecs-fargate:api" target="booking-api-on-ecs-fargate:records">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1156" y="680"/>
+              <mxPoint x="1156" y="681"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-ecs-fargate:c13:label" value="fetch records" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-ecs-fargate:c13">
+          <mxGeometry x="0.04" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

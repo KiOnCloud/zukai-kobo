@@ -7,14 +7,25 @@ import catalog from './aws-icons.json' with { type: 'json' };
  */
 export const AWS_SOURCE = catalog.source;
 const PREFIX = 'aws:';
-const nameOf = (value) => (typeof value === 'string' && value.startsWith(PREFIX) ? value.slice(PREFIX.length) : undefined);
+/** The product logos come from draw.io's GCP library and are named `gcp:<name>`. */
+const LOGO_PREFIX = 'gcp:';
+const nameOf = (value, prefix = PREFIX) => (typeof value === 'string' && value.startsWith(prefix) ? value.slice(prefix.length) : undefined);
 const own = (table, key) => (key !== undefined && Object.hasOwn(table, key) ? table[key] : undefined);
 
-/** @returns {{name:string,title:string,category:string,fill:string,gradient?:string}|undefined} */
+/**
+ * The icon a component names. A service icon is a picture in a coloured square, always the
+ * same size. A general resource (a server, an application, a data center) and a product logo
+ * are stencils of their own, `stencil` with a `width` and a `height`: they stand for what is
+ * not an AWS service.
+ * @returns {{name:string,title:string,category:string,fill:string,gradient?:string,stencil?:string,width?:number,height?:number}|undefined}
+ */
 export function awsIcon(value) {
   const name = nameOf(value);
   const icon = own(catalog.icons, name);
-  return icon && { name, ...icon };
+  if (icon) return { name, ...icon, ...(icon.width ? { stencil: `mxgraph.aws4.${name}` } : {}) };
+  const logoName = nameOf(value, LOGO_PREFIX);
+  const logo = own(catalog.logos ?? {}, logoName);
+  return logo && { name: logoName, category: 'Product logos', ...logo, stencil: `mxgraph.gcp2.${logoName}` };
 }
 
 /** @returns {{name:string,title:string,style:string}|undefined} */
@@ -45,11 +56,16 @@ const initials = (title) => title.split(/[^A-Za-z0-9]+/).filter(Boolean).map((w)
  * @param {'icons'|'groups'} table
  */
 export function nearestAwsNames(table, value, limit = 3) {
-  const raw = nameOf(value) ?? String(value);
+  const raw = nameOf(value) ?? nameOf(value, LOGO_PREFIX) ?? String(value);
   const query = squash(raw);
   if (!query) return [];
   const words = new Set(raw.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
-  const scored = Object.entries(catalog[table]).map(([name, entry]) => {
+  // An icon may also be a product logo; a group frame is always one of the AWS library.
+  const entries = [
+    ...Object.entries(catalog[table]).map(([name, entry]) => [name, entry, PREFIX]),
+    ...(table === 'icons' ? Object.entries(catalog.logos ?? {}).map(([name, entry]) => [name, entry, LOGO_PREFIX]) : []),
+  ];
+  const scored = entries.map(([name, entry, prefix]) => {
     const n = squash(name);
     const t = squash(entry.title);
     let score;
@@ -58,7 +74,7 @@ export function nearestAwsNames(table, value, limit = 3) {
     else if (words.has(n)) score = 2;
     else if (query.includes(n) && n.length >= 3) score = 2 + (query.length - n.length) / 100;
     else score = 3 + Math.min(editDistance(query, n), editDistance(query, t)) / Math.max(query.length, 1);
-    return { name, score };
+    return { name: `${prefix}${name}`, score };
   });
-  return scored.filter((s) => s.score < 3.5).sort((a, b) => a.score - b.score).slice(0, limit).map((s) => `${PREFIX}${s.name}`);
+  return scored.filter((s) => s.score < 3.5).sort((a, b) => a.score - b.score).slice(0, limit).map((s) => s.name);
 }

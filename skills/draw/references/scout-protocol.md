@@ -93,7 +93,10 @@ Each running process is a `service`; configured stores are `database` or `cache`
 queues are `queue`; browsers, mobile apps and other callers are `client`; third-party APIs
 are `external`. Boundaries come from accounts, VPCs, namespaces or compose networks.
 Connections come from client registrations, connection strings (host part only) and
-publish or subscribe calls.
+publish or subscribe calls. Stay at the level of deployed resources (`ir-reference.md`,
+Level of detail): a database the code defines many tables in is one component with the
+count in its label, and a connection is labelled with its protocol or infrastructure
+purpose, not with the endpoints, jobs or fields the code sends over it.
 
 When the code deploys to AWS and the target is drawio, the same evidence gives the icons and
 frames (`SKILL.md`, AWS icons; names in `aws-icons.md`): a Terraform `aws_*` resource, a

@@ -1,0 +1,67 @@
+flowchart LR
+  %% id: browser
+  n1(("Staff browser"))
+  %% id: idp
+  n12>"Identity provider"]
+  %% id: realtime
+  n13>"Firebase Realtime Database"]
+  %% id: records
+  n14>"Hospital records system"]
+  %% id: region
+  subgraph n15["ap-northeast-1 (Tokyo)"]
+    %% id: registry
+    n4["ECR (API image)"]
+    %% id: vpc
+    subgraph n16["VPC"]
+      %% id: public
+      subgraph n17["Public subnets"]
+        %% id: alb
+        n2["Application Load Balancer (HTTPS)"]
+      end
+      %% id: private
+      subgraph n18["Private subnets"]
+        %% id: api
+        n3["Booking API (ECS Fargate, 2 tasks)"]
+      end
+    end
+    %% id: alb_logs
+    n5[("S3 load balancer logs")]
+    %% id: secrets
+    n6["Secrets Manager"]
+    %% id: tables
+    n7[("DynamoDB (9 tables, on-demand)")]
+    %% id: files
+    n8[("S3 attachments")]
+    %% id: jobs
+    n9[["SQS reminders"]]
+    %% id: mail
+    n10["Simple Email Service"]
+    %% id: logs
+    n11["CloudWatch Logs (30 days)"]
+  end
+  %% id: c1
+  n1 -->|"HTTPS"| n2
+  %% id: c2
+  n2 -->|"HTTP :8080"| n3
+  %% id: c3
+  n4 -->|"pull image"| n3
+  %% id: c4
+  n2 -->|"access logs"| n5
+  %% id: c5
+  n3 -->|"read keys at start"| n6
+  %% id: c6
+  n3 -->|"read / write"| n7
+  %% id: c7
+  n3 -->|"store files"| n8
+  %% id: c8
+  n3 -->|"reminder due"| n9
+  %% id: c9
+  n3 -->|"send mail"| n10
+  %% id: c10
+  n3 -->|"JSON logs"| n11
+  %% id: c11
+  n3 -->|"verify token"| n12
+  %% id: c12
+  n3 -->|"publish version"| n13
+  %% id: c13
+  n3 -->|"fetch records"| n14

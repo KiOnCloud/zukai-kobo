@@ -846,7 +846,7 @@
                 "$ref": "#/$defs/ref"
               },
               "icon": {
-                "$ref": "#/$defs/awsName"
+                "$ref": "#/$defs/iconName"
               }
             }
           }
@@ -1043,7 +1043,12 @@
     "awsName": {
       "type": "string",
       "pattern": "^aws:[a-z0-9_]{1,64}$",
-      "description": "An AWS icon or group frame of draw.io's AWS library, written aws:<name>; the names are listed in references/aws-icons.md"
+      "description": "An AWS group frame of draw.io's AWS library, written aws:<name>; the names are listed in references/aws-icons.md"
+    },
+    "iconName": {
+      "type": "string",
+      "pattern": "^(aws|gcp):[a-z0-9_]{1,64}$",
+      "description": "An icon of draw.io's AWS library, written aws:<name>, or a product logo, written gcp:<name>; the names are listed in references/aws-icons.md"
     }
   }
 }

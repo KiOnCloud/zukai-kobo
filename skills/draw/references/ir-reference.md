@@ -242,7 +242,7 @@ Collections: `components` (at least one), `boundaries` (optional), `connections`
 
 | Element | Fields |
 |---|---|
-| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external`; `ref`: diagram id of the sub-diagram that details this component (its IR file name without `.ir.json`), shown as a second label line; `icon` (optional): an AWS service icon, `aws:<name>` |
+| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external`; `ref`: diagram id of the sub-diagram that details this component (its IR file name without `.ir.json`), shown as a second label line; `icon` (optional): an AWS service icon or general resource, `aws:<name>`, or a product logo, `gcp:<name>` |
 | boundary | `id`, `label`, `children`: component or boundary ids (a deployment unit, network or team boundary); `group` (optional): an AWS group frame, `aws:<name>` |
 | connection | `id`, `from`, `to`, `label` (protocol or purpose), `bidirectional` (default `false`) |
 
@@ -281,15 +281,58 @@ consumer write what the queue delivers ("invoice issued"), not "consumes".
 }
 ```
 
+### Level of detail
+
+An architecture diagram shows what is deployed and how the parts reach each other. What the
+parts do with each other belongs to the other kinds, so keep the business detail out of it:
+
+- One component per deployed resource, the thing a reader finds as one entry in the console
+  or in the infrastructure code: one service, one database, one bucket. The tables of one
+  database, the topics of one broker and the functions deployed as one unit are one
+  component; put the number in the label ("DynamoDB (11 tables, on-demand)"). Split a
+  resource only where the parts differ in what the diagram is about: where they sit in the
+  network, who may reach them, how they are backed up or replicated. The names of the
+  tables belong to an `er` diagram, or to `meta.notes`.
+- A boundary groups what shares a network, an account or an owner. It never groups the parts
+  of one resource.
+- A component label names the resource and at most the settings an operator cares about
+  (size, count, retention), not the business data it holds.
+- A connection label names the protocol, the port or what the connection is for in the
+  infrastructure: "HTTPS", "HTTP :8080", "pull image", "read / write", "access logs". An
+  endpoint path, a job name, a field or the content of a message is behaviour and belongs to
+  a `sequence` or `activity` diagram. The test: a label stays when changing it would change
+  a security group, a permission, a route or a port.
+
+The CLI reports the two breaches it can tell from the IR as `detail:` warnings on every
+emit: three or more stores of one kind that one component alone uses, and a connection
+label that reads as an endpoint path, a job or data path ("organization/schema"), a job
+name ("sync-orders-to-billing") or a field name. Fix the IR and emit
+again; a warning that is wrong for this diagram (separate resources that really are three
+buckets) is shown to the user like any other warning.
+
+When the user asks for the detail (which tables, which endpoints), give it its own diagram
+of the kind that shows it and link it with `ref`, instead of loading the architecture
+diagram with it.
+
 ### AWS icons
 
 `icon` and `group` turn the diagram into an AWS architecture diagram on the draw.io target.
 The values are listed in `aws-icons.md` (every service icon and group frame of draw.io's AWS
-library); copy them from there. A name that is not listed fails validation, and the error
+library, its general resources, and the product logos); copy them from there. A name that is not listed fails validation, and the error
 names the nearest ones. `kind` keeps its meaning beside `icon`: draw.io draws the icon in
 place of the shape of the kind, Mermaid and FigJam draw the shape of the kind and warn once
 that the icons and frames were lost. Components and boundaries without the fields keep their
 generic look in the same diagram.
+
+A system outside AWS (`kind` `external`) takes an icon as well, so it reads as a system and
+not as a note: its product logo when `aws-icons.md` lists one (`gcp:firebase`), else a
+general resource of the AWS library, `aws:generic_application` for another party's API or a
+SaaS product and `aws:traditional_server` for a system on its own machines. These are drawn
+dark and without the coloured square of a service, so nobody takes them for an AWS service.
+draw.io places such a system where its callers are: beside the frames and level with the
+one component that calls it, or in a row along the frames between the components it talks
+to: when a client outside the frames calls it too, and when it both calls into the frames
+and is called from them.
 
 ```json
 {
@@ -300,7 +343,7 @@ generic look in the same diagram.
     { "id": "api", "label": "Order API (ECS Fargate)", "icon": "aws:fargate" },
     { "id": "db", "label": "Aurora PostgreSQL", "kind": "database", "icon": "aws:aurora" },
     { "id": "queue", "label": "SQS orders", "kind": "queue", "icon": "aws:sqs" },
-    { "id": "psp", "label": "Payment provider", "kind": "external" }
+    { "id": "psp", "label": "Payment provider", "kind": "external", "icon": "aws:generic_application" }
   ],
   "boundaries": [
     { "id": "cloud", "label": "AWS Cloud", "group": "aws:aws_cloud", "children": ["vpc", "queue"] },

@@ -250,9 +250,10 @@ function checkArchitecture(ir, err) {
 function checkAwsNames(ir, collection, field, table, lookup, err) {
   (Array.isArray(ir[collection]) ? ir[collection] : []).forEach((el, i) => {
     // A value of the wrong shape is the schema's error; only a well-formed name is looked up.
-    if (!isObj(el) || typeof el[field] !== 'string' || !/^aws:[a-z0-9_]{1,64}$/.test(el[field]) || lookup(el[field])) return;
+    const shape = field === 'icon' ? /^(aws|gcp):[a-z0-9_]{1,64}$/ : /^aws:[a-z0-9_]{1,64}$/;
+    if (!isObj(el) || typeof el[field] !== 'string' || !shape.test(el[field]) || lookup(el[field])) return;
     const near = nearestAwsNames(table, el[field]);
-    const what = field === 'icon' ? 'AWS icon' : 'AWS group frame';
+    const what = field === 'icon' ? (el[field].startsWith('gcp:') ? 'product logo' : 'AWS icon') : 'AWS group frame';
     err(`/${collection}/${i}/${field}`, `unknown ${what} "${el[field]}"`, `${near.length ? `did you mean ${near.join(', ')}? ` : ''}the names are listed in references/aws-icons.md; leave "${field}" out when none fits`);
   });
 }

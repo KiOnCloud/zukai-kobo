@@ -4,11 +4,14 @@
  * an empty box without an error, which is why the names are taken from the source and
  * checked at validation time instead of being written from memory.
  *
- * Usage: node tools/generate-aws-icons.mjs <path to Sidebar-AWS4.js> [tag]
+ * Usage: node tools/generate-aws-icons.mjs <path to Sidebar-AWS4.js> [tag] [path to Sidebar-GCP2.js]
  *
- * The input is a local file; nothing is fetched. Download it for the pinned tag from
+ * The inputs are local files; nothing is fetched. Download them for the pinned tag from
  *   https://raw.githubusercontent.com/jgraph/drawio/<tag>/src/main/webapp/js/diagramly/sidebar/Sidebar-AWS4.js
- * The file is read as text and never evaluated.
+ *   https://raw.githubusercontent.com/jgraph/drawio/<tag>/src/main/webapp/js/diagramly/sidebar/Sidebar-GCP2.js
+ * The files are read as text and never evaluated. The second one holds the product logos
+ * (Firebase and the like) for the systems an AWS diagram shows outside AWS; without it the
+ * logos of the existing catalog are kept.
  *
  * Writes src/aws-icons.json (bundled, read by the validator and the emitter) and
  * ../references/aws-icons.md (the list the model looks names up in).
@@ -21,6 +24,14 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TAG = 'v32.6.10';
 const SOURCE_PATH = 'src/main/webapp/js/diagramly/sidebar/Sidebar-AWS4.js';
+const LOGO_SOURCE_PATH = 'src/main/webapp/js/diagramly/sidebar/Sidebar-GCP2.js';
+/** The longer side of a figure that is not a square service icon, the side of a service icon. */
+const FIGURE_SIDE = 78;
+/**
+ * A product logo is one colour, and the palette draws every one in the blue of its cards.
+ * These take the colour the product is known by instead.
+ */
+const LOGO_FILL = { firebase: '#FFA000' };
 
 /**
  * A service that several palettes list keeps the colour of the first one, in file order.
@@ -83,6 +94,20 @@ export function parseSidebar(source) {
       continue;
     }
 
+    // The general resources are shapes of their own, not service icons in a coloured square:
+    // each has its size, and one colour for all. They stand for what is not an AWS service
+    // (a client, a server, another party's application).
+    if (fn === 'GeneralResources') {
+      const style = new RegExp(`var n = ${JS_STRING}`).exec(body)?.[1] ?? '';
+      const colour = colours(style);
+      for (const m of body.matchAll(new RegExp(`createVertexTemplateEntry\\(n \\+ '([a-z0-9_]+);',\\s*s \\* (\\d+), s \\* (\\d+), '', ${JS_STRING}`, 'g'))) {
+        if (!colour) throw new Error('no fill colour found for the general resources');
+        if (icons[m[1]]) continue;
+        icons[m[1]] = { title: plainTitle(m[4]), category, ...colour, width: Number(m[2]), height: Number(m[3]) };
+      }
+      continue;
+    }
+
     // Style variables of this palette: `var n2 = '...';`
     const vars = new Map();
     for (const m of body.matchAll(new RegExp(`var (\\w+) = ${JS_STRING}`, 'g'))) vars.set(m[1], colours(m[2]));
@@ -103,14 +128,42 @@ export function parseSidebar(source) {
   return { icons, groups, conflicts };
 }
 
-const sorted = (obj) => Object.fromEntries(Object.keys(obj).sort().map((k) => [k, obj[k]]));
+/**
+ * The product logos of draw.io's GCP library: one stencil each, drawn in one colour, with the
+ * proportions the palette gives it. The longer side becomes `FIGURE_SIDE`.
+ * @param {string} source text of Sidebar-GCP2.js
+ * @returns {Record<string,{title:string,fill:string,width:number,height:number}>}
+ */
+export function parseLogos(source) {
+  const body = /addGCP2ProductCardsPalette = function[\s\S]*?\n\t};/.exec(source)?.[0] ?? '';
+  const fill = /addGCP2ProductCardSet = function[\s\S]*?fillColor=(#[0-9A-Fa-f]{6})/.exec(source)?.[1];
+  const logos = {};
+  for (const m of body.matchAll(new RegExp(`addGCP2ProductCardSet\\(${JS_STRING}, '([a-z0-9_]+)', ([\\d.]+), ([\\d.]+),`, 'g'))) {
+    if (!fill) throw new Error('no fill colour found for the product logos');
+    const [x, y] = [Number(m[3]), Number(m[4])];
+    const scale = FIGURE_SIDE / Math.max(x, y);
+    logos[m[2]] = { title: plainTitle(m[1]), fill: LOGO_FILL[m[2]] ?? fill.toUpperCase(), width: Math.round(x * scale), height: Math.round(y * scale) };
+  }
+  return logos;
+}
 
-export function buildCatalog(source, tag) {
+const sorted = (obj) => Object.fromEntries(Object.keys(obj).sort().map((k) => [k, obj[k]]));
+const sha256 = (text) => createHash('sha256').update(text).digest('hex');
+
+/**
+ * @param {string} source text of Sidebar-AWS4.js
+ * @param {string} tag
+ * @param {{source?:string, kept?:{source:object, logos:object}}} [logos] the text of
+ *   Sidebar-GCP2.js, or the logos of an existing catalog to carry over
+ */
+export function buildCatalog(source, tag, logos = {}) {
   const { icons, groups, conflicts } = parseSidebar(source);
+  const logoSource = logos.source !== undefined ? { path: LOGO_SOURCE_PATH, sha256: sha256(logos.source) } : logos.kept?.source;
   const catalog = {
-    source: { repo: 'jgraph/drawio', tag, path: SOURCE_PATH, sha256: createHash('sha256').update(source).digest('hex') },
+    source: { repo: 'jgraph/drawio', tag, path: SOURCE_PATH, sha256: sha256(source), ...(logoSource ? { logos: logoSource } : {}) },
     icons: sorted(icons),
     groups: sorted(groups),
+    logos: sorted(logos.source !== undefined ? parseLogos(logos.source) : (logos.kept?.logos ?? {})),
   };
   return { catalog, conflicts };
 }
@@ -125,6 +178,7 @@ export function renderReference(catalog) {
     `They are the stencil names of draw.io's built-in AWS library (${catalog.source.repo} ${catalog.source.tag}).`,
     'Write the value exactly as listed; a name that is not in this file fails validation.',
     'A service with no entry here keeps its generic shape: leave `icon` out.',
+    'A system outside AWS takes a general resource or a product logo, both listed below.',
     '',
     '## Choosing',
     '',
@@ -147,6 +201,14 @@ export function renderReference(catalog) {
     '- `kind` beside an icon is what the other targets draw: `database` for a store (RDS,',
     '  DynamoDB, S3), `queue` for a queue, topic or stream, `cache` for a cache, `service` (the',
     '  default) for the rest.',
+    '- A system outside AWS (`kind` `external`: a third-party API, the customer\'s own system,',
+    '  a SaaS product) gets an icon too, so it reads as a system and not as a note. Use its',
+    '  product logo when one is listed under "Product logos" (`gcp:firebase`), else a general',
+    '  resource: `aws:generic_application` for an API or a SaaS product, `aws:traditional_server`',
+    '  or `aws:servers` for a system on its own machines, `aws:corporate_data_center` for a',
+    '  whole site, `aws:generic_database` for a database. A general resource is dark, a service',
+    '  icon has the colour of its category, so the two never look alike; a general resource',
+    '  never stands for an AWS service.',
     '',
     '## Group frames (`group`)',
     '',
@@ -165,16 +227,23 @@ export function renderReference(catalog) {
     out.push('', `### ${category}`, '', '| Value | Service |', '|---|---|');
     for (const [name, icon] of byCategory.get(category)) out.push(`| \`aws:${name}\` | ${icon.title} |`);
   }
+  if (Object.keys(catalog.logos ?? {}).length > 0) {
+    out.push('', '## Product logos (`icon`)', '', 'From draw.io\'s GCP library, for a product an AWS system talks to.', '', '| Value | Product |', '|---|---|');
+    for (const [name, logo] of Object.entries(catalog.logos)) out.push(`| \`gcp:${name}\` | ${logo.title} |`);
+  }
   return `${out.join('\n')}\n`;
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const [input, tag = DEFAULT_TAG] = process.argv.slice(2);
+  const [input, tag = DEFAULT_TAG, logoInput] = process.argv.slice(2);
   if (!input) {
-    console.error('usage: node tools/generate-aws-icons.mjs <path to Sidebar-AWS4.js> [tag]');
+    console.error('usage: node tools/generate-aws-icons.mjs <path to Sidebar-AWS4.js> [tag] [path to Sidebar-GCP2.js]');
     process.exit(2);
   }
-  const { catalog, conflicts } = buildCatalog(readFileSync(input, 'utf8'), tag);
+  const target = join(here, '..', 'src', 'aws-icons.json');
+  const existing = JSON.parse(readFileSync(target, 'utf8'));
+  const logos = logoInput ? { source: readFileSync(logoInput, 'utf8') } : { kept: { source: existing.source.logos, logos: existing.logos } };
+  const { catalog, conflicts } = buildCatalog(readFileSync(input, 'utf8'), tag, logos);
   const iconCount = Object.keys(catalog.icons).length;
   const groupCount = Object.keys(catalog.groups).length;
   // A changed sidebar layout shows up as a short catalog; refuse to write one.
@@ -182,8 +251,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.error(`found ${iconCount} icons and ${groupCount} groups; expected at least 300 and 20. The sidebar format may have changed.`);
     process.exit(1);
   }
-  writeFileSync(join(here, '..', 'src', 'aws-icons.json'), `${JSON.stringify(catalog, null, 2)}\n`);
+  writeFileSync(target, `${JSON.stringify(catalog, null, 2)}\n`);
   writeFileSync(join(here, '..', '..', 'references', 'aws-icons.md'), renderReference(catalog));
   for (const c of conflicts) console.log(`colour differs between palettes, first kept: ${c}`);
-  console.log(`wrote ${iconCount} icons and ${groupCount} groups from ${catalog.source.repo} ${tag}`);
+  console.log(`wrote ${iconCount} icons, ${groupCount} groups and ${Object.keys(catalog.logos).length} product logos from ${catalog.source.repo} ${tag}`);
 }

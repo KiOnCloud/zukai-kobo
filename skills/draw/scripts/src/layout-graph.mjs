@@ -292,11 +292,13 @@ const elk = () => (elkInstance ??= new ELK());
  * @param {string} [input.direction]
  * @param {Record<string,string>} [input.options] further ELK options for the whole graph
  * @param {{nodeNode?:number, layer?:number, edgeEdge?:number, selfLoop?:number}} [input.spacing]
+ * @param {boolean} [input.balanceContainers] place the members of every container with the
+ *   strategy of the page itself, which puts a node level with the middle of what it connects to
  * @returns {Promise<{ nodes: Map<string,{x,y,width,height}>, containers: Map<string,{x,y,width,height}>, edges: Map<string,{points:Array<{x,y}>}> }>}
  *   Node and container coordinates are relative to their parent (draw.io convention);
  *   edge bend points are absolute (edge cells sit on the root layer).
  */
-export async function layoutGraph({ nodes, containers = [], edges, direction = 'TB', spacing = {}, options = {} }) {
+export async function layoutGraph({ nodes, containers = [], edges, direction = 'TB', spacing = {}, options = {}, balanceContainers = false }) {
   const nodeSpacing = spacing.nodeNode ?? 40;
   const layerSpacing = spacing.layer ?? 60;
   const byParent = new Map();
@@ -324,6 +326,11 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     'elk.spacing.edgeEdge': String(spacing.edgeEdge ?? 20),
     'elk.layered.spacing.edgeEdgeBetweenLayers': String(spacing.edgeEdge ?? 20),
   };
+  // ELK does not hand the placement strategy down to a container either. Left to its default
+  // a container lines a node up with one of its neighbours, so a node that fans out to many
+  // stands level with the first or the last of them; network simplex, which the page uses,
+  // puts it level with the middle of them, at the price of a little more room.
+  const placement = balanceContainers ? { 'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX' } : {};
   const build = (parent) => (byParent.get(parent) ?? []).map((el) => {
     if (!el.isContainer) {
       // Fixed ports pin where edges meet the node (ER rows); ELK routes from those points.
@@ -336,7 +343,7 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     return {
       id: el.id,
       // ELK reads the self-loop distance from the graph a node lies in, so a container repeats it.
-      layoutOptions: { ...spacingOptions, 'elk.padding': `[top=${header + (el.inset ?? 20)},left=${el.inset ?? 20},bottom=${el.inset ?? 20},right=${el.inset ?? 20}]`, ...selfLoop, ...(el.minWidth ? { 'elk.nodeSize.constraints': 'MINIMUM_SIZE', 'elk.nodeSize.minimum': vertical ? `(0,${el.minWidth})` : `(${el.minWidth},0)` } : {}) },
+      layoutOptions: { ...spacingOptions, ...placement, 'elk.padding': `[top=${header + (el.inset ?? 20)},left=${el.inset ?? 20},bottom=${el.inset ?? 20},right=${el.inset ?? 20}]`, ...selfLoop, ...(el.minWidth ? { 'elk.nodeSize.constraints': 'MINIMUM_SIZE', 'elk.nodeSize.minimum': vertical ? `(0,${el.minWidth})` : `(${el.minWidth},0)` } : {}) },
       children: build(el.id),
     };
   });
@@ -365,7 +372,6 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
       // which puts the two ends in the opposite order along the flow; the route is turned back below.
       sources: [e.layoutReversed ? (e.toPort ?? e.to) : (e.fromPort ?? e.from)],
       targets: [e.layoutReversed ? (e.fromPort ?? e.from) : (e.toPort ?? e.to)],
-      // A label the caller places itself takes no room in the layout.
       // A label the caller places itself takes no room in the layout.
       labels: e.label && !e.labelPlacedByCaller ? [{ text: e.label, ...measureLabel(e.label) }] : [],
     })),

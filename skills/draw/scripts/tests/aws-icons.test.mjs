@@ -3,9 +3,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import catalog from '../src/aws-icons.json' with { type: 'json' };
 import { awsIcon, awsGroup, nearestAwsNames } from '../src/aws-icons.mjs';
-import { parseSidebar, buildCatalog, renderReference } from '../tools/generate-aws-icons.mjs';
+import { parseSidebar, parseLogos, buildCatalog, renderReference } from '../tools/generate-aws-icons.mjs';
 import { validateIr } from '../src/validate-ir.mjs';
 import { emit } from '../src/pipeline.mjs';
+import { placeRow } from '../src/emit-drawio.mjs';
 import { measureLabelBelow } from '../src/layout-graph.mjs';
 import { checkDrawioStructure, absoluteBounds, edgePaths } from './drawio-structure.mjs';
 import { loadFixture, validFixtures, scriptsDir } from './helpers.mjs';
@@ -60,6 +61,22 @@ const SIDEBAR = `
 					 w2, w2, '', 'Shared Service', null, null, '')
 		]);
 	};
+	Sidebar.prototype.addAWS4GeneralResourcesPalette = function(s, gn, sb)
+	{
+		var n = 'outlineConnect=0;fillColor=#232F3D;strokeColor=none;' + mxConstants.STYLE_SHAPE + "=mxgraph.aws4.";
+		var n3 = 'fillColor=#1E262E;strokeColor=#ffffff;' + mxConstants.STYLE_SHAPE + "=mxgraph.aws4.";
+		this.addPaletteFunctions('aws4General Resources', 'AWS / General Resources', false,
+		[
+			 this.createVertexTemplateEntry(n3 + 'resourceIcon;resIcon=' + gn + '.marketplace;',
+					 s * 78, s * 78, '', 'Marketplace', null, null, ''),
+			 this.createVertexTemplateEntry(n + 'traditional_server;',
+					 s * 45, s * 78, '', 'Traditional Server', null, null, ''),
+			 this.createVertexTemplateEntry(n + 'generic_application;',
+					 s * 78, s * 78, '', 'Generic Application', null, null, ''),
+			 this.createVertexTemplateEntry(n + 'lambda;',
+					 s * 78, s * 78, '', 'Not the service', null, null, '')
+		]);
+	};
 	Sidebar.prototype.addAWS4RetiredPalette = function()
 	{
 		var svc = function(color)
@@ -75,8 +92,50 @@ const SIDEBAR = `
 })();
 `;
 
+// A short excerpt in the layout of draw.io's Sidebar-GCP2.js: the helper with the colour of
+// the product cards, and the palette that lists the logos with their proportions.
+const LOGO_SIDEBAR = `
+	Sidebar.prototype.addGCP2ProductCardSet = function(label, icon, scaleX, scaleY, w1, w2, dt, fns)
+	{
+		var s = 'sketch=0;dashed=0;connectable=0;html=1;fillColor=#5184F3;strokeColor=none;' + mxConstants.STYLE_SHAPE + '=mxgraph.gcp2.';
+	};
+	Sidebar.prototype.addGCP2ProductCardsPalette = function()
+	{
+		var fns = [];
+		this.addGCP2ProductCardSet('Firebase', 'firebase', 0.72, 1, 100, 100, dt + 'firebase', fns);
+		this.addGCP2ProductCardSet('Forseti\\nSecurity', 'forseti_logo', 0.98, 1, 110, 150, dt + 'forseti', fns);
+		this.addGCP2ProductCardSet('Fastly', 'fastly', 1, 0.39, 100, 100, dt + 'fastly', fns);
+	};
+`;
+
 describe('AWS catalog generator', () => {
   const { icons, groups, conflicts } = parseSidebar(SIDEBAR);
+
+  it('reads a general resource as a shape of its own, with its size and the one colour of its palette', () => {
+    expect(icons.traditional_server).toEqual({ title: 'Traditional Server', category: 'General Resources', fill: '#232F3D', width: 45, height: 78 });
+    expect(icons.generic_application).toMatchObject({ category: 'General Resources', width: 78, height: 78 });
+    // A service keeps its icon when a general resource has the same name, and a service
+    // icon listed in that palette is not a general resource.
+    expect(icons.lambda).toEqual({ title: 'Lambda', category: 'Compute', fill: '#ED7100' });
+    expect(icons.marketplace).toBeUndefined();
+  });
+
+  it('reads the product logos with their proportions, the longer side at the size of a service icon', () => {
+    const logos = parseLogos(LOGO_SIDEBAR);
+    expect(logos.firebase).toEqual({ title: 'Firebase', fill: '#FFA000', width: 56, height: 78 });
+    expect(logos.forseti_logo).toEqual({ title: 'Forseti Security', fill: '#5184F3', width: 76, height: 78 });
+    expect(logos.fastly).toMatchObject({ width: 78, height: 30 });
+  });
+
+  it('records where the logos came from, and keeps the logos of an existing catalog when none are read', () => {
+    const fresh = buildCatalog(SIDEBAR, 'v0', { source: LOGO_SIDEBAR }).catalog;
+    expect(Object.keys(fresh.logos)).toEqual(['fastly', 'firebase', 'forseti_logo']);
+    expect(fresh.source.logos.sha256).toMatch(/^[0-9a-f]{64}$/);
+    const kept = buildCatalog(SIDEBAR, 'v1', { kept: { source: fresh.source.logos, logos: fresh.logos } }).catalog;
+    expect(kept.logos).toEqual(fresh.logos);
+    expect(kept.source.logos).toEqual(fresh.source.logos);
+    expect(buildCatalog(SIDEBAR, 'v0').catalog.logos).toEqual({});
+  });
 
   it('reads each service icon with the fill colour of its palette, and skips resource shapes', () => {
     expect(icons.lambda).toEqual({ title: 'Lambda', category: 'Compute', fill: '#ED7100' });
@@ -132,6 +191,21 @@ describe('committed AWS catalog', () => {
     expect(awsGroup('aws:vpc').style).toContain('grIcon=mxgraph.aws4.group_vpc2;');
   });
 
+  it('has the general resources and the product logos a system outside AWS is drawn with', () => {
+    for (const name of ['generic_application', 'traditional_server', 'servers', 'corporate_data_center', 'generic_database', 'users', 'mobile_client']) {
+      const icon = awsIcon(`aws:${name}`);
+      expect(icon, name).toMatchObject({ category: 'General Resources', stencil: `mxgraph.aws4.${name}` });
+      expect(Math.max(icon.width, icon.height), name).toBe(78);
+    }
+    expect(awsIcon('gcp:firebase')).toMatchObject({ name: 'firebase', title: 'Firebase', stencil: 'mxgraph.gcp2.firebase', width: 56, height: 78 });
+    // A service icon is no stencil of its own, and a logo is not an AWS name.
+    expect(awsIcon('aws:lambda').stencil).toBeUndefined();
+    expect(awsIcon('aws:firebase')).toBeUndefined();
+    expect(awsIcon('gcp:lambda')).toBeUndefined();
+    expect(awsGroup('gcp:firebase')).toBeUndefined();
+    expect(catalog.source.logos.path).toMatch(/Sidebar-GCP2\.js$/);
+  });
+
   it('looks up own names only', () => {
     expect(awsIcon('aws:constructor')).toBeUndefined();
     expect(awsIcon('aws:toString')).toBeUndefined();
@@ -145,6 +219,8 @@ describe('committed AWS catalog', () => {
     expect(reference).toBe(renderReference(catalog));
     const listed = [...reference.matchAll(/^\| `aws:([a-z0-9_]+)` \|/gm)].map((m) => m[1]);
     expect(listed.sort()).toEqual([...groupNames, ...iconNames].sort());
+    const logos = [...reference.matchAll(/^\| `gcp:([a-z0-9_]+)` \|/gm)].map((m) => m[1]);
+    expect(logos).toEqual(Object.keys(catalog.logos));
   });
 
   it('suggests the catalog name for the names people guess', () => {
@@ -157,6 +233,9 @@ describe('committed AWS catalog', () => {
     expect(nearestAwsNames('icons', 'aws:s3_bucket')[0]).toBe('aws:s3');
     expect(nearestAwsNames('groups', 'aws:subnet')).toEqual(['aws:public_subnet', 'aws:private_subnet']);
     expect(nearestAwsNames('icons', 'aws:xyzzy')).toEqual([]);
+    expect(nearestAwsNames('icons', 'gcp:firebas')[0]).toBe('gcp:firebase');
+    expect(nearestAwsNames('icons', 'aws:firebase')[0]).toBe('gcp:firebase');
+    expect(nearestAwsNames('groups', 'aws:firebase')).not.toContain('gcp:firebase');
   });
 });
 
@@ -183,8 +262,18 @@ describe('AWS names in an architecture IR', () => {
     for (const e of r.errors) expect(e.hint).toContain('references/aws-icons.md');
   });
 
+  it('accepts every product logo as an icon, and reports an unknown one with the nearest name', () => {
+    const components = Object.keys(catalog.logos).map((name, i) => ({ id: `c${i}`, label: name, kind: 'external', icon: `gcp:${name}` }));
+    expect(validateIr(base(components))).toEqual({ ok: true, errors: [] });
+    const r = validateIr(base([{ id: 'a', label: 'A', icon: 'gcp:firebas' }]));
+    expect(r.errors.map((e) => `${e.path} ${e.message}`)).toEqual(['/components/0/icon unknown product logo "gcp:firebas"']);
+    expect(r.errors[0].hint).toContain('did you mean gcp:firebase');
+    // A group frame is always one of the AWS library.
+    expect(validateIr(base([{ id: 'a', label: 'A' }], [{ id: 'b', label: 'B', group: 'gcp:firebase', children: ['a'] }])).ok).toBe(false);
+  });
+
   it('rejects another provider or a malformed value with one error that says how to write it', () => {
-    for (const icon of ['gcp:compute', 'lambda', 'aws:Lambda', 'aws:']) {
+    for (const icon of ['azure:vm', 'lambda', 'aws:Lambda', 'aws:', 'gcp:Firebase']) {
       const r = validateIr(base([{ id: 'a', label: 'A', icon }]));
       expect(r.errors, icon).toEqual([{ path: '/components/0/icon', message: expect.any(String), hint: 'write "aws:<name>" with a name listed in references/aws-icons.md' }]);
     }
@@ -687,5 +776,289 @@ describe('AWS architecture diagrams against the plain architecture diagrams of t
     expect(comparable.length).toBeGreaterThanOrEqual(4);
     expect(mean(aws, 'pageFill')).toBeGreaterThanOrEqual(mean(comparable, 'pageFill'));
     expect(mean(framed(aws), 'leastFilledFrame')).toBeGreaterThanOrEqual(0.95 * mean(framed(plain), 'leastFilledFrame'));
+  });
+});
+
+/** The axes of a diagram: `along` the flow and `across` it, with the extent of a box on each. */
+const axes = (direction) => {
+  const sideways = direction === 'LR' || direction === 'RL';
+  return {
+    along: (b) => ({ lo: sideways ? b.x : b.y, hi: sideways ? b.x + b.width : b.y + b.height }),
+    across: (b) => ({ lo: sideways ? b.y : b.x, hi: sideways ? b.y + b.height : b.x + b.width }),
+  };
+};
+const middle = ({ lo, hi }) => (lo + hi) / 2;
+const pathLength = (path) => path.slice(1).reduce((sum, p, i) => sum + Math.abs(p.x - path[i].x) + Math.abs(p.y - path[i].y), 0);
+const DIRECTIONS = ['LR', 'TB', 'RL', 'BT'];
+
+describe('the main flow of an AWS diagram', () => {
+  const ir = loadFixture('architecture', 'valid-aws-fan-out');
+  // What the API uses inside the region: the members of its fan.
+  const used = ir.connections.filter((c) => c.from === 'api' && !['idp', 'realtime', 'records'].includes(c.to)).map((c) => c.to);
+
+  it('runs through the middle of the picture, with what a hub uses on both sides of it', async () => {
+    for (const direction of DIRECTIONS) {
+      const { r, abs, figures } = await drawn(withDirection(ir, direction));
+      expect(r.warnings, direction).toEqual([]);
+      const { across } = axes(direction);
+      const at = (id) => middle(across(figures.find((f) => f.id === id).figure));
+      // The hub stands in the middle third of the components it fans out to.
+      const members = used.map(at);
+      const lo = Math.min(...members);
+      const span = Math.max(...members) - lo;
+      expect(span, direction).toBeGreaterThan(300);
+      const share = (at('api') - lo) / span;
+      expect(share, `${direction}: the API among what it uses`).toBeGreaterThan(1 / 3);
+      expect(share, `${direction}: the API among what it uses`).toBeLessThan(2 / 3);
+      // Some of them stand on each side of the hub.
+      expect(members.filter((m) => m < at('api') - 1).length, direction).toBeGreaterThanOrEqual(2);
+      expect(members.filter((m) => m > at('api') + 1).length, direction).toBeGreaterThanOrEqual(2);
+      // The whole flow, client to load balancer to API, lies in the middle half of the region.
+      const region = across(abs.get('a:region'));
+      for (const id of ['browser', 'alb', 'api']) {
+        const part = (at(id) - region.lo) / (region.hi - region.lo);
+        expect(part, `${direction}: ${id} across the region`).toBeGreaterThan(0.25);
+        expect(part, `${direction}: ${id} across the region`).toBeLessThan(0.75);
+      }
+    }
+  }, 30000);
+});
+
+describe('systems outside AWS in an AWS diagram', () => {
+  it('draws a general resource and a product logo as their own stencil, in one colour, with the name below', async () => {
+    const ir = loadFixture('architecture', 'valid-aws-fan-out');
+    const { figures } = await drawn(ir);
+    const of = (id) => figures.find((f) => f.id === id);
+    expect(of('records').cell.style).toContain('shape=mxgraph.aws4.traditional_server;');
+    expect(of('records').cell.style).toContain('fillColor=#232F3D;strokeColor=none;');
+    expect(of('records').cell.style).not.toContain('resourceIcon');
+    expect([of('records').figure.width, of('records').figure.height]).toEqual([45, 78]);
+    expect(of('idp').cell.style).toContain('shape=mxgraph.aws4.generic_application;');
+    expect(of('realtime').cell.style).toContain('shape=mxgraph.gcp2.firebase;');
+    expect(of('realtime').cell.style).toContain(`fillColor=${catalog.logos.firebase.fill};`);
+    expect([of('realtime').figure.width, of('realtime').figure.height]).toEqual([56, 78]);
+    for (const id of ['records', 'idp', 'realtime']) {
+      expect(of(id).cell.style, id).toContain('verticalLabelPosition=bottom;verticalAlign=top;');
+      expect(of(id).cell.style, id).not.toContain('dashed=1');
+      expect(of(id).cell.value, id).toBe(ir.components.find((c) => c.id === id).label);
+    }
+  });
+
+  it('stands a system with an icon that one component calls beside the frames, level with its caller', async () => {
+    const ir = loadFixture('architecture', 'valid-aws-fan-out');
+    for (const direction of DIRECTIONS) {
+      const { abs, figures, paths } = await drawn(withDirection(ir, direction));
+      const { along, across } = axes(direction);
+      const region = across(abs.get('a:region'));
+      const api = figures.find((f) => f.id === 'api').figure;
+      // At least two of the three stand beside the region, on one straight line from the API.
+      const beside = ['idp', 'realtime', 'records'].filter((id) => {
+        const box = across(abs.get(`a:${id}`));
+        return box.hi <= region.lo || box.lo >= region.hi;
+      });
+      expect(beside.length, direction).toBeGreaterThanOrEqual(2);
+      for (const id of beside) {
+        const line = paths.get(`a:${ir.connections.find((c) => c.to === id).id}`);
+        expect(line, `${direction}: ${id}`).toHaveLength(2);
+        const figure = figures.find((f) => f.id === id).figure;
+        expect(Math.abs(middle(along(figure)) - middle(along(api))), `${direction}: ${id} level with the API`).toBeLessThan(1);
+      }
+    }
+  });
+
+  const shared = loadFixture('architecture', 'valid-aws-shared-systems');
+  const outside = ['idp', 'realtime', 'client_logs'];
+
+  it('stands the systems a client and a service both call in a row along the frames, between their callers', async () => {
+    for (const direction of DIRECTIONS) {
+      const { r, abs, figures, paths } = await drawn(withDirection(shared, direction));
+      expect(r.warnings, direction).toEqual([]);
+      const { along, across } = axes(direction);
+      const frames = across(abs.get('a:account'));
+      const figure = (id) => figures.find((f) => f.id === id).figure;
+      for (const id of outside) {
+        const box = across(abs.get(`a:${id}`));
+        expect(box.hi <= frames.lo || box.lo >= frames.hi, `${direction}: ${id} beside the frames`).toBe(true);
+      }
+      // A system two components call lies between them along the flow, not past the last one.
+      const browser = middle(along(figure('browser')));
+      const api = middle(along(figure('api')));
+      for (const id of ['idp', 'realtime']) {
+        const at = middle(along(figure(id)));
+        expect(at, `${direction}: ${id} between its callers`).toBeGreaterThan(Math.min(browser, api));
+        expect(at, `${direction}: ${id} between its callers`).toBeLessThan(Math.max(browser, api));
+      }
+      // No connection to them makes a detour: each is about as long as the way between its ends.
+      for (const c of shared.connections.filter((x) => outside.includes(x.to))) {
+        const path = paths.get(`a:${c.id}`);
+        const direct = Math.abs(path[0].x - path.at(-1).x) + Math.abs(path[0].y - path.at(-1).y);
+        expect(pathLength(path), `${direction}: ${c.id}`).toBeLessThanOrEqual(direct + 1);
+        expect(path.length, `${direction}: ${c.id} bends`).toBeLessThanOrEqual(4);
+      }
+    }
+  });
+
+  it('keeps the client near the systems it calls, not a whole drawing away from them', async () => {
+    for (const direction of DIRECTIONS) {
+      const { abs, paths } = await drawn(withDirection(shared, direction));
+      const { along } = axes(direction);
+      const all = [...abs.values()].map(along);
+      const length = Math.max(...all.map((b) => b.hi)) - Math.min(...all.map((b) => b.lo));
+      // At the far end of the flow each line from the browser would run the length of the drawing.
+      for (const id of ['c3', 'c4', 'c5']) {
+        const path = paths.get(`a:${id}`);
+        const run = direction === 'LR' || direction === 'RL' ? Math.abs(path[0].x - path.at(-1).x) : Math.abs(path[0].y - path.at(-1).y);
+        expect(run, `${direction}: ${id} along the flow`).toBeLessThan(0.6 * length);
+        expect(pathLength(path), `${direction}: ${id}`).toBeLessThan(length);
+      }
+    }
+  });
+
+  it('gives each line along the row a track of its own and labels it on the stretch that is its own', async () => {
+    for (const direction of DIRECTIONS) {
+      const { cells, paths } = await drawn(withDirection(shared, direction));
+      const lines = shared.connections.filter((c) => outside.includes(c.to)).map((c) => ({ c, path: paths.get(`a:${c.id}`) }));
+      const segments = lines.flatMap(({ c, path }) => path.slice(1).map((p, i) => ({ c, box: segmentBox(path[i], p) })));
+      // Two lines lie on each other only where they leave the same caller together.
+      for (const p of segments) for (const q of segments) {
+        if (p.c.id >= q.c.id || p.c.from === q.c.from) continue;
+        const sameLine = (p.box.width < 0.5 && q.box.width < 0.5 && Math.abs(p.box.x - q.box.x) < 1 && Math.min(p.box.y + p.box.height, q.box.y + q.box.height) - Math.max(p.box.y, q.box.y) > 1)
+          || (p.box.height < 0.5 && q.box.height < 0.5 && Math.abs(p.box.y - q.box.y) < 1 && Math.min(p.box.x + p.box.width, q.box.x + q.box.width) - Math.max(p.box.x, q.box.x) > 1);
+        expect(sameLine, `${direction}: ${p.c.id} and ${q.c.id} share a stretch`).toBe(false);
+      }
+      // Every label is written, and stands where the layout placed it, not at the default middle of the line.
+      for (const { c } of lines) {
+        const label = cells.find((x) => x.id === `a:${c.id}:label`);
+        expect(label?.value, `${direction}: ${c.id}`).toBe(c.label);
+        const offset = label.mxGeometry.mxPoint?.[0] ?? label.mxGeometry.mxPoint;
+        expect(Number(offset.x) !== 0 || Number(offset.y) !== 0, `${direction}: label of ${c.id} placed beside its line`).toBe(true);
+      }
+    }
+  });
+
+  it('leaves a system that only calls in, or that only services inside the frames call, where it was', async () => {
+    // Only called from inside the frames: the nearer end of the frames, as before.
+    const inner = structuredClone(shared);
+    inner.connections = inner.connections.filter((c) => !(c.from === 'browser' && outside.includes(c.to)));
+    inner.components = inner.components.filter((c) => c.id !== 'client_logs');
+    inner.connections.push({ id: 'c12', from: 'alb', to: 'idp' });
+    const drawnInner = await drawn(inner);
+    expect(drawnInner.r.warnings).toEqual([]);
+    const account = drawnInner.abs.get('a:account');
+    const idp = drawnInner.abs.get('a:idp');
+    expect(idp.x + idp.width <= account.x || idp.x >= account.x + account.width).toBe(true);
+    // A system that only calls in stands where the flow starts.
+    const caller = structuredClone(shared);
+    caller.connections = caller.connections.filter((c) => c.to !== 'idp');
+    caller.connections.push({ id: 'c12', from: 'idp', to: 'alb', label: 'webhook' });
+    const drawnCaller = await drawn(caller);
+    expect(drawnCaller.r.warnings).toEqual([]);
+    expect(drawnCaller.abs.get('a:idp').x + drawnCaller.abs.get('a:idp').width).toBeLessThanOrEqual(drawnCaller.abs.get('a:account').x);
+  });
+
+  it('stands a system that calls into the frames and is called from them in the row, with no line round the picture', async () => {
+    // A partner system pushes data to the load balancer and the API queries it in turn: the
+    // connections form a circle, so at either end of the flow one of them would run all the way back.
+    const partner = structuredClone(shared);
+    partner.components.push({ id: 'partner', label: 'Partner system', kind: 'external', icon: 'aws:traditional_server' });
+    partner.connections.push({ id: 'p1', from: 'partner', to: 'alb', label: 'push data' }, { id: 'p2', from: 'api', to: 'partner', label: 'query' });
+    for (const direction of DIRECTIONS) {
+      const { r, abs, figures, paths, cellOf } = await drawn(withDirection(partner, direction));
+      expect(r.warnings, direction).toEqual([]);
+      const { along, across } = axes(direction);
+      const frames = across(abs.get('a:account'));
+      const box = across(abs.get('a:partner'));
+      expect(box.hi <= frames.lo || box.lo >= frames.hi, `${direction}: beside the frames`).toBe(true);
+      // Between the two components it talks to, give or take its own width.
+      const figure = (id) => middle(along(figures.find((f) => f.id === id).figure));
+      expect(figure('partner'), direction).toBeGreaterThan(Math.min(figure('alb'), figure('api')) - 80);
+      expect(figure('partner'), direction).toBeLessThan(Math.max(figure('alb'), figure('api')) + 80);
+      // Each arrow points the way the IR says, and neither line makes a detour.
+      expect([cellOf('p1').source, cellOf('p1').target], direction).toEqual(['a:partner', 'a:alb']);
+      expect([cellOf('p2').source, cellOf('p2').target], direction).toEqual(['a:api', 'a:partner']);
+      for (const id of ['p1', 'p2']) {
+        const path = paths.get(`a:${id}`);
+        const direct = Math.abs(path[0].x - path.at(-1).x) + Math.abs(path[0].y - path.at(-1).y);
+        expect(pathLength(path), `${direction}: ${id}`).toBeLessThanOrEqual(direct + 1);
+      }
+    }
+    // A system the flow merely passes through is on no circle and stays in the flow.
+    const through = structuredClone(shared);
+    through.components.push({ id: 'gateway', label: 'Partner gateway', kind: 'external', icon: 'aws:generic_application' });
+    through.connections.push({ id: 'g1', from: 'browser', to: 'gateway' }, { id: 'g2', from: 'gateway', to: 'alb' });
+    const drawnThrough = await drawn(through);
+    expect(drawnThrough.r.warnings).toEqual([]);
+    const gateway = drawnThrough.abs.get('a:gateway');
+    expect(gateway.x + gateway.width).toBeLessThanOrEqual(drawnThrough.abs.get('a:account').x);
+    expect(gateway.x).toBeGreaterThan(drawnThrough.abs.get('a:browser').x);
+  });
+
+  it('stands a system that one component calls in line with the row on its side', async () => {
+    // A partner system on a circle through the frames takes a row; a system the API alone
+    // calls stands beside the frames on its own. On the same side the two are one row: their
+    // figures on one line, whatever the length of their names.
+    const ir = structuredClone(loadFixture('architecture', 'valid-aws-fan-out'));
+    ir.components.push({ id: 'partner', label: 'Partner system with a name that takes two lines', kind: 'external', icon: 'aws:traditional_server' });
+    ir.connections.push({ id: 'p1', from: 'partner', to: 'alb', label: 'HTTPS' }, { id: 'p2', from: 'api', to: 'partner', label: 'HTTPS' });
+    for (const direction of DIRECTIONS) {
+      const { r, abs, figures, paths } = await drawn(withDirection(ir, direction));
+      expect(r.warnings, direction).toEqual([]);
+      const { along, across } = axes(direction);
+      const region = across(abs.get('a:region'));
+      const figure = (id) => figures.find((f) => f.id === id).figure;
+      const partner = across(figure('partner'));
+      const side = partner.hi <= region.lo ? -1 : 1;
+      expect(partner.hi <= region.lo || partner.lo >= region.hi, `${direction}: the partner beside the region`).toBe(true);
+      // Every system outside AWS on the partner's side stands on its line.
+      const sameSide = ['idp', 'realtime', 'records'].filter((id) => (side < 0 ? across(figure(id)).hi <= region.lo : across(figure(id)).lo >= region.hi));
+      expect(sameSide.length, `${direction}: a system beside the frames on the partner's side`).toBeGreaterThanOrEqual(1);
+      for (const id of sameSide) {
+        expect(Math.abs(across(figure(id)).lo - partner.lo), `${direction}: ${id} on the line of the row`).toBeLessThan(1);
+        // It keeps its one straight line from the API, and stands clear of the partner.
+        expect(paths.get(`a:${ir.connections.find((c) => c.to === id).id}`), `${direction}: ${id}`).toHaveLength(2);
+        const a = along(abs.get(`a:${id}`));
+        const b = along(abs.get('a:partner'));
+        expect(a.hi <= b.lo || b.hi <= a.lo, `${direction}: ${id} beside the partner, not on it`).toBe(true);
+      }
+    }
+  }, 30000);
+
+  it('sends a line round a component that stands in its way, and gives the row up when no way is free', () => {
+    // A layout by hand, left to right: a client, a service with a neighbour right above it,
+    // and a system both call. The frames are left out: only the way out of each caller matters.
+    const node = (id, kind) => ({ id, kind, width: 80, height: 80 });
+    const nodes = [node('u', 'client'), node('api'), node('above'), node('below'), node('ext', 'external')];
+    const edges = [{ id: 'e1', from: 'u', to: 'ext' }, { id: 'e2', from: 'api', to: 'ext' }];
+    const row = () => new Map([['ext', edges]]);
+    const at = (boxes) => ({ nodes: new Map(Object.entries(boxes).map(([id, [x, y, width = 80]]) => [id, { x, y, width, height: 80 }])), containers: new Map(), edges: new Map() });
+    const context = { containers: [], nodes, edges, direction: 'LR' };
+
+    // Something right above the service only: the line goes straight down, the row is below.
+    const below = at({ u: [0, 300], api: [400, 300], above: [400, 100] });
+    expect(placeRow(below, row(), context)).toBeUndefined();
+    expect(below.nodes.get('ext').y).toBeGreaterThan(380);
+    expect(below.edges.get('e2').start).toEqual({ x: 440, y: 380 });
+
+    // Above and below taken, but only as wide as the service: the line steps aside, along
+    // the flow, into the nearest free column, and reaches the row with one more bend.
+    const narrow = at({ u: [0, 300], api: [400, 300], above: [400, 100], below: [400, 500] });
+    expect(placeRow(narrow, row(), context)).toBeUndefined();
+    const way = narrow.edges.get('e2');
+    expect(way.start.x === 480 || way.start.x === 400).toBe(true);
+    expect(way.points[0].y).toBe(way.start.y);
+    expect(Math.abs(way.points[0].x - 440)).toBeGreaterThan(40 + 10);
+
+    // Above and below taken as far as a line may step aside: no row, the caller says which system.
+    const wide = at({ u: [0, 300], api: [400, 300], above: [100, 100, 700], below: [100, 500, 700] });
+    expect(placeRow(wide, row(), context)).toBe('ext');
+    expect(wide.nodes.has('ext')).toBe(false);
+  });
+
+  it('draws nothing of this on the targets without icons, and says once what was lost', async () => {
+    for (const target of ['mermaid', 'figjam']) {
+      const r = await emit(shared, target);
+      expect(r.ok, target).toBe(true);
+      expect(r.warnings.filter((w) => w.feature === 'component.icon.aws'), target).toHaveLength(1);
+    }
   });
 });
