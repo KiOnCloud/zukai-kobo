@@ -51,6 +51,8 @@ const PERSONAL = [
   { re: /(?<![\w.+-])[\w.+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}(?![\w-])/, what: 'e-mail address' },
   { re: /(?<![\w+])\+\d{1,3}[ .-]?(?:\(\d{1,4}\)[ .-]?)?\d{2,4}(?:[ .-]?\d{2,4}){1,3}(?!\d)/, what: 'telephone number' },
   { re: /(?<![\w.-])(?:\(0\d{1,3}\)|0\d{1,3})[ .-]\d{3,4}[ .-]\d{3,4}(?![\d.-])/, what: 'telephone number' },
+  // A mobile number written without separators: 10 or 11 digits from a leading 0.
+  { re: /(?<![\w.+-])0\d{9,10}(?![\w.-])/, what: 'telephone number' },
 ];
 /** Addresses that stand for "an address": documentation domains and obvious placeholders. */
 const PLACEHOLDER_MAIL = /@(?:example\.(?:com|org|net)|[\w.-]+\.(?:example|test|invalid|localhost))$|^(?:user|name|email|someone|xxx+)@/i;

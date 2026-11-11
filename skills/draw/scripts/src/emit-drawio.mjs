@@ -736,7 +736,7 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   const decisions = new Set(ir.nodes.filter((n) => n.shape === 'decision' && !n.ref).map((n) => n.id));
   // The answer on a branch that leads back is written by the emitter beside the side tip it
   // leaves (see placeBranchLabels), so it takes no room in the layout.
-  const edges = ir.edges.map((e) => ({ id: e.id, from: e.from, to: e.to, label: e.label, style: STYLE.flowEdge, layoutReversed: back.has(e.id) || undefined, labelPlacedByCaller: (decisions.has(e.from) && back.has(e.id)) || undefined, branch: decisions.has(e.from) || undefined }));
+  const edges = ir.edges.map((e) => ({ id: e.id, from: e.from, to: e.to, label: e.label, style: STYLE.flowEdge, layoutReversed: back.has(e.id) || undefined, backSide: back.has(e.id) || undefined, labelPlacedByCaller: (decisions.has(e.from) && back.has(e.id)) || undefined, branch: decisions.has(e.from) || undefined }));
   const loopExtra = sideLoopRoom(edges, ir.direction);
   const nodes = ir.nodes.map((n, i) => {
     const shape = n.ref ? 'subroutine' : (n.shape ?? 'process');

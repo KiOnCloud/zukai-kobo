@@ -138,6 +138,19 @@ export function relabelDrawio(xml, map) {
       if (c.newText !== undefined && c.geometry && !c.selfClosing && c.geometry.width !== undefined && c.geometry.relative !== '1') {
         const spacing = ['spacingLeft', 'spacingRight'].reduce((sum, key) => sum + Number(c.style.match(new RegExp(`${key}=(\\d+)`))?.[1] ?? 0), 0);
         const wraps = /whiteSpace=wrap/.test(c.style);
+        // A name below a figure wraps at the width of the old name. The figure does not hold
+        // the text, so that width can follow the new name without moving anything: it grows
+        // (up to BELOW_MAX) until the name takes no more lines than the old one did.
+        if (/verticalLabelPosition=bottom/.test(c.style) && wraps && /labelWidth=\d+/.test(c.style)) {
+          const was = Number(c.style.match(/labelWidth=(\d+)/)[1]);
+          const room = wrappedLines(c.parts.main, was);
+          let width = was;
+          while (width < BELOW_MAX && wrappedLines(c.newText, width) > room) width += 4;
+          if (width !== was && wrappedLines(c.newText, width) <= room) {
+            c.style = c.style.replace(/labelWidth=\d+/, `labelWidth=${width}`);
+            c.restyled = true;
+          }
+        }
         const problem = /verticalLabelPosition=bottom/.test(c.style)
           ? checkFitBelow(c.parts.main, c.newText, Number(c.style.match(/labelWidth=(\d+)/)?.[1] ?? c.geometry.width), wraps)
           : checkFit(c.parts.main, c.newText, Number(c.geometry.width), Number(c.geometry.height), wraps, { spacing, rhombus: /^rhombus;/.test(c.style), bars: /^shape=process;/.test(c.style) });
@@ -146,9 +159,16 @@ export function relabelDrawio(xml, map) {
           fitProblems.get(c.attrs.id).pages.unshift(p.pageId);
         }
       }
-      const tag = `<${c.name}${c.attrText.replace(new RegExp(`\\s${c.labelAttr}="[^"]*"`), ` ${c.labelAttr}="${xmlAttr(value)}"`)}>`;
-      body += p.body.slice(cursor, c.index) + tag;
+      let attrText = c.attrText.replace(new RegExp(`\\s${c.labelAttr}="[^"]*"`), ` ${c.labelAttr}="${xmlAttr(value)}"`);
+      const widened = c.restyled ? c.style.match(/labelWidth=\d+/)[0] : undefined;
+      // The style is on the cell itself, or on the mxCell inside a UserObject.
+      if (widened && c.name === 'mxCell') attrText = attrText.replace(/labelWidth=\d+/, widened);
+      body += p.body.slice(cursor, c.index) + `<${c.name}${attrText}>`;
       cursor = c.index + c.length;
+      if (widened && c.name !== 'mxCell') {
+        const inner = /^\s*<mxCell\b[^>]*?labelWidth=\d+/.exec(p.body.slice(cursor));
+        if (inner) { body += inner[0].replace(/labelWidth=\d+$/, widened); cursor += inner[0].length; }
+      }
     }
     body += p.body.slice(cursor);
     const basis = { ...p.basis };
@@ -255,6 +275,8 @@ const widest = (text) => Math.ceil(widestLine(text));
 const TEXT_INSET = 8;
 /** How much wider than drawn the text metrics may measure a line (see text-metrics.mjs). */
 const WIDTH_SLACK = 1.03;
+/** The widest a name below a figure may become when a relabel lets it grow, in px. */
+const BELOW_MAX = 200;
 const LINE = 15;
 
 /**

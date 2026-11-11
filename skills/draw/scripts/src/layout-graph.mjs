@@ -298,6 +298,9 @@ const elk = () => (elkInstance ??= new ELK());
  *   Node and container coordinates are relative to their parent (draw.io convention);
  *   edge bend points are absolute (edge cells sit on the root layer).
  */
+/** The side of a loop head that an edge leading back arrives on: across the flow. */
+const BACK_SIDE = { TB: 'EAST', BT: 'EAST', LR: 'SOUTH', RL: 'SOUTH' };
+
 export async function layoutGraph({ nodes, containers = [], edges, direction = 'TB', spacing = {}, options = {}, balanceContainers = false }) {
   const nodeSpacing = spacing.nodeNode ?? 40;
   const layerSpacing = spacing.layer ?? 60;
@@ -331,12 +334,24 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
   // stands level with the first or the last of them; network simplex, which the page uses,
   // puts it level with the middle of them, at the price of a little more room.
   const placement = balanceContainers ? { 'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX' } : {};
+  // Ports for the edges that lead back, per loop head (`backSide` on the edge asks for them).
+  const backPorts = new Map();
+  for (const e of edges) {
+    if (!e.layoutReversed || !e.backSide || e.toPort || e.from === e.to) continue;
+    if (!backPorts.has(e.to)) backPorts.set(e.to, []);
+    backPorts.get(e.to).push(`${e.to}:back:${e.id}`);
+  }
+  const backPortOf = (e) => (e.layoutReversed && e.backSide && !e.toPort && e.from !== e.to ? `${e.to}:back:${e.id}` : undefined);
   const build = (parent) => (byParent.get(parent) ?? []).map((el) => {
     if (!el.isContainer) {
       // Fixed ports pin where edges meet the node (ER rows); ELK routes from those points.
       if (el.ports?.length) {
         return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_POS' }, ports: el.ports.map((p) => ({ id: p.id, x: p.x, y: p.y, width: 1, height: 1 })) };
       }
+      // A loop head: the edges that lead back to it arrive on a side across the flow, so the
+      // side along the flow stays with the edge that goes on and the main line runs straight.
+      const back = backPorts.get(el.id);
+      if (back) return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_SIDE' }, ports: back.map((id) => ({ id, width: 1, height: 1, layoutOptions: { 'elk.port.side': BACK_SIDE[direction] ?? 'EAST' } })) };
       return { id: el.id, width: el.width, height: el.height };
     }
     const header = el.headerHeight ?? 30;
@@ -370,7 +385,7 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
       id: e.id,
       // An edge laid out against its direction: the layout sees it run from `to` to `from`,
       // which puts the two ends in the opposite order along the flow; the route is turned back below.
-      sources: [e.layoutReversed ? (e.toPort ?? e.to) : (e.fromPort ?? e.from)],
+      sources: [e.layoutReversed ? (backPortOf(e) ?? e.toPort ?? e.to) : (e.fromPort ?? e.from)],
       targets: [e.layoutReversed ? (e.fromPort ?? e.from) : (e.toPort ?? e.to)],
       // A label the caller places itself takes no room in the layout.
       labels: e.label && !e.labelPlacedByCaller ? [{ text: e.label, ...measureLabel(e.label) }] : [],

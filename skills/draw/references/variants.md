@@ -122,11 +122,12 @@ lines than the box's height holds (and than the old text took), has an unbreakab
 wider than the box, or exceeds a non-wrapping box, measured by the glyph widths of
 draw.io's 12 px font and wrapped where draw.io wraps; a cell and its canvas
 copy give one warning naming both pages. The fix is a shorter label, or a re-emit from a
-translated IR when the user prefers resized shapes over a preserved layout. For an
-architecture diagram with AWS icons that second way is the usual one: an icon's name stands
-below it at the width of the old name, so a longer name in another language wraps onto the
-connection that leaves the icon. When most of the icon names of a page are reported, say so
-and offer the translated IR instead of delivering the relabelled page.
+translated IR when the user prefers resized shapes over a preserved layout. A name
+below a figure (an AWS icon, a client) is the one label `relabel` gives more room: the figure
+does not hold it, so its wrap width grows, up to 200 px, until the new name takes no more
+lines than the old one. A name that is still reported after that is longer than the room
+between two icons: when more than half of the icon names of a page are reported, say so and
+offer the translated IR for that diagram instead of delivering the relabelled page.
 
 `relabel` writes into each page it changed the labels the page was laid out for (a
 `zukaiLabels` property of the page, which draw.io keeps on save). `drift` reads it, so a

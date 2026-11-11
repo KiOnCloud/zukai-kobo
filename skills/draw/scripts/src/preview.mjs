@@ -19,6 +19,44 @@ import { pngSize, decodePng, cropPng, encodePng } from './png.mjs';
 export { pngSize };
 
 const MERMAID_CDN = 'https://cdn.jsdelivr.net/npm/mermaid@12.3.0/dist/mermaid.esm.min.mjs';
+/**
+ * Cut the white off the sides of a tile, keeping `margin` px beside what is drawn. A canvas holds
+ * diagrams of different heights side by side, so a tile as tall as the tallest one is mostly
+ * white where a short diagram stands. Returns false for a tile with nothing on it; a file
+ * that cannot be read is left as it is.
+ */
+function trimTile(file, margin, vertical) {
+  let png;
+  try {
+    png = decodePng(readFileSync(file));
+  } catch {
+    return true;
+  }
+  const { width, height, bpp, pixels } = png;
+  const stride = width * bpp;
+  let x0 = width; let y0 = height; let x1 = -1; let y1 = -1;
+  for (let y = 0; y < height; y++) {
+    const row = pixels.subarray(y * stride, (y + 1) * stride);
+    for (let x = 0; x < width; x++) {
+      let white = true;
+      for (let k = 0; k < bpp; k++) if (row[x * bpp + k] !== 255) { white = false; break; }
+      if (white) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  if (x1 < 0) return false;
+  // Only across the direction the tiles follow each other in: along it every tile keeps its
+  // length, and with it the band it shares with the next one.
+  const clip = vertical
+    ? { x: Math.max(0, x0 - margin), y: 0, width: Math.min(width, x1 + 1 + margin) - Math.max(0, x0 - margin), height }
+    : { x: 0, y: Math.max(0, y0 - margin), width, height: Math.min(height, y1 + 1 + margin) - Math.max(0, y0 - margin) };
+  if (clip.width < width || clip.height < height) writeFileSync(file, encodePng(cropPng(png, clip)));
+  return true;
+}
+
 /** White space kept around the drawing in a preview, CSS px. */
 const MARGIN = 20;
 /** The viewer fits the drawing to the window minus `border`, so a window of extent + 2 * MARGIN shows it at scale 1. */
@@ -257,8 +295,12 @@ async function shoot(browser, url, setup, locate, measure, out, maxPx, fixed) {
   for (const [i, frame] of tileFrames(region.width, region.height, maxLen, overlap).entries()) {
     const file = `${base}-${i + 1}.png`;
     await page.screenshot({ path: file, clip: { ...frame, x: frame.x + region.x, y: frame.y + region.y } });
+    // A canvas of diagrams of different heights leaves tiles with nothing on them: a
+    // reviewer who opens one learns nothing, so they are not listed.
+    if (!trimTile(file, Math.round(margin * scale), region.height >= region.width)) { rmSync(file, { force: true }); continue; }
     files.push(file);
   }
+  if (files.length === 0) return { ok: false, message: 'the drawing rendered as an empty image' };
   await page.close();
   return { ok: true, scale, files, tiled: true, overlap: Math.round(overlap * scale) };
 }

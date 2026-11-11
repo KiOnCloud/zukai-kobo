@@ -382,7 +382,56 @@ describe('relabel and the hand-edit check (report items 19 and 20)', () => {
     const cell = (value) => `<mxfile compressed="false"><diagram id="d" name="D"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="d:pay" value="${value}" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;whiteSpace=wrap;labelWidth=97;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="78" height="78" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;
     // Eight full-width characters take 96 px, which draw.io fits into the 97 px of the old name.
     expect(relabelDrawio(cell('Cổng thanh toán'), { pay: '決済ゲートウェイ' }).warnings).toEqual([]);
-    expect(relabelDrawio(cell('Cổng thanh toán'), { pay: '決済ゲートウェイサービス' }).warnings).toHaveLength(1);
+    // A longer name gets the width it needs for one line, up to 200 px; beyond that it is reported.
+    const wider = relabelDrawio(cell('Cổng thanh toán'), { pay: '決済ゲートウェイサービス' });
+    expect(wider.warnings).toEqual([]);
+    expect(Number(/labelWidth=(\d+)/.exec(wider.output)[1])).toBeGreaterThan(97);
+    expect(relabelDrawio(cell('Cổng thanh toán'), { pay: '決済ゲートウェイサービスと会員ポイント管理システム' }).warnings).toHaveLength(1);
+  });
+});
+
+describe('what the second end-to-end run still found', () => {
+  it('lets the name below an icon take the width its translation needs, and drift does not call that a restyle', async () => {
+    const { relabelDrawio } = await import('../src/relabel.mjs');
+    const { emit } = await import('../src/pipeline.mjs');
+    const { driftDrawio } = await import('../src/drift.mjs');
+    const ir = { schemaVersion: 1, kind: 'architecture', title: 'Shop', components: [{ id: 'app', label: 'App', kind: 'client' }, { id: 'fn', label: 'Lambda', icon: 'aws:lambda' }], connections: [{ id: 'c', from: 'app', to: 'fn', label: 'HTTPS' }] };
+    const xml = (await emit(ir, 'drawio', { diagramId: 'shop' })).output;
+    const before = Number(/id="shop:fn"[^>]*labelWidth=(\d+)/.exec(xml)[1]);
+    const out = relabelDrawio(xml, { fn: 'ポイント付与 Lambda 関数' });
+    expect(out.warnings).toEqual([]);
+    expect(Number(/id="shop:fn"[^>]*labelWidth=(\d+)/.exec(out.output)[1])).toBeGreaterThan(before);
+    ir.components[1].label = 'ポイント付与 Lambda 関数';
+    const drift = await driftDrawio(out.output, [{ id: 'shop', ir }]);
+    expect(drift.pages[0].changes.filter((c) => c.change === 'restyled')).toEqual([]);
+  });
+
+  it('relabels an attribute row of an entity by its row key', async () => {
+    const run = makeRun('data', { data: loadFixture('er', 'valid') });
+    const file = join(run, 'data.drawio');
+    cli('emit', '--to', 'drawio', join(run, 'source', 'data.ir.json'), '--out', file);
+    const r = cli('relabel', file, '--map', write(join(run, '..', 'rows.json'), { 'data:customer:row-0': 'PK mã: uuid' }), '--out', file);
+    expect(r.out).toMatchObject({ replaced: 1, unmatched: [] });
+    expect(readFileSync(file, 'utf8')).toContain('value="PK mã: uuid"');
+  });
+
+  it('reads ten digits from a leading 0 as a telephone number, and leaves a date or a long id alone', async () => {
+    const { scanSecrets } = await import('../src/scan-secrets.mjs');
+    expect(scanSecrets({ a: 'Gọi 0912345678' }).warnings.map((w) => w.kind)).toEqual(['personal-data']);
+    for (const text of ['order 20261105', 'id 0012345678901234', 'v0.123456789']) expect(scanSecrets({ a: text }).warnings, text).toEqual([]);
+  });
+
+  it('draws the main line of a flow straight when a branch leads back to an earlier step', async () => {
+    const { emit } = await import('../src/pipeline.mjs');
+    for (const direction of ['LR', 'TB']) {
+      const ir = { schemaVersion: 1, kind: 'flowchart', title: 'Loop', direction,
+        nodes: [{ id: 'start', label: 'Start', shape: 'terminal' }, { id: 'enter', label: 'Enter the points' }, { id: 'ok', label: 'Enough?', shape: 'decision' }, { id: 'done', label: 'Done', shape: 'terminal' }, { id: 'retry', label: 'Say what is missing' }],
+        edges: [{ id: 'e1', from: 'start', to: 'enter' }, { id: 'e2', from: 'enter', to: 'ok' }, { id: 'e3', from: 'ok', to: 'done', label: 'yes' }, { id: 'e4', from: 'ok', to: 'retry', label: 'no' }, { id: 'e5', from: 'retry', to: 'enter' }] };
+      const cells = checkDrawioStructure((await emit(ir, 'drawio', { diagramId: 'd' })).output).cells;
+      const centre = (id) => { const g = cells.find((c) => c.id === id).mxGeometry; return direction === 'LR' ? Number(g.y) + Number(g.height) / 2 : Number(g.x) + Number(g.width) / 2; };
+      expect(Math.abs(centre('d:start') - centre('d:enter')), direction).toBeLessThan(1);
+      expect(Math.abs(centre('d:enter') - centre('d:ok')), direction).toBeLessThan(1);
+    }
   });
 });
 

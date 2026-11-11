@@ -72,7 +72,9 @@ brainstorm (idea) ─> clarify ┘                                              
 
 ## Visual check
 
-`cli.mjs preview` renders a `.drawio` or `.mmd` file, or every block of the combined `.md` of
+A tiled preview has the white beside the drawing cut off each tile, across the direction
+the tiles follow each other in, so a canvas of diagrams of different heights does not come
+back as mostly empty images. `cli.mjs preview` renders a `.drawio` or `.mmd` file, or every block of the combined `.md` of
 a Mermaid run, to a PNG in the system temp directory (one path per input file, made from its
 name, type and a hash of its full path, so two files or two projects never share one) so
 the agent can look at the result and fix layout problems from the IR (label length, element
@@ -184,7 +186,10 @@ ELK lays out flowchart, state, ER, class and architecture diagrams with orthogon
 label boxes into draw.io's relative label geometry, so a label stays where the engine put
 it. Every edge is written with ELK's waypoints and with exit and entry anchors taken from
 ELK's end points, so draw.io follows the computed route instead of re-routing a straight
-edge next to its neighbours. A self-loop goes on a side that is across the flow, where no
+edge next to its neighbours. An edge of a flowchart that leads back to an
+earlier step arrives there on a side across the flow (a port with a fixed side on the loop
+head), so the side along the flow stays with the edge that goes on and the main line of the
+chart runs straight. A self-loop goes on a side that is across the flow, where no
 other edge of its node ends. In a top-down or bottom-up layout the emitter draws it on a
 band of the right or left side, after the node asked ELK for the room on both sides. In a
 left-to-right or right-to-left layout it is the loop ELK itself routes over the top of the
