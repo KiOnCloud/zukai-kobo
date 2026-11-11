@@ -156,7 +156,7 @@ export function relabelDrawio(xml, map) {
 }
 
 /** draw.io compresses page content as base64(deflate-raw(uriencoded(xml))); turn it back into XML. */
-function inflatePages(xml) {
+export function inflatePages(xml) {
   return xml.replace(/(<diagram\b[^>]*>)([^<]+)(<\/diagram>)/g, (whole, open, body, close) => {
     const text = body.trim();
     if (text === '' || text.startsWith('<')) return whole;
@@ -169,7 +169,7 @@ function inflatePages(xml) {
   });
 }
 
-function parseAttrs(text) {
+export function parseAttrs(text) {
   const attrs = {};
   for (const m of text.matchAll(/([\w:-]+)="([^"]*)"/g)) attrs[m[1]] = decodeAttr(m[2]);
   return attrs;
