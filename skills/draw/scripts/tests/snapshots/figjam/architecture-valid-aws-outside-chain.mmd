@@ -1,0 +1,31 @@
+flowchart LR
+  %% id: partner
+  n6>"Partner API"]
+  %% id: cloud
+  subgraph n7["AWS Cloud"]
+    %% id: region
+    subgraph n8["Region"]
+      %% id: rule
+      n1["EventBridge rule"]
+      %% id: lambda
+      n2["Sync function"]
+      %% id: alb
+      n3["Application Load Balancer"]
+      %% id: api
+      n4["API (ECS Fargate)"]
+      %% id: db
+      n5[("DynamoDB (6 tables)")]
+    end
+  end
+  %% id: c1
+  n1 -->|"invoke"| n2
+  %% id: c2
+  n2 -->|"HTTPS"| n3
+  %% id: c3
+  n3 -->|"HTTP"| n4
+  %% id: c4
+  n4 -->|"read / write"| n5
+  %% id: c6
+  n2 -->|"HTTPS"| n6
+  %% id: c7
+  n6 -->|"HTTPS"| n3

@@ -196,6 +196,20 @@ IR files, run folders and CLI commands are unchanged. What you may notice:
   `skills/draw/references/closing-contract.md` (the `detail:` rule) and
   `skills/draw/references/review-checklist.md` (items 8 and 11).
 
+## Upgrading to 2.0.2
+
+Version 2.0.2 fixes the place of a system outside the AWS frames that one component in the
+frames calls and that calls another component in turn (a function calls a partner API, the
+partner calls the load balancer). It was drawn at the start of the flow with one connection
+running round the whole picture; it now stands in the row along the frames, between the
+two. Nothing else changes. A delivered diagram of that shape comes out arranged differently
+when it is emitted again, so `/zukai:revise` reports it as changed since delivery before it
+redraws it.
+
+A system that one component calls and that calls the same component back still takes the
+long way when the two are written as two connections. Write them as one connection with
+`bidirectional`, as the IR reference asks when either side starts exchanges.
+
 ## Upgrading from it-diagrams
 
 Zukai was published as `it-diagrams` up to version 1.0.0. The IR format and the CLI did
