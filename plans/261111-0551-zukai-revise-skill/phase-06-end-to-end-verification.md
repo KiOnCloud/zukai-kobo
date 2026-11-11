@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "End-to-end verification"
-status: pending
+status: in-progress
 priority: P1
 effort: 0.5d
 dependencies: [5]
@@ -43,3 +43,12 @@ plus a second run with target Mermaid.
 - `claude plugin validate . --strict` passes.
 - Every scenario's outcome recorded in the PR description, with any deviation and its fix.
 - Each plan success criterion checked off against a scenario.
+
+## Results (2026-11-11)
+
+- `npm test`: 605 passed, 1 skipped; the bundle drift test passes. `claude plugin validate . --strict` passes. The CI frontmatter check passes for both skills. `install.sh` was run under sh and dash.
+- The CLI side of scenarios 1, 3–9 and 11 was run on a scratch run, and all of it passed. Delivered files stayed byte-identical while drafts existed. Dropping the drafts wrote no revision. A hand-moved box kept its `x` through `relabel`. The drifted file was kept under `extras/`. Undoing the undo restored the earlier bytes. Five revisions were kept. `drift` refused Mermaid output.
+- An independent review found 4 high, 8 medium and 9 low findings. All were fixed with regression tests except the following:
+  - Not fixed: when two diagram ids share their first 40 characters, they get the same page id. This was already the case before this work and lives in the emitter's `slugify`.
+  - Not executed: the model-driven parts. These are route choice, the clarify question (scenario 2), finding a run from a new session (scenario 10) and stopping when no run exists (scenario 12). They need `/zukai:revise` run in a Claude Code session with the plugin installed.
+  - Not executed: `install.ps1`, because no PowerShell is available. It was reviewed line by line against `install.sh` instead.

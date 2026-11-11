@@ -47,7 +47,7 @@ commands that make the change list, hand-edit detection and rollback determinist
 | 3 | [Shared closing contract](./phase-03-shared-closing-contract.md) | Completed |
 | 4 | [Revise skill](./phase-04-revise-skill.md) | Completed |
 | 5 | [Distribution and docs](./phase-05-distribution-and-docs.md) | Completed |
-| 6 | [End-to-end verification](./phase-06-end-to-end-verification.md) | Pending |
+| 6 | [End-to-end verification](./phase-06-end-to-end-verification.md) | In progress |
 
 Order: 1 → 2 (both edit `src/cli.mjs` and the bundle) → 3 → 4 → 5 → 6. Not parallel-safe.
 
@@ -55,16 +55,16 @@ Order: 1 → 2 (both edit `src/cli.mjs` and the bundle) → 3 → 4 → 5 → 6.
 
 - [ ] A local imperative change updates the run without extra questions and leaves the
       prior IR set in `history/`.
-- [ ] A what-if produces 2-3 drafts with CLI change lists; `source/` and the delivered
+- [x] A what-if produces 2-3 drafts with CLI change lists; `source/` and the delivered
       outputs are byte-identical until confirmation; rejecting leaves the run unchanged.
-- [ ] `diff` lists added, removed and changed elements by id, including cascades to `ref`
+- [x] `diff` lists added, removed and changed elements by id, including cascades to `ref`
       parts and `-business` variants.
-- [ ] A hand-edited `.drawio` is reported before overwrite; a label-only change keeps its
+- [x] A hand-edited `.drawio` is reported before overwrite; a label-only change keeps its
       geometry through `relabel`.
-- [ ] Undo restores a whole revision (multi-IR) and is itself undoable; at most five
+- [x] Undo restores a whole revision (multi-IR) and is itself undoable; at most five
       revisions remain.
-- [ ] Released as 2.0.0 with an upgrade note for forks.
-- [ ] `npm test` passes, the committed bundle matches a fresh build, both installers install
+- [x] Released as 2.0.0 with an upgrade note for forks.
+- [x] `npm test` passes, the committed bundle matches a fresh build, both installers install
       `zukai` and `zukai-revise`, and `claude plugin validate . --strict` passes.
 
 ## Dependencies
