@@ -993,6 +993,33 @@ describe('systems outside AWS in an AWS diagram', () => {
     expect(gateway.x).toBeGreaterThan(drawnThrough.abs.get('a:browser').x);
   });
 
+  it('stands a system that the frames call and that calls into them further down in the row, though no component is on a circle', async () => {
+    // The function calls the partner system and the partner calls the load balancer, which
+    // the function calls as well: no circle through components, but one through the frames
+    // as a whole, so in the flow one of the two connections would run round the picture.
+    const chain = loadFixture('architecture', 'valid-aws-outside-chain');
+    for (const direction of DIRECTIONS) {
+      const { r, abs, figures, paths, cellOf } = await drawn(withDirection(chain, direction));
+      expect(r.warnings, direction).toEqual([]);
+      const { along, across } = axes(direction);
+      const frames = across(abs.get('a:cloud'));
+      const box = across(abs.get('a:partner'));
+      expect(box.hi <= frames.lo || box.lo >= frames.hi, `${direction}: beside the frames`).toBe(true);
+      // Between the two components it talks to, give or take its own width.
+      const figure = (id) => middle(along(figures.find((f) => f.id === id).figure));
+      expect(figure('partner'), direction).toBeGreaterThan(Math.min(figure('lambda'), figure('alb')) - 80);
+      expect(figure('partner'), direction).toBeLessThan(Math.max(figure('lambda'), figure('alb')) + 80);
+      // Each arrow points the way the IR says, and neither line makes a detour.
+      expect([cellOf('c6').source, cellOf('c6').target], direction).toEqual(['a:lambda', 'a:partner']);
+      expect([cellOf('c7').source, cellOf('c7').target], direction).toEqual(['a:partner', 'a:alb']);
+      for (const id of ['c6', 'c7']) {
+        const path = paths.get(`a:${id}`);
+        const direct = Math.abs(path[0].x - path.at(-1).x) + Math.abs(path[0].y - path.at(-1).y);
+        expect(pathLength(path), `${direction}: ${id}`).toBeLessThanOrEqual(direct + 1);
+      }
+    }
+  }, 30000);
+
   it('stands a system that one component calls in line with the row on its side', async () => {
     // A partner system on a circle through the frames takes a row; a system the API alone
     // calls stands beside the frames on its own. On the same side the two are one row: their

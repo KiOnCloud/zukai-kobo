@@ -1350,7 +1350,11 @@ function asideCandidates(nodes, edges) {
  *   the flow and the connection from the client at the start runs the length of the picture;
  * - one that calls into the frames and is called from them, so that the connections form a
  *   circle (a partner system that pushes data in and is queried in turn): wherever it stands
- *   along the flow, one of its connections runs back past everything in between.
+ *   along the flow, one of its connections runs back past everything in between. The circle
+ *   need not run through components: a system that one component in the frames calls and
+ *   that calls another one further down the flow is on a circle with the frames themselves,
+ *   and the layout engine, which places it against the outermost frame as a whole, would
+ *   send one of the two connections round the picture.
  *
  * In a row beside the frames such a system is near every component it talks to.
  * @returns {Map<string, object[]>} component id to its connections
@@ -1370,7 +1374,9 @@ function rowCandidates(nodes, edges, aside) {
     const onlyCalled = own.every((e) => e.to === n.id);
     const calledFromOutside = onlyCalled && own.some((e) => byId.get(e.from)?.parent === undefined);
     const inCircle = !onlyCalled && own.some((e) => e.to === n.id) && members.get(circle.get(n.id)) > 1;
-    if (calledFromOutside || inCircle) out.set(n.id, own);
+    const inFrame = (id) => byId.get(id)?.parent !== undefined;
+    const throughFrames = own.some((e) => e.to === n.id && inFrame(e.from)) && own.some((e) => e.from === n.id && inFrame(e.to));
+    if (calledFromOutside || inCircle || throughFrames) out.set(n.id, own);
   }
   return out;
 }

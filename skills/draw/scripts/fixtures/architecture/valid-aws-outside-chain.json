@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Scheduled sync with a partner system",
+  "direction": "LR",
+  "components": [
+    {
+      "id": "rule",
+      "label": "EventBridge rule",
+      "icon": "aws:eventbridge"
+    },
+    {
+      "id": "lambda",
+      "label": "Sync function",
+      "icon": "aws:lambda"
+    },
+    {
+      "id": "alb",
+      "label": "Application Load Balancer",
+      "icon": "aws:elastic_load_balancing"
+    },
+    {
+      "id": "api",
+      "label": "API (ECS Fargate)",
+      "icon": "aws:fargate"
+    },
+    {
+      "id": "db",
+      "label": "DynamoDB (6 tables)",
+      "kind": "database",
+      "icon": "aws:dynamodb"
+    },
+    {
+      "id": "partner",
+      "label": "Partner API",
+      "kind": "external",
+      "icon": "aws:servers"
+    }
+  ],
+  "boundaries": [
+    {
+      "id": "cloud",
+      "label": "AWS Cloud",
+      "group": "aws:aws_cloud",
+      "children": [
+        "region"
+      ]
+    },
+    {
+      "id": "region",
+      "label": "Region",
+      "group": "aws:region",
+      "children": [
+        "rule",
+        "lambda",
+        "alb",
+        "api",
+        "db"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c1",
+      "from": "rule",
+      "to": "lambda",
+      "label": "invoke"
+    },
+    {
+      "id": "c2",
+      "from": "lambda",
+      "to": "alb",
+      "label": "HTTPS"
+    },
+    {
+      "id": "c3",
+      "from": "alb",
+      "to": "api",
+      "label": "HTTP"
+    },
+    {
+      "id": "c4",
+      "from": "api",
+      "to": "db",
+      "label": "read / write"
+    },
+    {
+      "id": "c6",
+      "from": "lambda",
+      "to": "partner",
+      "label": "HTTPS"
+    },
+    {
+      "id": "c7",
+      "from": "partner",
+      "to": "alb",
+      "label": "HTTPS"
+    }
+  ]
+}
