@@ -63,8 +63,8 @@ On Claude Code 2.1.275 or later the two steps collapse into one:
 ```
 
 The same commands work from a shell as `claude plugin marketplace add ...` and
-`claude plugin install ...`. After install, `/zukai:draw` appears in the skill
-list.
+`claude plugin install ...`. After install, `/zukai:draw` and `/zukai:revise` appear in
+the skill list.
 
 ### Uninstall
 
@@ -107,7 +107,7 @@ Every release bumps that number; it is the single version for both channels.
 ## OpenAI Codex (folder copy)
 
 Codex reads skills from `.agents/skills/` in the project and from `~/.agents/skills/` for
-the user. Clone this repository once, then copy the skill into the project:
+the user. Clone this repository once, then copy the skills into the project:
 
 ```bash
 git clone git@github.com:KiOnCloud/zukai-kobo.git
@@ -123,12 +123,15 @@ On Windows:
 powershell -ExecutionPolicy Bypass -File .\zukai\install.ps1 -Target codex -Dest C:\path\to\your-project
 ```
 
-The installer copies `skills/draw/` to `<project>/.agents/skills/zukai/`, changes the
-`name` line of the copied `SKILL.md` from `draw` to `zukai` so it matches the folder, and
-writes `.zukai-version` next to `SKILL.md`. It copies into a temporary sibling and
-renames it into place, so an interrupted run never leaves a half install. It never runs
-`npm`, never touches the network, and never deletes an existing copy: a differing one is
-moved to `zukai.bak-<timestamp>` first.
+The installer copies `skills/draw/` to `<project>/.agents/skills/zukai/` and
+`skills/revise/` to `<project>/.agents/skills/zukai-revise/`, changes the `name` line of
+each copied `SKILL.md` (`draw` to `zukai`, `revise` to `zukai-revise`) so it matches the
+folder, and writes a version file next to each (`.zukai-version`,
+`.zukai-revise-version`). The two are always installed together: `zukai-revise` runs the
+CLI of the sibling `zukai/` folder. It copies both into a temporary sibling and renames them
+into place only when both copies are complete, so an interrupted run never leaves a half
+install. It never runs `npm`, never touches the network, and never deletes an existing copy:
+a differing one is moved to `<name>.bak-<timestamp>` first.
 
 To update, pull the repository and run the installer again. Exit codes:
 
@@ -136,21 +139,40 @@ To update, pull the repository and run the installer again. Exit codes:
 |---|---|
 | 0 | Installed, upgraded, or already up to date |
 | 1 | Usage or I/O error, or a prerelease version marker that cannot be compared |
-| 3 | The installed copy is newer than the source; nothing changed |
+| 3 | An installed copy is newer than the source; nothing changed |
 
-In Codex, invoke the skill with `$zukai` or let it route from the description.
+In Codex, invoke the skills with `$zukai` and `$zukai-revise`, or let them route from their
+descriptions. To uninstall, delete both folders (`zukai/` and `zukai-revise/`) and any
+`*.bak-<timestamp>` copies you no longer need.
 
 ## Claude Code without the plugin (fallback)
 
-If a machine cannot add the marketplace, the same installer copies the skill into
+If a machine cannot add the marketplace, the same installer copies both skills into
 `.claude/skills/` of a project:
 
 ```bash
 ./zukai-kobo/install.sh --target claude-project --dest /path/to/your-project
 ```
 
-Invoke the copy with `/zukai`. The script warns that this channel competes with the plugin
-if both are present.
+Invoke the copies with `/zukai` and `/zukai-revise`. The script warns that this channel
+competes with the plugin if both are present.
+
+## Upgrading to 2.0.0
+
+Version 2.0.0 adds the revise skill. Existing `.ir.json` files, run folders and CLI commands
+keep working unchanged; what changed is the layout of the skill itself, which matters if you
+maintain a fork or wrap the skill:
+
+- The closing contract (write, validate, emit, bundle, review, report) moved from
+  `skills/draw/SKILL.md` to `skills/draw/references/closing-contract.md`, where both skills
+  read it. A fork that edited that section of `SKILL.md` has to move its edits.
+- A second skill folder, `skills/revise/`, is installed next to the draw skill on every
+  channel (`zukai-revise/` for folder copies). It has no CLI of its own.
+- The CLI has five new commands: `diff`, `drift`, `snapshot`, `revisions` and `restore`.
+- Run folders may now hold `history/` (the five latest revisions) and, during a what-if,
+  `drafts/`. Both are written only by revise.
+
+Plugin users update as usual (see Updates); folder copies run the installer again.
 
 ## Upgrading from it-diagrams
 

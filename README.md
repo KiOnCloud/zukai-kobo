@@ -100,6 +100,31 @@ Anything not given as an option is asked once, in a single question, in the user
 /zukai:draw brainstorm --to mermaid a loyalty points feature
 ```
 
+### Changing a delivered diagram
+
+```text
+/zukai:revise [<run-folder>] [--preview|--apply] <request>
+```
+
+`revise` changes a run that `draw` already delivered, in this conversation or an earlier
+one. It edits the model, never the output, and takes one of three routes:
+
+| Route | When | What happens |
+|---|---|---|
+| Direct | A clear, local change ("rename Pay to Pay by card", "add a stock check after login") | Asks only what the change leaves open (where it goes, where a failed check leads), saves the previous version, applies the change and runs the usual validate, emit and review |
+| Consult | A what-if ("what if approval came before payment?"), a change that removes elements or reaches a sub-diagram or the business view, or `--preview` | Builds two or three drafts under `drafts/` with a change list for each; nothing delivered changes until you pick one, adjust it and confirm |
+| Undo | "undo", "go back to r003" | Restores an earlier revision of the whole run; the undo can itself be undone |
+
+Before overwriting a draw.io file it checks whether you edited it by hand in draw.io. A
+label-only change then keeps your layout; any other change asks first and keeps a copy of
+your edited file in the revision.
+
+```text
+/zukai:revise add a validation step after the card is entered
+/zukai:revise what if the approval moved before payment?
+/zukai:revise undo
+```
+
 ## Diagram kinds and targets
 
 | Kind | Shows |
@@ -169,10 +194,12 @@ diagrams/20261109_login-flow/
   login-flow.drawio          the whole run: one page per diagram
   drawio/<diagram>.drawio    each diagram on its own
   source/<diagram>.ir.json   the model the diagrams were generated from
+  history/r001/ ... r005/    the five latest revisions of the whole run (written by revise)
+  drafts/a/ b/ c/            drafts of a what-if, until one is confirmed or dropped
 ```
 
-To change a diagram, edit the `.ir.json` file and emit again. The XML is an output, not a
-source.
+To change a diagram, ask `/zukai:revise`, or edit the `.ir.json` file and emit again. The XML
+is an output, not a source.
 
 ## Requirements
 
@@ -183,14 +210,14 @@ source.
 
 ## Other runtimes
 
-The same skill folder runs outside the Claude Code plugin. `install.sh` (and `install.ps1`
-on Windows) copies it into a project:
+The same skill folders run outside the Claude Code plugin. `install.sh` (and `install.ps1`
+on Windows) copies both into a project:
 
 | Runtime | Install | Invoke |
 |---|---|---|
-| Claude Code plugin | `claude plugin install zukai@zukai` | `/zukai:draw` |
-| OpenAI Codex | `install.sh --target codex --dest <project>` | `$zukai` |
-| Claude Code without the plugin | `install.sh --target claude-project --dest <project>` | `/zukai` |
+| Claude Code plugin | `claude plugin install zukai@zukai` | `/zukai:draw`, `/zukai:revise` |
+| OpenAI Codex | `install.sh --target codex --dest <project>` | `$zukai`, `$zukai-revise` |
+| Claude Code without the plugin | `install.sh --target claude-project --dest <project>` | `/zukai`, `/zukai-revise` |
 
 Use one channel per machine. Details, uninstall, update and private-fork credentials are in
 [docs/install.md](docs/install.md).
@@ -206,7 +233,8 @@ working; see [Upgrading from it-diagrams](docs/install.md#upgrading-from-it-diag
 | [docs/install.md](docs/install.md) | Every install channel, updates, uninstall, credentials |
 | [docs/architecture.md](docs/architecture.md) | Pipeline, layout engines, extension rule, testing strategy |
 | [docs/feature-matrix.md](docs/feature-matrix.md) | What each target supports for each diagram kind |
-| [skills/draw/SKILL.md](skills/draw/SKILL.md) | The skill's own contract, as the agent reads it |
+| [skills/draw/SKILL.md](skills/draw/SKILL.md) | The draw skill's own contract, as the agent reads it |
+| [skills/revise/SKILL.md](skills/revise/SKILL.md) | The revise skill's own contract, as the agent reads it |
 
 ## Development
 
@@ -220,7 +248,8 @@ sources.
 
 ## Status
 
-Version 1.2.0 is the open beta. Every diagram kind and target listed above works and is
+Version 2.0.0 is the open beta. It adds `/zukai:revise`; forks of the skill should read
+[Upgrading to 2.0.0](docs/install.md#upgrading-to-200). Every diagram kind and target listed above works and is
 covered by tests. Layout is what still changes between releases, so a diagram emitted again
 after an update can come out arranged differently.
 

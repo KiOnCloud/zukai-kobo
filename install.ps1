@@ -1,11 +1,13 @@
 <#
 .SYNOPSIS
-Copy the Zukai skill into a project for OpenAI Codex (.agents/skills) or, as a
+Copy the Zukai skills into a project for OpenAI Codex (.agents/skills) or, as a
 documented fallback, for Claude Code without the plugin (.claude/skills).
 
-Inside the plugin the skill is named "draw" (/zukai:draw). A copied skill has no plugin
-namespace, so the copy is installed as "zukai": the folder and the "name" line of its
-SKILL.md both become zukai ($zukai in Codex, /zukai in Claude Code).
+Inside the plugin the skills are named "draw" and "revise" (/zukai:draw, /zukai:revise).
+A copied skill has no plugin namespace, so the copies are installed as "zukai" and
+"zukai-revise": the folder and the "name" line of each SKILL.md take that name ($zukai and
+$zukai-revise in Codex, /zukai and /zukai-revise in Claude Code). revise finds the draw
+skill's CLI in the sibling zukai folder, so the two are always installed together.
 
 .EXAMPLE
 powershell -ExecutionPolicy Bypass -File install.ps1 -Target codex -Dest C:\work\my-project
@@ -24,17 +26,20 @@ $ErrorActionPreference = 'Stop'
 
 $subdir = if ($Target -eq 'codex') { '.agents\skills' } else { '.claude\skills' }
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$src = Join-Path $scriptDir 'skills\draw'
 $manifest = Join-Path $scriptDir '.claude-plugin\plugin.json'
-$sourceName = 'draw'
-$installName = 'zukai'
-$marker = '.zukai-version'
-# The name this skill was installed under before it was renamed.
+$skills = @(
+  @{ Source = 'draw'; Name = 'zukai'; Marker = '.zukai-version' },
+  @{ Source = 'revise'; Name = 'zukai-revise'; Marker = '.zukai-revise-version' }
+)
+# The name the draw skill was installed under before it was renamed.
 $legacyName = 'it-diagrams'
 $legacyMarker = '.it-diagrams-version'
 
-if (-not (Test-Path (Join-Path $src 'SKILL.md'))) { Write-Error "Source skill not found at $src"; exit 1 }
 if (-not (Test-Path $manifest)) { Write-Error "Manifest not found at $manifest"; exit 1 }
+foreach ($s in $skills) {
+  $s.Src = Join-Path $scriptDir ('skills\' + $s.Source)
+  if (-not (Test-Path (Join-Path $s.Src 'SKILL.md'))) { Write-Error "Source skill not found at $($s.Src)"; exit 1 }
+}
 
 $srcVersion = (Get-Content $manifest -Raw | ConvertFrom-Json).version
 function Test-ReleaseVersion([string]$v) { return $v -match '^[0-9]+\.[0-9]+\.[0-9]+$' }
@@ -55,50 +60,62 @@ if (-not (Test-ReleaseVersion $srcVersion)) {
 if (-not (Test-Path $Dest -PathType Container)) { Write-Error "Destination project directory does not exist: $Dest"; exit 1 }
 $destRoot = (Resolve-Path $Dest).Path
 $destDir = Join-Path $destRoot $subdir
-$destSkill = Join-Path $destDir $installName
 $legacySkill = Join-Path $destDir $legacyName
-$markerPath = Join-Path $destSkill $marker
 
-if (Test-Path $markerPath) {
-  $installed = (Get-Content $markerPath -First 1).Trim()
-  if (-not (Test-ReleaseVersion $installed)) {
-    Write-Error "Installed version marker '$installed' at $markerPath is not a release version; refusing to compare. Remove the folder by hand to reinstall."
-    exit 1
+# Decide for both skills before touching anything: they are installed together or not at all.
+$allSame = $true
+foreach ($s in $skills) {
+  $s.Dest = Join-Path $destDir $s.Name
+  $markerPath = Join-Path $s.Dest $s.Marker
+  if (Test-Path $markerPath) {
+    $installed = (Get-Content $markerPath -First 1).Trim()
+    if (-not (Test-ReleaseVersion $installed)) {
+      Write-Error "Installed version marker '$installed' at $markerPath is not a release version; refusing to compare. Remove the folder by hand to reinstall."
+      exit 1
+    }
+    switch (Compare-Versions $srcVersion $installed) {
+      0  { }
+      -1 { Write-Error "Installed $($s.Name) $installed at $($s.Dest) is newer than this source ($srcVersion); not downgrading."; exit 3 }
+      1  { $allSame = $false; Write-Output "Upgrading $($s.Name) $installed -> $srcVersion at $($s.Dest)" }
+    }
+  } elseif (Test-Path $s.Dest) {
+    $allSame = $false
+    Write-Output "Existing folder without a version marker at $($s.Dest); it will be backed up and replaced."
+  } else {
+    $allSame = $false
+    Write-Output "Installing $($s.Name) $srcVersion to $($s.Dest)"
   }
-  switch (Compare-Versions $srcVersion $installed) {
-    0  { Write-Output "zukai $installed already up to date at $destSkill"; exit 0 }
-    -1 { Write-Error "Installed zukai $installed at $destSkill is newer than this source ($srcVersion); not downgrading."; exit 3 }
-    1  { Write-Output "Upgrading zukai $installed -> $srcVersion at $destSkill" }
-  }
-} elseif (Test-Path $destSkill) {
-  Write-Output "Existing folder without a version marker at $destSkill; it will be backed up and replaced."
-} else {
-  Write-Output "Installing zukai $srcVersion to $destSkill"
 }
+if ($allSame) { Write-Output "zukai $srcVersion already up to date at $destDir (zukai, zukai-revise)"; exit 0 }
 
 New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 $tmp = Join-Path $destDir ".zukai.tmp-$PID"
 try {
+  # Copy into a temporary sibling first so an interrupted copy never leaves a half install.
   Get-ChildItem -Path $destDir -Directory -Filter '.zukai.tmp-*' -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
   New-Item -ItemType Directory -Path $tmp | Out-Null
-  Get-ChildItem -Path $src -Force | Where-Object { $_.Name -ne 'node_modules' } | ForEach-Object {
-    Copy-Item -Path $_.FullName -Destination $tmp -Recurse -Force
-  }
-  Get-ChildItem -Path $tmp -Recurse -Directory -Filter node_modules -Force | Remove-Item -Recurse -Force
-  Set-Content -Path (Join-Path $tmp $marker) -Value $srcVersion -NoNewline
-  Add-Content -Path (Join-Path $tmp $marker) -Value ""
-
-  # Name the copy after its folder: a skill's name has to match the directory it lives in.
-  # Written through .NET so Windows PowerShell adds no byte-order mark before the frontmatter.
-  $skillFile = Join-Path $tmp 'SKILL.md'
   $utf8 = New-Object System.Text.UTF8Encoding $false
-  $skillText = [System.IO.File]::ReadAllText($skillFile, $utf8)
-  $namePattern = "(?m)^name: $sourceName(?=\r?$)"
-  if ($skillText -notmatch $namePattern) {
-    Write-Error "SKILL.md at $src does not declare 'name: $sourceName'; refusing to install a copy with the wrong name."
-    exit 1
+  foreach ($s in $skills) {
+    $copy = Join-Path $tmp $s.Name
+    New-Item -ItemType Directory -Path $copy | Out-Null
+    Get-ChildItem -Path $s.Src -Force | Where-Object { $_.Name -ne 'node_modules' } | ForEach-Object {
+      Copy-Item -Path $_.FullName -Destination $copy -Recurse -Force
+    }
+    Get-ChildItem -Path $copy -Recurse -Directory -Filter node_modules -Force | Remove-Item -Recurse -Force
+    Set-Content -Path (Join-Path $copy $s.Marker) -Value $srcVersion -NoNewline
+    Add-Content -Path (Join-Path $copy $s.Marker) -Value ""
+
+    # Name the copy after its folder: a skill's name has to match the directory it lives in.
+    # Written through .NET so Windows PowerShell adds no byte-order mark before the frontmatter.
+    $skillFile = Join-Path $copy 'SKILL.md'
+    $skillText = [System.IO.File]::ReadAllText($skillFile, $utf8)
+    $namePattern = "(?m)^name: $($s.Source)(?=\r?$)"
+    if ($skillText -notmatch $namePattern) {
+      Write-Error "SKILL.md at $($s.Src) does not declare 'name: $($s.Source)'; refusing to install a copy with the wrong name."
+      exit 1
+    }
+    [System.IO.File]::WriteAllText($skillFile, ($skillText -replace $namePattern, "name: $($s.Name)"), $utf8)
   }
-  [System.IO.File]::WriteAllText($skillFile, ($skillText -replace $namePattern, "name: $installName"), $utf8)
 
   $stamp = Get-Date -Format 'yyyyMMddHHmmss'
   # A copy installed under the old name would compete with this one for routing. Move it
@@ -108,17 +125,19 @@ try {
     Write-Output "Install under the old name moved to $legacySkill.bak-$stamp"
   }
 
-  if (Test-Path $destSkill) {
-    $bak = "$destSkill.bak-$stamp"
-    Move-Item -Path $destSkill -Destination $bak
-    Write-Output "Previous install moved to $bak"
+  foreach ($s in $skills) {
+    if (Test-Path $s.Dest) {
+      $bak = "$($s.Dest).bak-$stamp"
+      Move-Item -Path $s.Dest -Destination $bak
+      Write-Output "Previous install of $($s.Name) moved to $bak"
+    }
+    Move-Item -Path (Join-Path $tmp $s.Name) -Destination $s.Dest
+    Write-Output "Installed $($s.Name) $srcVersion to $($s.Dest)"
   }
-  Move-Item -Path $tmp -Destination $destSkill
 } finally {
   if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp }
 }
 
-Write-Output "Installed zukai $srcVersion to $destSkill"
 if ($Target -eq 'claude-project') {
-  Write-Warning "This is the fallback channel. If the zukai plugin is also installed, two copies of the same skill compete for routing; use one channel per machine."
+  Write-Warning "This is the fallback channel. If the zukai plugin is also installed, two copies of the same skills compete for routing; use one channel per machine."
 }

@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
-# Copy the Zukai skill into a project for OpenAI Codex (.agents/skills) or, as a
+# Copy the Zukai skills into a project for OpenAI Codex (.agents/skills) or, as a
 # documented fallback, for Claude Code without the plugin (.claude/skills).
 #
-# Inside the plugin the skill is named "draw" (/zukai:draw). A copied skill has no plugin
-# namespace, so the copy is installed as "zukai": the folder and the "name" line of its
-# SKILL.md both become zukai ($zukai in Codex, /zukai in Claude Code).
+# Inside the plugin the skills are named "draw" and "revise" (/zukai:draw, /zukai:revise).
+# A copied skill has no plugin namespace, so the copies are installed as "zukai" and
+# "zukai-revise": the folder and the "name" line of each SKILL.md take that name ($zukai and
+# $zukai-revise in Codex, /zukai and /zukai-revise in Claude Code). revise finds the draw
+# skill's CLI in the sibling zukai folder, so the two are always installed together.
 #
 # Usage: install.sh --target codex|claude-project [--dest <project-dir>]
 #
@@ -39,17 +41,18 @@ esac
 
 # Resolve the source from the script's own location, never from the working directory.
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-SRC="$SCRIPT_DIR/skills/draw"
 MANIFEST="$SCRIPT_DIR/.claude-plugin/plugin.json"
-SOURCE_NAME="draw"
-INSTALL_NAME="zukai"
-MARKER=".zukai-version"
-# The name this skill was installed under before it was renamed.
+# Each skill as <source folder>:<installed name>:<version marker>.
+SKILLS="draw:zukai:.zukai-version revise:zukai-revise:.zukai-revise-version"
+# The name the draw skill was installed under before it was renamed.
 LEGACY_NAME="it-diagrams"
 LEGACY_MARKER=".it-diagrams-version"
 
-[ -f "$SRC/SKILL.md" ] || { echo "Source skill not found at $SRC" >&2; exit 1; }
 [ -f "$MANIFEST" ] || { echo "Manifest not found at $MANIFEST" >&2; exit 1; }
+for spec in $SKILLS; do
+  src=${spec%%:*}
+  [ -f "$SCRIPT_DIR/skills/$src/SKILL.md" ] || { echo "Source skill not found at $SCRIPT_DIR/skills/$src" >&2; exit 1; }
+done
 
 # Version from plugin.json without jq: first "version": "x.y.z" occurrence.
 SRC_VERSION=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$MANIFEST" | head -n 1)
@@ -70,6 +73,26 @@ compare_versions() {
   echo 0
 }
 
+# Prints missing, unmarked, same, older or newer for the install at $1 with marker $2.
+install_state() {
+  if [ -f "$1/$2" ]; then
+    installed=$(head -n 1 "$1/$2" | tr -d '[:space:]')
+    if ! is_release_version "$installed"; then
+      echo "Installed version marker '$installed' at $1/$2 is not a release version; refusing to compare. Remove the folder by hand to reinstall." >&2
+      return 1
+    fi
+    case $(compare_versions "$SRC_VERSION" "$installed") in
+      0)  echo "same" ;;
+      -1) echo "newer" ;;
+      1)  echo "older" ;;
+    esac
+  elif [ -e "$1" ]; then
+    echo "unmarked"
+  else
+    echo "missing"
+  fi
+}
+
 if ! is_release_version "$SRC_VERSION"; then
   echo "Source version '$SRC_VERSION' is not a release version (expected MAJOR.MINOR.PATCH, no prerelease suffix)." >&2
   exit 1
@@ -77,44 +100,49 @@ fi
 
 [ -d "$DEST_ROOT" ] || { echo "Destination project directory does not exist: $DEST_ROOT" >&2; exit 1; }
 DEST_ROOT=$(CDPATH= cd -- "$DEST_ROOT" && pwd -P)
-DEST="$DEST_ROOT/$SUBDIR/$INSTALL_NAME"
-LEGACY="$DEST_ROOT/$SUBDIR/$LEGACY_NAME"
+DEST_DIR="$DEST_ROOT/$SUBDIR"
+LEGACY="$DEST_DIR/$LEGACY_NAME"
 
-if [ -f "$DEST/$MARKER" ]; then
-  INSTALLED=$(head -n 1 "$DEST/$MARKER" | tr -d '[:space:]')
-  if ! is_release_version "$INSTALLED"; then
-    echo "Installed version marker '$INSTALLED' at $DEST/$MARKER is not a release version; refusing to compare. Remove the folder by hand to reinstall." >&2
-    exit 1
-  fi
-  case $(compare_versions "$SRC_VERSION" "$INSTALLED") in
-    0)  echo "zukai $INSTALLED already up to date at $DEST"; exit 0 ;;
-    -1) echo "Installed zukai $INSTALLED at $DEST is newer than this source ($SRC_VERSION); not downgrading." >&2; exit 3 ;;
-    1)  echo "Upgrading zukai $INSTALLED -> $SRC_VERSION at $DEST" ;;
+# Decide for both skills before touching anything: they are installed together or not at all.
+ALL_SAME=1
+for spec in $SKILLS; do
+  rest=${spec#*:}; name=${rest%%:*}; marker=${rest#*:}
+  state=$(install_state "$DEST_DIR/$name" "$marker") || exit 1
+  case "$state" in
+    newer)
+      echo "Installed $name at $DEST_DIR/$name is newer than this source ($SRC_VERSION); not downgrading." >&2
+      exit 3 ;;
+    same) ;;
+    older)    ALL_SAME=0; echo "Upgrading $name -> $SRC_VERSION at $DEST_DIR/$name" ;;
+    unmarked) ALL_SAME=0; echo "Existing folder without a version marker at $DEST_DIR/$name; it will be backed up and replaced." ;;
+    missing)  ALL_SAME=0; echo "Installing $name $SRC_VERSION to $DEST_DIR/$name" ;;
   esac
-elif [ -e "$DEST" ]; then
-  echo "Existing folder without a version marker at $DEST; it will be backed up and replaced."
-else
-  echo "Installing zukai $SRC_VERSION to $DEST"
+done
+if [ "$ALL_SAME" -eq 1 ]; then
+  echo "zukai $SRC_VERSION already up to date at $DEST_DIR (zukai, zukai-revise)"
+  exit 0
 fi
 
-mkdir -p "$DEST_ROOT/$SUBDIR"
-TMP="$DEST_ROOT/$SUBDIR/.zukai.tmp-$$"
+mkdir -p "$DEST_DIR"
+TMP="$DEST_DIR/.zukai.tmp-$$"
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT INT TERM
 
 # Copy into a temporary sibling first so an interrupted copy never leaves a half install.
 # Temporary siblings are only ever created by this script, so stale ones from a killed run are safe to drop.
-for stale in "$DEST_ROOT/$SUBDIR"/.zukai.tmp-*; do
+for stale in "$DEST_DIR"/.zukai.tmp-*; do
   [ -e "$stale" ] && rm -rf "$stale"
 done
-mkdir -p "$TMP"
-( cd "$SRC" && tar -cf - --exclude=node_modules . ) | ( cd "$TMP" && tar -xf - )
-printf '%s\n' "$SRC_VERSION" > "$TMP/$MARKER"
-
-# Name the copy after its folder: a skill's name has to match the directory it lives in.
-grep -q "^name: $SOURCE_NAME\$" "$TMP/SKILL.md" || { echo "SKILL.md at $SRC does not declare 'name: $SOURCE_NAME'; refusing to install a copy with the wrong name." >&2; exit 1; }
-sed "s/^name: $SOURCE_NAME\$/name: $INSTALL_NAME/" "$TMP/SKILL.md" > "$TMP/SKILL.md.renamed"
-mv "$TMP/SKILL.md.renamed" "$TMP/SKILL.md"
+for spec in $SKILLS; do
+  src=${spec%%:*}; rest=${spec#*:}; name=${rest%%:*}; marker=${rest#*:}
+  mkdir -p "$TMP/$name"
+  ( cd "$SCRIPT_DIR/skills/$src" && tar -cf - --exclude=node_modules . ) | ( cd "$TMP/$name" && tar -xf - )
+  printf '%s\n' "$SRC_VERSION" > "$TMP/$name/$marker"
+  # Name the copy after its folder: a skill's name has to match the directory it lives in.
+  grep -q "^name: $src\$" "$TMP/$name/SKILL.md" || { echo "SKILL.md at $SCRIPT_DIR/skills/$src does not declare 'name: $src'; refusing to install a copy with the wrong name." >&2; exit 1; }
+  sed "s/^name: $src\$/name: $name/" "$TMP/$name/SKILL.md" > "$TMP/$name/SKILL.md.renamed"
+  mv "$TMP/$name/SKILL.md.renamed" "$TMP/$name/SKILL.md"
+done
 
 STAMP=$(date +%Y%m%d%H%M%S)
 # A copy installed under the old name would compete with this one for routing. Move it
@@ -124,15 +152,18 @@ if [ -f "$LEGACY/$LEGACY_MARKER" ]; then
   echo "Install under the old name moved to $LEGACY.bak-$STAMP"
 fi
 
-if [ -e "$DEST" ]; then
-  BAK="$DEST.bak-$STAMP"
-  mv "$DEST" "$BAK"
-  echo "Previous install moved to $BAK"
-fi
-mv "$TMP" "$DEST"
+for spec in $SKILLS; do
+  rest=${spec#*:}; name=${rest%%:*}
+  if [ -e "$DEST_DIR/$name" ]; then
+    mv "$DEST_DIR/$name" "$DEST_DIR/$name.bak-$STAMP"
+    echo "Previous install of $name moved to $DEST_DIR/$name.bak-$STAMP"
+  fi
+  mv "$TMP/$name" "$DEST_DIR/$name"
+  echo "Installed $name $SRC_VERSION to $DEST_DIR/$name"
+done
+rm -rf "$TMP"
 trap - EXIT INT TERM
 
-echo "Installed zukai $SRC_VERSION to $DEST"
 if [ "$TARGET" = "claude-project" ]; then
-  echo "Warning: this is the fallback channel. If the zukai plugin is also installed, two copies of the same skill compete for routing; use one channel per machine." >&2
+  echo "Warning: this is the fallback channel. If the zukai plugin is also installed, two copies of the same skills compete for routing; use one channel per machine." >&2
 fi

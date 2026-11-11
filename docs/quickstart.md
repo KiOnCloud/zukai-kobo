@@ -70,8 +70,20 @@ Example: `/zukai:draw scout --kind activity --scope overview the refund flow`.
 
 ## 5. Change something later
 
-- Wording or structure: edit `source/<diagram>.ir.json` and ask the skill to emit again
-  (same conversation reuses the folder), or run the CLI yourself:
+- Ask for the change, in this conversation or a later one:
+
+  ```text
+  /zukai:revise rename "Pay" to "Pay by card"
+  /zukai:revise what if the stock check came before payment?
+  /zukai:revise undo
+  ```
+
+  A clear change is applied at once, after the previous version is saved in `history/`. A
+  what-if gets two or three drafts under `drafts/` to compare; nothing delivered changes
+  until you confirm one. If you moved boxes in draw.io, a label change keeps your layout
+  and any other change asks before redrawing.
+- By hand: edit `source/<diagram>.ir.json` and ask the skill to emit again, or run the CLI
+  yourself:
 
   ```bash
   node ~/.claude/plugins/cache/zukai/zukai/<version>/skills/draw/scripts/bin/cli.mjs emit --to drawio source/login.ir.json --out drawio/login.drawio
