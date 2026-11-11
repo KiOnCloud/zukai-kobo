@@ -120,7 +120,7 @@ part's title to it), Mermaid would stretch the boundary's frame over its neighbo
 CLI writes the flowchart form instead and says so in a `layout:` warning. Without a boundary
 the form stays, and one thing is only reported: `architecture-beta` breaks a label by width,
 so the slug that a `ref` shows in a single file is cut inside a word when it is longer than
-16 characters (`layout:` warning naming the slug). The combined file shows the part's title
+16 characters (one `layout:` warning for each such slug). The combined file shows the part's title
 there, which breaks at its words; for a single file the remedy is `--to drawio` or a shorter
 slug.
 

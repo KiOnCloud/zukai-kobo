@@ -214,23 +214,16 @@ redraws it.
 A system that one component calls and that calls the same component back still took the
 long way in this version when the two were written as two connections; 2.0.3 fixes that.
 
-## Upgrading to 2.0.5
+## Upgrading to 2.0.3
 
-Version 2.0.5 closes the low findings that the end-to-end test of the 2.0.4 fixes left open.
-Nothing changes in how a run is written or read:
-
-- A class self-relation keeps its cardinalities off its own label.
-- `relabel` reports a label on a line that became much longer than the one it replaces.
-- The branch label of a sequence block no longer covers the frame's border.
-- `emit --to mermaid` says when `architecture-beta` will cut the slug of a `ref` inside a word.
-- The secret scan quotes nothing of a mail address or telephone number, and the closing
-  contract names the placeholder addresses it does not report.
-
-Also new since 2.0.3 and not listed under 2.0.4 below: `validate` and every emit print
-`model:` and `size:` warnings; an unknown target and an option without its value exit 1,
-not 2; `preview` writes each file to a path of its own; `restore <run> undo|redo` takes one
-step along the run's history; hand-edited files of a rotated revision are kept under
-`history/extras/` and listed as `keptExtras`.
+Version 2.0.3 fixes the last case of a connection running round the AWS frames: a system
+outside the frames and one component that call each other, written as two connections (an
+API calls a partner, the partner calls the API back). The system now stands beside the
+frames, level with that component, and the two connections are two straight lines side by
+side. In a top-down diagram a system in the row along the frames is now placed by its
+figure, not by the box that holds its name, so it may stand a few pixels from where 2.0.2
+drew it. A delivered diagram of either shape comes out arranged differently when it is
+emitted again, so `/zukai:revise` reports it as changed since delivery before it redraws it.
 
 ## Upgrading to 2.0.4
 
@@ -246,16 +239,23 @@ for a run you already have:
 - Backups of an older copy go to `zukai-backups/` beside the skills folder, and the copy no
   longer holds the CLI's sources and tests.
 
-## Upgrading to 2.0.3
+## Upgrading to 2.0.5
 
-Version 2.0.3 fixes the last case of a connection running round the AWS frames: a system
-outside the frames and one component that call each other, written as two connections (an
-API calls a partner, the partner calls the API back). The system now stands beside the
-frames, level with that component, and the two connections are two straight lines side by
-side. In a top-down diagram a system in the row along the frames is now placed by its
-figure, not by the box that holds its name, so it may stand a few pixels from where 2.0.2
-drew it. A delivered diagram of either shape comes out arranged differently when it is
-emitted again, so `/zukai:revise` reports it as changed since delivery before it redraws it.
+Version 2.0.5 closes the low findings that the end-to-end test of the 2.0.4 fixes left open.
+Nothing changes in how a run is written or read:
+
+- A class self-relation keeps its cardinalities off its own label.
+- `relabel` reports a label on a line that became much longer than the one it replaces.
+- The branch label of a sequence block no longer covers the frame's border.
+- `emit --to mermaid` says when `architecture-beta` will cut the slug of a `ref` inside a word.
+- The secret scan quotes nothing of a mail address or telephone number, and the closing
+  contract names the placeholder addresses it does not report.
+
+Also new since 2.0.3 and not listed under 2.0.4 above: `validate` and every emit print
+`model:` and `size:` warnings; an unknown target and an option without its value exit 1,
+not 2; `preview` writes each file to a path of its own; `restore <run> undo|redo` takes one
+step along the run's history; hand-edited files of a rotated revision are kept under
+`history/extras/` and listed as `keptExtras`.
 
 ## Upgrading from it-diagrams
 

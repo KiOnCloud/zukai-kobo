@@ -94,7 +94,8 @@ Rules that hold in every mode:
   (it knows the words for a secret in English, Vietnamese and Japanese) and acts by what it
   found:
   - a credential by its form (a URI with a password, a known token prefix, a private key,
-    `password=<value>`): no target writes it. `emit` and `bundle` exit 2 with `refusing to
+    `password=<value>`): no target writes it, unless the user's `--allow-sensitive` says it
+    is not one. `emit` and `bundle` exit 2 with `refusing to
     emit for <target>`. Fix the IR.
   - a guess (`high-entropy`, `assignment` such as "token: required", `personal-data` for a
     mail address or a telephone number): a warning for `drawio` and `mermaid`, a refusal
@@ -102,8 +103,9 @@ Rules that hold in every mode:
     to a client, so fix the IR for these too before delivering; leave one in only when the
     user says it is not a secret, and say so in the report.
   - An address that stands for "an address" is not reported: one at `example.com`,
-    `example.org`, `example.net` or under `.example`, `.test`, `.invalid`, and one that
-    begins `user@`, `name@`, `email@` or `someone@`. Use such a form, or a placeholder in
+    `example.org`, `example.net` or under `.example`, `.test`, `.invalid`, `.localhost`, and
+    one that begins `user@`, `name@`, `email@`, `someone@` or `xxx@`. Every address of a
+    label is looked at, so a real one beside a placeholder is still reported. Use such a form, or a placeholder in
     angle brackets, wherever a label needs to show that an address goes there.
   - `--allow-sensitive` is the user's word that a finding is not a secret. Pass it only
     after the user said so for that value, never on your own.

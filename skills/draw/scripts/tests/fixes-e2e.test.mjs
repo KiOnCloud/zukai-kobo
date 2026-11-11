@@ -514,9 +514,11 @@ describe('the low findings of the closing round', () => {
     const { emit } = await import('../src/pipeline.mjs');
     const r = await emit(loadFixture('architecture', 'valid-ref-parts'), 'mermaid');
     expect(r.output).toContain('architecture-beta');
+    // One warning for each slug that is longer than a label line.
+    const long = loadFixture('architecture', 'valid-ref-parts').components.filter((c) => c.ref && c.ref.length > 16).map((c) => c.ref);
+    expect(long.length).toBeGreaterThanOrEqual(2);
     const cut = r.warnings.filter((w) => /is cut inside a word/.test(w.message));
-    expect(cut).toHaveLength(1);
-    expect(cut[0].message).toContain('"order-sync-02-store"');
+    expect(cut.map((w) => /slug "([^"]+)"/.exec(w.message)[1])).toEqual(long);
   });
 
   it('quotes nothing of a mail address or a telephone number, and names a fitting placeholder', async () => {
@@ -530,6 +532,12 @@ describe('the low findings of the closing round', () => {
     expect(r.code).toBe(2);
     expect(r.errors[0].hint).toContain('<customer e-mail>');
     expect(r.stderr).not.toContain('an.n');
+    const phone = cli('emit', '--to', 'figjam', write(join(dir, 'q.ir.json'), flow('P', { nodes: [{ id: 'start', label: 'Start', shape: 'terminal' }, { id: 'check', label: 'Gọi 0912345678' }, { id: 'done', label: 'Done', shape: 'terminal' }] })));
+    expect(phone.errors[0].hint).toContain('<customer phone>');
+    // A placeholder address in front does not hide a real one behind it.
+    const two = scanSecrets({ a: 'user@example.org và an.nguyen@acme.vn' }).warnings;
+    expect(two.map((w) => w.kind)).toEqual(['personal-data']);
+    expect(scanSecrets({ a: 'user@example.org, name@shop.test' }).warnings).toEqual([]);
   });
 });
 

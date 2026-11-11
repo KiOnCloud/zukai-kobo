@@ -61,9 +61,13 @@ export function emitMermaid(ir, options = {}) {
       // cannot be steered from the text, so it is reported.
       if (plan && !plan.fallback) {
         const units = (text) => [...text].reduce((n, ch) => n + (/[\u1100-\uffdc]/.test(ch) ? 2 : 1), 0);
-        const cut = ir.components.find((c) => c.ref && !options.refs?.get(c.ref) && units(c.ref) > ARCH_LABEL_MAX);
-        // The form stays (a bundle shows the part's title there, which wraps at its words); the reader is told.
-        if (cut) warnings.push({ path: `/components/${ir.components.indexOf(cut)}/ref`, message: `layout: architecture-beta breaks a label by width, so the slug "${cut.ref}" on "${cut.id}" is cut inside a word in this single file`, hint: 'the combined file shows the part\'s title instead of the slug; for a single file use --to drawio, or a shorter slug' });
+        // The form stays (a bundle shows the part's title there, which wraps at its words); the
+        // reader is told, once for every slug it happens to.
+        ir.components.forEach((c, k) => {
+          if (!c.ref || options.refs?.get(c.ref) || units(c.ref) <= ARCH_LABEL_MAX) return;
+          // Reported at the component: it is about how its label is drawn, not about the ref, which is sound.
+          warnings.push({ path: `/components/${k}`, message: `layout: architecture-beta breaks a label by width, so the slug "${c.ref}" on "${c.id}" is cut inside a word`, hint: 'a combined file that holds the part shows its title instead of the slug; for a single file use --to drawio, or a shorter slug' });
+        });
       }
       if (profile === 'figjam' || plan.fallback) {
         if (plan?.fallback) warnings.push({ path: '/connections', fallback: 'flowchart', message: `layout: architecture-beta cannot place this diagram without overlaps (${plan.fallback}); emitted as a flowchart with boundaries as subgraphs, or use --to drawio` });
