@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Booking API on ECS Fargate",
+  "direction": "LR",
+  "components": [
+    { "id": "browser", "label": "Staff browser", "kind": "client" },
+    { "id": "alb", "label": "Application Load Balancer (HTTPS)", "icon": "aws:elastic_load_balancing" },
+    { "id": "api", "label": "Booking API (ECS Fargate, 2 tasks)", "icon": "aws:fargate" },
+    { "id": "registry", "label": "ECR (API image)", "icon": "aws:ecr" },
+    { "id": "alb_logs", "label": "S3 load balancer logs", "kind": "database", "icon": "aws:s3" },
+    { "id": "secrets", "label": "Secrets Manager", "icon": "aws:secrets_manager" },
+    { "id": "tables", "label": "DynamoDB (9 tables, on-demand)", "kind": "database", "icon": "aws:dynamodb" },
+    { "id": "files", "label": "S3 attachments", "kind": "database", "icon": "aws:s3" },
+    { "id": "jobs", "label": "SQS reminders", "kind": "queue", "icon": "aws:sqs" },
+    { "id": "mail", "label": "Simple Email Service", "icon": "aws:simple_email_service" },
+    { "id": "logs", "label": "CloudWatch Logs (30 days)", "icon": "aws:cloudwatch_2" },
+    { "id": "idp", "label": "Identity provider", "kind": "external", "icon": "aws:generic_application" },
+    { "id": "realtime", "label": "Firebase Realtime Database", "kind": "external", "icon": "gcp:firebase" },
+    { "id": "records", "label": "Hospital records system", "kind": "external", "icon": "aws:traditional_server" }
+  ],
+  "boundaries": [
+    { "id": "region", "label": "ap-northeast-1 (Tokyo)", "group": "aws:region", "children": ["registry", "vpc", "alb_logs", "secrets", "tables", "files", "jobs", "mail", "logs"] },
+    { "id": "vpc", "label": "VPC", "group": "aws:vpc", "children": ["public", "private"] },
+    { "id": "public", "label": "Public subnets", "group": "aws:public_subnet", "children": ["alb"] },
+    { "id": "private", "label": "Private subnets", "group": "aws:private_subnet", "children": ["api"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "alb", "label": "HTTPS" },
+    { "id": "c2", "from": "alb", "to": "api", "label": "HTTP :8080" },
+    { "id": "c3", "from": "registry", "to": "api", "label": "pull image" },
+    { "id": "c4", "from": "alb", "to": "alb_logs", "label": "access logs" },
+    { "id": "c5", "from": "api", "to": "secrets", "label": "read keys at start" },
+    { "id": "c6", "from": "api", "to": "tables", "label": "read / write" },
+    { "id": "c7", "from": "api", "to": "files", "label": "store files" },
+    { "id": "c8", "from": "api", "to": "jobs", "label": "reminder due" },
+    { "id": "c9", "from": "api", "to": "mail", "label": "send mail" },
+    { "id": "c10", "from": "api", "to": "logs", "label": "JSON logs" },
+    { "id": "c11", "from": "api", "to": "idp", "label": "verify token" },
+    { "id": "c12", "from": "api", "to": "realtime", "label": "publish version" },
+    { "id": "c13", "from": "api", "to": "records", "label": "fetch records" }
+  ]
+}

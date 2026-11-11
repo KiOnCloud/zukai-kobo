@@ -992,6 +992,12 @@ const AWS_ICON = { width: 78, height: 78, below: 6 };
  */
 const AWS_ICON_POINTS = 'points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];';
 const awsIconStyle = (icon) => `sketch=0;${AWS_ICON_POINTS}outlineConnect=0;fontColor=#232F3E;${icon.gradient ? `gradientColor=${icon.gradient};gradientDirection=north;` : ''}fillColor=${icon.fill};strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.${icon.name};`;
+/**
+ * The style of a figure that is a stencil of its own: a general resource of the AWS library
+ * (a server, an application) or a product logo. It is drawn in one colour without a square
+ * behind it, which is how a system that is not an AWS service is told from one.
+ */
+const stencilStyle = (icon) => `sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=${icon.fill};strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=${icon.stencil};`;
 /** The corner icon of an AWS group frame and the gap before its title (the palette's `spacingLeft=30`). */
 const AWS_GROUP_ICON = 30;
 /**
@@ -1170,35 +1176,48 @@ function placeLineLabels(layout, own, { containers, nodes, edges }) {
       const length = Math.abs(path[i].x - path[i - 1].x) + Math.abs(path[i].y - path[i - 1].y);
       if (!longest || length > longest.length) longest = { a: path[i - 1], b: path[i], length };
     }
-    const flat = Math.abs(longest.a.y - longest.b.y) < 0.5;
-    const along = flat ? 'x' : 'y';
-    const from = Math.min(longest.a[along], longest.b[along]);
-    const to = Math.max(longest.a[along], longest.b[along]);
-    const at = flat ? longest.a.y : longest.a.x;
-    // Where the segment crosses a frame border, and the stretches between those points.
-    const cuts = [from, to];
-    for (const { box } of frames) {
-      const spans = flat ? at > box.y && at < box.y + box.height : at > box.x && at < box.x + box.width;
-      if (!spans) continue;
-      for (const edgeAt of flat ? [box.x, box.x + box.width] : [box.y, box.y + box.height]) if (edgeAt > from && edgeAt < to) cuts.push(edgeAt);
-    }
-    cuts.sort((p, q) => p - q);
-    const need = (flat ? text.width : text.height) + 12;
-    const stretches = cuts.slice(1).map((end, i) => ({ start: cuts[i], end })).filter((s) => s.end - s.start >= need).sort((p, q) => (q.end - q.start) - (p.end - p.start));
+    // A line that shares a stretch with others of its caller is labelled on a stretch that is
+    // its own, the longest of them that has a free place.
+    const mine = layout.edges.get(e.id).own;
+    const length = (sg) => Math.abs(sg.a.x - sg.b.x) + Math.abs(sg.a.y - sg.b.y);
+    const candidates = mine ? mine.map(([p, q]) => ({ a: p, b: q })).sort((p, q) => length(q) - length(p)) : [longest];
     let placed;
-    for (const s of stretches) {
-      const mid = (s.start + s.end) / 2;
-      const options = flat
-        ? [{ x: mid - text.width / 2, y: at - text.height - 4 }, { x: mid - text.width / 2, y: at + 4 }]
-        : [{ x: at - 6 - text.width, y: mid - text.height / 2 }, { x: at + 6, y: mid - text.height / 2 }];
-      for (const o of options) {
-        const box = { ...o, width: text.width, height: text.height };
-        if (boxes.some((n) => hit(box, n)) || labels.some((l) => hit(box, l)) || corners.some((c) => hit(box, c))) continue;
-        if (lines.some((l) => hit(box, l))) continue;
-        // Not across the border of a frame: wholly inside it or wholly outside.
-        if (frames.some((f) => hit(box, f.box) && !within(box, f.box))) continue;
-        placed = box;
-        break;
+    for (const segment of candidates) {
+      const flat = Math.abs(segment.a.y - segment.b.y) < 0.5;
+      const along = flat ? 'x' : 'y';
+      const from = Math.min(segment.a[along], segment.b[along]);
+      const to = Math.max(segment.a[along], segment.b[along]);
+      const at = flat ? segment.a.y : segment.a.x;
+      // Where the segment crosses a frame border, and the stretches between those points.
+      const cuts = [from, to];
+      for (const { box } of frames) {
+        const spans = flat ? at > box.y && at < box.y + box.height : at > box.x && at < box.x + box.width;
+        if (!spans) continue;
+        for (const edgeAt of flat ? [box.x, box.x + box.width] : [box.y, box.y + box.height]) if (edgeAt > from && edgeAt < to) cuts.push(edgeAt);
+      }
+      cuts.sort((p, q) => p - q);
+      const need = (flat ? text.width : text.height) + 12;
+      const stretches = cuts.slice(1).map((end, i) => ({ start: cuts[i], end })).filter((s) => s.end - s.start >= need).sort((p, q) => (q.end - q.start) - (p.end - p.start));
+      for (const s of stretches) {
+        // The middle of the stretch; on a line's own stretch among lines that run beside it,
+        // also the places towards its ends, where a neighbour may have turned off already.
+        const room = (s.end - s.start - need) / 2;
+        const options = (mine ? [0, -0.5, 0.5, -1, 1] : [0]).flatMap((shift) => {
+          const mid = (s.start + s.end) / 2 + shift * room;
+          return flat
+            ? [{ x: mid - text.width / 2, y: at - text.height - 4 }, { x: mid - text.width / 2, y: at + 4 }]
+            : [{ x: at - 6 - text.width, y: mid - text.height / 2 }, { x: at + 6, y: mid - text.height / 2 }];
+        });
+        for (const o of options) {
+          const box = { ...o, width: text.width, height: text.height };
+          if (boxes.some((n) => hit(box, n)) || labels.some((l) => hit(box, l)) || corners.some((c) => hit(box, c))) continue;
+          if (lines.some((l) => hit(box, l))) continue;
+          // Not across the border of a frame: wholly inside it or wholly outside.
+          if (frames.some((f) => hit(box, f.box) && !within(box, f.box))) continue;
+          placed = box;
+          break;
+        }
+        if (placed) break;
       }
       if (placed) break;
     }
@@ -1221,12 +1240,13 @@ function placeLineLabels(layout, own, { containers, nodes, edges }) {
  * `placeStores` puts it in afterwards. One store per user: a second one stays in the flow.
  * @returns {Map<string, {edge:object, user:object}>} store id to its connection and user
  */
-function attachStores(nodes, edges, direction) {
+function attachStores(nodes, edges, direction, placedElsewhere = new Map()) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const sideways = acrossIsVertical(direction);
   const out = new Map();
   const users = new Set();
   for (const store of nodes) {
+    if (placedElsewhere.has(store.id)) continue;
     const own = edges.filter((e) => e.from === store.id || e.to === store.id);
     if (own.length !== 1 || own[0].to !== store.id || own[0].from === store.id) continue;
     const user = byId.get(own[0].from);
@@ -1295,8 +1315,15 @@ function placeStores(layout, stores, { containers, nodes, direction }) {
 }
 
 /**
- * The components that can stand beside the frames instead of at an end of the flow: a plain
- * box outside every frame whose one connection comes from a component inside a frame (a
+ * Whether a component outside every frame is a system the diagram only talks to: a plain box,
+ * or an external system drawn with an icon. A client has a figure too, but it is where the
+ * flow starts, and an AWS service outside the frames belongs to the flow.
+ */
+const standsOutside = (n) => n.parent === undefined && (n.drawWidth === undefined || n.kind === 'external');
+
+/**
+ * The components that can stand beside the frames instead of at an end of the flow: a system
+ * outside every frame whose one connection comes from a component inside a frame (a
  * third-party API that one service calls).
  * @returns {Map<string, object>} component id to its connection
  */
@@ -1304,13 +1331,292 @@ function asideCandidates(nodes, edges) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const out = new Map();
   for (const n of nodes) {
-    if (n.parent !== undefined || n.drawWidth !== undefined) continue;
+    if (!standsOutside(n)) continue;
     const own = edges.filter((e) => e.from === n.id || e.to === n.id);
     if (own.length !== 1 || own[0].to !== n.id || own[0].from === n.id) continue;
     if (byId.get(own[0].from)?.parent === undefined) continue;
     out.set(n.id, own[0]);
   }
   return out;
+}
+
+/**
+ * The systems that stand in a row along the frames. The layout engine gives every component
+ * one place along the flow, after everything that calls it, and two kinds of system outside
+ * the frames have no good place there:
+ *
+ * - one that is only called, and called by a component that is itself outside the frames (a
+ *   browser that talks to an identity provider the API also uses): it lands at the far end of
+ *   the flow and the connection from the client at the start runs the length of the picture;
+ * - one that calls into the frames and is called from them, so that the connections form a
+ *   circle (a partner system that pushes data in and is queried in turn): wherever it stands
+ *   along the flow, one of its connections runs back past everything in between.
+ *
+ * In a row beside the frames such a system is near every component it talks to.
+ * @returns {Map<string, object[]>} component id to its connections
+ */
+function rowCandidates(nodes, edges, aside) {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const circle = cycleOf(nodes, edges);
+  const members = new Map();
+  for (const id of circle.values()) members.set(id, (members.get(id) ?? 0) + 1);
+  const out = new Map();
+  for (const n of nodes) {
+    if (!standsOutside(n) || aside.has(n.id)) continue;
+    const own = edges.filter((e) => (e.from === n.id) !== (e.to === n.id));
+    if (own.length === 0 || own.length !== edges.filter((e) => e.from === n.id || e.to === n.id).length) continue;
+    const others = own.map((e) => (e.from === n.id ? e.to : e.from));
+    if (new Set(others).size !== own.length) continue;
+    const onlyCalled = own.every((e) => e.to === n.id);
+    const calledFromOutside = onlyCalled && own.some((e) => byId.get(e.from)?.parent === undefined);
+    const inCircle = !onlyCalled && own.some((e) => e.to === n.id) && members.get(circle.get(n.id)) > 1;
+    if (calledFromOutside || inCircle) out.set(n.id, own);
+  }
+  return out;
+}
+
+/** Room between what is drawn and the first line that runs to a row, and between that run and the row. */
+const ROW_GAP = 30;
+/** Room between two lines that run side by side towards a row, at least; more where a label stands between them. */
+const ROW_TRACK = 20;
+/** Room between the last line that runs along a row and the systems of the row: a label fits beside the line there. */
+const ROW_END = 44;
+/** Room between two systems of a row. */
+const ROW_BETWEEN = 40;
+/** How far along the flow a line may step aside from its caller to find a free way to a row. */
+const ROW_STEP_ASIDE = 240;
+
+/**
+ * Place each system of `row` in a row along the frames, across the flow from them: below or
+ * above the picture in a left-to-right diagram, to its right or left in a top-down one. Each
+ * stands between its callers along the flow. A connection leaves its caller straight across
+ * the flow, out of the frames, turns once to run along them and once more into the system;
+ * the connections of one caller share that first stretch, and each caller has a track of its
+ * own for the run, so no two lines of different callers lie on each other.
+ *
+ * A side is usable for a system when the way out of every one of its callers is free: no
+ * other component or name, no frame the caller is not in, no label, and no other connection
+ * running the same way. The side that is nearer to the callers wins. The placement is written
+ * into `layout`.
+ * @returns {string|undefined} the id of the first system with no usable side, or undefined
+ */
+export function placeRow(layout, row, { containers, nodes, edges, direction, aside = new Map() }) {
+  if (row.size === 0) return undefined;
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  // The work is done as for a left-to-right diagram, flow along x and the row below or above;
+  // a top-down diagram is the same picture with x and y exchanged.
+  const sideways = acrossIsVertical(direction);
+  const turn = (b) => (sideways ? b : { x: b.y, y: b.x, width: b.height, height: b.width });
+  // Always a new point: several lines share the way out of their caller.
+  const turnPoint = (pt) => (sideways ? { x: pt.x, y: pt.y } : { x: pt.y, y: pt.x });
+  const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const placed = nodes.filter((n) => layout.nodes.has(n.id) && !row.has(n.id)).map((n) => {
+    const whole = absoluteBox(n.id, layout, parentOf);
+    return { id: n.id, n, box: turn(whole), figure: turn(drawBox(n, whole)) };
+  });
+  const placedById = new Map(placed.map((x) => [x.id, x]));
+  const frames = containers.map((c) => ({ id: c.id, box: turn(absoluteBox(c.id, layout, parentOf)) }));
+  const segments = [];
+  const labels = [];
+  for (const e of edges) {
+    if (row.has(e.to) || row.has(e.from)) continue;
+    const r = layout.edges.get(e.id);
+    if (!r?.start || !r?.end) continue;
+    const path = [r.start, ...(r.points ?? []), r.end].map(turnPoint);
+    for (let i = 1; i < path.length; i++) segments.push({ a: path[i - 1], b: path[i] });
+    if (e.label && r.label) labels.push(turn(r.label));
+  }
+  // A system that stands beside the frames on its own, level with its one caller, belongs to
+  // the row on its side: it is moved out to stand in line with the row (below), so the room
+  // for the lines of the row is counted from the frames, not from that system.
+  const alone = placed.filter((x) => aside.has(x.id));
+  const drawn = [...placed.filter((x) => !aside.has(x.id)).map((x) => x.box), ...frames.map((f) => f.box), ...labels, ...segments.map((sg) => ({ x: Math.min(sg.a.x, sg.b.x), y: Math.min(sg.a.y, sg.b.y), width: Math.abs(sg.a.x - sg.b.x), height: Math.abs(sg.a.y - sg.b.y) }))];
+  const top = Math.min(...drawn.map((b) => b.y));
+  const bottom = Math.max(...drawn.map((b) => b.y + b.height));
+
+  // The way out of a caller on a side: where the line starts, and the column it runs down (or
+  // up) to the row. The column under the caller's own figure comes first. When something
+  // stands in it (another component of the same column, a label, a line running the same
+  // way), the line leaves the caller sideways instead, along the flow, and takes the nearest
+  // free column: a short step aside costs one bend, where giving up would send the system
+  // back to the far end of the flow.
+  const columnFree = (caller, x, from, to, around) => {
+    const lane = { x: x - 10, y: Math.min(from, to), width: 20, height: Math.abs(to - from) + 1 };
+    if (placed.some((o) => o.id !== caller.id && hit(lane, o.box))) return false;
+    if (frames.some((f) => (!around.has(f.id) && hit(lane, f.box)) || (hit(lane, f.box) && (Math.abs(f.box.x - x) < 10 || Math.abs(f.box.x + f.box.width - x) < 10)))) return false;
+    if (labels.some((l) => hit(lane, l))) return false;
+    // Another connection may cross the column, not run along it.
+    return !segments.some((sg) => Math.abs(sg.a.x - sg.b.x) < 0.5 && hit(lane, { x: sg.a.x - 0.5, y: Math.min(sg.a.y, sg.b.y), width: 1, height: Math.abs(sg.a.y - sg.b.y) }));
+  };
+  const stepFree = (caller, x0, x1, y) => {
+    const run = { x: Math.min(x0, x1), y: y - 8, width: Math.abs(x1 - x0), height: 16 };
+    if (placed.some((o) => o.id !== caller.id && hit(run, o.box))) return false;
+    if (labels.some((l) => hit(run, l))) return false;
+    return !segments.some((sg) => Math.abs(sg.a.y - sg.b.y) < 0.5 && hit(run, { x: Math.min(sg.a.x, sg.b.x), y: sg.a.y - 0.5, width: Math.abs(sg.a.x - sg.b.x), height: 1 }));
+  };
+  const ways = new Map();
+  const leave = (caller, side) => {
+    const key = `${caller.id}|${side}`;
+    if (!ways.has(key)) ways.set(key, findWay(caller, side));
+    return ways.get(key);
+  };
+  const findWay = (caller, side) => {
+    // A store stands on that side of its user: no line leaves that way.
+    if (side > 0 && caller.n.store) return undefined;
+    const { figure, box } = caller;
+    const edge = side > 0 ? bottom : top;
+    const around = new Set();
+    for (let p = parentOf.get(caller.id); p; p = parentOf.get(p)) around.add(p);
+    const centre = Math.round(figure.x + figure.width / 2);
+    // Downwards in a left-to-right diagram the line starts under the caller's name.
+    const under = side > 0 ? (sideways ? box.y + box.height : figure.y + figure.height) : figure.y;
+    if (columnFree(caller, centre, under, edge, around)) return { start: { x: centre, y: under }, via: [], x: centre };
+    for (let step = 20; step <= ROW_STEP_ASIDE; step += 10) {
+      for (const dir of [1, -1]) {
+        const x = centre + dir * step;
+        const from = dir > 0 ? figure.x + figure.width : figure.x;
+        if ((x - from) * dir < 25) continue;
+        // The step aside leaves the figure in its half towards the row, clear of the lines along the flow.
+        for (const share of side > 0 ? [0.75, 0.9, 0.6] : [0.25, 0.1, 0.4]) {
+          const y = Math.round(figure.y + figure.height * share);
+          if (!stepFree(caller, from, x, y) || !columnFree(caller, x, y, edge, around)) continue;
+          return { start: { x: from, y }, via: [{ x, y }], x };
+        }
+      }
+    }
+    return undefined;
+  };
+
+  // The side of each system, and the callers that send a line to each side.
+  const members = [];
+  for (const [id, own] of row) {
+    // The other end of each connection; "caller" also where the system is the one that calls.
+    const callers = own.map((e) => ({ e, caller: placedById.get(e.from === id ? e.to : e.from) }));
+    if (callers.some((c) => !c.caller)) return id;
+    const options = [];
+    for (const side of [1, -1]) {
+      const starts = callers.map((c) => leave(c.caller, side));
+      if (starts.some((st) => !st)) continue;
+      const far = starts.reduce((sum, st) => sum + (side > 0 ? bottom - st.start.y : st.start.y - top) + 40 * st.via.length, 0);
+      options.push({ side, starts, far });
+    }
+    if (options.length === 0) return id;
+    options.sort((p, q) => p.far - q.far || q.side - p.side);
+    const { side, starts } = options[0];
+    const node = byId.get(id);
+    const size = turn({ x: 0, y: 0, width: node.width, height: node.height });
+    const figure = turn(drawBox(node, { x: 0, y: 0, width: node.width, height: node.height }));
+    members.push({ id, side, size, figure, lines: callers.map((c, i) => ({ e: c.e, from: c.caller.id, way: starts[i] })), wants: starts.reduce((sum, st) => sum + st.x, 0) / starts.length });
+  }
+
+  const out = [];
+  for (const side of [1, -1]) {
+    const here = members.filter((m) => m.side === side).sort((p, q) => p.wants - q.wants || p.id.localeCompare(q.id));
+    if (here.length === 0) continue;
+    // The systems that stand beside the frames on this side already, each on the line from its caller.
+    const inside = frames.length > 0 ? frames.map((f) => f.box) : placed.filter((x) => !aside.has(x.id)).map((x) => x.box);
+    const fixed = alone.filter((x) => (side > 0 ? x.box.y >= Math.max(...inside.map((b) => b.y + b.height)) : x.box.y + x.box.height <= Math.min(...inside.map((b) => b.y))));
+    // Each system under the middle of its callers, moved along the row where two would overlap.
+    let after = -Infinity;
+    const runs = [];
+    for (const m of here) {
+      m.x = Math.max(Math.round(m.wants - m.size.width / 2), after);
+      for (let moved = true; moved;) {
+        moved = false;
+        for (const f of fixed) {
+          if (m.x < f.box.x + f.box.width + ROW_BETWEEN && f.box.x < m.x + m.size.width + ROW_BETWEEN) { m.x = f.box.x + f.box.width + ROW_BETWEEN; moved = true; }
+        }
+      }
+      after = m.x + m.size.width + ROW_BETWEEN;
+      // The lines end side by side on the system, in the order of their callers along the flow.
+      const lines = [...m.lines].sort((p, q) => p.way.x - q.way.x || p.e.id.localeCompare(q.e.id));
+      lines.forEach((l, k) => {
+        const straight = lines.length === 1 && l.way.x >= m.x + m.figure.x && l.way.x <= m.x + m.figure.x + m.figure.width;
+        runs.push({ m, l, x1: straight ? l.way.x : Math.round(m.x + m.figure.x + (m.figure.width * (k + 1)) / (lines.length + 1)) });
+      });
+    }
+    // A line that runs along the row has a track of its own, so it lies on no other line and
+    // its label, written on that run, belongs to it alone. The lines of one caller share the
+    // stretch out of the frames and part one after the other: the one that runs farthest
+    // parts first, nearest the frames, so the next one does not cross it on its way in.
+    const turning = runs.filter((r) => Math.abs(r.x1 - r.l.way.x) >= 0.5)
+      .sort((p, q) => p.l.way.x - q.l.way.x || p.l.from.localeCompare(q.l.from) || Math.abs(q.x1 - q.l.way.x) - Math.abs(p.x1 - p.l.way.x) || p.l.e.id.localeCompare(q.l.e.id));
+    const edge = side > 0 ? bottom : top;
+    // The room a label takes across the lines that run to the row: its height where they
+    // run sideways, its width where they run up and down the page.
+    const thick = (e) => (e.label ? (sideways ? 16 * String(e.label).split(/\r\n?|\n/).length : Math.ceil(widestLine(e.label)) + 8) : 0);
+    let at = ROW_GAP;
+    for (const r of turning) {
+      r.track = edge + side * at;
+      at += Math.max(ROW_TRACK, thick(r.l.e) + 12);
+    }
+    // Past the last run, a line that goes straight on has its label beside that last stretch.
+    const lastRun = turning.length > 0 ? at - Math.max(ROW_TRACK, thick(turning.at(-1).l.e) + 12) : 0;
+    const edgeOfRow = edge + side * (lastRun + Math.max(ROW_END, ...runs.map((r) => thick(r.l.e) + 28)));
+    const shared = new Map();
+    for (const r of runs) shared.set(r.l.from, (shared.get(r.l.from) ?? 0) + 1);
+    // The figures of a row stand on one line, whatever the length of their names: each box is
+    // placed by its figure, and the line of figures lies where every box clears the lines of
+    // the row. A system that already stood beside the frames takes part with its own figure.
+    const parts = [...here.map((m) => ({ before: m.figure.y, after: m.size.height - m.figure.y })), ...fixed.map((f) => ({ before: f.figure.y - f.box.y, after: f.box.y + f.box.height - f.figure.y }))];
+    const figureLine = side > 0 ? edgeOfRow + Math.max(...parts.map((x) => x.before)) : edgeOfRow - Math.max(...parts.map((x) => x.after));
+    for (const m of here) out.push({ id: m.id, box: { x: m.x, y: figureLine - m.figure.y, width: m.size.width, height: m.size.height } });
+    // A system that stood beside the frames moves out into the row, its line growing with it.
+    for (const f of fixed) {
+      const by = figureLine - f.figure.y;
+      if (by * side <= 0) continue;
+      const e = aside.get(f.id);
+      const route = layout.edges.get(e.id);
+      const end = turnPoint(route.end);
+      out.push({ id: f.id, box: { ...f.box, y: f.box.y + by } });
+      out.push({ edge: e, start: turnPoint(route.start), end: { x: end.x, y: end.y + by }, points: [], label: route.label });
+    }
+    for (const r of runs) {
+      const end = { x: r.x1, y: side > 0 ? figureLine - r.m.figure.y : figureLine - r.m.figure.y + r.m.size.height };
+      const points = [...r.l.way.via, ...(r.track === undefined ? [] : [{ x: r.l.way.x, y: r.track }, { x: r.x1, y: r.track }])];
+      // The stretch that is this line's alone, for its label: the run along the row, or for a
+      // line that goes straight on, what is left of it past the last line that parts from it.
+      // A line that leaves its caller alone is its own all the way: any stretch of it will do.
+      const whole = [r.l.way.start, ...points, end];
+      let own = whole.slice(1).map((pt, i) => [whole[i], pt]);
+      if (shared.get(r.l.from) > 1) {
+        own = undefined;
+        if (r.track !== undefined) own = [[points.at(-2), points.at(-1)], [points.at(-1), end]];
+        else {
+          const last = turning.filter((t) => t.l.from === r.l.from).reduce((far, t) => (side > 0 ? Math.max(far, t.track) : Math.min(far, t.track)), side > 0 ? -Infinity : Infinity);
+          if (Number.isFinite(last)) own = [[{ x: r.x1, y: last }, end]];
+        }
+      }
+      out.push({ edge: r.l.e, start: r.l.way.start, end, points, own });
+    }
+  }
+  for (const o of out) {
+    if (o.id) layout.nodes.set(o.id, turn(o.box));
+    else {
+      // The way was worked out from the component in the picture to the system; a connection
+      // the system starts runs the same way back.
+      const path = [o.start, ...o.points, o.end].map(turnPoint);
+      if (row.has(o.edge.from)) path.reverse();
+      layout.edges.set(o.edge.id, { start: path[0], end: path.at(-1), points: path.slice(1, -1), label: o.label, ...(o.own ? { own: o.own.map((pair) => pair.map(turnPoint)) } : {}) });
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Move the whole drawing so that it starts at the usual margin again: a system placed above
+ * or to the left of the frames lies before the origin of the layout.
+ */
+function backToOrigin(layout, { containers, nodes }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const boxes = [...layout.nodes, ...layout.containers].filter(([id]) => parentOf.get(id) === undefined).map(([, box]) => box);
+  const points = [...layout.edges.values()].flatMap((r) => [r.start, r.end, r.label, ...(r.points ?? []), ...(r.own ?? []).flat()]).filter(Boolean);
+  const dx = Math.max(0, ASIDE_ORIGIN - Math.min(ASIDE_ORIGIN, ...boxes.map((b) => b.x), ...points.map((pt) => pt.x)));
+  const dy = Math.max(0, ASIDE_ORIGIN - Math.min(ASIDE_ORIGIN, ...boxes.map((b) => b.y), ...points.map((pt) => pt.y)));
+  if (!dx && !dy) return;
+  // Children are positioned relative to their frame, so only what lies on the page itself moves.
+  for (const b of [...boxes, ...points]) { b.x += dx; b.y += dy; }
 }
 
 /** Room between the outermost frame and a system placed beside it, when its connection has no label. */
@@ -1371,9 +1677,11 @@ function placeBeside(layout, aside, { containers, nodes, edges, direction }) {
       if (vertical) {
         const y = Math.round(figure.y + figure.height / 2);
         const x = side === 'right' ? outer.x + outer.width + gap : outer.x - gap - node.width;
-        box = { x, y: y - node.height / 2, width: node.width, height: node.height };
+        // A system with a figure is level with its caller figure to figure, and the line ends at its figure.
+        const own = drawBox(node, { x, y: 0, width: node.width, height: node.height });
+        box = { x, y: y - own.height / 2, width: node.width, height: node.height };
         start = { x: side === 'right' ? figure.x + figure.width : figure.x, y };
-        end = { x: side === 'right' ? x : x + node.width, y };
+        end = { x: side === 'right' ? own.x : own.x + own.width, y };
         const mid = side === 'right' ? outer.x + outer.width + gap / 2 : outer.x - gap / 2;
         label = { x: mid - text.width / 2, y: y - text.height - 4, width: text.width, height: text.height };
       } else {
@@ -1408,21 +1716,111 @@ function placeBeside(layout, aside, { containers, nodes, edges, direction }) {
     layout.edges.set(e.id, { start: best.start, end: best.end, points: [], label: e.label ? best.label : undefined });
     taken.push(best.box, ...(e.label ? [best.label] : []), { x: Math.min(best.start.x, best.end.x) - 10, y: Math.min(best.start.y, best.end.y) - 10, width: Math.abs(best.end.x - best.start.x) + 20, height: Math.abs(best.end.y - best.start.y) + 20 });
   }
-  // A system above or to the left of the frames lies before the origin of the layout: move
-  // the whole drawing so that it starts at the usual margin again.
-  const placed = [...aside].flatMap(([id, e]) => [layout.nodes.get(id), ...(e.label ? [layout.edges.get(e.id).label] : [])]);
-  const dx = Math.max(0, ASIDE_ORIGIN - Math.min(ASIDE_ORIGIN, ...placed.map((b) => b.x)));
-  const dy = Math.max(0, ASIDE_ORIGIN - Math.min(ASIDE_ORIGIN, ...placed.map((b) => b.y)));
-  if (dx || dy) {
-    const move = (pt) => { if (pt) { pt.x += dx; pt.y += dy; } };
-    // Children are positioned relative to their frame, so only what lies on the page itself moves.
-    for (const [id, box] of [...layout.nodes, ...layout.containers]) if (parentOf.get(id) === undefined) move(box);
-    for (const r of layout.edges.values()) { move(r.start); move(r.end); move(r.label); for (const pt of r.points ?? []) move(pt); }
-  }
   return undefined;
 }
 
+/** A component that connects to at least this many others on one side is the hub of a fan. */
+const FAN_MIN = 3;
+/** How far off the middle of its fan a hub may stand before another arrangement is tried. */
+const FAN_OFF_CENTRE = 0.5;
+/** How far off the middle of the picture the hubs may stand before another arrangement is tried. */
+const PAGE_OFF_CENTRE = 0.25;
+/** The arrangements tried for a diagram whose main flow is off the middle, the usual one first. */
+const ARRANGEMENTS = [
+  { balanceContainers: false, options: {} },
+  { balanceContainers: true, options: {} },
+  // Without the order of the IR the layout engine orders each column to cross the fewest
+  // lines, which can bring a hub between the things around it.
+  { balanceContainers: false, options: { 'elk.layered.considerModelOrder.strategy': 'NONE' } },
+  { balanceContainers: true, options: { 'elk.layered.considerModelOrder.strategy': 'NONE' } },
+];
+
+/**
+ * How far the hubs of a diagram stand off the middle of their fans: 0 when every hub is level
+ * with the middle of the components it connects to, 1 when each is level with the first or
+ * the last of them, more when it stands beyond them. A fan is a component with `FAN_MIN` or
+ * more connections to different components on one side of the flow (the ones it calls, or
+ * the ones that call it). The positions are measured across the flow, at the centre of each
+ * figure, and a fan counts by its size, so the hub most of the diagram hangs on decides.
+ * `page` is the same for the picture as a whole: how far the hubs stand off the middle of
+ * everything that is drawn, 0 in the middle and 1 at an edge.
+ *
+ * The main flow of a diagram runs through its hubs, so a diagram whose hub stands at the end
+ * of its fan has its main flow along one edge of the page and everything else on one side.
+ */
+function fanOffCentre(layout, { containers, nodes, edges, direction }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const sideways = acrossIsVertical(direction);
+  const centre = new Map();
+  for (const n of nodes) {
+    if (!layout.nodes.has(n.id)) continue;
+    const b = drawBox(n, absoluteBox(n.id, layout, parentOf));
+    centre.set(n.id, sideways ? b.y + b.height / 2 : b.x + b.width / 2);
+  }
+  const fans = new Map();
+  const note = (hub, side, other) => {
+    if (hub === other || !centre.has(hub) || !centre.has(other)) return;
+    const key = `${hub}|${side}`;
+    if (!fans.has(key)) fans.set(key, new Set());
+    fans.get(key).add(other);
+  };
+  for (const e of edges) {
+    const [from, to] = e.layoutReversed ? [e.to, e.from] : [e.from, e.to];
+    note(from, 'out', to);
+    note(to, 'in', from);
+  }
+  // The extent of the picture across the flow: every component and every frame.
+  const extents = [...nodes.map((n) => n.id), ...containers.map((c) => c.id)].filter((id) => layout.nodes.has(id) || layout.containers.has(id)).map((id) => {
+    const b = absoluteBox(id, layout, parentOf);
+    return sideways ? [b.y, b.y + b.height] : [b.x, b.x + b.width];
+  });
+  const top = Math.min(...extents.map((x) => x[0]));
+  const height = Math.max(...extents.map((x) => x[1])) - top;
+  let off = 0;
+  let page = 0;
+  let size = 0;
+  for (const [key, members] of fans) {
+    if (members.size < FAN_MIN) continue;
+    const at = [...members].map((id) => centre.get(id));
+    const lo = Math.min(...at);
+    const span = Math.max(...at) - lo;
+    if (span < 1) continue;
+    const hub = centre.get(key.split('|')[0]);
+    off += members.size * Math.abs((hub - lo) / span - 0.5) * 2;
+    page += members.size * (height < 1 ? 0 : Math.abs((hub - top) / height - 0.5) * 2);
+    size += members.size;
+  }
+  return size === 0 ? { fan: 0, page: 0 } : { fan: off / size, page: page / size };
+}
+
+/**
+ * An architecture diagram, laid out. The main flow belongs in the middle of the picture, with
+ * what it uses on both sides of it. Inside a frame the layout engine keeps the members close
+ * together, which lines a hub up with one end of its fan when the fan leaves the frame, and
+ * the order of the IR can put everything else on one side of the flow: the hubs and the flow
+ * through them then run along one edge. When that happens the other arrangements are laid
+ * out as well, each to the end (the systems beside the frames and in a row along them are
+ * part of the picture and move its middle), and the one whose hubs stand nearest the middle
+ * of their fans and of the picture is kept, if it is clearly better. A diagram whose hubs
+ * already stand near the middle keeps the usual, compact form.
+ */
 async function emitArchitecture(ir, cid, refs, warnings) {
+  const usual = await arrangeArchitecture(ir, refs, ARRANGEMENTS[0]);
+  let best = usual;
+  if (usual.containers.length > 0 && (usual.off.fan > FAN_OFF_CENTRE || usual.off.page > PAGE_OFF_CENTRE)) {
+    for (const how of ARRANGEMENTS.slice(1)) {
+      const tried = await arrangeArchitecture(ir, refs, how);
+      if (tried.off.sum < best.off.sum - 0.05) best = tried;
+    }
+    if (best.off.sum >= usual.off.sum - 0.2) best = usual;
+  }
+  warnings.push(...best.warnings);
+  return graphCells(cid, best.layout, { containers: best.containers, nodes: best.nodes, edges: best.edges, direction: ir.direction });
+}
+
+/** One arrangement of an architecture diagram (see `ARRANGEMENTS`), with how far its hubs stand off the middle. */
+async function arrangeArchitecture(ir, refs, how) {
+  const warnings = [];
   const parent = parentMap(ir.boundaries ?? []);
   const containers = (ir.boundaries ?? []).map((b) => {
     const group = awsGroup(b.group);
@@ -1433,6 +1831,7 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   // A figure with its label below it: the screen of a client, or an AWS service icon.
   const figureOf = (c) => {
     const icon = awsIcon(c.icon);
+    if (icon?.stencil) return { ...AWS_ICON, width: icon.width, height: icon.height, style: stencilStyle(icon) };
     if (icon) return { ...AWS_ICON, style: awsIconStyle(icon) };
     return kindOf(c) === 'client' ? { ...CLIENT_FIGURE, style: STYLE.client } : undefined;
   };
@@ -1449,7 +1848,7 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   const nodes = ir.components.map((c) => {
     const kind = kindOf(c);
     const { label, link } = shown.get(c.id);
-    const node = { id: c.id, label, link, parent: parent.get(c.id), style: STYLE[kind] };
+    const node = { id: c.id, label, link, parent: parent.get(c.id), style: STYLE[kind], kind };
     const figure = figures.get(c.id);
     if (figure) {
       const b = below.get(c.id);
@@ -1463,15 +1862,18 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   // afresh for every arrangement that is tried.
   // In an AWS diagram each label is placed beside its own line after the layout (placeLineLabels).
   if (usesAws) for (const e of edges) if (e.label && e.from !== e.to) { e.labelPlacedByCaller = true; e.labelOnDrawnLine = true; }
-  const stores = usesAws ? attachStores(nodes, edges, ir.direction) : new Map();
   const aside = usesAws ? asideCandidates(nodes, edges) : new Map();
-  const laidOut = () => ({ nodes: nodes.filter((n) => !aside.has(n.id) && !stores.has(n.id)), edges: edges.filter((e) => !aside.has(e.to) && !stores.has(e.to)) });
+  const row = usesAws ? rowCandidates(nodes, edges, aside) : new Map();
+  // A system of a row is placed with the row, also when one component alone uses it.
+  const stores = usesAws ? attachStores(nodes, edges, ir.direction, row) : new Map();
+  const apart = (id) => aside.has(id) || row.has(id) || stores.has(id);
+  const laidOut = () => ({ nodes: nodes.filter((n) => !apart(n.id)), edges: edges.filter((e) => !apart(e.to) && !row.has(e.from)) });
   const arrange = async () => {
     const g = laidOut();
     for (const n of g.nodes) delete n.ports;
     for (const e of g.edges) { delete e.fromPort; delete e.toPort; }
-    const first = await layoutGraph({ ...g, containers, direction: ir.direction, spacing });
-    return below.size > 0 && clientPorts(first, { containers, ...g }) ? layoutGraph({ ...g, containers, direction: ir.direction, spacing }) : first;
+    const first = await layoutGraph({ ...g, containers, direction: ir.direction, spacing, ...how });
+    return below.size > 0 && clientPorts(first, { containers, ...g }) ? layoutGraph({ ...g, containers, direction: ir.direction, spacing, ...how }) : first;
   };
   // A system beside the frames is placed after the layout of everything else. One that has no
   // free place there goes back into the layout, which then runs again without it set aside.
@@ -1480,11 +1882,18 @@ async function emitArchitecture(ir, cid, refs, warnings) {
       placeStores(base, stores, { containers, nodes, direction: ir.direction });
       const failed = placeBeside(base, aside, { containers, nodes, edges, direction: ir.direction });
       if (failed !== undefined) { aside.delete(failed); base = await arrange(); continue; }
+      const unplaced = placeRow(base, row, { containers, nodes, edges, direction: ir.direction, aside });
+      if (unplaced !== undefined) { row.delete(unplaced); base = await arrange(); continue; }
+      backToOrigin(base, { containers, nodes });
       // A label with no free place beside its line goes back to the layout engine.
       const own = new Set(edges.filter((e) => e.labelPlacedByCaller && !aside.has(e.to) && !stores.has(e.to)).map((e) => e.id));
       const crowded = placeLineLabels(base, own, { containers, nodes, edges });
       if (crowded === undefined) return base;
-      delete edges.find((e) => e.id === crowded).labelPlacedByCaller;
+      // The line to a system in a row is not the layout engine's: the system goes back into the flow.
+      const line = edges.find((e) => e.id === crowded);
+      const system = [line.to, line.from].find((id) => row.has(id));
+      if (system !== undefined) row.delete(system);
+      else delete line.labelPlacedByCaller;
       base = await arrange();
     }
   };
@@ -1496,7 +1905,7 @@ async function emitArchitecture(ir, cid, refs, warnings) {
   // A wider frame moves the lines, so the titles are placed again after each new layout.
   let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
   for (let round = 0; unplaced && round < 6; round++) {
-    layout = await placeAside(await layoutGraph({ ...laidOut(), containers, direction: ir.direction, spacing }));
+    layout = await placeAside(await layoutGraph({ ...laidOut(), containers, direction: ir.direction, spacing, ...how }));
     unplaced = placeGroupTitles(layout, { containers, nodes, edges });
   }
   if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a connection crosses the title of a group frame; no free place was found for it along the top of the frame', hint: 'set "direction" to "LR" or shorten the boundary label' });
@@ -1521,7 +1930,11 @@ async function emitArchitecture(ir, cid, refs, warnings) {
       }
     }
   }
-  return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
+  // The hubs among their fans, in what the layout engine placed; the hubs in the picture as a
+  // whole, with the systems placed beside the frames and in a row along them.
+  const fan = fanOffCentre(layout, { containers, ...laidOut(), direction: ir.direction }).fan;
+  const page = fanOffCentre(layout, { containers, nodes, edges, direction: ir.direction }).page;
+  return { layout, containers, nodes, edges, warnings, off: { fan, page, sum: fan + page } };
 }
 
 /**

@@ -6,6 +6,7 @@ Names for the `icon` field of an architecture component and the `group` field of
 They are the stencil names of draw.io's built-in AWS library (jgraph/drawio v32.6.10).
 Write the value exactly as listed; a name that is not in this file fails validation.
 A service with no entry here keeps its generic shape: leave `icon` out.
+A system outside AWS takes a general resource or a product logo, both listed below.
 
 ## Choosing
 
@@ -28,6 +29,14 @@ A service with no entry here keeps its generic shape: leave `icon` out.
 - `kind` beside an icon is what the other targets draw: `database` for a store (RDS,
   DynamoDB, S3), `queue` for a queue, topic or stream, `cache` for a cache, `service` (the
   default) for the rest.
+- A system outside AWS (`kind` `external`: a third-party API, the customer's own system,
+  a SaaS product) gets an icon too, so it reads as a system and not as a note. Use its
+  product logo when one is listed under "Product logos" (`gcp:firebase`), else a general
+  resource: `aws:generic_application` for an API or a SaaS product, `aws:traditional_server`
+  or `aws:servers` for a system on its own machines, `aws:corporate_data_center` for a
+  whole site, `aws:generic_database` for a database. A general resource is dark, a service
+  icon has the colour of its category, so the two never look alike; a general resource
+  never stands for an AWS service.
 
 ## Group frames (`group`)
 
@@ -371,6 +380,64 @@ A service with no entry here keeps its generic shape: leave `icon` out.
 | `aws:games` | Game Tech |
 | `aws:open_3d_engine_2` | Open 3D Engine |
 
+### General Resources
+
+| Value | Service |
+|---|---|
+| `aws:alert` | Alert |
+| `aws:all_products` | All Products |
+| `aws:authenticated_user` | Authenticated User |
+| `aws:camera2` | Camera |
+| `aws:chat` | Chat |
+| `aws:client` | Client |
+| `aws:cold_storage` | Cold Storage |
+| `aws:corporate_data_center` | Corporate Data Center |
+| `aws:credentials` | Credentials |
+| `aws:data_stream` | Data Stream |
+| `aws:data_table` | Data Table |
+| `aws:disk` | Disk |
+| `aws:document` | Document |
+| `aws:documents` | Documents |
+| `aws:documents2` | Documents |
+| `aws:documents3` | Documents |
+| `aws:email_2` | Email |
+| `aws:external_sdk` | SDK |
+| `aws:external_toolkit` | Toolkit |
+| `aws:folder` | Folder |
+| `aws:folders` | Folders |
+| `aws:forums` | Forums |
+| `aws:gear` | Gear |
+| `aws:generic_application` | Generic Application |
+| `aws:generic_database` | Generic Database |
+| `aws:generic_firewall` | Generic Firewall |
+| `aws:git_repository` | Git Repository |
+| `aws:globe` | Globe |
+| `aws:internet` | Internet |
+| `aws:internet_alt1` | Internet |
+| `aws:internet_alt2` | Internet |
+| `aws:internet_alt22` | Internet |
+| `aws:json_script` | JSON Script |
+| `aws:logs` | Logs |
+| `aws:magnifying_glass_2` | Magnifying Glass |
+| `aws:management_console2` | Management Console |
+| `aws:marketplace` | Marketplace |
+| `aws:metrics` | Metrics |
+| `aws:mobile_client` | Mobile Client |
+| `aws:multimedia` | Multimedia |
+| `aws:office_building` | Office Building |
+| `aws:programming_language` | Programming Language |
+| `aws:question` | Question |
+| `aws:recover` | Recover |
+| `aws:saml_token` | SAML Token |
+| `aws:servers` | Servers |
+| `aws:shield2` | Shield |
+| `aws:source_code` | Source Code |
+| `aws:ssl_padlock` | SSL Padlock |
+| `aws:tape_storage` | Tape Storage |
+| `aws:traditional_server` | Traditional Server |
+| `aws:user` | User |
+| `aws:users` | Users |
+
 ### Internet of Things
 
 | Value | Service |
@@ -563,3 +630,24 @@ A service with no entry here keeps its generic shape: leave `icon` out.
 | `aws:s3_on_outposts_storage` | S3 on Outposts |
 | `aws:storage` | Storage |
 | `aws:storage_gateway` | Storage Gateway |
+
+## Product logos (`icon`)
+
+From draw.io's GCP library, for a product an AWS system talks to.
+
+| Value | Product |
+|---|---|
+| `gcp:admob` | AdMob |
+| `gcp:avere` | Avere Physical Appliance |
+| `gcp:campaign_manager` | Campaign Manager |
+| `gcp:fastly` | Fastly |
+| `gcp:firebase` | Firebase |
+| `gcp:forseti_logo` | Forseti Security |
+| `gcp:google_ad_manager` | Google Ad Manager |
+| `gcp:google_ads` | Google Ads |
+| `gcp:google_analytics` | Google Analytics |
+| `gcp:google_analytics_360` | Google Analytics 360 |
+| `gcp:google_play_game_service` | Google Play Game Services |
+| `gcp:istio_logo` | Istio |
+| `gcp:kubernetes_logo` | Kubernetes |
+| `gcp:tensorflow_logo` | TensorFlow |

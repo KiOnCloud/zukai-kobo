@@ -1,6 +1,6 @@
 # Zukai
 
-[![CI](https://github.com/KiOnCloud/zukai/actions/workflows/ci.yml/badge.svg)](https://github.com/KiOnCloud/zukai/actions/workflows/ci.yml)
+[![CI](https://github.com/KiOnCloud/zukai-kobo/actions/workflows/ci.yml/badge.svg)](https://github.com/KiOnCloud/zukai-kobo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Software diagrams generated from a validated model, not drawn by hand.**
@@ -55,7 +55,7 @@ always produces the same file.
 Requirements: Claude Code, `git`, and Node 22.13 or newer.
 
 ```bash
-claude plugin marketplace add KiOnCloud/zukai
+claude plugin marketplace add KiOnCloud/zukai-kobo
 ```
 
 ```bash
@@ -216,17 +216,16 @@ cd skills/draw/scripts && npm ci && npm test
 
 The CLI bundle in `skills/draw/scripts/bin/` is committed; rebuild it with `npm run build`
 after changing anything under `src/`. A test fails when the committed bundle drifts from the
-sources. The original plan and research are in
-[plans/261104-1501-it-diagrams-plugin/plan.md](plans/261104-1501-it-diagrams-plugin/plan.md).
+sources.
 
 ## Status
 
-Version 1.1.0 is the open beta. Every diagram kind and target listed above works and is
+Version 1.2.0 is the open beta. Every diagram kind and target listed above works and is
 covered by tests. Layout is what still changes between releases, so a diagram emitted again
 after an update can come out arranged differently.
 
 Report a wrong or ugly diagram at
-[github.com/KiOnCloud/zukai/issues](https://github.com/KiOnCloud/zukai/issues) and attach the
+[github.com/KiOnCloud/zukai-kobo/issues](https://github.com/KiOnCloud/zukai-kobo/issues) and attach the
 `.ir.json` file the skill wrote, which is enough to reproduce it.
 
 ## License

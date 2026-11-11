@@ -3,7 +3,11 @@
     "repo": "jgraph/drawio",
     "tag": "v32.6.10",
     "path": "src/main/webapp/js/diagramly/sidebar/Sidebar-AWS4.js",
-    "sha256": "f633e20b449058c6cb92f1666db0d9678da09aaa894da82bdcbb01ac96d0bc32"
+    "sha256": "f633e20b449058c6cb92f1666db0d9678da09aaa894da82bdcbb01ac96d0bc32",
+    "logos": {
+      "path": "src/main/webapp/js/diagramly/sidebar/Sidebar-GCP2.js",
+      "sha256": "4505d64f9a0d8b93b075d9e135d812c9ecd31160b22c55b0668733865d6bdd71"
+    }
   },
   "icons": {
     "activate": {
@@ -11,10 +15,24 @@
       "category": "Customer Enablement",
       "fill": "#C925D1"
     },
+    "alert": {
+      "title": "Alert",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 69
+    },
     "alexa_for_business": {
       "title": "Alexa for Business (retired)",
       "category": "AWS (retired)",
       "fill": "#DD344C"
+    },
+    "all_products": {
+      "title": "All Products",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
     },
     "amplify": {
       "title": "Amplify",
@@ -136,6 +154,13 @@
       "category": "Databases",
       "fill": "#C925D1"
     },
+    "authenticated_user": {
+      "title": "Authenticated User",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
     "auto_scaling2": {
       "title": "EC2 Auto Scaling",
       "category": "Compute",
@@ -206,10 +231,24 @@
       "category": "Business Applications",
       "fill": "#DD344C"
     },
+    "camera2": {
+      "title": "Camera",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 62
+    },
     "certificate_manager_3": {
       "title": "Certificate Manager",
       "category": "Security & Identity",
       "fill": "#DD344C"
+    },
+    "chat": {
+      "title": "Chat",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 68
     },
     "chatbot": {
       "title": "Chatbot",
@@ -230,6 +269,13 @@
       "title": "Clean Rooms",
       "category": "Analytics",
       "fill": "#8C4FFF"
+    },
+    "client": {
+      "title": "Client",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 76
     },
     "client_vpn": {
       "title": "Client VPN",
@@ -366,6 +412,13 @@
       "category": "Security & Identity",
       "fill": "#DD344C"
     },
+    "cold_storage": {
+      "title": "Cold Storage",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 71,
+      "height": 78
+    },
     "command_line_interface": {
       "title": "Command Line Interface",
       "category": "Developer Tools",
@@ -421,6 +474,13 @@
       "category": "Management Tools",
       "fill": "#E7157B"
     },
+    "corporate_data_center": {
+      "title": "Corporate Data Center",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 53,
+      "height": 78
+    },
     "corretto": {
       "title": "Corretto",
       "category": "Developer Tools",
@@ -440,6 +500,13 @@
       "title": "Cloud Financial Management",
       "category": "Cloud Financial Management",
       "fill": "#7AA116"
+    },
+    "credentials": {
+      "title": "Credentials",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 56,
+      "height": 78
     },
     "custom_billing_manager": {
       "title": "Billing Conductor",
@@ -466,6 +533,20 @@
       "title": "Data Pipeline (retired)",
       "category": "AWS (retired)",
       "fill": "#8C4FFF"
+    },
+    "data_stream": {
+      "title": "Data Stream",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
+    "data_table": {
+      "title": "Data Table",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 59
     },
     "data_transfer_terminal": {
       "title": "Data Transfer Terminal",
@@ -562,15 +643,50 @@
       "category": "Security & Identity",
       "fill": "#DD344C"
     },
+    "disk": {
+      "title": "Disk",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
     "distro_for_opentelemetry": {
       "title": "Distro for OpenTelemetry",
       "category": "Management Tools",
       "fill": "#E7157B"
     },
+    "document": {
+      "title": "Document",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 57,
+      "height": 78
+    },
     "documentdb_with_mongodb_compatibility": {
       "title": "DocumentDB",
       "category": "Databases",
       "fill": "#C925D1"
+    },
+    "documents": {
+      "title": "Documents",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 64,
+      "height": 78
+    },
+    "documents2": {
+      "title": "Documents",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 67,
+      "height": 78
+    },
+    "documents3": {
+      "title": "Documents",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 57,
+      "height": 78
     },
     "dynamodb": {
       "title": "DynamoDB",
@@ -717,6 +833,13 @@
       "category": "Media Services",
       "fill": "#ED7100"
     },
+    "email_2": {
+      "title": "Email",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 49
+    },
     "emr": {
       "title": "EMR",
       "category": "Analytics",
@@ -741,6 +864,20 @@
       "title": "Express Workflows",
       "category": "Application Integration",
       "fill": "#E7157B"
+    },
+    "external_sdk": {
+      "title": "SDK",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 68,
+      "height": 78
+    },
+    "external_toolkit": {
+      "title": "Toolkit",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 68,
+      "height": 78
     },
     "fargate": {
       "title": "Fargate",
@@ -772,10 +909,31 @@
       "category": "Security & Identity",
       "fill": "#DD344C"
     },
+    "folder": {
+      "title": "Folder",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 71
+    },
+    "folders": {
+      "title": "Folders",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 71
+    },
     "forecast": {
       "title": "Forecast",
       "category": "Artificial Intelligence",
       "fill": "#01A88D"
+    },
+    "forums": {
+      "title": "Forums",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 76
     },
     "fraud_detector": {
       "title": "Fraud Detector",
@@ -837,10 +995,45 @@
       "category": "AWS (retired)",
       "fill": "#8C4FFF"
     },
+    "gear": {
+      "title": "Gear",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
+    "generic_application": {
+      "title": "Generic Application",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
+    "generic_database": {
+      "title": "Generic Database",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 59,
+      "height": 78
+    },
+    "generic_firewall": {
+      "title": "Generic Firewall",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 66
+    },
     "genomics_cli": {
       "title": "Genomics CLI (retired)",
       "category": "AWS (retired)",
       "fill": "#ED7100"
+    },
+    "git_repository": {
+      "title": "Git Repository",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 60,
+      "height": 78
     },
     "glacier": {
       "title": "S3 Glacier",
@@ -851,6 +1044,13 @@
       "title": "Global Accelerator",
       "category": "Network & Content Delivery",
       "fill": "#8C4FFF"
+    },
+    "globe": {
+      "title": "Globe",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
     },
     "glue": {
       "title": "Glue",
@@ -926,6 +1126,34 @@
       "title": "Interconnect",
       "category": "Network & Content Delivery",
       "fill": "#8C4FFF"
+    },
+    "internet": {
+      "title": "Internet",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 48
+    },
+    "internet_alt1": {
+      "title": "Internet",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 48
+    },
+    "internet_alt2": {
+      "title": "Internet",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
+    "internet_alt22": {
+      "title": "Internet",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
     },
     "internet_of_things": {
       "title": "Internet of Things",
@@ -1007,6 +1235,13 @@
       "category": "Customer Enablement",
       "fill": "#C925D1"
     },
+    "json_script": {
+      "title": "JSON Script",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 57,
+      "height": 78
+    },
     "kendra": {
       "title": "Kendra",
       "category": "Artificial Intelligence",
@@ -1087,6 +1322,13 @@
       "category": "Front End Web Mobile",
       "fill": "#DD344C"
     },
+    "logs": {
+      "title": "Logs",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 57,
+      "height": 78
+    },
     "lookout_for_equipment": {
       "title": "Lookout for Equipment",
       "category": "Artificial Intelligence",
@@ -1116,6 +1358,13 @@
       "title": "Macie",
       "category": "Security & Identity",
       "fill": "#DD344C"
+    },
+    "magnifying_glass_2": {
+      "title": "Magnifying Glass",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
     },
     "mainframe_modernization": {
       "title": "Mainframe Modernization",
@@ -1172,6 +1421,20 @@
       "category": "Management Tools",
       "fill": "#E7157B"
     },
+    "management_console2": {
+      "title": "Management Console",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 69
+    },
+    "marketplace": {
+      "title": "Marketplace",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
     "media_services": {
       "title": "Media Services",
       "category": "Media Services",
@@ -1181,6 +1444,13 @@
       "title": "MemoryDB",
       "category": "Databases",
       "fill": "#C925D1"
+    },
+    "metrics": {
+      "title": "Metrics",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 71
     },
     "migration_and_transfer": {
       "title": "Migration & Modernization",
@@ -1207,6 +1477,13 @@
       "category": "AWS (retired)",
       "fill": "#E7157B"
     },
+    "mobile_client": {
+      "title": "Mobile Client",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 41,
+      "height": 78
+    },
     "monitron": {
       "title": "Monitron",
       "category": "Artificial Intelligence",
@@ -1221,6 +1498,13 @@
       "title": "Multicloud and Hybrid",
       "category": "Management Tools",
       "fill": "#E7157B"
+    },
+    "multimedia": {
+      "title": "Multimedia",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 73
     },
     "neptune": {
       "title": "Neptune",
@@ -1266,6 +1550,13 @@
       "title": "Nova",
       "category": "Artificial Intelligence",
       "fill": "#01A88D"
+    },
+    "office_building": {
+      "title": "Office Building",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 50,
+      "height": 78
     },
     "omics": {
       "title": "HealthOmics",
@@ -1372,6 +1663,13 @@
       "category": "Customer Enablement",
       "fill": "#C925D1"
     },
+    "programming_language": {
+      "title": "Programming Language",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 51
+    },
     "proton": {
       "title": "Proton",
       "category": "Management Tools",
@@ -1392,6 +1690,13 @@
       "category": "Quantum Technologies",
       "fill": "#ED7100"
     },
+    "question": {
+      "title": "Question",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 41,
+      "height": 78
+    },
     "quick_suite": {
       "title": "Quick",
       "category": "Business Applications",
@@ -1411,6 +1716,13 @@
       "title": "RDS on VMware (retired)",
       "category": "AWS (retired)",
       "fill": "#C925D1"
+    },
+    "recover": {
+      "title": "Recover",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
     },
     "red_hat_openshift": {
       "title": "Red Hat OpenShift Service on AWS",
@@ -1507,6 +1819,13 @@
       "category": "Artificial Intelligence",
       "fill": "#01A88D"
     },
+    "saml_token": {
+      "title": "SAML Token",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
     "satellite": {
       "title": "Satellite",
       "category": "Satellite",
@@ -1562,6 +1881,13 @@
       "category": "Compute",
       "fill": "#ED7100"
     },
+    "servers": {
+      "title": "Servers",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
     "service_catalog": {
       "title": "Service Catalog",
       "category": "Management Tools",
@@ -1576,6 +1902,13 @@
       "title": "Shield",
       "category": "Security & Identity",
       "fill": "#DD344C"
+    },
+    "shield2": {
+      "title": "Shield",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
     },
     "signer": {
       "title": "Signer",
@@ -1627,6 +1960,13 @@
       "category": "Application Integration",
       "fill": "#E7157B"
     },
+    "source_code": {
+      "title": "Source Code",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 57,
+      "height": 78
+    },
     "sql_workbench": {
       "title": "SQL Workbench (retired)",
       "category": "AWS (retired)",
@@ -1636,6 +1976,13 @@
       "title": "Simple Queue Service",
       "category": "Application Integration",
       "fill": "#E7157B"
+    },
+    "ssl_padlock": {
+      "title": "SSL Padlock",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 76
     },
     "step_functions": {
       "title": "Step Functions",
@@ -1676,6 +2023,13 @@
       "title": "Systems Manager - Incident Manager",
       "category": "Management Tools",
       "fill": "#E7157B"
+    },
+    "tape_storage": {
+      "title": "Tape Storage",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 38
     },
     "telco_network_builder": {
       "title": "Telco Network Builder",
@@ -1742,6 +2096,13 @@
       "category": "Artificial Intelligence",
       "fill": "#01A88D"
     },
+    "traditional_server": {
+      "title": "Traditional Server",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 45,
+      "height": 78
+    },
     "training_certification": {
       "title": "Training Certification",
       "category": "Customer Enablement",
@@ -1782,10 +2143,24 @@
       "category": "Management Tools",
       "fill": "#E7157B"
     },
+    "user": {
+      "title": "User",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
+    },
     "user_notifications": {
       "title": "User Notifications",
       "category": "Management Tools",
       "fill": "#E7157B"
+    },
+    "users": {
+      "title": "Users",
+      "category": "General Resources",
+      "fill": "#232F3D",
+      "width": 78,
+      "height": 78
     },
     "verified_access": {
       "title": "Verified Access",
@@ -1953,6 +2328,92 @@
     "vpc": {
       "title": "VPC",
       "style": "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_vpc2;strokeColor=#8C4FFF;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#AAB7B8;dashed=0;"
+    }
+  },
+  "logos": {
+    "admob": {
+      "title": "AdMob",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 78
+    },
+    "avere": {
+      "title": "Avere Physical Appliance",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 26
+    },
+    "campaign_manager": {
+      "title": "Campaign Manager",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 78
+    },
+    "fastly": {
+      "title": "Fastly",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 30
+    },
+    "firebase": {
+      "title": "Firebase",
+      "fill": "#FFA000",
+      "width": 56,
+      "height": 78
+    },
+    "forseti_logo": {
+      "title": "Forseti Security",
+      "fill": "#5184F3",
+      "width": 76,
+      "height": 78
+    },
+    "google_ad_manager": {
+      "title": "Google Ad Manager",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 78
+    },
+    "google_ads": {
+      "title": "Google Ads",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 78
+    },
+    "google_analytics": {
+      "title": "Google Analytics",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 78
+    },
+    "google_analytics_360": {
+      "title": "Google Analytics 360",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 76
+    },
+    "google_play_game_service": {
+      "title": "Google Play Game Services",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 54
+    },
+    "istio_logo": {
+      "title": "Istio",
+      "fill": "#5184F3",
+      "width": 52,
+      "height": 78
+    },
+    "kubernetes_logo": {
+      "title": "Kubernetes",
+      "fill": "#5184F3",
+      "width": 78,
+      "height": 76
+    },
+    "tensorflow_logo": {
+      "title": "TensorFlow",
+      "fill": "#5184F3",
+      "width": 73,
+      "height": 78
     }
   }
 }

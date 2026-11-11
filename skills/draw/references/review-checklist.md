@@ -18,7 +18,12 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
    architecture diagram a system outside the frames that a component inside them calls
    stands beside the frames, level with its caller, or at the nearer end of the frames when
    it has several callers, and a store stands beside the one component that uses it, so
-   these arrows may run across or against the reading order (`target-drawio.md`).
+   these arrows may run across or against the reading order (`target-drawio.md`). A system
+   that a client outside the frames calls as well, or that both calls into the frames and is
+   called from them, stands in a row along the frames, between the components it talks to. In every architecture diagram the main flow (the client, the entry point,
+   the component most connections hang on) runs through the middle of the picture, with
+   what it uses on both sides: a flow along one edge with everything on one side of it is a
+   finding.
 4. Every CLI warning that starts with `layout:` is resolved or explicitly accepted.
 
 ## Wording (read the IR)
@@ -46,13 +51,26 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
    one outgoing flow, a node nothing reaches, a branch that never ends.
 10. In `scout` mode the diagram contains only what the code does, with the source files in
     `meta.notes`, and no open questions or suggestions anywhere in the output.
+11. An `architecture` diagram stays at the level of deployed resources (`ir-reference.md`,
+    Level of detail). Each of these is a `wrong` finding, because the diagram then answers a
+    question it was not asked: several components that are parts of one resource (one icon
+    per table or per group of tables of one database), a boundary around such parts, a
+    connection label that names an endpoint path, a job, a field or message content instead
+    of a protocol, a port or an infrastructure purpose. The fix is one component with the
+    count in its label, and a label that passes the test of that section. A CLI warning
+    that starts with `detail:` names such a breach and is resolved or explicitly accepted,
+    like a `layout:` warning. The CLI reads a label by its form (a path, an identifier, two
+    data words joined by a slash); a breach written as plain prose ("writes the sync date
+    of each office") is for the reviewer to find, so read the labels as well. A system outside
+    AWS in an AWS diagram that has no icon is a `polish` finding: give it a general resource
+    or its product logo (`aws-icons.md`).
 
 ## Audience (read `meta.audience`; see `variants.md`)
 
-11. `business`: no class, method, table, column, queue, endpoint or configuration name
+12. `business`: no class, method, table, column, queue, endpoint or configuration name
     remains; no implementation-only step (queueing, logging, caching, sanitising, retries)
     remains; no label hides a rule behind a word such as "safe" or "valid".
-12. `business`: every business rule of the technical diagram is still present with its
+13. `business`: every business rule of the technical diagram is still present with its
     value. A business rule is a condition whose value the reader would check: a time
     window, a lookback period, a threshold, a limit, a cut-off, a role that may act, and
     the outcomes the reader can observe (an approval, a rejection, a notification, a wait).
@@ -60,10 +78,10 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
     a retry, a validation of the request shape; these may be dropped or merged without a
     finding. When the technical IR is given, compare the two and list each dropped business
     rule as a `missing-rule` finding.
-13. `technical` (or unset): names match the code or the specification exactly; nothing was
+14. `technical` (or unset): names match the code or the specification exactly; nothing was
     reworded for a non-technical reader.
-14. Anything listed in `meta.omitted` was left out on purpose: never ask for it back, in any
-    audience. The author's or the user's decision to omit wins over items 8, 9 and 12; the
+15. Anything listed in `meta.omitted` was left out on purpose: never ask for it back, in any
+    audience. The author's or the user's decision to omit wins over items 8, 9 and 13; the
     closing report lists the omissions so the reader knows what the picture does not cover.
 
 ## Verdict format

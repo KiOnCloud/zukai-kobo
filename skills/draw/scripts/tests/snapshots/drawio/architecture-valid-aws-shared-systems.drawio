@@ -1,0 +1,173 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="booking-platform-on-aws" name="Booking platform on AWS">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="booking-platform-on-aws:account" value="Production account" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_account;strokeColor=#CD2264;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#CD2264;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="264" y="12" width="1076" height="478" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:region" value="ap-northeast-1 (Tokyo)" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_region;strokeColor=#00A4A6;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#147EBA;dashed=1;" vertex="1" parent="booking-platform-on-aws:account">
+          <mxGeometry x="180" y="42" width="884" height="424" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:vpc" value="VPC" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_vpc2;strokeColor=#8C4FFF;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#AAB7B8;dashed=0;" vertex="1" parent="booking-platform-on-aws:region">
+          <mxGeometry x="22" y="198" width="496" height="214" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:public" value="Public subnets" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#7AA116;fillColor=#F2F6E8;verticalAlign=top;align=left;spacingLeft=30;fontColor=#248814;dashed=0;" vertex="1" parent="booking-platform-on-aws:vpc">
+          <mxGeometry x="22" y="42" width="172" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:private" value="Private subnets" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#00A4A6;fillColor=#E6F6F7;verticalAlign=top;align=left;spacingLeft=30;fontColor=#147EBA;dashed=0;" vertex="1" parent="booking-platform-on-aws:vpc">
+          <mxGeometry x="294" y="42" width="180" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:browser" value="Staff browser" style="shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=79;" vertex="1" parent="1">
+          <mxGeometry x="66" y="346" width="54" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:cdn" value="CloudFront" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;labelWidth=68;" vertex="1" parent="booking-platform-on-aws:account">
+          <mxGeometry x="12" y="84" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:site" value="S3 web app" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;labelWidth=72;" vertex="1" parent="booking-platform-on-aws:region">
+          <mxGeometry x="29" y="42" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:alb" value="Application Load Balancer" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elastic_load_balancing;labelWidth=148;" vertex="1" parent="booking-platform-on-aws:public">
+          <mxGeometry x="47" y="42" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:api" value="Booking API (ECS Fargate)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.fargate;labelWidth=155;" vertex="1" parent="booking-platform-on-aws:private">
+          <mxGeometry x="51" y="42" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:tables" value="DynamoDB" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;labelWidth=70;" vertex="1" parent="booking-platform-on-aws:region">
+          <mxGeometry x="787" y="205" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:files" value="S3 attachments" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;labelWidth=92;" vertex="1" parent="booking-platform-on-aws:region">
+          <mxGeometry x="615" y="295" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:idp" value="Identity provider" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#232F3D;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.generic_application;labelWidth=94;" vertex="1" parent="1">
+          <mxGeometry x="433" y="648" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:realtime" value="Firebase Realtime Database" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#FFA000;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.firebase;labelWidth=161;" vertex="1" parent="1">
+          <mxGeometry x="646" y="648" width="56" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:client_logs" value="Client log collector" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#232F3D;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.generic_application;labelWidth=107;" vertex="1" parent="1">
+          <mxGeometry x="54" y="648" width="78" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.341;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:browser" target="booking-platform-on-aws:cdn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="199" y="361"/>
+              <mxPoint x="199" y="135"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c1:label" value="HTTPS" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c1">
+          <mxGeometry x="0.01" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.659;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:browser" target="booking-platform-on-aws:alb">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c2:label" value="REST" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c2">
+          <mxGeometry x="0.13" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.333;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:browser" target="booking-platform-on-aws:idp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="93" y="548"/>
+              <mxPoint x="459" y="548"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c3:label" value="sign in" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c3">
+          <mxGeometry x="0.06" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.339;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:browser" target="booking-platform-on-aws:realtime">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="93" y="520"/>
+              <mxPoint x="665" y="520"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c4:label" value="listen for version" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c4">
+          <mxGeometry x="-0.02" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:browser" target="booking-platform-on-aws:client_logs">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c5:label" value="client logs" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c5">
+          <mxGeometry x="0.58" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:cdn" target="booking-platform-on-aws:site">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:alb" target="booking-platform-on-aws:api">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c7:label" value="HTTP" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c7">
+          <mxGeometry x="-0.02" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:api" target="booking-platform-on-aws:tables">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="997" y="362"/>
+              <mxPoint x="997" y="298"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c8:label" value="read / write" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c8">
+          <mxGeometry x="0.34" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:api" target="booking-platform-on-aws:files">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c9:label" value="store files" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c9">
+          <mxGeometry x="0.39" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=28;exitPerimeter=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:api" target="booking-platform-on-aws:idp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="576"/>
+              <mxPoint x="485" y="576"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c10:label" value="verify token" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c10">
+          <mxGeometry x="0.36" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=28;exitPerimeter=0;entryX=0.661;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-aws:api" target="booking-platform-on-aws:realtime">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="604"/>
+              <mxPoint x="683" y="604"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-aws:c11:label" value="publish version" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-aws:c11">
+          <mxGeometry x="0.32" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,6 +1,7 @@
 import { validateIr } from './validate-ir.mjs';
 import { checkFeatureMatrix, TARGETS } from './check-feature-matrix.mjs';
 import { scanSecrets } from './scan-secrets.mjs';
+import { checkDetail } from './check-detail.mjs';
 import { emitMermaid } from './emit-mermaid.mjs';
 import { emitDrawio, emitDrawioBundle, bundleRefs } from './emit-drawio.mjs';
 
@@ -8,7 +9,7 @@ export { TARGETS };
 
 /**
  * Validate an IR and emit it for one target. Order: schema and references, feature matrix,
- * secret scan, emitter. Errors stop the pipeline; warnings accumulate across every stage.
+ * level of detail, secret scan, emitter. Errors stop the pipeline; warnings accumulate across every stage.
  * @param {unknown} ir
  * @param {string} target
  * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, refs?: Map<string, { pageId: string, title: string }> }} [options]
@@ -22,6 +23,8 @@ export async function emit(ir, target, options = {}) {
   const matrix = checkFeatureMatrix(ir, target);
   const warnings = [...matrix.warnings.map((w) => ({ stage: 'feature-matrix', ...w }))];
   if (!matrix.ok) return { ok: false, errors: matrix.errors, warnings };
+
+  warnings.push(...checkDetail(ir).warnings.map((w) => ({ stage: 'detail', ...w })));
 
   const secrets = scanSecrets(ir);
   warnings.push(...secrets.warnings.map((w) => ({ stage: 'secret-scan', ...w })));

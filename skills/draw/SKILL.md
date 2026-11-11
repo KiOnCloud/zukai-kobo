@@ -150,11 +150,22 @@ on each component that is an AWS service (`"icon": "aws:lambda"`) and `group` on
 boundary that is an AWS construct (`"group": "aws:vpc"`). Copy the value from that file and
 never write one from memory: the names are draw.io's, not the service abbreviations
 (`aws:identity_and_access_management`, not `aws:iam`), and an unknown name fails validation
-with the nearest names as a hint. A component with no matching icon (the customer's own
-system, a third party) keeps its generic shape. `kind` keeps its meaning beside `icon` (the default is `service`):
+with the nearest names as a hint. A system outside AWS (a third party, the
+customer's own system) takes a general resource or a product logo from the same file
+(`aws:generic_application`, `aws:traditional_server`, `gcp:firebase`; its "Choosing" section
+says which), so every component of the diagram has a figure; only a component nothing in
+that file fits keeps its generic shape. `kind` keeps its meaning beside `icon` (the default is `service`):
 it is what Mermaid and FigJam draw, with a warning that the icons were lost. Either
 direction works: a frame title steps aside when a connection enters its frame from above.
 Skip the icons when the user asks for a vendor-neutral picture.
+
+Level of detail. An `architecture` diagram shows deployed resources and how they reach each
+other, not what they do: one component per resource (a database with eleven tables is one
+component, "DynamoDB (11 tables)"), and connection labels that name a protocol, a port or an
+infrastructure purpose, never an endpoint path, a job name or a field. The rule and its test
+are in `references/ir-reference.md` (architecture, Level of detail); business detail the
+user wants goes into a diagram of its own kind, linked with `ref`. The CLI reports the
+breaches it can see as `detail:` warnings: fix the IR and emit again before the review.
 
 ## Targets
 
