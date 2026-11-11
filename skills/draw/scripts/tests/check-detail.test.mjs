@@ -34,6 +34,85 @@ describe('level of detail of an architecture diagram', () => {
     expect(checkDetail(diagram([{ id: 'gw', label: 'Gateway' }, ...fns], fns.map((f, i) => from(f.id, i, 'gw')))).warnings).toEqual([]);
   });
 
+  it('counts a component as a store by its database or storage icon, whatever its kind', () => {
+    const tables = ['orders', 'customers', 'invoices'].map((id) => ({ id, label: id, icon: 'aws:dynamodb' }));
+    const ir = diagram([{ id: 'api', label: 'API' }, ...tables], tables.map((t, i) => ({ id: `c${i}`, from: 'api', to: t.id })));
+    const { warnings } = checkDetail(ir);
+    expect(warnings.map((w) => w.path)).toEqual(['/components/1']);
+    expect(warnings[0].message).toContain('3 components ("orders", "customers", "invoices") are stores of one kind that only "api" uses');
+    const buckets = ['raw', 'clean', 'archive'].map((id) => ({ id, label: id, kind: 'service', icon: 'aws:s3' }));
+    const s3 = diagram([{ id: 'etl', label: 'ETL' }, ...buckets], buckets.map((b, i) => ({ id: `c${i}`, from: 'etl', to: b.id })));
+    expect(checkDetail(s3).warnings.map((w) => w.path)).toEqual(['/components/1']);
+  });
+
+  it('reports a plain boundary that holds only components of one icon or one store kind', () => {
+    const fargate = diagram([{ id: 'api1', label: 'API', icon: 'aws:fargate' }, { id: 'api2', label: 'Worker', icon: 'aws:fargate' }], []);
+    fargate.boundaries = [{ id: 'b-api', label: 'Order API', children: ['api1', 'api2'] }];
+    const { warnings } = checkDetail(fargate);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].path).toBe('/boundaries/0');
+    expect(warnings[0].message).toBe('detail: boundary "b-api" holds only 2 components of one kind ("api1", "api2"); a boundary groups what shares a network, an account or an owner, never the parts of one resource');
+    expect(warnings[0].hint).toContain('drop the boundary');
+    const caches = diagram([{ id: 'x', label: 'X' }, { id: 'k1', label: 'K1', kind: 'cache' }, { id: 'k2', label: 'K2', kind: 'cache' }], []);
+    caches.boundaries = [{ id: 'b-x', label: 'X', children: ['x'] }, { id: 'b-cache', label: 'Cache', children: ['k1', 'k2'] }];
+    expect(checkDetail(caches).warnings.map((w) => w.path)).toEqual(['/boundaries/1']);
+  });
+
+  it('leaves alone a boundary with an AWS frame, mixed icons, a nested boundary, or plain clients and services', () => {
+    const withBoundary = (components, boundaries) => ({ ...diagram(components, []), boundaries });
+    const fargate = (id) => ({ id, label: id, icon: 'aws:fargate' });
+    // Two services in one subnet frame share a network.
+    expect(checkDetail(withBoundary([fargate('a'), fargate('b')], [{ id: 'sn', label: 'Private subnet', group: 'aws:private_subnet', children: ['a', 'b'] }])).warnings).toEqual([]);
+    // Children of mixed icons, or an icon beside none.
+    expect(checkDetail(withBoundary([fargate('a'), { id: 'b', label: 'b', icon: 'aws:lambda' }], [{ id: 'g', label: 'G', children: ['a', 'b'] }])).warnings).toEqual([]);
+    expect(checkDetail(withBoundary([fargate('a'), { id: 'b', label: 'b' }], [{ id: 'g', label: 'G', children: ['a', 'b'] }])).warnings).toEqual([]);
+    // A boundary that also holds a boundary.
+    expect(checkDetail(withBoundary([fargate('a'), fargate('b'), fargate('c')], [{ id: 'inner', label: 'I', children: ['c'] }, { id: 'outer', label: 'O', children: ['a', 'b', 'inner'] }])).warnings).toEqual([]);
+    // Two iconless clients, or two iconless services: an owner or a team.
+    for (const kind of ['client', 'service']) {
+      expect(checkDetail(withBoundary([{ id: 'a', label: 'a', kind }, { id: 'b', label: 'b', kind }], [{ id: 'g', label: 'G', children: ['a', 'b'] }])).warnings, kind).toEqual([]);
+    }
+    // One child alone is not a group of parts.
+    expect(checkDetail(withBoundary([fargate('a')], [{ id: 'g', label: 'G', children: ['a'] }])).warnings).toEqual([]);
+  });
+
+  it('reports connection labels numbered as steps once for the diagram, naming them all', () => {
+    for (const [first, second] of [['1. activate', '2. mark syncing'], ['1) read', '2) write'], ['(1) read', '(2) write'], ['[1] read', '[12] write'], ['1: read', '2: write'], ['① read', '⑳ write']]) {
+      const ir = diagram([{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], [{ id: 'c0', from: 'a', to: 'b', label: 'HTTPS' }, { id: 'c1', from: 'a', to: 'b', label: first }, { id: 'c2', from: 'b', to: 'a', label: second }]);
+      const { warnings } = checkDetail(ir);
+      expect(warnings.map((w) => w.path), first).toEqual(['/connections/1/label']);
+      expect(warnings[0].message, first).toBe('detail: 2 connection labels start with a step number ("c1", "c2"); an architecture diagram shows how the parts reach each other, not the order of calls');
+      expect(warnings[0].hint, first).toContain('`ref`');
+    }
+  });
+
+  it('leaves alone one numbered label and labels that only start with a number', () => {
+    expect(checkDetail(labelled('1. activate')).warnings).toEqual([]);
+    const plain = ['HTTP :8080', 'HTTP/2', 'TLS 1.3, end-to-end', '443', '3.5 GB cache', '2 replicas', '1.5 Gbps', '10 GB'];
+    const ir = diagram([{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], plain.map((label, i) => ({ id: `c${i}`, from: 'a', to: 'b', label })));
+    expect(checkDetail(ir).warnings).toEqual([]);
+  });
+
+  it('reports a diagram that draws a resource in parts and numbers its calls, one warning per breach', () => {
+    const tableIds = ['users', 'devices', 'readings', 'alerts', 'syncs', 'settings'];
+    const tables = tableIds.map((id) => ({ id, label: id, kind: 'database', icon: 'aws:dynamodb' }));
+    const ir = diagram(
+      [{ id: 'app', label: 'App', kind: 'client' }, { id: 'api', label: 'API', icon: 'aws:fargate' }, { id: 'worker', label: 'Sync worker', icon: 'aws:fargate' }, ...tables],
+      [
+        { id: 'c1', from: 'app', to: 'api', label: '1. trigger' },
+        { id: 'c2', from: 'api', to: 'worker', label: '2. gửi yêu cầu' },
+        ...tables.map((t, i) => ({ id: `c${i + 3}`, from: 'worker', to: t.id, label: `${i + 3}. mark as syncing` })),
+      ],
+    );
+    ir.boundaries = [{ id: 'b-db', label: 'DynamoDB', children: tableIds }, { id: 'b-api', label: 'Order API', children: ['api', 'worker'] }];
+    const { warnings } = checkDetail(ir);
+    expect(warnings.map((w) => w.path)).toEqual(['/boundaries/0', '/boundaries/1', '/connections/0/label']);
+    expect(warnings[0].message).toContain('boundary "b-db" holds only 6 components of one kind');
+    expect(warnings[1].message).toContain('boundary "b-api" holds only 2 components of one kind ("api", "worker")');
+    expect(warnings[2].message).toContain('8 connection labels start with a step number');
+    expect(warnings.some((w) => w.message.includes('are stores of one kind'))).toBe(false);
+  });
+
   it('reports a connection labelled with an endpoint, a job or a field', () => {
     for (const [label, what] of [
       ['REST + SignalR /hubs/imageProcessing', 'an endpoint path'],

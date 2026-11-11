@@ -164,8 +164,13 @@ other, not what they do: one component per resource (a database with eleven tabl
 component, "DynamoDB (11 tables)"), and connection labels that name a protocol, a port or an
 infrastructure purpose, never an endpoint path, a job name or a field. The rule and its test
 are in `references/ir-reference.md` (architecture, Level of detail); business detail the
-user wants goes into a diagram of its own kind, linked with `ref`. The CLI reports the
-breaches it can see as `detail:` warnings: fix the IR and emit again before the review.
+user wants goes into a diagram of its own kind, linked with `ref`. A request for a
+"detailed" architecture diagram is answered the same way, and the opening call says so: the
+scope `detailed` gives the architecture diagram at resource level plus its parts (the order
+of calls as `sequence` or `activity`, the tables as `er`), never a second architecture
+diagram with the tables, handlers and numbered steps drawn into it. The CLI reports the
+breaches it can see as `detail:` warnings: fix the IR and emit again before the review. Only
+the user can keep one, as the closing contract says.
 
 ## Targets
 

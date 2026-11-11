@@ -107,12 +107,13 @@ Anything not given as an option is asked once, in a single question, in the user
 ```
 
 `revise` changes a run that `draw` already delivered, in this conversation or an earlier
-one. It edits the model, never the output, and takes one of three routes:
+one. It edits the model, never the output, and takes one of four routes:
 
 | Route | When | What happens |
 |---|---|---|
 | Direct | A clear, local change ("rename Pay to Pay by card", "add a stock check after login") | Asks only what the change leaves open (where it goes, where a failed check leads), saves the previous version, applies the change and runs the usual validate, emit and review |
 | Consult | A what-if ("what if approval came before payment?"), a change that removes elements or reaches a sub-diagram or the business view, or `--preview` | Builds two or three drafts under `drafts/` with a change list for each; nothing delivered changes until you pick one, adjust it and confirm |
+| New diagram | A diagram the run does not have yet ("add an architecture diagram", "also draw the sequence of the payment step") | Asks what `draw` would ask (kind, scope, view), applies the same diagram rules, then adds it to the run as a linked sub-diagram, a business view or a diagram of its own; detail asked of an architecture diagram becomes linked sub-diagrams, never a second, fuller architecture diagram |
 | Undo | "undo", "go back to r003" | Restores an earlier revision of the whole run; the undo can itself be undone |
 
 Before overwriting a draw.io file it checks whether you edited it by hand in draw.io. A
@@ -122,6 +123,7 @@ your edited file in the revision.
 ```text
 /zukai:revise add a validation step after the card is entered
 /zukai:revise what if the approval moved before payment?
+/zukai:revise add an architecture diagram of the services behind this flow
 /zukai:revise undo
 ```
 
@@ -248,8 +250,9 @@ sources.
 
 ## Status
 
-Version 2.0.0 is the open beta. It adds `/zukai:revise`; forks of the skill should read
-[Upgrading to 2.0.0](docs/install.md#upgrading-to-200). Every diagram kind and target listed above works and is
+Version 2.0.1 is the open beta. Version 2.0.0 added `/zukai:revise`; forks of the skill should read
+[Upgrading to 2.0.0](docs/install.md#upgrading-to-200) and
+[Upgrading to 2.0.1](docs/install.md#upgrading-to-201). Every diagram kind and target listed above works and is
 covered by tests. Layout is what still changes between releases, so a diagram emitted again
 after an update can come out arranged differently.
 

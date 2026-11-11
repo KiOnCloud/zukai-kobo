@@ -2,7 +2,8 @@
  * What a change does to the model: elements added, removed and changed between two IRs, and
  * between two sets of IRs (a run's `source/` folder before and after a revision), with hints
  * for the places a change usually has to follow (a `ref` part, a business view, a reference
- * to a removed element).
+ * to a removed element) and for a diagram a revision adds (not linked by any `ref`, or a second
+ * architecture diagram).
  *
  * Elements are the objects with an `id` in the top-level arrays of a kind (`nodes`, `edges`,
  * `messages`, `states`, ...). Nested arrays (`attributes`, `methods`, `branches`) belong to
@@ -89,7 +90,9 @@ function references(value, path = '') {
 }
 
 /**
- * Compare two sets of IRs paired by diagram id (the file name without `.ir.json`).
+ * Compare two sets of IRs paired by diagram id (the file name without `.ir.json`). Hints cover
+ * changed diagrams, then added diagrams (only when the old set is not empty: a first delivery
+ * is not a revision), then removed diagrams.
  * @param {Array<{ id: string, ir: object }>} oldEntries
  * @param {Array<{ id: string, ir: object }>} newEntries
  * @returns {{ differs: boolean, diagramsAdded: string[], diagramsRemoved: string[],
@@ -134,6 +137,18 @@ export function diffRun(oldEntries, newEntries) {
       for (const r of references(after.get(d.id))) {
         if (removedIds.has(r.value)) hint(d.id, `removed ${r.value} is still referenced at ${r.path}`);
       }
+    }
+  }
+  // An added technical diagram that no element links with `ref`, or that sits beside another
+  // architecture diagram.
+  if (before.size > 0) {
+    const architectures = [...after.keys()].filter((id) => after.get(id)?.kind === 'architecture' && !id.endsWith('-business')).sort();
+    for (const added of diagramsAdded) {
+      if (added.endsWith('-business')) continue;
+      const linked = [...after].some(([id, ir]) => id !== added && references(ir).some((r) => r.key === 'ref' && r.value === added));
+      if (!linked) hint(added, `new diagram ${added} is not the ref of any element: link it from the element it details, or say in the report that it stands on its own`);
+      const other = after.get(added)?.kind === 'architecture' && architectures.find((id) => id !== added);
+      if (other) hint(added, `${added} is a second architecture diagram beside ${other}: an architecture diagram shows each resource once, so the detail of ${other} belongs in a part of another kind (sequence, activity, er) linked with ref`);
     }
   }
   // A removed diagram that another diagram's `ref` still points at, or whose business view stays.

@@ -46,7 +46,8 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 8. One main diagram covers the whole feature at the chosen scope; parts exist only under
    `detailed` and are referenced with `ref` on the element they detail (a step, a message,
    a state, a component, a class or an entity), never by an id written into a label;
-   nothing in the request is missing and nothing outside it was added.
+   no second diagram repeats the kind and subject of another one at a different level of
+   detail; nothing in the request is missing and nothing outside it was added.
 9. No degenerate control: a merge or join with one incoming flow, a decision or fork with
    one outgoing flow, a node nothing reaches, a branch that never ends.
 10. In `scout` mode the diagram contains only what the code does, with the source files in
@@ -54,14 +55,21 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 11. An `architecture` diagram stays at the level of deployed resources (`ir-reference.md`,
     Level of detail). Each of these is a `wrong` finding, because the diagram then answers a
     question it was not asked: several components that are parts of one resource (one icon
-    per table or per group of tables of one database), a boundary around such parts, a
-    connection label that names an endpoint path, a job, a field or message content instead
-    of a protocol, a port or an infrastructure purpose. The fix is one component with the
-    count in its label, and a label that passes the test of that section. A CLI warning
-    that starts with `detail:` names such a breach and is resolved or explicitly accepted,
-    like a `layout:` warning. The CLI reads a label by its form (a path, an identifier, two
-    data words joined by a slash); a breach written as plain prose ("writes the sync date
-    of each office") is for the reviewer to find, so read the labels as well. A system outside
+    per table or per group of tables of one database, one icon per handler of one
+    service), a boundary around such parts, a connection label that names an endpoint
+    path, a job, a field or message content instead of a protocol, a port or an
+    infrastructure purpose, connection labels that carry step numbers or tell what the
+    code does in order, a component label that carries what the code does or the data it
+    holds (a batch size, a field list) instead of the resource and its operating settings.
+    The fix is one component with the count in its label, a label that passes the test of
+    that section, and the order of calls in a part of another kind linked with `ref`. A
+    CLI warning that starts with `detail:` names such a breach and is resolved. It stays
+    only when the user chose to keep it, which a `meta.notes` entry starting with
+    `detail accepted:` records (`closing-contract.md`); without that entry it is a `wrong`
+    finding, and with it the breach it names is not raised again. The CLI reads a label by
+    its form (a path, an identifier, a step number, two data words joined by a slash); a
+    breach written as plain prose ("writes the sync date of each office") is for the
+    reviewer to find, so read the labels as well. A system outside
     AWS in an AWS diagram that has no icon is a `polish` finding: give it a general resource
     or its product logo (`aws-icons.md`).
 

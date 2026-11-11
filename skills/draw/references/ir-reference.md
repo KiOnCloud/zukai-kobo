@@ -302,17 +302,29 @@ parts do with each other belongs to the other kinds, so keep the business detail
   endpoint path, a job name, a field or the content of a message is behaviour and belongs to
   a `sequence` or `activity` diagram. The test: a label stays when changing it would change
   a security group, a permission, a route or a port.
+- A connection carries no step number. Which call comes first is the order of a `sequence`
+  or `activity` diagram; here every connection holds at once.
 
-The CLI reports the two breaches it can tell from the IR as `detail:` warnings on every
-emit: three or more stores of one kind that one component alone uses, and a connection
-label that reads as an endpoint path, a job or data path ("organization/schema"), a job
-name ("sync-orders-to-billing") or a field name. Fix the IR and emit
-again; a warning that is wrong for this diagram (separate resources that really are three
-buckets) is shown to the user like any other warning.
+The CLI reports the breaches it can tell from the IR as `detail:` warnings on every emit:
 
-When the user asks for the detail (which tables, which endpoints), give it its own diagram
-of the kind that shows it and link it with `ref`, instead of loading the architecture
-diagram with it.
+- three or more stores of one kind that one component alone uses. A store is a component
+  of `kind` `database`, `cache` or `queue`, or one whose `icon` is a database or storage
+  service, whatever its `kind`;
+- a boundary without `group` that holds nothing but components of one `icon` (or, without
+  icons, of one store kind): the tables of a database or the handlers of a service inside
+  a frame named after it;
+- two or more connection labels that start with a step number ("1. trigger", "(2) fetch");
+- a connection label that reads as an endpoint path, a job or data path
+  ("organization/schema"), a job name ("sync-orders-to-billing") or a field name.
+
+Fix the IR and emit again. A warning that is wrong for this diagram (separate resources
+that really are three buckets) stays only when the user says so; the closing contract says
+how that is asked and recorded.
+
+When the user asks for the detail (which tables, which endpoints, which call comes first),
+give it its own diagram of the kind that shows it and link it with `ref`, instead of
+loading the architecture diagram with it. That holds for a "detailed architecture diagram"
+too: the architecture diagram stays as it is and the detail becomes its parts.
 
 ### AWS icons
 

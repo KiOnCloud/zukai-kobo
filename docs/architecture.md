@@ -31,9 +31,12 @@ brainstorm (idea) ─> clarify ┘                                              
   can produce for every target, so a new enum value cannot ship without a decision per target.
 - **The level of detail** (`check-detail.mjs`) is checked on every emit of an architecture
   diagram: several stores of one kind used by one component alone (a database drawn table
-  by table) and a connection label that reads as an endpoint path, a job or data path or a
+  by table; a store is known by its `kind` or by a database or storage icon), a plain
+  boundary that holds only components of one icon, connection labels that start with step
+  numbers, and a connection label that reads as an endpoint path, a job or data path or a
   field name are reported as `detail:` warnings. They are warnings because the IR cannot show
-  whether three buckets are one resource or three.
+  whether three buckets are one resource or three; the closing contract lets only the user
+  keep one, recorded as a `detail accepted:` entry in `meta.notes`.
 - **The secret scan** (`scan-secrets.mjs`) runs on every emit over every string in the IR:
   URI credentials, known token prefixes, key=value secrets and high-entropy strings produce
   warnings; the FigJam target refuses to emit on them unless `--allow-sensitive` is passed,
@@ -246,8 +249,14 @@ choices.
 - **Drafts never touch `source/`.** A what-if is built as complete copies of the run under
   `drafts/<a|b|c>/` and compared with `diff` (`ir-diff.mjs`: elements added, removed and
   changed per top-level collection, plus hints for a `ref` part or a business view that did
-  not follow and for references left on a removed element). The run is written only after
-  the user confirms one draft, so dropping all drafts needs no undo.
+  not follow, for references left on a removed element, and for an added diagram that no
+  element links to or that is a second architecture diagram of the run). The run is written
+  only after the user confirms one draft, so dropping all drafts needs no undo.
+- **A new diagram is drawn by the draw skill's rules.** A request to add a diagram to a run
+  has its own route: revise reads `skills/draw/SKILL.md` and runs its opening call, mode
+  protocol and IR rules before it writes anything, then places the diagram as a `ref` part,
+  a business view or a diagram of its own. A second diagram of the kind and subject of a
+  delivered one is never written; the detail becomes parts of the kind that shows it.
 
 ## Extension rule
 

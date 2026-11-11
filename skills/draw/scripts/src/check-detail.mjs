@@ -1,14 +1,21 @@
 /**
  * The level of detail of an architecture diagram. Such a diagram shows what is deployed and
  * how the parts reach each other; the parts of one resource and what travels over a
- * connection belong to the other kinds (`references/ir-reference.md`, Level of detail). Two
+ * connection belong to the other kinds (`references/ir-reference.md`, Level of detail). Four
  * breaches can be told from the IR alone, and each is reported as a warning: the diagram is
- * still drawn, because the author may have a reason the IR does not show. A label is read
- * by its form (a path, an identifier, two data words joined by a slash), so a breach written
+ * still drawn, because the author may have a reason the IR does not show. They are a plain
+ * boundary that holds only components of one kind, stores of one kind that one component
+ * alone uses, connection labels numbered as the steps of a call order, and a connection
+ * label that names what travels over it. A label is read by its form (a path, an
+ * identifier, two data words joined by a slash, a leading step number), so a breach written
  * as plain prose is left to the review.
  */
 
+import { awsIcon } from './aws-icons.mjs';
+
 const STORE_KINDS = new Set(['database', 'cache', 'queue']);
+/** The AWS icon categories that draw a store, whatever the `kind` of the component. */
+const STORE_ICON_CATEGORIES = new Set(['Databases', 'Storage']);
 /** How many components of one kind, used by one component alone, read as the parts of one resource. */
 const PARTS_MIN = 3;
 
@@ -16,6 +23,8 @@ const PARTS_MIN = 3;
 const ENDPOINT_PATH = /(?:^|[\s(,;])\/[A-Za-z][\w.-]*\/[A-Za-z{:][\w.{}:-]*/;
 /** Two names joined by a slash where one is written like an identifier: `batch-job/sync-orders`. */
 const JOB_PATH = /(?:^|[\s(,;])(?:[A-Za-z]\w*[-_]\w[\w-]*\/[A-Za-z]\w+|[A-Za-z]\w+\/[A-Za-z]\w*[-_]\w[\w-]*)/;
+/** A step number at the start of a label: `1. `, `1) `, `(1) `, `[1] `, `1: ` before text, or a circled digit ①–⑳. */
+const STEP_NUMBER = /^\s*(?:(?:\d{1,2}[.):]|\(\d{1,2}\)|\[\d{1,2}\])\s+\S|[\u2460-\u2473])/;
 /** Two plain words joined by a slash with no space: `organization/schema`. */
 const WORD_PAIR = /(?:^|[\s(,;])([a-z]{4,})\/([a-z]{4,})(?![\w/-])/;
 /**
@@ -34,6 +43,9 @@ const CAMEL_CASE = /(?:^|[^A-Za-z])[a-z]{2,}[A-Z][a-z]+/;
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const list = (ir, key) => (Array.isArray(ir[key]) ? ir[key].filter(isObj) : []);
+const quoted = (ids) => ids.map((id) => `"${id}"`).join(', ');
+const iconCategory = (c) => (typeof c.icon === 'string' ? awsIcon(c.icon)?.category : undefined);
+const isStore = (c) => STORE_KINDS.has(c.kind ?? 'service') || STORE_ICON_CATEGORIES.has(iconCategory(c));
 
 /**
  * @param {object} ir a valid IR
@@ -44,6 +56,27 @@ export function checkDetail(ir) {
   if (!isObj(ir) || ir.kind !== 'architecture') return { warnings };
   const components = list(ir, 'components');
   const connections = list(ir, 'connections');
+  const byId = new Map(components.map((c) => [c.id, c]));
+
+  // A plain boundary around components of one kind: the parts of one resource framed as a group.
+  // A boundary with an AWS `group` frame (a subnet, a VPC) groups by network and is left alone.
+  const reported = new Set();
+  list(ir, 'boundaries').forEach((b, i) => {
+    if (b.group !== undefined || !Array.isArray(b.children) || b.children.length < 2) return;
+    const children = b.children.map((id) => byId.get(id));
+    if (children.some((c) => c === undefined)) return;
+    const icons = new Set(children.map((c) => c.icon));
+    const kinds = new Set(children.map((c) => c.kind ?? 'service'));
+    const oneIcon = icons.size === 1 && !icons.has(undefined);
+    const oneStoreKind = icons.size === 1 && icons.has(undefined) && kinds.size === 1 && STORE_KINDS.has([...kinds][0]);
+    if (!oneIcon && !oneStoreKind) return;
+    for (const c of children) reported.add(c.id);
+    warnings.push({
+      path: `/boundaries/${i}`,
+      message: `detail: boundary "${b.id}" holds only ${children.length} components of one kind (${quoted(b.children)}); a boundary groups what shares a network, an account or an owner, never the parts of one resource`,
+      hint: `draw one component for the resource and drop the boundary, with the number of its parts in the label where a reader needs it ("DynamoDB (${children.length} tables)"); keep the boundary only when these are separate resources of one owner or one network`,
+    });
+  });
 
   // Stores of one kind that one component alone uses: the tables of a database drawn one by one.
   const users = new Map(components.map((c) => [c.id, new Set()]));
@@ -54,9 +87,8 @@ export function checkDetail(ir) {
   }
   const groups = new Map();
   components.forEach((c, i) => {
-    const kind = c.kind ?? 'service';
-    if (!STORE_KINDS.has(kind) || users.get(c.id)?.size !== 1) return;
-    const key = `${[...users.get(c.id)][0]}|${c.icon ?? kind}`;
+    if (reported.has(c.id) || !isStore(c) || users.get(c.id)?.size !== 1) return;
+    const key = `${[...users.get(c.id)][0]}|${c.icon ?? c.kind}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push({ c, i });
   });
@@ -65,8 +97,18 @@ export function checkDetail(ir) {
     const user = key.split('|')[0];
     warnings.push({
       path: `/components/${parts[0].i}`,
-      message: `detail: ${parts.length} components (${parts.map((p) => `"${p.c.id}"`).join(', ')}) are stores of one kind that only "${user}" uses; an architecture diagram shows a resource once, not its tables or its parts`,
+      message: `detail: ${parts.length} components (${quoted(parts.map((p) => p.c.id))}) are stores of one kind that only "${user}" uses; an architecture diagram shows a resource once, not its tables or its parts`,
       hint: `draw one component and put the number in its label ("DynamoDB (${parts.length} tables)"); keep them apart only when they are separate resources that differ in network place, access or backup, and move the names to an er diagram or to meta.notes`,
+    });
+  }
+
+  // Connection labels numbered as steps: the order of calls, which a sequence or activity diagram shows.
+  const steps = connections.map((c, i) => ({ c, i })).filter(({ c }) => typeof c.label === 'string' && STEP_NUMBER.test(c.label));
+  if (steps.length >= 2) {
+    warnings.push({
+      path: `/connections/${steps[0].i}/label`,
+      message: `detail: ${steps.length} connection labels start with a step number (${quoted(steps.map(({ c }) => c.id))}); an architecture diagram shows how the parts reach each other, not the order of calls`,
+      hint: 'the order of calls is a sequence or activity diagram: give it its own diagram, link it with `ref` on the component it details, and label each connection with its protocol or purpose ("HTTPS", "read / write")',
     });
   }
 

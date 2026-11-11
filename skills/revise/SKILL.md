@@ -1,13 +1,13 @@
 ---
 name: revise
-description: Change diagrams Zukai already delivered. Replace, add, remove or reword steps, participants, states or connections in an existing run, or explore a what-if by proposing two or three draft variants to compare before anything is overwritten. Edits the IR only, keeps the last five revisions for rollback, warns before overwriting hand edits made in draw.io, then re-emits through the draw skill's closing contract. Use for "add a validation step to the login flow", "replace Redis with SQS in the architecture", "what if approval came before payment?", "undo the last change". Not for new diagrams, which the draw skill makes.
+description: Change diagrams Zukai already delivered. Replace, add, remove or reword steps, participants, states or connections in an existing run, or explore a what-if by proposing two or three draft variants to compare before anything is overwritten. Edits the IR only, keeps the last five revisions for rollback, warns before overwriting hand edits made in draw.io, then re-emits through the draw skill's closing contract. A request to add a whole diagram to a run goes through the draw skill's opening questions and diagram rules first. Use for "add a validation step to the login flow", "replace Redis with SQS in the architecture", "what if approval came before payment?", "add an architecture diagram to that run", "undo the last change". Not for a first diagram, which the draw skill makes.
 ---
 
 # Zukai revise
 
-Change a run that the draw skill delivered, through one of three routes: apply a clear change
-directly, consult on a what-if with drafts the user compares and confirms, or undo to an
-earlier revision. The model edits IR only. Everything else (diff, hand-edit check, history,
+Change a run that the draw skill delivered, through one of four routes: apply a clear change
+directly, consult on a what-if with drafts the user compares and confirms, add a diagram the
+run does not have yet, or undo to an earlier revision. The model edits IR only. Everything else (diff, hand-edit check, history,
 emit, review) comes from the draw skill's CLI and closing contract, which this skill never
 copies.
 
@@ -49,7 +49,8 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
 
 - A path first selects the run (an IR path means the run folder that holds it).
 - `--preview` forces the consult route, `--apply` the direct route. Both together is an
-  error: say so and stop.
+  error: say so and stop. They choose between those two routes only: neither turns a request
+  for a new diagram into an edit.
 
 ## 1. Find the run
 
@@ -105,10 +106,13 @@ Mermaid runs skip this step: text output has no layout to lose.
 | Route | When | Next |
 |---|---|---|
 | Undo | "undo", "revert", "go back", "quay lại", "hoàn tác", or a revision named (`r003`) | step 7 |
+| New diagram | the request asks for a diagram the run does not have: another kind, another view, a part that details one element, a second version of a delivered diagram at another level of detail ("add an architecture diagram", "also draw the sequence", "a detailed version of it", "thêm sơ đồ kiến trúc", "vẽ thêm", "bổ sung diagram") | step 8 |
 | Consult | what-if or question phrasing ("what if", "should we", "try", "nếu … thì sao", "có nên", "thử"); or a change that removes elements, or reaches a `ref` part or a `-business` view; or `--preview` | step 6 |
 | Direct | everything else, or `--apply` | step 5 |
 
-Say which route was taken and why, in one line, in the user's language.
+The table is read top to bottom and the first row that fits wins, so a request for a new
+diagram never reaches the direct route, whatever its wording. Say which route was taken and
+why, in one line, in the user's language.
 
 ## 5. Direct route
 
@@ -160,7 +164,46 @@ run. Nothing in `source/` or in the delivered files changes before that confirma
    `history/rNNN/extras/`, say so: they match the restored IRs and can be copied back over
    the emitted files if the user wants their old layout.
 
-## 8. Report
+## 8. New diagram route
+
+A new diagram is the draw skill's work, done inside this run. Revise keeps what it owns (the
+run, the hand-edit check, the snapshot, the change list, the report) and takes every rule
+about the diagram itself from the draw skill, which it never copies.
+
+1. Read `<draw-dir>/SKILL.md` and follow it from "Arguments and modes" to the point where it
+   hands over to the closing contract, as if the request had been given to the draw skill:
+   its opening call (mode, kind, scope, view; a question is skipped only where that file
+   allows it), the protocol of the mode, `ir-reference.md` for the kind, and for an
+   `architecture` diagram its "AWS icons" and "Level of detail" paragraphs. The delivered
+   run answers none of these questions in the user's place, except the target, which is the
+   run's.
+2. Place the diagram in the run before writing it, and say in one line which of these it is:
+   - a part: it details one step, message, state, component, class or entity of a delivered
+     diagram. Its slug is `<main-slug>-NN-<part>`, its title names the element, and that
+     element gets `ref`. Detail asked of an `architecture` diagram is always a part of the
+     kind that shows it (the order of calls as `sequence` or `activity`, the tables as
+     `er`), because the architecture diagram itself stays at the level of deployed
+     resources.
+   - a view: a `-business` IR beside a technical one, by `variants.md`.
+   - a diagram of its own: another kind for the same feature that details no single element
+     (a state diagram beside a sequence). It gets its own slug, and the report says that
+     nothing links to it.
+
+   A second diagram of the kind and subject of a delivered one, differing only in how much
+   it shows, is none of these and is never written. Ask once with `AskUserQuestion` which
+   the user wants: the detail as parts linked with `ref` (first option, with the kinds
+   named), or a change to the delivered diagram itself (then go to the consult route).
+3. Snapshot as in the direct route: `snapshot <run> --request "<the request>" --bundle
+   @<file>`, plus `--extra` from step 3.
+4. Write the new IR into `source/` and make the edit the placement needs (the `ref` on the
+   element a part details). Old ids never change.
+5. `diff <run>/history/<rNNN>/source <run>/source` and read every hint. "is not the ref of
+   any element" and "is a second architecture diagram" name exactly the placements step 2
+   rules out: fix the run, or, for a diagram of its own, say so in the report.
+6. Run `<draw-dir>/references/closing-contract.md` in full. The canvas of the combined file
+   gains the new diagram, as the contract's revise section says.
+
+## 9. Report
 
 The closing contract's report, plus: the route and why, the revision written and where the
 previous state is (`history/rNNN`), the `diff` change list in plain words (added, removed,
