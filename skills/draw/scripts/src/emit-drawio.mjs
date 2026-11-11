@@ -1356,7 +1356,8 @@ function asideCandidates(nodes, edges) {
  *   and the layout engine, which places it against the outermost frame as a whole, would
  *   send one of the two connections round the picture.
  *
- * In a row beside the frames such a system is near every component it talks to.
+ * In a row beside the frames such a system is near every component it talks to. The same
+ * holds for a system and one component that call each other, written as two connections.
  * @returns {Map<string, object[]>} component id to its connections
  */
 function rowCandidates(nodes, edges, aside) {
@@ -1370,8 +1371,11 @@ function rowCandidates(nodes, edges, aside) {
     const own = edges.filter((e) => (e.from === n.id) !== (e.to === n.id));
     if (own.length === 0 || own.length !== edges.filter((e) => e.from === n.id || e.to === n.id).length) continue;
     const others = own.map((e) => (e.from === n.id ? e.to : e.from));
-    if (new Set(others).size !== own.length) continue;
     const onlyCalled = own.every((e) => e.to === n.id);
+    // Two connections with one component are the two ways of an exchange (it calls the
+    // system, the system calls it back): each gets a line of its own in the row. Two calls
+    // the same way are parallel connections, which the layout engine draws side by side.
+    if (onlyCalled && new Set(others).size !== own.length) continue;
     const calledFromOutside = onlyCalled && own.some((e) => byId.get(e.from)?.parent === undefined);
     const inCircle = !onlyCalled && own.some((e) => e.to === n.id) && members.get(circle.get(n.id)) > 1;
     const inFrame = (id) => byId.get(id)?.parent !== undefined;
@@ -1462,22 +1466,27 @@ export function placeRow(layout, row, { containers, nodes, edges, direction, asi
     return !segments.some((sg) => Math.abs(sg.a.y - sg.b.y) < 0.5 && hit(run, { x: Math.min(sg.a.x, sg.b.x), y: sg.a.y - 0.5, width: Math.abs(sg.a.x - sg.b.x), height: 1 }));
   };
   const ways = new Map();
-  const leave = (caller, side) => {
-    const key = `${caller.id}|${side}`;
-    if (!ways.has(key)) ways.set(key, findWay(caller, side));
+  // `offset` moves the way off the middle of the caller: two connections between one
+  // component and one system leave side by side, where the lines to different systems
+  // share the way out.
+  const leave = (caller, side, offset = 0) => {
+    const key = `${caller.id}|${side}|${offset}`;
+    if (!ways.has(key)) ways.set(key, findWay(caller, side, offset));
     return ways.get(key);
   };
-  const findWay = (caller, side) => {
+  const findWay = (caller, side, offset) => {
     // A store stands on that side of its user: no line leaves that way.
     if (side > 0 && caller.n.store) return undefined;
     const { figure, box } = caller;
     const edge = side > 0 ? bottom : top;
     const around = new Set();
     for (let p = parentOf.get(caller.id); p; p = parentOf.get(p)) around.add(p);
-    const centre = Math.round(figure.x + figure.width / 2);
+    const centre = Math.round(figure.x + figure.width / 2) + offset;
     // Downwards in a left-to-right diagram the line starts under the caller's name.
     const under = side > 0 ? (sideways ? box.y + box.height : figure.y + figure.height) : figure.y;
     if (columnFree(caller, centre, under, edge, around)) return { start: { x: centre, y: under }, via: [], x: centre };
+    // Lines side by side keep their place under the caller: none steps aside on its own.
+    if (offset !== 0) return undefined;
     for (let step = 20; step <= ROW_STEP_ASIDE; step += 10) {
       for (const dir of [1, -1]) {
         const x = centre + dir * step;
@@ -1500,9 +1509,14 @@ export function placeRow(layout, row, { containers, nodes, edges, direction, asi
     // The other end of each connection; "caller" also where the system is the one that calls.
     const callers = own.map((e) => ({ e, caller: placedById.get(e.from === id ? e.to : e.from) }));
     if (callers.some((c) => !c.caller)) return id;
+    // The connections of one component with this system, `ROW_TRACK` apart around its middle.
+    for (const c of callers) {
+      const mates = callers.filter((o) => o.caller === c.caller).sort((p, q) => p.e.id.localeCompare(q.e.id));
+      c.offset = (mates.indexOf(c) - (mates.length - 1) / 2) * ROW_TRACK;
+    }
     const options = [];
     for (const side of [1, -1]) {
-      const starts = callers.map((c) => leave(c.caller, side));
+      const starts = callers.map((c) => leave(c.caller, side, c.offset));
       if (starts.some((st) => !st)) continue;
       const far = starts.reduce((sum, st) => sum + (side > 0 ? bottom - st.start.y : st.start.y - top) + 40 * st.via.length, 0);
       options.push({ side, starts, far });
@@ -1527,7 +1541,10 @@ export function placeRow(layout, row, { containers, nodes, edges, direction, asi
     let after = -Infinity;
     const runs = [];
     for (const m of here) {
-      m.x = Math.max(Math.round(m.wants - m.size.width / 2), after);
+      // By its figure, not by its box: the name below a figure makes the box longer on one
+      // side in a top-down diagram, and a line that goes straight on should meet the figure
+      // in its middle.
+      m.x = Math.max(Math.round(m.wants - m.figure.x - m.figure.width / 2), after);
       for (let moved = true; moved;) {
         moved = false;
         for (const f of fixed) {
@@ -1537,8 +1554,9 @@ export function placeRow(layout, row, { containers, nodes, edges, direction, asi
       after = m.x + m.size.width + ROW_BETWEEN;
       // The lines end side by side on the system, in the order of their callers along the flow.
       const lines = [...m.lines].sort((p, q) => p.way.x - q.way.x || p.e.id.localeCompare(q.e.id));
+      const reaches = (l) => l.way.x >= m.x + m.figure.x && l.way.x <= m.x + m.figure.x + m.figure.width;
+      const straight = new Set(lines.map((l) => l.from)).size === 1 && lines.every(reaches);
       lines.forEach((l, k) => {
-        const straight = lines.length === 1 && l.way.x >= m.x + m.figure.x && l.way.x <= m.x + m.figure.x + m.figure.width;
         runs.push({ m, l, x1: straight ? l.way.x : Math.round(m.x + m.figure.x + (m.figure.width * (k + 1)) / (lines.length + 1)) });
       });
     }
@@ -1560,8 +1578,9 @@ export function placeRow(layout, row, { containers, nodes, edges, direction, asi
     // Past the last run, a line that goes straight on has its label beside that last stretch.
     const lastRun = turning.length > 0 ? at - Math.max(ROW_TRACK, thick(turning.at(-1).l.e) + 12) : 0;
     const edgeOfRow = edge + side * (lastRun + Math.max(ROW_END, ...runs.map((r) => thick(r.l.e) + 28)));
+    // Lines share the stretch out of the frames when they take the same way out of one caller.
     const shared = new Map();
-    for (const r of runs) shared.set(r.l.from, (shared.get(r.l.from) ?? 0) + 1);
+    for (const r of runs) shared.set(r.l.way, (shared.get(r.l.way) ?? 0) + 1);
     // The figures of a row stand on one line, whatever the length of their names: each box is
     // placed by its figure, and the line of figures lies where every box clears the lines of
     // the row. A system that already stood beside the frames takes part with its own figure.
@@ -1586,11 +1605,11 @@ export function placeRow(layout, row, { containers, nodes, edges, direction, asi
       // A line that leaves its caller alone is its own all the way: any stretch of it will do.
       const whole = [r.l.way.start, ...points, end];
       let own = whole.slice(1).map((pt, i) => [whole[i], pt]);
-      if (shared.get(r.l.from) > 1) {
+      if (shared.get(r.l.way) > 1) {
         own = undefined;
         if (r.track !== undefined) own = [[points.at(-2), points.at(-1)], [points.at(-1), end]];
         else {
-          const last = turning.filter((t) => t.l.from === r.l.from).reduce((far, t) => (side > 0 ? Math.max(far, t.track) : Math.min(far, t.track)), side > 0 ? -Infinity : Infinity);
+          const last = turning.filter((t) => t.l.way === r.l.way).reduce((far, t) => (side > 0 ? Math.max(far, t.track) : Math.min(far, t.track)), side > 0 ? -Infinity : Infinity);
           if (Number.isFinite(last)) own = [[{ x: r.x1, y: last }, end]];
         }
       }
