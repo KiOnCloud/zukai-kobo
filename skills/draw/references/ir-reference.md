@@ -54,8 +54,10 @@ Rules that apply everywhere:
   shows `↳ <title of the part>` as a second label line in a bundle (the id alone in a single
   emit), and in draw.io it links to the part's page. No other element takes `ref`; never
   write a part's id into a label instead.
-- Do not put credentials, connection strings or tokens in labels or notes. The emitter scans
-  for them and warns; the FigJam target refuses to send them.
+- Do not put credentials, connection strings, tokens or personal data in labels or notes. The
+  CLI scans for them: a credential it knows by its form is written by no target, and
+  anything else it finds is a warning for a local file and a refusal for FigJam
+  (`closing-contract.md` has the rule).
 
 ## flowchart
 

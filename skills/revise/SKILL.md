@@ -39,6 +39,14 @@ Shared references: `<draw-dir>/references/ir-reference.md` (IR fields per kind),
 `variants.md` (business views and language variants), `closing-contract.md` (how every
 change ends), `review-checklist.md` and the `target-*.md` files.
 
+## Asking the user
+
+Every question of this skill and of the consult protocol is written for `AskUserQuestion`.
+A runtime without that tool (Codex) asks the same question as one text message: the
+question, its options as a lettered list with the suggested one first and marked, and "reply
+with a letter or your own words". Where the text names no suggestion, none is marked and
+the user's answer is awaited; never pick for them.
+
 ## Arguments
 
 Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them from the request.

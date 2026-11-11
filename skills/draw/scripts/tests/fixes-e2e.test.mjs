@@ -377,6 +377,16 @@ describe('relabel and the hand-edit check (report items 19 and 20)', () => {
     expect(cli('drift', file, join(run, 'source', 'plain.ir.json')).out).toMatchObject({ ok: true, drifted: false, relabelled: 1 });
   });
 
+  it('reads a relabelled single file by its own page id, whatever its IR file is called', () => {
+    const dir = tmp('names');
+    const ir = loadFixture('flowchart', 'valid');
+    cli('emit', '--to', 'drawio', write(join(dir, 'orders.ir.json'), ir), '--out', join(dir, 'orders.drawio'));
+    const label = 'Validate the contents of the cart against the price list of today';
+    ir.nodes.find((n) => n.id === 'validate').label = label;
+    cli('relabel', join(dir, 'orders.drawio'), '--map', write(join(dir, 'm.json'), { validate: label }), '--out', join(dir, 'orders.en.drawio'));
+    expect(cli('drift', join(dir, 'orders.en.drawio'), write(join(dir, 'orders-en.ir.json'), ir)).out).toMatchObject({ ok: true, drifted: false, relabelled: 1 });
+  });
+
   it('does not warn about a label below a shape that still fits its line', async () => {
     const { relabelDrawio } = await import('../src/relabel.mjs');
     const cell = (value) => `<mxfile compressed="false"><diagram id="d" name="D"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="d:pay" value="${value}" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;whiteSpace=wrap;labelWidth=97;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="78" height="78" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;

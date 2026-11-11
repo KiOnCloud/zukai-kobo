@@ -36,7 +36,7 @@ taken in the order given, which is how a subset is bundled; a shell pattern such
 
 Inside the bundle an element with `ref` (a flowchart node, an activity action, a sequence
 message, a state, an architecture component, a class or an ER entity) shows the referenced
-diagram's title (`↳ <title>`) and is a draw.io page link: clicking it opens that page. The diagram id a `ref` names is the IR
+diagram's title (`↳ <title>`) and is a draw.io page link: clicking it opens that page. When that title reads like the element's own label (case, spacing and a closing remark in brackets aside), the second line is left out and the link stays. The diagram id a `ref` names is the IR
 file name without `.ir.json`, so `ref: "login-01-mfa"` resolves when
 `source/login-01-mfa.ir.json` is in the bundle. A `ref` the bundle does not hold keeps the
 slug text, gets no link, and the CLI warns (`ref "<slug>" is not in this bundle`). A single
@@ -49,7 +49,7 @@ node "<skill-dir>/scripts/bin/cli.mjs" bundle --to drawio --out <run-folder>/<ru
 node "<skill-dir>/scripts/bin/cli.mjs" bundle --to drawio --out <run-folder>/<run-slug>.drawio --title "<feature>" --canvas login,login-01-mfa <run-folder>
 ```
 
-`--canvas` adds a first page, named after `--title` (or `Canvas`), that holds the listed
+`--canvas` adds a first page, named after `--title` (or `Canvas`; `<title> (canvas)` when a diagram already carries that title), that holds the listed
 diagrams side by side: left to right in the given order, top-aligned, `--gap` pixels apart
 (default 120), each under its own title. `all` takes every diagram in bundle order; a
 comma-separated list of diagram ids (IR file names without `.ir.json`) takes a subset, and an

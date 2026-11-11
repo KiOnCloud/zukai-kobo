@@ -214,6 +214,20 @@ redraws it.
 A system that one component calls and that calls the same component back still took the
 long way in this version when the two were written as two connections; 2.0.3 fixes that.
 
+## Upgrading to 2.0.4
+
+Version 2.0.4 fixes what the end-to-end test of 2.0.3 found (`plans/reports/`). What changes
+for a run you already have:
+
+- Page ids in a combined draw.io file are no longer cut at 40 characters. A file written by
+  2.0.3 or older is still read as it is; a redraw gives it full ids.
+- `emit` and `bundle` refuse a credential they recognise by its form on every target, not
+  only for FigJam. Replace the value with a placeholder, or pass `--allow-sensitive` when it
+  is not a secret.
+- `bundle` takes the run folder and orders the diagrams itself (main diagram first).
+- Backups of an older copy go to `zukai-backups/` beside the skills folder, and the copy no
+  longer holds the CLI's sources and tests.
+
 ## Upgrading to 2.0.3
 
 Version 2.0.3 fixes the last case of a connection running round the AWS frames: a system

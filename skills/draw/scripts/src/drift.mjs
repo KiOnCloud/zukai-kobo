@@ -146,7 +146,8 @@ export async function driftDrawio(xml, entries) {
   const current = new Map(actual.flatMap((p) => [...p.cells].map(([id, c]) => [id, mainText(c.value)])));
   let unresolved = 0;
   const laidOut = entries.map((e) => {
-    const prefix = `${slugify(e.id)}:`;
+    // A single file is laid out under its own page id, whatever its IR file is called.
+    const prefix = !bundled && entries.length === 1 ? `${actual[0]?.id ?? slugify(e.id)}:` : `${slugify(e.id)}:`;
     const own = Object.entries(basis).filter(([cell]) => cell.startsWith(prefix));
     if (own.length === 0) return e;
     const ir = structuredClone(e.ir);

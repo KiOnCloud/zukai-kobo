@@ -45,7 +45,10 @@ The invocation arguments select the mode and target. Claude Code appends them as
   table below; `drawio`, `mermaid`, `figjam`; `overview`, `detailed`; `technical`,
   `business`, `both`) and ask that question in the opening call; for an unknown `--to` that
   is one more question there, "Which target?", with the three targets as options and
-  `drawio` suggested. Never pass such a value to
+  `drawio` suggested. `AskUserQuestion` takes four questions: when the target question
+  would be a fifth, ask it first, alone, and the others after the answer. A flag with no
+  request behind it (`/zukai:draw --kind sequence`) is the case of no request above: ask
+  what the diagram should show first. Never pass such a value to
   the CLI and never pick the nearest one in the user's place.
 - `--to <target>` picks `drawio` (default: editable file, the form PMs review), `mermaid`
   (text for Markdown) or `figjam`.
@@ -139,7 +142,7 @@ mode the kind question is skipped and the audience answer fills the audience slo
 brainstorm protocol, which then does not ask again; when the mode itself is being asked in
 this call, the kind question stays, and its answer is dropped if the user picks
 `brainstorm`. Without that tool, send one text message with one numbered question per item
-that is still open (mode, kind, scope, view), each with its own lettered options (`1a`,
+that is still open (mode, kind, scope, view, and the target when `--to` named an unknown one), each with its own lettered options (`1a`,
 `2b`), the suggestion marked; the kind question lists all seven kinds of the table below
 (for a request about the modules of one program, the three kinds of "Modules are not
 resources" first and in that order, then the rest) and is left out when `--kind` was given

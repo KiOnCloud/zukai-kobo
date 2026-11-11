@@ -145,7 +145,7 @@ rotated out, it moves to `history/extras/`.
 |---|---|---|
 | `drawio` | `.drawio` file, uncompressed mxGraph XML | Default. Laid out automatically; every shape and edge stays editable. Architecture diagrams of AWS systems use AWS service icons with VPC, subnet and account frames |
 | `mermaid` | Mermaid text | Paste into Markdown or a wiki |
-| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; falls back to Mermaid text without it |
+| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; without it you get the FigJam text to paste into the board yourself |
 
 draw.io is the target for `activity` diagrams. Mermaid renders them with its beta swimlane
 syntax and FigJam does not support them. The complete table of what each target supports is
@@ -254,7 +254,7 @@ sources.
 
 ## Status
 
-Version 2.0.3 is the open beta. Version 2.0.0 added `/zukai:revise`; forks of the skill should read
+Version 2.0.4 is the open beta. Version 2.0.0 added `/zukai:revise`; forks of the skill should read
 [Upgrading to 2.0.0](docs/install.md#upgrading-to-200) and
 [Upgrading to 2.0.1](docs/install.md#upgrading-to-201). Every diagram kind and target listed above works and is
 covered by tests. Layout is what still changes between releases, so a diagram emitted again

@@ -84,8 +84,8 @@ a class or an entity) shows the referenced diagram's title (`↳ <title>`) on a 
 line, the same text as the draw.io bundle, so the two files read alike; an
 `architecture-beta` label has no line break, so there the title follows on the same line. Mermaid gets no link: Markdown
 renderers such as GitHub strip `click` directives, and the sub-diagram is the next heading
-in the same file anyway. An element whose part carries the very title the element has as
-its label keeps its one line: the heading below already says it. A `ref` the bundle does not hold keeps the slug and the CLI warns.
+in the same file anyway. An element whose part carries the title the element has as
+its label (case, spacing and a closing remark in brackets aside) keeps its one line: the heading below already says it. A `ref` the bundle does not hold keeps the slug and the CLI warns.
 A single `emit` always shows the slug. `--canvas` is refused for this target: the document
 already holds every diagram in order, which is what a canvas gives draw.io.
 

@@ -79,8 +79,9 @@ their `kind`, frames are plain subgraphs, and one warning per field says so.
 
 The text to paste is the one section 2 made: the output of `emit --to figjam`, never of
 `emit --to mermaid`. The `mermaid` target writes front matter and entity codes that the
-`figjam` profile leaves out because FigJam does not take them, and it does not refuse on what
-the secret scan found, while this text is about to be pasted into Figma all the same.
+`figjam` profile leaves out because FigJam does not take them, and it only warns about a
+guess of the secret scan (a mail address, a token-like string) that the `figjam` target
+refuses, while this text is about to be pasted into Figma all the same.
 
 Print the `figjam` text in a fenced `mermaid` block and tell the user: open the FigJam board,
 use Insert (or the `/` quick-insert) > Mermaid (or the "Diagram from code" option), paste the
