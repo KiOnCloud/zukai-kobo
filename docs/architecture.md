@@ -44,9 +44,13 @@ brainstorm (idea) ─> clarify ┘                                              
   `layout-sequence.mjs` for sequence diagrams). FigJam reuses the Mermaid emitter with a
   stricter profile and the agent makes the MCP call.
 - **The CLI** (`cli.mjs`, bundled by esbuild into the committed `bin/cli.mjs`) exposes
-  `validate` and `emit`, exits 2 on validation errors with the errors as JSON on stderr, and
-  is invoked with the absolute skill directory because the working directory is always the
-  user's project.
+  `validate`, `emit`, `bundle`, `relabel` and `preview`, plus `diff`, `drift`, `snapshot`,
+  `revisions` and `restore` for the revise skill; it exits 2 on validation errors with the
+  errors as JSON on stderr, and is invoked with the absolute skill directory because the
+  working directory is always the user's project.
+- **The closing contract** (`skills/draw/references/closing-contract.md`) is the one place
+  that says how every run ends: write, validate, emit, bundle, review, report. Both skills
+  read it; neither copies it.
 
 ## Visual check
 
@@ -216,6 +220,35 @@ draw.io: `relabel.mjs` rewrites labels in an emitted file by cell id, keeping id
 geometry so hand edits survive, and reports labels that the size heuristic says no longer
 fit. Mermaid variants are translated IRs, since text has no layout to keep.
 
+## Revising a run
+
+`skills/revise/SKILL.md` changes a delivered run without a CLI of its own: it locates the
+draw skill as its sibling folder and calls the same `bin/cli.mjs`. The design rests on three
+choices.
+
+- **Hand edits are found by re-emitting.** Emitters are deterministic, so `drift.mjs` emits
+  the IRs again in memory and compares the result with the delivered file cell by cell
+  (decoded values, numeric geometry, waypoints, parents and endpoints; viewport attributes
+  that draw.io rewrites on save are ignored). For a bundle it recovers the options the file
+  was built with from the file itself: the canvas members from the order of the title cells
+  on the canvas page (`"all"` when they are every diagram in file order), the gap that leaves
+  the most titles in place, the title from the page name. Page ids are slugs of the diagram
+  ids, so every match goes through `slugify`; cells draw.io wraps in `UserObject` or `object`
+  and numeric character references are read like the emitted ones. An upgrade of the
+  emitters shows up as drift too; the skill says so instead of hiding it.
+- **Revisions cover the whole run.** `revisions.mjs` copies every IR of the run into
+  `history/rNNN/` together, never one file, because a main diagram, its `ref` parts and its
+  business views must be restored as one consistent set. A revision is written into a
+  temporary sibling and renamed into place, the newest five are kept, and a restore
+  snapshots the current state first (marked `undoOf`, with the current bundle options and
+  any hand-edited outputs) so an undo can be undone. A revision with no IR is never
+  restored.
+- **Drafts never touch `source/`.** A what-if is built as complete copies of the run under
+  `drafts/<a|b|c>/` and compared with `diff` (`ir-diff.mjs`: elements added, removed and
+  changed per top-level collection, plus hints for a `ref` part or a business view that did
+  not follow and for references left on a removed element). The run is written only after
+  the user confirms one draft, so dropping all drafts needs no undo.
+
 ## Extension rule
 
 Adding a target means one new `emit-<target>.mjs`, one column in `feature-matrix.json`, one
@@ -232,4 +265,9 @@ Mermaid outputs are parsed by Mermaid itself (jsdom globals, one import per proc
 contain no raw markup in labels; draw.io outputs pass a structural check derived from
 `mxfile.xsd` plus geometry invariants (no negative coordinates, children inside containers).
 A drift test rebuilds the bundle in memory and compares it byte for byte with the committed
-one. The CLI is tested through the bundle from a different working directory.
+one. The CLI is tested through the bundle from a different working directory. For revise,
+`ir-diff.test.mjs` checks the change list on one edited model per kind and the cascade
+hints on a run, `drift.test.mjs` re-emits every fixture without drift and finds moved,
+reworded, copied and deleted cells (also on compressed pages and inside a bundle), and
+`revisions.test.mjs` covers rotation, multi-file restore, undoing an undo and an interrupted
+snapshot. `install.test.mjs` checks that both skills are installed side by side.

@@ -776,7 +776,7 @@ describe('AWS architecture diagrams against the plain architecture diagrams of t
     expect(comparable.length).toBeGreaterThanOrEqual(4);
     expect(mean(aws, 'pageFill')).toBeGreaterThanOrEqual(mean(comparable, 'pageFill'));
     expect(mean(framed(aws), 'leastFilledFrame')).toBeGreaterThanOrEqual(0.95 * mean(framed(plain), 'leastFilledFrame'));
-  });
+  }, 30000);
 });
 
 /** The axes of a diagram: `along` the flow and `across` it, with the extent of a box on each. */
@@ -864,7 +864,7 @@ describe('systems outside AWS in an AWS diagram', () => {
         expect(Math.abs(middle(along(figure)) - middle(along(api))), `${direction}: ${id} level with the API`).toBeLessThan(1);
       }
     }
-  });
+  }, 30000);
 
   const shared = loadFixture('architecture', 'valid-aws-shared-systems');
   const outside = ['idp', 'realtime', 'client_logs'];

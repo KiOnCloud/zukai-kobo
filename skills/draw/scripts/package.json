@@ -1,6 +1,6 @@
 {
   "name": "zukai-scripts",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "private": true,
   "license": "MIT",
   "description": "Validator and emitters for the Zukai draw skill. Consumers use the committed bundle; these dependencies are only needed to rebuild or test.",

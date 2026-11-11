@@ -33,20 +33,24 @@ jobs:
             console.log("manifests ok:", plugin.name, plugin.version);
           '
 
-      - name: Check the skill frontmatter uses only portable fields and the plugin skill name
+      - name: Check the skill frontmatter uses only portable fields and the plugin skill names
         run: |
           node -e '
             const fs = require("fs");
-            const text = fs.readFileSync("skills/draw/SKILL.md", "utf8");
-            const m = text.match(/^---\n([\s\S]*?)\n---/);
-            if (!m) throw new Error("SKILL.md has no frontmatter");
-            const keys = m[1].split("\n").filter((l) => /^[a-zA-Z-]+:/.test(l)).map((l) => l.split(":")[0]);
             const allowed = new Set(["name", "description", "license", "compatibility", "metadata", "allowed-tools"]);
-            const bad = keys.filter((k) => !allowed.has(k));
-            if (bad.length) throw new Error("non-portable frontmatter keys: " + bad.join(", "));
-            if (!keys.includes("name") || !keys.includes("description")) throw new Error("name and description are required");
-            if (!/^name: draw$/m.test(m[1])) throw new Error("the skill must be named draw; the installers rename a folder copy to zukai from that exact line");
-            console.log("frontmatter ok:", keys.join(", "));
+            for (const name of ["draw", "revise"]) {
+              const text = fs.readFileSync("skills/" + name + "/SKILL.md", "utf8");
+              const m = text.match(/^---\n([\s\S]*?)\n---/);
+              if (!m) throw new Error(name + "/SKILL.md has no frontmatter");
+              const keys = m[1].split("\n").filter((l) => /^[a-zA-Z-]+:/.test(l)).map((l) => l.split(":")[0]);
+              const bad = keys.filter((k) => !allowed.has(k));
+              if (bad.length) throw new Error(name + ": non-portable frontmatter keys: " + bad.join(", "));
+              if (!keys.includes("name") || !keys.includes("description")) throw new Error(name + ": name and description are required");
+              if (!new RegExp("^name: " + name + "$", "m").test(m[1])) throw new Error("the skill in skills/" + name + " must be named " + name + "; the installers rename a folder copy from that exact line");
+              const desc = m[1].split("\n").find((l) => l.startsWith("description: ")).slice(13);
+              if (/: /.test(desc)) throw new Error(name + ": a colon followed by a space in the description breaks YAML plain scalars");
+              console.log("frontmatter ok:", name, keys.join(", "));
+            }
           '
 
       - name: Install dev dependencies

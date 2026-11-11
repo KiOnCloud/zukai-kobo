@@ -88,6 +88,6 @@ matched nothing are listed in `unmatched`; they usually mean a typo in the id.
 ```
 
 For Mermaid: copy each IR to `source/<slug>.<lang>.ir.json`, translate the labels, set
-`meta.lang`, validate, emit and bundle as in the closing contract. The relabel map and the
+`meta.lang`, validate, emit and bundle as in the closing contract (`references/closing-contract.md`). The relabel map and the
 translated IR go through the same review as any diagram: wording items apply, layout items
 apply to the draw.io result after `relabel`.

@@ -9,20 +9,33 @@
  *     (one file holding every diagram; --canvas adds a first draw.io page with those diagrams side by side)
  *   node cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>   (new labels by IR id, layout kept)
  *   node cli.mjs preview <file.drawio|file.mmd> [--out <file.png>] [--max-px <n>]   (optional; needs draw.io desktop or Playwright)
+ *   node cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>   (elements added, removed, changed; a dir is a run's source/ folder)
+ *   node cli.mjs drift <file.drawio> <ir.json>...   (cells that differ from a fresh emit: hand edits made in draw.io)
+ *   node cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (save every IR of a run as a revision)
+ *   node cli.mjs revisions <run-dir>   (the revisions of a run, newest first)
+ *   node cli.mjs restore <run-dir> <rNNN> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (snapshot the current state, then put a revision back)
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { basename, dirname, extname, resolve } from 'node:path';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import { validateIr } from './validate-ir.mjs';
 import { emit, bundle, TARGETS } from './pipeline.mjs';
 import { preview } from './preview.mjs';
 import { relabelDrawio } from './relabel.mjs';
+import { diffIr, diffRun } from './ir-diff.mjs';
+import { driftDrawio } from './drift.mjs';
+import { snapshotRun, listRevisions, restoreRun } from './revisions.mjs';
 
 const USAGE = `usage:
   cli.mjs validate <ir.json>
   cli.mjs emit --to <${TARGETS.join('|')}> <ir.json> [--out <file>] [--allow-sensitive] [--mermaid-stable]
   cli.mjs bundle --to <drawio|mermaid> --out <file> [--title <text>] [--canvas all|<id,id,...> [--gap <px>]] <ir.json>...
   cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>
-  cli.mjs preview <file.drawio|file.mmd> [--out <file.png>] [--max-px <n>]`;
+  cli.mjs preview <file.drawio|file.mmd> [--out <file.png>] [--max-px <n>]
+  cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>
+  cli.mjs drift <file.drawio> <ir.json>...
+  cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
+  cli.mjs revisions <run-dir>
+  cli.mjs restore <run-dir> <rNNN> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]`;
 
 function fail(code, payload) {
   process.stderr.write(JSON.stringify(payload) + '\n');
@@ -31,7 +44,7 @@ function fail(code, payload) {
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, allowSensitive: false, mermaidStable: false };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
     if (a === '--to') opts.to = rest[++i];
@@ -41,6 +54,10 @@ function parseArgs(argv) {
     else if (a === '--gap') opts.gap = rest[++i];
     else if (a === '--map') opts.map = rest[++i];
     else if (a === '--max-px') opts.maxPx = rest[++i];
+    else if (a === '--keep') opts.keep = rest[++i];
+    else if (a === '--request') opts.request = rest[++i];
+    else if (a === '--extra') opts.extras.push(rest[++i]);
+    else if (a === '--bundle') opts.bundleJson = rest[++i];
     else if (a === '--allow-sensitive') opts.allowSensitive = true;
     else if (a === '--mermaid-stable') opts.mermaidStable = true;
     else if (a.startsWith('--')) return { error: `unknown option ${a}` };
@@ -61,6 +78,32 @@ function readIr(file) {
   } catch (e) {
     return { error: { path: file, message: `not valid JSON: ${e.message}`, hint: 'the IR file must contain exactly one JSON object' } };
   }
+}
+
+/** Diagram id of an IR file: its name without `.ir.json` (or `.json`). */
+const diagramIdOf = (file) => basename(file, extname(file)).replace(/\.ir$/, '');
+
+/** Read and validate IR files; a directory stands for its `*.ir.json` files (a run folder for its `source/`). */
+function readIrSet(target) {
+  const path = resolve(target);
+  let files;
+  try {
+    if (statSync(path).isDirectory()) {
+      const dir = existsSync(join(path, 'source')) && statSync(join(path, 'source')).isDirectory() ? join(path, 'source') : path;
+      files = readdirSync(dir).filter((f) => f.endsWith('.ir.json')).sort().map((f) => join(dir, f));
+    } else files = [path];
+  } catch (e) {
+    return { error: { code: 1, payload: { ok: false, errors: [{ path: target, message: `cannot read: ${e.message}` }] } } };
+  }
+  const entries = [];
+  for (const file of files) {
+    const { ir, error } = readIr(file);
+    if (error) return { error: { code: 1, payload: { ok: false, errors: [error] } } };
+    const result = validateIr(ir);
+    if (!result.ok) return { error: { code: 2, payload: { ok: false, errors: result.errors.map((e) => ({ file, ...e })) } } };
+    entries.push({ id: diagramIdOf(file), ir });
+  }
+  return { entries, directory: files.length !== 1 || statSync(path).isDirectory() };
 }
 
 export async function main(argv) {
@@ -168,6 +211,69 @@ export async function main(argv) {
     const result = await preview(opts.positional[0], { out: opts.out, maxPx });
     if (!result.ok) return fail(1, { ok: false, errors: result.errors });
     process.stdout.write(JSON.stringify({ ok: true, preview: result.out, files: result.files, tiled: result.tiled === true, ...(result.tiled ? { overlap: result.overlap } : {}), scale: result.scale, renderer: result.renderer }) + '\n');
+    return 0;
+  }
+  if (opts.command === 'diff') {
+    if (opts.positional.length !== 2) return fail(1, { ok: false, errors: [{ path: '/', message: 'diff takes two IR files or two directories' }], usage: USAGE });
+    const a = readIrSet(opts.positional[0]);
+    if (a.error) return fail(a.error.code, a.error.payload);
+    const b = readIrSet(opts.positional[1]);
+    if (b.error) return fail(b.error.code, b.error.payload);
+    if (!a.directory && !b.directory) {
+      const d = diffIr(a.entries[0].ir, b.entries[0].ir);
+      const differs = d.replaced || d.fields.length + d.added.length + d.removed.length + d.changed.length > 0;
+      process.stdout.write(JSON.stringify({ ok: true, differs, ...d }) + '\n');
+      return 0;
+    }
+    process.stdout.write(JSON.stringify({ ok: true, ...diffRun(a.entries, b.entries) }) + '\n');
+    return 0;
+  }
+  if (opts.command === 'drift') {
+    if (opts.positional.length < 2) return fail(1, { ok: false, errors: [{ path: '/', message: 'drift takes one .drawio file and the IR files it was emitted from' }], usage: USAGE });
+    const [file, ...irFiles] = opts.positional;
+    let xml;
+    try {
+      xml = readFileSync(resolve(file), 'utf8');
+    } catch (e) {
+      return fail(1, { ok: false, errors: [{ path: file, message: `cannot read file: ${e.message}` }] });
+    }
+    if (!/<mxfile\b/.test(xml)) return fail(1, { ok: false, errors: [{ path: file, message: 'not a .drawio file (no <mxfile> root)', hint: 'Mermaid output has no layout to keep; compare the IR with diff instead' }] });
+    const entries = [];
+    for (const f of irFiles) {
+      const set = readIrSet(f);
+      if (set.error) return fail(set.error.code, set.error.payload);
+      entries.push(...set.entries);
+    }
+    const result = await driftDrawio(xml, entries);
+    if (!result.ok) return fail(result.errors.some((e) => e.path === '/') ? 1 : 2, { ok: false, errors: result.errors });
+    process.stdout.write(JSON.stringify(result) + '\n');
+    return 0;
+  }
+  if (opts.command === 'snapshot' || opts.command === 'restore' || opts.command === 'revisions') {
+    const want = opts.command === 'restore' ? 2 : 1;
+    if (opts.positional.length !== want) return fail(1, { ok: false, errors: [{ path: '/', message: opts.command === 'restore' ? 'restore takes a run folder and a revision (rNNN)' : `${opts.command} takes exactly one run folder` }], usage: USAGE });
+    const keep = opts.keep === undefined ? undefined : Number(opts.keep);
+    if (opts.keep !== undefined && !(Number.isInteger(keep) && keep >= 1)) return fail(1, { ok: false, errors: [{ path: '/', message: '--keep takes a whole number, 1 or more' }], usage: USAGE });
+    let bundleOptions;
+    if (opts.bundleJson !== undefined) {
+      try {
+        // `@<file>` reads the object from a file, which keeps quotes in a title out of the shell.
+        const text = opts.bundleJson.startsWith('@') ? readFileSync(resolve(opts.bundleJson.slice(1)), 'utf8') : opts.bundleJson;
+        bundleOptions = JSON.parse(text);
+      } catch (e) {
+        return fail(1, { ok: false, errors: [{ path: '/', message: `--bundle takes a JSON object or @<file>: ${e.message}`, hint: 'pass the "bundle" object that drift printed' }] });
+      }
+      if (typeof bundleOptions !== 'object' || bundleOptions === null || Array.isArray(bundleOptions)) return fail(1, { ok: false, errors: [{ path: '/', message: '--bundle takes a JSON object' }] });
+    }
+    // An --extra path is read like every other path, from the working directory; one that does
+    // not exist there is tried inside the run folder.
+    const extras = opts.extras.map((f) => (existsSync(resolve(f)) ? resolve(f) : f));
+    let result;
+    if (opts.command === 'revisions') result = listRevisions(opts.positional[0]);
+    else if (opts.command === 'restore') result = restoreRun(opts.positional[0], opts.positional[1], { keep, request: opts.request, extras, bundle: bundleOptions });
+    else result = snapshotRun(opts.positional[0], { keep, request: opts.request, extras, bundle: bundleOptions });
+    if (!result.ok) return fail(result.code, { ok: false, errors: result.errors });
+    process.stdout.write(JSON.stringify(result) + '\n');
     return 0;
   }
   return fail(1, { ok: false, errors: [{ path: '/', message: `unknown command "${opts.command ?? ''}"` }], usage: USAGE });

@@ -3,7 +3,7 @@
 Derive a diagram from the source code in the working directory. Read-only: this protocol
 never edits the project. It may run in a subagent (Claude Code: the `source-scout` agent);
 the subagent returns the IR JSON inline, with the file paths it used, and the main session
-writes the file and runs the closing contract from `SKILL.md`.
+writes the file and runs the closing contract in `references/closing-contract.md`.
 
 ## Rules
 
@@ -113,7 +113,7 @@ call the code makes, or leave the label out.
 ## Output
 
 Produce the IR with `meta.source` set to `scout` and the cited paths in `meta.notes`, then
-hand it to the closing contract in `SKILL.md`. When running as a subagent, reply with:
+hand it to the closing contract in `references/closing-contract.md`. When running as a subagent, reply with:
 
 1. The IR in a fenced `json` block.
 2. One paragraph of rationale: entry point chosen and what was left out. No questions, no
