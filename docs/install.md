@@ -176,6 +176,26 @@ maintain a fork or wrap the skill:
 
 Plugin users update as usual (see Updates); folder copies run the installer again.
 
+## Upgrading to 2.0.1
+
+Version 2.0.1 fixes revise adding a diagram to a run without the draw skill's rules, which
+let an architecture diagram through with tables, handlers and numbered steps drawn into it.
+IR files, run folders and CLI commands are unchanged. What you may notice:
+
+- `/zukai:revise` has a fourth route, "new diagram", which asks what `draw` asks (kind,
+  scope, view) before it adds a diagram to a run. Detail asked of an architecture diagram
+  becomes linked sub-diagrams of another kind.
+- An architecture diagram that emitted without warnings may now get `detail:` warnings: for
+  database or storage icons without `kind`, for a plain boundary that holds only components
+  of one icon, and for connection labels that start with step numbers. The skill no longer
+  accepts such a warning on its own: it fixes the model or asks you, and records a kept
+  warning in `meta.notes` as `detail accepted: ...`.
+- `diff` hints at an added diagram that nothing links to and at a second architecture
+  diagram in one run.
+- Forks: the changes are in `skills/revise/SKILL.md` (step 4 and the new step 8),
+  `skills/draw/references/closing-contract.md` (the `detail:` rule) and
+  `skills/draw/references/review-checklist.md` (items 8 and 11).
+
 ## Upgrading from it-diagrams
 
 Zukai was published as `it-diagrams` up to version 1.0.0. The IR format and the CLI did
