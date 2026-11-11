@@ -1,7 +1,7 @@
 # Clarify protocol
 
 Interview the user until every required slot of the chosen diagram kind is filled, then
-draft the IR, show it, and run the closing contract from `SKILL.md`. Runs in the main session
+draft the IR, show it, and run the closing contract in `references/closing-contract.md`. Runs in the main session
 because it asks questions.
 
 ## Rules
@@ -136,5 +136,5 @@ support them; say so when the user asks for those targets.
 1. Build the IR from the answers using `references/ir-reference.md`. Ids come from names
    (`payment-service`, `cancel`), labels from the user's words.
 2. Set `meta.source` to `clarify` and record every assumption in `meta.notes`.
-3. Show the draft, ask the closing question, then run the closing contract in `SKILL.md`:
+3. Show the draft, ask the closing question, then run the closing contract in `references/closing-contract.md`:
    write the file, validate, fix, emit, report warnings verbatim.
