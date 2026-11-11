@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Shared closing contract"
-status: pending
+status: completed
 priority: P1
 effort: 2h
 dependencies: []

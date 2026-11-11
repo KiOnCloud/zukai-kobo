@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Distribution and docs"
-status: pending
+status: completed
 priority: P2
 effort: 0.5d
 dependencies: [4]

@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "CLI diff and drift"
-status: pending
+status: completed
 priority: P1
 effort: 1d
 dependencies: []

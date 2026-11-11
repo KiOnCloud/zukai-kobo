@@ -1,7 +1,7 @@
 ---
 title: "zukai:revise — change delivered diagrams with consult, drafts and rollback"
 description: "Add a second plugin skill, /zukai:revise, that changes an existing diagram run directly or through 2-3 confirmed drafts, keeps the last five revisions and warns before overwriting draw.io hand edits."
-status: pending
+status: in-progress
 priority: P1
 effort: 3d
 branch: claude/elegant-feynman-lkgx0p
@@ -42,11 +42,11 @@ commands that make the change list, hand-edit detection and rollback determinist
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [CLI diff and drift](./phase-01-cli-diff-and-drift.md) | Pending |
-| 2 | [CLI revision history](./phase-02-cli-revision-history.md) | Pending |
-| 3 | [Shared closing contract](./phase-03-shared-closing-contract.md) | Pending |
-| 4 | [Revise skill](./phase-04-revise-skill.md) | Pending |
-| 5 | [Distribution and docs](./phase-05-distribution-and-docs.md) | Pending |
+| 1 | [CLI diff and drift](./phase-01-cli-diff-and-drift.md) | Completed |
+| 2 | [CLI revision history](./phase-02-cli-revision-history.md) | Completed |
+| 3 | [Shared closing contract](./phase-03-shared-closing-contract.md) | Completed |
+| 4 | [Revise skill](./phase-04-revise-skill.md) | Completed |
+| 5 | [Distribution and docs](./phase-05-distribution-and-docs.md) | Completed |
 | 6 | [End-to-end verification](./phase-06-end-to-end-verification.md) | Pending |
 
 Order: 1 → 2 (both edit `src/cli.mjs` and the bundle) → 3 → 4 → 5 → 6. Not parallel-safe.
