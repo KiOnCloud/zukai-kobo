@@ -27,8 +27,11 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    with one way out, a step connected to nothing, a state never reached, a reply before its
    call, a foreign key without a relation), `size:` (far more elements than a reader
    follows), `detail:` and the secret scan. Fix the IR for each `model:` warning before
-   emitting, or record the reason in `meta.omitted` when the gap is on purpose; the others
-   are handled as the rules below say.
+   emitting, or record the reason in `meta.omitted` when the gap is on purpose (the warning
+   then stays, and the report quotes it beside that entry). On a `size:` warning, say the
+   count to the user and offer the scope `detailed`, which moves each sub-flow into a part;
+   draw it as it is only when the user wants one picture. `detail:` and the secret scan are
+   handled as the rules below say.
 3. Emit each diagram on its own into `drawio/` or `mermaid/` with `emit --to <target> --out`,
    then write the combined file with
    `bundle --to <target> --out <run-folder>/<run-slug>.<drawio|md> --title "<feature>" <run-folder>`.

@@ -915,7 +915,10 @@ async function emitEr(ir, cid, warnings, refs) {
   // Header anchors per entity side; the header grows so they sit 20 px apart.
   const groups = new Map();
   for (const end of ends) {
-    const key = `${end.entity}|${end.side}|${end.row ?? 'header'}`;
+    // An end on the top or the bottom side is spread across the width whatever row it names,
+    // so all ends of that side form one group; two of them would otherwise share the middle.
+    const across = end.side === 'top' || end.side === 'bottom';
+    const key = `${end.entity}|${end.side}|${across ? 'header' : end.row ?? 'header'}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(end);
   }
@@ -972,7 +975,7 @@ async function emitEr(ir, cid, warnings, refs) {
       order.push(group.map((end) => `${end.r.id}:${end.end}`).join(','));
       group.forEach((end, k) => {
         const n = nodeById.get(end.entity);
-        const along = end.row !== undefined
+        const along = end.row !== undefined && (end.side === 'left' || end.side === 'right' || end.side === 'loop')
           ? n.rowTops[end.row].y + n.rowTops[end.row].height / 2 + (group.length > 1 ? (k - (group.length - 1) / 2) * (end.side === 'left' || end.side === 'right' ? ER_ANCHOR_PITCH : 8) : 0)
           : ROW / 2 + ER_ANCHOR_PITCH * k;
         end.relY = along / n.height;

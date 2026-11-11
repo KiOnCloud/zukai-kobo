@@ -38,7 +38,7 @@ rule of its own:
 
 | Kind | Business view |
 |---|---|
-| `architecture` | The same deployed picture read as "which systems take part and who runs them". Keep every system the reader knows by name, product names included ("Amazon SQS" is a name a client reads on an invoice), and keep the AWS icons: the checklist's rule that a label names its icon's service still holds. Remove what only an operator needs: instance sizes, table counts, replica settings, subnets and availability zones (keep the account or region frame when it says who owns or where the data lives). Replace a protocol on a connection with what the connection is for ("gửi sự kiện tích điểm" for "SQS SendMessage", still no endpoint or field). A component the reader cannot tell apart from its neighbour (a queue between two services) is merged into the connection it serves. |
+| `architecture` | The same deployed picture read as "which systems take part and who runs them". Keep every system the reader knows by name, product names included ("Amazon SQS" is a name a client reads on an invoice), and keep the AWS icons: the checklist's rule that a label names its icon's service still holds. Remove what only an operator needs: instance sizes, table counts, replica settings, subnets and availability zones (keep the account or region frame when it says who owns or where the data lives). Replace a protocol on a connection with what the connection is for ("gửi sự kiện tích điểm" for "SQS SendMessage", still no endpoint or field). A component that has no name the reader knows and that the reader cannot tell apart from its neighbour (an unnamed internal queue between two services) is merged into the connection it serves; one that carries a product name stays. A `detail accepted:` choice of the technical view holds for the business view too: copy the note. |
 | `er` | A glossary of the business objects and how many of each belong together. Keep the entities the reader has a word for, named with that word ("Đơn hàng", not `orders`), their relations and cardinalities, and the attributes that carry a rule or that the reader would ask for (status, amount, expiry date). Remove surrogate keys, foreign-key columns, audit columns, column types that say nothing to the reader (write `text`, `number`, `date`), and tables that only join two others (the relation becomes many-to-many). |
 | `class` | Rarely worth a business view: when the classes are domain concepts, draw them as the `er` glossary above; when they are technical structure (services, handlers, DTOs), there is no business reading, so say that in one line and deliver the technical view alone, even under `both`. |
 
@@ -101,7 +101,10 @@ share their ids. The keys of the things that are not plain elements:
 - a label on a line (a flowchart edge, a connection, a message, an activity guard): the id
   of that edge, connection, message or flow;
 - a state transition: its id, with the whole text as it is drawn, `event [guard] / action`;
-- the canvas page of a bundle: `canvas:title`. The CLI keeps a leading
+- the canvas page of a bundle: `canvas:title`;
+- an attribute row of an ER entity or a member row of a class: `<entity id>:row-<n>`, with
+  `n` counted from 0 in the order of the IR (the whole row text is replaced, key mark and
+  type included). The CLI keeps a leading
 `«stereotype»` line and a bold title; the `↳ <sub-diagram>` line of an element with `ref` takes
 the target page's new title when the map renames it, so translate every page title. Cells
 the author copied by hand in draw.io have generated ids and cannot be found by key: the CLI

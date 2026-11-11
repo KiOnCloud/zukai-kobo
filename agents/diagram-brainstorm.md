@@ -19,7 +19,7 @@ Reply with exactly three parts:
    user's answer to "Which view?"), never asked again; "developers, assumed" only when
    the task names none.
 2. Two or three candidates, one line each, in the form
-   `<kind>: <scope> for <audience>, answers "<question>"`. Candidates must differ in kind or
+   `<kind>: <subject> for <audience>, answers "<question>"` (the subject is what the diagram covers, not the `overview` or `detailed` scope). Candidates must differ in kind or
    scope.
 3. The recommended default and why, in one sentence.
 

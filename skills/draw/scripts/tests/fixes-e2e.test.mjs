@@ -525,6 +525,19 @@ describe('layout (report items 30 and 32 to 36)', () => {
     expect(box(cells, 'd:member:row-1').height).toBe(26);
   });
 
+  it('spreads two relations that enter an entity from above, each naming a row of its own', async () => {
+    const ir = {
+      schemaVersion: 1, kind: 'er', title: 'Loyalty',
+      entities: [{ id: 'member', label: 'member', attributes: [{ name: 'id', type: 'uuid', key: 'pk' }] }, { id: 'voucher', label: 'voucher', attributes: [{ name: 'id', type: 'uuid', key: 'pk' }] },
+        { id: 'redemption', label: 'redemption', attributes: [{ name: 'id', type: 'uuid', key: 'pk' }, { name: 'member_id', type: 'uuid', key: 'fk' }, { name: 'voucher_id', type: 'uuid', key: 'fk' }] }],
+      relations: [{ id: 'r1', from: 'member', to: 'redemption', fromCardinality: 'one', toCardinality: 'many' }, { id: 'r2', from: 'voucher', to: 'redemption', fromCardinality: 'one', toCardinality: 'many' }],
+    };
+    const cells = await cellsOf(ir);
+    const width = box(cells, 'd:redemption').width;
+    const entries = cells.filter((c) => c.edge === '1').map((c) => Number(/entryX=([\d.]+)/.exec(c.style)[1]) * width);
+    expect(Math.abs(entries[0] - entries[1])).toBeGreaterThanOrEqual(40);
+  });
+
   it('routes an activity branch that ends at a shared merge without crossing its siblings', async () => {
     const ir = {
       schemaVersion: 1, kind: 'activity', title: 'Eligibility', lanes: [{ id: 'cs', label: 'CS' }],

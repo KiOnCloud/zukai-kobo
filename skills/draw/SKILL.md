@@ -43,7 +43,9 @@ The invocation arguments select the mode and target. Claude Code appends them as
 - A flag with a value the skill does not have (`--kind gantt`, `--to pdf`, `--scope full`,
   `--audience sales`) fixes nothing: say in one line which values exist (the kinds of the
   table below; `drawio`, `mermaid`, `figjam`; `overview`, `detailed`; `technical`,
-  `business`, `both`) and ask that question in the opening call. Never pass such a value to
+  `business`, `both`) and ask that question in the opening call; for an unknown `--to` that
+  is one more question there, "Which target?", with the three targets as options and
+  `drawio` suggested. Never pass such a value to
   the CLI and never pick the nearest one in the user's place.
 - `--to <target>` picks `drawio` (default: editable file, the form PMs review), `mermaid`
   (text for Markdown) or `figjam`.
@@ -212,7 +214,7 @@ what it talks to), each with that consequence in its description.
 |---|---|---|---|
 | `drawio` | `.drawio` file with editable shapes, laid out automatically (default) | always available | `references/target-drawio.md` |
 | `mermaid` | Mermaid text to paste into Markdown | always available | `references/target-mermaid.md` |
-| `figjam` | New or existing FigJam board | a Figma MCP tool named `generate_diagram` is available in the session; otherwise fall back to `mermaid` and say so | `references/target-figjam.md` |
+| `figjam` | New or existing FigJam board | a Figma MCP tool named `generate_diagram` is available in the session; otherwise hand the user the `figjam` text to paste, as section 5 of the reference says (never the `mermaid` text), and say so | `references/target-figjam.md` |
 
 The feature matrix (`docs/feature-matrix.md` in the repository, data in
 `scripts/src/feature-matrix.json`) decides per kind, target and feature whether something is

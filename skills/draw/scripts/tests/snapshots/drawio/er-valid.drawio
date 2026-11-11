@@ -5,7 +5,7 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="order-data-model:customer" value="Customer" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="205" y="12" width="215" height="104" as="geometry"/>
+          <mxGeometry x="12" y="12" width="215" height="104" as="geometry"/>
         </mxCell>
         <mxCell id="order-data-model:customer:row-0" value="PK id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-data-model:customer">
           <mxGeometry x="0" y="26" width="215" height="26" as="geometry"/>
@@ -17,7 +17,7 @@
           <mxGeometry x="0" y="78" width="215" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-data-model:order" value="Order" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="232" y="293" width="160" height="130" as="geometry"/>
+          <mxGeometry x="39" y="293" width="160" height="130" as="geometry"/>
         </mxCell>
         <mxCell id="order-data-model:order:row-0" value="PK id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-data-model:order">
           <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
@@ -32,7 +32,7 @@
           <mxGeometry x="0" y="104" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-data-model:order-line" value="Order line" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="36" y="610" width="160" height="130" as="geometry"/>
+          <mxGeometry x="39" y="610" width="160" height="130" as="geometry"/>
         </mxCell>
         <mxCell id="order-data-model:order-line:row-0" value="PK id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-data-model:order-line">
           <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
@@ -47,7 +47,7 @@
           <mxGeometry x="0" y="104" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-data-model:product" value="Product" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="12" y="345" width="160" height="78" as="geometry"/>
+          <mxGeometry x="293" y="345" width="160" height="78" as="geometry"/>
         </mxCell>
         <mxCell id="order-data-model:product:row-0" value="PK id: uuid" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="order-data-model:product">
           <mxGeometry x="0" y="26" width="160" height="26" as="geometry"/>
@@ -56,7 +56,7 @@
           <mxGeometry x="0" y="52" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-data-model:audit" value="Audit log" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;startSize=26;" vertex="1" parent="1">
-          <mxGeometry x="258" y="504" width="160" height="26" as="geometry"/>
+          <mxGeometry x="154" y="504" width="160" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="order-data-model:r1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmandOne;startFill=0;endArrow=ERzeroToMany;endFill=0;exitX=0.502;exitY=1;exitDx=0;exitDy=0;entryX=0.506;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-data-model:customer" target="order-data-model:order">
           <mxGeometry relative="1" as="geometry">
@@ -67,34 +67,34 @@
             <mxPoint x="-4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-data-model:r2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmandOne;startFill=0;endArrow=ERoneToMany;endFill=0;exitX=0.338;exitY=1;exitDx=0;exitDy=0;entryX=0.506;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-data-model:order" target="order-data-model:order-line">
+        <mxCell id="order-data-model:r2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmandOne;startFill=0;endArrow=ERoneToMany;endFill=0;exitX=0.338;exitY=1;exitDx=0;exitDy=0;entryX=0.338;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-data-model:order" target="order-data-model:order-line">
           <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="286" y="449"/>
-              <mxPoint x="117" y="449"/>
-            </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-data-model:r2:label" value="contains" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-data-model:r2">
-          <mxGeometry x="0.48" y="0" relative="1" as="geometry">
-            <mxPoint x="4" y="0" as="offset"/>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="order-data-model:r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmandOne;startFill=0;endArrow=ERzeroToMany;endFill=0;exitX=0.506;exitY=1;exitDx=0;exitDy=0;entryX=0.506;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-data-model:product" target="order-data-model:order-line">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="93" y="555"/>
-              <mxPoint x="117" y="555"/>
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="order-data-model:r3:label" value="appears in" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-data-model:r3">
-          <mxGeometry x="-0.11" y="0" relative="1" as="geometry">
+        <mxCell id="order-data-model:r2:label" value="contains" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-data-model:r2">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
             <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-data-model:r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmandOne;startFill=0;endArrow=ERzeroToMany;endFill=0;exitX=0.506;exitY=1;exitDx=0;exitDy=0;entryX=0.669;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-data-model:product" target="order-data-model:order-line">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="374" y="555"/>
+              <mxPoint x="146" y="555"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-data-model:r3:label" value="appears in" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-data-model:r3">
+          <mxGeometry x="-0.55" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="order-data-model:r4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERzeroToOne;startFill=0;endArrow=ERzeroToMany;endFill=0;dashed=1;exitX=0.669;exitY=1;exitDx=0;exitDy=0;entryX=0.506;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-data-model:order" target="order-data-model:audit">
           <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="146" y="449"/>
+              <mxPoint x="235" y="449"/>
+            </Array>
           </mxGeometry>
         </mxCell>
       </root>
