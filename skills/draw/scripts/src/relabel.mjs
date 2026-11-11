@@ -175,7 +175,12 @@ export function parseAttrs(text) {
   return attrs;
 }
 
-const decodeAttr = (v) => v.replace(/&#10;/g, '\n').replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+// Numeric references (draw.io writes `&#39;` and `&#xa;`) and `&apos;` before `&amp;`, so an
+// escaped ampersand never turns into a reference.
+const decodeAttr = (v) => v
+  .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+  .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+  .replace(/&apos;/g, "'").replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
 const xmlAttr = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\r?\n/g, '&#10;');
 
 /**

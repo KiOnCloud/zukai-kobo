@@ -127,10 +127,12 @@ The installer copies `skills/draw/` to `<project>/.agents/skills/zukai/` and
 `skills/revise/` to `<project>/.agents/skills/zukai-revise/`, changes the `name` line of
 each copied `SKILL.md` (`draw` to `zukai`, `revise` to `zukai-revise`) so it matches the
 folder, and writes a version file next to each (`.zukai-version`,
-`.zukai-revise-version`). The two are always installed together: `zukai-revise` runs the
-CLI of the sibling `zukai/` folder. It copies both into a temporary sibling and renames them
-into place only when both copies are complete, so an interrupted run never leaves a half
-install. It never runs `npm`, never touches the network, and never deletes an existing copy:
+`.zukai-revise-version`). The two belong together: `zukai-revise` runs the CLI of the
+sibling `zukai/` folder, so a run installs whichever of the two is missing or older and
+leaves one already at this version alone. It copies into a temporary sibling and moves the
+copies into place only when all of them are complete, so an interrupted copy never leaves a
+half-copied folder; if a move itself fails (a locked folder on Windows), one skill can end up
+updated and the other not, and running the installer again finishes the job. It never runs `npm`, never touches the network, and never deletes an existing copy:
 a differing one is moved to `<name>.bak-<timestamp>` first.
 
 To update, pull the repository and run the installer again. Exit codes:

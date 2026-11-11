@@ -81,9 +81,21 @@ Rules that hold in every mode:
 ## When revise calls this contract
 
 The revise skill runs this contract after it changed the IRs of a delivered run. It reuses
-the run folder and its run slug, never a new folder. In step 3 it rebuilds the combined file
-with the `bundle` options that `drift` recovered or the revision recorded (`--title`,
-`--canvas`, `--gap`); without them it uses the run's feature name as the title and, for more
-than one diagram, `--canvas all`. In step 5 the report adds the route taken (direct, consult
-or undo), the revision written (`history/rNNN`), the change list from `diff` in plain words
-and the outcome of the drift check. Step 6 is skipped unless the user asks for another target.
+the run folder and its run slug, never a new folder, and changes these steps:
+
+- Step 3 rebuilds the combined file with the `bundle` options that `drift` recovered or the
+  revision recorded. `canvas: "all"` becomes `--canvas all`. A canvas list is first brought up
+  to date: drop the ids the run no longer has, append the diagrams the change added (in file
+  order), then pass it as `--canvas a,b,c`; `--title` and `--gap` are passed as recorded.
+  Without recorded options, use the run's feature name as the title and, for more than one
+  diagram, `--canvas all`. Delete `drawio/<slug>.drawio` or `mermaid/<slug>.mmd` of a
+  diagram the change removed.
+- Files that revise relabelled in place to keep hand edits are never emitted or bundled
+  again, in step 3 or in the review loop. Review findings on them that are label wording are
+  applied with `relabel` (the IR gets the same wording); any other finding is listed in the
+  report and applied only if the user agrees to redraw that file, after a `snapshot` with
+  the file as `--extra`.
+- Step 5 adds the route taken (direct, consult or undo), the revision written
+  (`history/rNNN`), the change list from `diff` in plain words and the outcome of the drift
+  check.
+- Step 6 is skipped unless the user asks for another target.

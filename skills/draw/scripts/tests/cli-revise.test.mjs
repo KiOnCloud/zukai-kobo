@@ -66,7 +66,7 @@ describe('cli revise commands (committed bundle)', () => {
     expect(run(['bundle', '--to', 'drawio', '--out', out, '--title', 'Shop', '--canvas', 'all', join(dir, 'source', 'checkout.ir.json'), join(dir, 'source', 'login.ir.json')]).code).toBe(0);
     const r = run(['drift', out, dir]);
     expect(r.code).toBe(0);
-    expect(r.json).toMatchObject({ drifted: false, bundled: true, bundle: { title: 'Shop', canvas: ['checkout', 'login'], gap: 120 } });
+    expect(r.json).toMatchObject({ drifted: false, bundled: true, bundle: { title: 'Shop', canvas: 'all', gap: 120 } });
   });
 
   it('drift exits 1 on a Mermaid file or bad usage', () => {
@@ -99,5 +99,20 @@ describe('cli revise commands (committed bundle)', () => {
     expect(run(['revisions', join(cwd, 'nowhere')]).code).toBe(1);
     expect(run(['restore', dir]).code).toBe(1);
     expect(run(['restore', dir, 'r042']).code).toBe(1);
+  });
+
+  it('reads --bundle from a file with @ and an --extra path from the working directory', () => {
+    const dir = makeRun();
+    mkdirSync(join(dir, 'drawio'));
+    writeFileSync(join(dir, 'drawio', 'checkout.drawio'), '<mxfile/>');
+    const bundleFile = join(dir, 'bundle.json');
+    writeFileSync(bundleFile, JSON.stringify({ title: "Owner's shop", canvas: 'all' }));
+    const s = run(['snapshot', dir, '--bundle', `@${bundleFile}`, '--extra', join(dir, 'drawio', 'checkout.drawio')]);
+    expect(s.code).toBe(0);
+    expect(s.json.extras).toEqual(['drawio/checkout.drawio']);
+    expect(run(['revisions', dir]).json.revisions[0].bundle).toEqual({ title: "Owner's shop", canvas: 'all' });
+    const r = run(['restore', dir, 'r001', '--bundle', `@${bundleFile}`, '--extra', join(dir, 'drawio', 'checkout.drawio')]);
+    expect(r.code).toBe(0);
+    expect(run(['revisions', dir]).json.revisions[0]).toMatchObject({ rev: 'r002', undoOf: 'r001', extras: ['drawio/checkout.drawio'] });
   });
 });

@@ -103,8 +103,10 @@ DEST_ROOT=$(CDPATH= cd -- "$DEST_ROOT" && pwd -P)
 DEST_DIR="$DEST_ROOT/$SUBDIR"
 LEGACY="$DEST_DIR/$LEGACY_NAME"
 
-# Decide for both skills before touching anything: they are installed together or not at all.
-ALL_SAME=1
+# Decide for both skills before touching anything. A copy already at this version is left
+# alone (backing it up would leave a second copy with the same name competing for routing);
+# the others are installed.
+TODO=""
 for spec in $SKILLS; do
   rest=${spec#*:}; name=${rest%%:*}; marker=${rest#*:}
   state=$(install_state "$DEST_DIR/$name" "$marker") || exit 1
@@ -112,13 +114,14 @@ for spec in $SKILLS; do
     newer)
       echo "Installed $name at $DEST_DIR/$name is newer than this source ($SRC_VERSION); not downgrading." >&2
       exit 3 ;;
-    same) ;;
-    older)    ALL_SAME=0; echo "Upgrading $name -> $SRC_VERSION at $DEST_DIR/$name" ;;
-    unmarked) ALL_SAME=0; echo "Existing folder without a version marker at $DEST_DIR/$name; it will be backed up and replaced." ;;
-    missing)  ALL_SAME=0; echo "Installing $name $SRC_VERSION to $DEST_DIR/$name" ;;
+    same) continue ;;
+    older)    echo "Upgrading $name -> $SRC_VERSION at $DEST_DIR/$name" ;;
+    unmarked) echo "Existing folder without a version marker at $DEST_DIR/$name; it will be backed up and replaced." ;;
+    missing)  echo "Installing $name $SRC_VERSION to $DEST_DIR/$name" ;;
   esac
+  TODO="$TODO $spec"
 done
-if [ "$ALL_SAME" -eq 1 ]; then
+if [ -z "$TODO" ]; then
   echo "zukai $SRC_VERSION already up to date at $DEST_DIR (zukai, zukai-revise)"
   exit 0
 fi
@@ -133,7 +136,7 @@ trap cleanup EXIT INT TERM
 for stale in "$DEST_DIR"/.zukai.tmp-*; do
   [ -e "$stale" ] && rm -rf "$stale"
 done
-for spec in $SKILLS; do
+for spec in $TODO; do
   src=${spec%%:*}; rest=${spec#*:}; name=${rest%%:*}; marker=${rest#*:}
   mkdir -p "$TMP/$name"
   ( cd "$SCRIPT_DIR/skills/$src" && tar -cf - --exclude=node_modules . ) | ( cd "$TMP/$name" && tar -xf - )
@@ -152,7 +155,9 @@ if [ -f "$LEGACY/$LEGACY_MARKER" ]; then
   echo "Install under the old name moved to $LEGACY.bak-$STAMP"
 fi
 
-for spec in $SKILLS; do
+# Both copies are complete before either is moved in; only a failure between these moves
+# (a locked folder) can leave one updated, and running the installer again finishes the job.
+for spec in $TODO; do
   rest=${spec#*:}; name=${rest%%:*}
   if [ -e "$DEST_DIR/$name" ]; then
     mv "$DEST_DIR/$name" "$DEST_DIR/$name.bak-$STAMP"

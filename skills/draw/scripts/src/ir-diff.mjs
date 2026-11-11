@@ -12,7 +12,7 @@
 
 /** Top-level scalar fields worth reporting; `meta` is compared field by field. */
 const TOP_FIELDS = ['title', 'kind', 'direction'];
-const META_FIELDS = ['audience', 'lang', 'omitted', 'notes'];
+const META_FIELDS = ['source', 'audience', 'lang', 'omitted', 'notes'];
 /** Keys whose values name an element (or, for `ref`, a diagram) by id, from the IR schema. */
 const REF_KEYS = new Set(['from', 'to', 'children', 'participants', 'after', 'ref', 'lane']);
 
@@ -122,7 +122,10 @@ export function diffRun(oldEntries, newEntries) {
       }
     }
     const business = `${d.id}-business`;
-    if (!d.id.endsWith('-business') && before.has(business) && after.has(business) && !touched.has(business)) {
+    // Only a change the reader of the business view could see: elements, title or kind, not
+    // bookkeeping in `meta`.
+    const visible = d.replaced || d.added.length + d.removed.length + d.changed.length > 0 || d.fields.some((f) => !f.field.startsWith('meta.'));
+    if (visible && !d.id.endsWith('-business') && before.has(business) && after.has(business) && !touched.has(business)) {
       hint(d.id, `business view not updated: ${business} is unchanged`);
     }
     // A removed element that something in the new model still names.
@@ -133,8 +136,9 @@ export function diffRun(oldEntries, newEntries) {
       }
     }
   }
-  // A removed diagram that another diagram's `ref` still points at.
+  // A removed diagram that another diagram's `ref` still points at, or whose business view stays.
   for (const gone of diagramsRemoved) {
+    if (!gone.endsWith('-business') && after.has(`${gone}-business`)) hint(`${gone}-business`, `${gone} was removed but its business view ${gone}-business stays`);
     for (const [id, ir] of after) {
       for (const r of references(ir)) {
         if (r.key === 'ref' && r.value === gone) hint(id, `removed diagram ${gone} is still the ref of ${r.path}`);

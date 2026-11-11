@@ -7,7 +7,7 @@ import { validateIr } from './validate-ir.mjs';
  * together into `history/r<NNN>/`, so a main diagram, its `ref` parts and its business views
  * are always restored as one consistent set. Only the newest revisions are kept.
  *
- *   history/r007/revision.json       { rev, number, createdAt, request, files, extras, bundle? }
+ *   history/r007/revision.json       { rev, number, createdAt, request, files, extras, bundle?, undoOf? }
  *   history/r007/source/*.ir.json    every IR of the run at that point
  *   history/r007/extras/<path>       delivered files that carried hand edits, when given
  *
@@ -46,7 +46,8 @@ function checkRun(runDir) {
 /**
  * Copy the run's current IRs (and any extra delivered files) into a new revision.
  * @param {string} runDir
- * @param {{ keep?: number, request?: string, extras?: string[], bundle?: object, now?: Date }} [options]
+ * Relative `extras` are resolved against the run folder.
+ * @param {{ keep?: number, request?: string, extras?: string[], bundle?: object, undoOf?: string, now?: Date }} [options]
  */
 export function snapshotRun(runDir, options = {}) {
   const run = resolve(runDir);
@@ -86,6 +87,7 @@ export function snapshotRun(runDir, options = {}) {
     files,
     extras: extras.map((e) => e.rel),
     ...(options.bundle ? { bundle: options.bundle } : {}),
+    ...(options.undoOf ? { undoOf: options.undoOf } : {}),
   };
   writeFileSync(join(tmp, 'revision.json'), JSON.stringify(record, null, 2) + '\n', 'utf8');
   renameSync(tmp, join(history, rev));
@@ -108,18 +110,20 @@ export function listRevisions(runDir) {
     } catch {
       // A revision without a readable record still lists, with what its folder shows.
     }
-    return { rev: r.rev, createdAt: record.createdAt ?? null, request: record.request ?? '', files: irFiles(join(r.path, 'source')), extras: record.extras ?? [], ...(record.bundle ? { bundle: record.bundle } : {}) };
+    return { rev: r.rev, createdAt: record.createdAt ?? null, request: record.request ?? '', files: irFiles(join(r.path, 'source')), extras: record.extras ?? [], ...(record.bundle ? { bundle: record.bundle } : {}), ...(record.undoOf ? { undoOf: record.undoOf } : {}) };
   });
   return { ok: true, revisions };
 }
 
 /**
  * Put a revision's IRs back into `source/`. The current state is snapshotted first, so a
- * restore can itself be undone. IRs the revision does not have are removed with their
- * per-diagram outputs; the caller then emits and bundles again.
+ * restore can itself be undone; that snapshot records `undoOf: <rev>`, takes the current
+ * bundle options and any hand-edited outputs given as `extras`. IRs the revision does not
+ * have are removed with their per-diagram outputs; the caller then emits and bundles again
+ * with the `bundle` options of the restored revision.
  * @param {string} runDir
  * @param {string} rev e.g. `r003`
- * @param {{ keep?: number, request?: string, now?: Date }} [options]
+ * @param {{ keep?: number, request?: string, extras?: string[], bundle?: object, now?: Date }} [options]
  */
 export function restoreRun(runDir, rev, options = {}) {
   const run = resolve(runDir);
@@ -131,6 +135,7 @@ export function restoreRun(runDir, rev, options = {}) {
 
   // Read the revision before snapshotting: the snapshot's rotation may delete its folder.
   const files = irFiles(join(target.path, 'source'));
+  if (files.length === 0) return fail(1, `revision ${rev} holds no IR files; refusing to empty source/`, 'pick another revision with `revisions`');
   const contents = new Map(files.map((f) => [f, readFileSync(join(target.path, 'source', f), 'utf8')]));
   const errors = [];
   for (const [f, text] of contents) {
@@ -152,7 +157,7 @@ export function restoreRun(runDir, rev, options = {}) {
     bundle = undefined;
   }
 
-  const snap = snapshotRun(run, { keep: options.keep, request: options.request ?? `undo to ${rev}`, bundle, now: options.now });
+  const snap = snapshotRun(run, { keep: options.keep, request: options.request ?? `undo to ${rev}`, extras: options.extras, bundle: options.bundle, undoOf: rev, now: options.now });
   if (!snap.ok) return snap;
 
   const source = join(run, 'source');

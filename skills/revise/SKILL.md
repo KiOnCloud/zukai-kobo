@@ -26,10 +26,14 @@ and every shared reference comes from `<draw-dir>`:
 ```bash
 node "<draw-dir>/scripts/bin/cli.mjs" diff <old.ir.json|old-dir> <new.ir.json|new-dir>
 node "<draw-dir>/scripts/bin/cli.mjs" drift <file.drawio> <ir.json|run-dir>...
-node "<draw-dir>/scripts/bin/cli.mjs" snapshot <run-dir> --request "<text>" [--extra <file>]... [--bundle '<json>']
+node "<draw-dir>/scripts/bin/cli.mjs" snapshot <run-dir> --request "<text>" [--extra <file>]... [--bundle @<file>]
 node "<draw-dir>/scripts/bin/cli.mjs" revisions <run-dir>
-node "<draw-dir>/scripts/bin/cli.mjs" restore <run-dir> <rNNN>
+node "<draw-dir>/scripts/bin/cli.mjs" restore <run-dir> <rNNN> [--extra <file>]... [--bundle @<file>]
 ```
+
+`--extra` paths are read from the working directory like every other path. `--bundle` takes
+the `bundle` object that `drift` printed; write it to a temporary file outside the run
+folder and pass `@<file>`, so a quote in a title never meets the shell.
 
 Shared references: `<draw-dir>/references/ir-reference.md` (IR fields per kind),
 `variants.md` (business views and language variants), `closing-contract.md` (how every
@@ -58,8 +62,8 @@ A run is a folder `diagrams/<yyyymmdd>_<run-slug>/` with a `source/` folder of I
    diagram titles match the request: use it and say which. None or several: ask once with
    `AskUserQuestion`, up to four runs, newest first, labelled by date and slug, each with its
    diagram titles as the description.
-4. No run at all: stop and say that nothing was delivered yet, so the draw skill
-   (`/zukai:draw`) is the one to use.
+4. No run at all: stop and say that nothing was delivered yet, so the draw skill is the one
+   to use (`/zukai:draw` in the plugin, `/zukai` or `$zukai` in a copied install).
 
 A `drafts/` folder left in the run by an earlier session is reported first: offer to resume
 that consult (go to the consult protocol, step 4) or drop it (delete `drafts/`).
@@ -81,9 +85,15 @@ with what this version of the skill would draw, so an upgrade between delivery a
 up the same way; say that once. Then:
 
 - A label-only request keeps the hand edits: after the snapshot, change the labels in the IR
-  (validate it), write a map `{ "<ir id>": "<new label>" }` to a temporary file outside the
-  run folder, and run `relabel <file> --map <map> --out <file>` on each drifted draw.io file
-  instead of emitting it again. Files that did not drift are emitted as usual.
+  (validate it), write a map to a temporary file outside the run folder, and run
+  `relabel <file> --map <map> --out <file>` on each drifted draw.io file instead of emitting
+  it again. Key the map by `<page id>:<ir id>` (`"checkout:pay": "Pay by card"`; the page id
+  is the `diagram` that `drift` printed for that page): in the
+  combined file a bare id would also rename the same id on every other page. `relabel`
+  reports how many cells it changed by matching text (`byText`); name them in the report,
+  since a hand-copied shape is renamed that way too. These files stay out of the closing
+  contract's emit and bundle steps (its revise section says how). Files that did not drift
+  are emitted as usual.
 - Any other request redraws the files and loses the hand edits. Ask once: "redraw and lose
   these edits" or "stop". On redraw, pass every drifted file to `snapshot` with `--extra`, so
   it is kept under `history/rNNN/extras/`, and say where.
@@ -108,8 +118,8 @@ Say which route was taken and why, in one line, in the user's language.
    `-business` view). When one is missing, ask once with `AskUserQuestion`: at most four
    questions, concrete placements as options, in the user's language, with the English
    keyword in parentheses where a value maps to the IR, as the draw skill does.
-2. Snapshot: `snapshot <run> --request "<the request>" --bundle '<bundle json>'` (plus
-   `--extra` from step 3). Note the revision it prints.
+2. Snapshot: `snapshot <run> --request "<the request>" --bundle @<file>` (plus `--extra`
+   from step 3). Note the revision it prints.
 3. Edit the IRs. Old ids never change; new ids come from names (`validate-card`), never from
    counters alone. A change to a technical diagram that has a `-business` view is carried
    into that view by `variants.md`. A step that gains or loses a `ref` part changes the part
@@ -129,13 +139,26 @@ run. Nothing in `source/` or in the delivered files changes before that confirma
 
 ## 7. Undo route
 
-1. `revisions <run>`. Show them newest first as `rNNN · date · request`.
-2. "The last change" or a plain "undo" means the newest revision; a named one is used as
-   given; otherwise ask which, with `AskUserQuestion` (the four newest as options).
-3. `restore <run> <rNNN>`. It snapshots the current state first, so the undo can be undone
-   the same way; say which revision holds the state you just left.
-4. Delete the combined file's stale pages by rebuilding it: run the closing contract with the
-   `bundle` options that `restore` printed.
+1. `revisions <run>`. Show them newest first as `rNNN · date · request`. A revision that a
+   restore wrote carries `undoOf: rNNN` (the revision it went back to).
+2. Pick the target:
+   - a named revision is used as given;
+   - "undo the undo", "redo": the newest revision, when it carries `undoOf`;
+   - a plain "undo" or "the last change": the newest revision that steps back from where the
+     run is now. When the newest revision carries `undoOf: rX`, that is the newest revision
+     older than `rX` without `undoOf` (so a second "undo" goes further back instead of
+     redoing); otherwise it is the newest revision. When there is none, say there is
+     nothing earlier to go back to;
+   - anything else: ask which, with `AskUserQuestion` (the four newest as options).
+3. `restore <run> <rNNN> --bundle @<file> [--extra <file>]...`, with the current `bundle`
+   options from step 3 and, when the user agreed to redraw drifted files, those files as
+   `--extra`. Never run a separate `snapshot` first: it would rotate the oldest revision
+   away, which may be the target. `restore` snapshots the current state itself, so the undo
+   can be undone; say which revision holds the state you just left.
+4. Rebuild the outputs: run the closing contract with the `bundle` options that `restore`
+   printed (those of the restored revision). When that revision kept hand-edited files under
+   `history/rNNN/extras/`, say so: they match the restored IRs and can be copied back over
+   the emitted files if the user wants their old layout.
 
 ## 8. Report
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -88,5 +88,15 @@ describe.skipIf(!runnable)('install.sh', () => {
     writeFileSync(join(other, 'SKILL.md'), '---\nname: it-diagrams\n---\n');
     run('codex', dest);
     expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['it-diagrams', 'zukai', 'zukai-revise']);
+  });
+
+  it('installs only the missing skill and leaves a same-version copy alone', () => {
+    const dest = mkdtempSync(join(tmpdir(), 'zukai-install-'));
+    run('codex', dest);
+    rmSync(join(dest, '.agents/skills/zukai-revise'), { recursive: true });
+    const out = run('codex', dest);
+    expect(out).toMatch(/Installing zukai-revise/);
+    expect(out).not.toMatch(/Previous install of zukai moved/);
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-revise']);
   });
 });

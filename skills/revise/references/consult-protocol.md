@@ -37,7 +37,8 @@ For each draft:
 1. `validate` every IR; on errors fix only the listed paths and validate again.
 2. Emit each diagram into `drafts/<x>/drawio/` or `drafts/<x>/mermaid/` with
    `emit --to <target> --out`, then `bundle` into `drafts/<x>/<run-slug>.<drawio|md>` with
-   the run's `bundle` options (from `drift`, or the run's feature name as title).
+   the run's `bundle` options, adjusted to the draft's diagrams as the closing contract's
+   revise section says (a canvas list loses removed diagrams and gains new ones).
 3. `diff <run>/source <run>/drafts/<x>/source` for the change list and its hints.
 
 Print every CLI warning verbatim. No review gate runs on drafts: the review runs once, on the
@@ -64,7 +65,7 @@ it and step 4 shows it again with the other drafts gone. Repeat until the user c
 
 ## 6. Confirm
 
-1. `snapshot <run> --request "<the request> (draft <x>)" --bundle '<bundle json>'`, plus
+1. `snapshot <run> --request "<the request> (draft <x>)" --bundle @<file>`, plus
    `--extra` for files that drifted (the skill's step 3).
 2. Copy `drafts/<x>/source/*.ir.json` over `source/`; delete IRs from `source/` that the
    draft does not have, with their `drawio/<slug>.drawio` or `mermaid/<slug>.mmd`.

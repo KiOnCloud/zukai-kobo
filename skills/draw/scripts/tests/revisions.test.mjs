@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { snapshotRun, listRevisions, restoreRun } from '../src/revisions.mjs';
@@ -111,5 +111,25 @@ describe('restoreRun', () => {
     expect(restoreRun(run, 'r001')).toMatchObject({ ok: false, code: 2 });
     expect(readFileSync(join(run, 'source', 'main.ir.json'), 'utf8')).toBe(before);
     expect(history()).toEqual(['r001']);
+  });
+
+  it('refuses a revision without IR files instead of emptying source/', () => {
+    snapshotRun(run);
+    for (const f of readdirSync(join(run, 'history', 'r001', 'source'))) writeFileSync(join(run, 'history', 'r001', 'source', f), '');
+    const empty = join(run, 'history', 'r001', 'source');
+    for (const f of readdirSync(empty)) rmSync(join(empty, f));
+    expect(restoreRun(run, 'r001')).toMatchObject({ ok: false, code: 1 });
+    expect(readdirSync(join(run, 'source')).sort()).toEqual(['login.ir.json', 'main.ir.json']);
+  });
+
+  it('records the current bundle, the hand-edited outputs and what it undoes in its own snapshot', () => {
+    snapshotRun(run, { bundle: { canvas: ['main'] } });
+    writeFileSync(join(run, 'drawio', 'main.drawio'), '<mxfile edited/>');
+    const r = restoreRun(run, 'r001', { bundle: { canvas: 'all' }, extras: ['drawio/main.drawio'] });
+    expect(r).toMatchObject({ ok: true, snapshot: 'r002', bundle: { canvas: ['main'] } });
+    const record = JSON.parse(readFileSync(join(run, 'history', 'r002', 'revision.json'), 'utf8'));
+    expect(record).toMatchObject({ undoOf: 'r001', bundle: { canvas: 'all' }, extras: ['drawio/main.drawio'] });
+    expect(readFileSync(join(run, 'history', 'r002', 'extras', 'drawio', 'main.drawio'), 'utf8')).toBe('<mxfile edited/>');
+    expect(listRevisions(run).revisions[0]).toMatchObject({ rev: 'r002', undoOf: 'r001' });
   });
 });

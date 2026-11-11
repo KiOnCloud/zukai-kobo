@@ -62,8 +62,10 @@ $destRoot = (Resolve-Path $Dest).Path
 $destDir = Join-Path $destRoot $subdir
 $legacySkill = Join-Path $destDir $legacyName
 
-# Decide for both skills before touching anything: they are installed together or not at all.
-$allSame = $true
+# Decide for both skills before touching anything. A copy already at this version is left
+# alone (backing it up would leave a second copy with the same name competing for routing);
+# the others are installed.
+$todo = @()
 foreach ($s in $skills) {
   $s.Dest = Join-Path $destDir $s.Name
   $markerPath = Join-Path $s.Dest $s.Marker
@@ -75,18 +77,19 @@ foreach ($s in $skills) {
     }
     switch (Compare-Versions $srcVersion $installed) {
       0  { }
-      -1 { Write-Error "Installed $($s.Name) $installed at $($s.Dest) is newer than this source ($srcVersion); not downgrading."; exit 3 }
-      1  { $allSame = $false; Write-Output "Upgrading $($s.Name) $installed -> $srcVersion at $($s.Dest)" }
+      # Written to stderr directly: Write-Error under 'Stop' would end the script with exit 1.
+      -1 { [Console]::Error.WriteLine("Installed $($s.Name) $installed at $($s.Dest) is newer than this source ($srcVersion); not downgrading."); exit 3 }
+      1  { $todo += $s; Write-Output "Upgrading $($s.Name) $installed -> $srcVersion at $($s.Dest)" }
     }
   } elseif (Test-Path $s.Dest) {
-    $allSame = $false
+    $todo += $s
     Write-Output "Existing folder without a version marker at $($s.Dest); it will be backed up and replaced."
   } else {
-    $allSame = $false
+    $todo += $s
     Write-Output "Installing $($s.Name) $srcVersion to $($s.Dest)"
   }
 }
-if ($allSame) { Write-Output "zukai $srcVersion already up to date at $destDir (zukai, zukai-revise)"; exit 0 }
+if ($todo.Count -eq 0) { Write-Output "zukai $srcVersion already up to date at $destDir (zukai, zukai-revise)"; exit 0 }
 
 New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 $tmp = Join-Path $destDir ".zukai.tmp-$PID"
@@ -95,7 +98,7 @@ try {
   Get-ChildItem -Path $destDir -Directory -Filter '.zukai.tmp-*' -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
   New-Item -ItemType Directory -Path $tmp | Out-Null
   $utf8 = New-Object System.Text.UTF8Encoding $false
-  foreach ($s in $skills) {
+  foreach ($s in $todo) {
     $copy = Join-Path $tmp $s.Name
     New-Item -ItemType Directory -Path $copy | Out-Null
     Get-ChildItem -Path $s.Src -Force | Where-Object { $_.Name -ne 'node_modules' } | ForEach-Object {
@@ -125,7 +128,9 @@ try {
     Write-Output "Install under the old name moved to $legacySkill.bak-$stamp"
   }
 
-  foreach ($s in $skills) {
+  # Both copies are complete before either is moved in; only a failure between these moves
+  # (a locked folder) can leave one updated, and running the installer again finishes the job.
+  foreach ($s in $todo) {
     if (Test-Path $s.Dest) {
       $bak = "$($s.Dest).bak-$stamp"
       Move-Item -Path $s.Dest -Destination $bak

@@ -11,9 +11,9 @@
  *   node cli.mjs preview <file.drawio|file.mmd> [--out <file.png>] [--max-px <n>]   (optional; needs draw.io desktop or Playwright)
  *   node cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>   (elements added, removed, changed; a dir is a run's source/ folder)
  *   node cli.mjs drift <file.drawio> <ir.json>...   (cells that differ from a fresh emit: hand edits made in draw.io)
- *   node cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>]   (save every IR of a run as a revision)
+ *   node cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (save every IR of a run as a revision)
  *   node cli.mjs revisions <run-dir>   (the revisions of a run, newest first)
- *   node cli.mjs restore <run-dir> <rNNN> [--keep <n>] [--request <text>]   (snapshot the current state, then put a revision back)
+ *   node cli.mjs restore <run-dir> <rNNN> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (snapshot the current state, then put a revision back)
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
@@ -33,9 +33,9 @@ const USAGE = `usage:
   cli.mjs preview <file.drawio|file.mmd> [--out <file.png>] [--max-px <n>]
   cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>
   cli.mjs drift <file.drawio> <ir.json>...
-  cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>]
+  cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
   cli.mjs revisions <run-dir>
-  cli.mjs restore <run-dir> <rNNN> [--keep <n>] [--request <text>]`;
+  cli.mjs restore <run-dir> <rNNN> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]`;
 
 function fail(code, payload) {
   process.stderr.write(JSON.stringify(payload) + '\n');
@@ -254,21 +254,24 @@ export async function main(argv) {
     if (opts.positional.length !== want) return fail(1, { ok: false, errors: [{ path: '/', message: opts.command === 'restore' ? 'restore takes a run folder and a revision (rNNN)' : `${opts.command} takes exactly one run folder` }], usage: USAGE });
     const keep = opts.keep === undefined ? undefined : Number(opts.keep);
     if (opts.keep !== undefined && !(Number.isInteger(keep) && keep >= 1)) return fail(1, { ok: false, errors: [{ path: '/', message: '--keep takes a whole number, 1 or more' }], usage: USAGE });
+    let bundleOptions;
+    if (opts.bundleJson !== undefined) {
+      try {
+        // `@<file>` reads the object from a file, which keeps quotes in a title out of the shell.
+        const text = opts.bundleJson.startsWith('@') ? readFileSync(resolve(opts.bundleJson.slice(1)), 'utf8') : opts.bundleJson;
+        bundleOptions = JSON.parse(text);
+      } catch (e) {
+        return fail(1, { ok: false, errors: [{ path: '/', message: `--bundle takes a JSON object or @<file>: ${e.message}`, hint: 'pass the "bundle" object that drift printed' }] });
+      }
+      if (typeof bundleOptions !== 'object' || bundleOptions === null || Array.isArray(bundleOptions)) return fail(1, { ok: false, errors: [{ path: '/', message: '--bundle takes a JSON object' }] });
+    }
+    // An --extra path is read like every other path, from the working directory; one that does
+    // not exist there is tried inside the run folder.
+    const extras = opts.extras.map((f) => (existsSync(resolve(f)) ? resolve(f) : f));
     let result;
     if (opts.command === 'revisions') result = listRevisions(opts.positional[0]);
-    else if (opts.command === 'restore') result = restoreRun(opts.positional[0], opts.positional[1], { keep, request: opts.request });
-    else {
-      let bundleOptions;
-      if (opts.bundleJson !== undefined) {
-        try {
-          bundleOptions = JSON.parse(opts.bundleJson);
-        } catch (e) {
-          return fail(1, { ok: false, errors: [{ path: '/', message: `--bundle takes a JSON object: ${e.message}`, hint: 'pass the "bundle" object that drift printed' }] });
-        }
-        if (typeof bundleOptions !== 'object' || bundleOptions === null || Array.isArray(bundleOptions)) return fail(1, { ok: false, errors: [{ path: '/', message: '--bundle takes a JSON object' }] });
-      }
-      result = snapshotRun(opts.positional[0], { keep, request: opts.request, extras: opts.extras, bundle: bundleOptions });
-    }
+    else if (opts.command === 'restore') result = restoreRun(opts.positional[0], opts.positional[1], { keep, request: opts.request, extras, bundle: bundleOptions });
+    else result = snapshotRun(opts.positional[0], { keep, request: opts.request, extras, bundle: bundleOptions });
     if (!result.ok) return fail(result.code, { ok: false, errors: result.errors });
     process.stdout.write(JSON.stringify(result) + '\n');
     return 0;

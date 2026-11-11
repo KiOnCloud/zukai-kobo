@@ -231,13 +231,18 @@ choices.
   (decoded values, numeric geometry, waypoints, parents and endpoints; viewport attributes
   that draw.io rewrites on save are ignored). For a bundle it recovers the options the file
   was built with from the file itself: the canvas members from the order of the title cells
-  on the canvas page, the gap from the first two of them, the title from the page name. An
-  upgrade of the emitters shows up as drift too; the skill says so instead of hiding it.
+  on the canvas page (`"all"` when they are every diagram in file order), the gap that leaves
+  the most titles in place, the title from the page name. Page ids are slugs of the diagram
+  ids, so every match goes through `slugify`; cells draw.io wraps in `UserObject` or `object`
+  and numeric character references are read like the emitted ones. An upgrade of the
+  emitters shows up as drift too; the skill says so instead of hiding it.
 - **Revisions cover the whole run.** `revisions.mjs` copies every IR of the run into
   `history/rNNN/` together, never one file, because a main diagram, its `ref` parts and its
   business views must be restored as one consistent set. A revision is written into a
   temporary sibling and renamed into place, the newest five are kept, and a restore
-  snapshots the current state first so an undo can be undone.
+  snapshots the current state first (marked `undoOf`, with the current bundle options and
+  any hand-edited outputs) so an undo can be undone. A revision with no IR is never
+  restored.
 - **Drafts never touch `source/`.** A what-if is built as complete copies of the run under
   `drafts/<a|b|c>/` and compared with `diff` (`ir-diff.mjs`: elements added, removed and
   changed per top-level collection, plus hints for a `ref` part or a business view that did

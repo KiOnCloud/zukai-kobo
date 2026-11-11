@@ -115,4 +115,17 @@ describe('diffRun', () => {
     expect(d.diagramsRemoved).toEqual(['checkout-01-pay', 'checkout-business']);
     expect(d.hints).toEqual([{ diagram: 'checkout', message: 'removed diagram checkout-01-pay is still the ref of /nodes/1/ref' }]);
   });
+
+  it('reports a change of meta.source, and does not ask the business view to follow it', () => {
+    const next = clone(main);
+    next.meta = { source: 'manual', notes: ['changed by hand from r002 on'] };
+    const d = diffRun(run(main), run(next));
+    expect(d.diagrams[0].fields.map((f) => f.field)).toEqual(['meta.source', 'meta.notes']);
+    expect(d.hints).toEqual([]);
+  });
+
+  it('hints at a business view left behind by a removed technical diagram', () => {
+    const d = diffRun(run(main), [{ id: 'checkout-01-pay', ir: part }, { id: 'checkout-business', ir: business }]);
+    expect(d.hints).toContainEqual({ diagram: 'checkout-business', message: 'checkout was removed but its business view checkout-business stays' });
+  });
 });
