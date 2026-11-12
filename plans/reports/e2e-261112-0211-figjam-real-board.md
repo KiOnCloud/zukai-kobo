@@ -9,10 +9,11 @@ draw.io file of the same IR. Labels sent were those of the repository fixtures.
 
 ## Outcome
 
-Six differences from the draw.io output were found, five of them defects of the FigJam text.
-All six are fixed and were verified again on real boards. After the fixes a FigJam board
-holds every element the draw.io file holds, for flowchart, sequence, state, ER and
-architecture diagrams. Three differences remain by design and are listed at the end.
+Eight differences from the draw.io output were found. All eight are fixed and were verified
+again on real boards. On the final board every label of the draw.io files of five fixtures
+(flowchart, sequence, state, ER, architecture) was found again by a script that compares the
+board, read back with `use_figma`, with the cell values of the `.drawio` files; every edge
+read back joins the two elements the IR names. What still differs is listed at the end.
 
 The suite passes: 32 files, 691 tests, 1 skipped (`npm test` in `skills/draw/scripts`).
 
@@ -22,7 +23,8 @@ The suite passes: 32 files, 691 tests, 1 skipped (`npm test` in `skills/draw/scr
 |---|---|
 | https://www.figma.com/board/ye6g1TVoZZNhZN8eRwVMWx | Round 1, text of 2.0.5 unchanged: 10 diagrams |
 | https://www.figma.com/board/57yIXc5rPkRWWSBSQoJFwf | Probes of which syntax Figma accepts (holds leftover probe shapes) |
-| https://www.figma.com/board/i2LSJKDvR2hIGzlf66lFZ9 | Rounds 2 and 3, fixed text and overlay script: 5 diagrams |
+| https://www.figma.com/board/i2LSJKDvR2hIGzlf66lFZ9 | Rounds 2 and 3, fixed text and first overlay script: 5 diagrams |
+| https://www.figma.com/board/45AQFIpbiwRlA0biqsBxCY | Final round, committed bundle: one diagram per kind, compared label by label with draw.io |
 
 They are test boards in the drafts of the team that was chosen for the run and can be deleted.
 
@@ -73,8 +75,15 @@ They are test boards in the drafts of the team that was chosen for the run and c
 5. **Architecture: a two-way connection was reported as degraded.** The warning said the
    label gains "(both ways)"; the text has used `<-->` for some time and Figma draws both
    arrow heads. The matrix cell is now `supported`.
-6. **Sequence: an actor is drawn as a plain box.** The matrix said `supported`; it now says
-   `degraded`, like the other participant kinds.
+6. **Sequence: every participant is the same box.** The matrix said `supported` for an
+   actor. draw.io shows a figure above an actor and a `«kind»` line for a boundary, control,
+   entity or database participant. Fix: the overlay script draws both; the matrix says
+   `degraded` and names the script. Verified on the final board.
+7. **Sequence: no activation bars.** draw.io draws them, Mermaid text cannot ask for them in
+   the form Figma reads. Fix: the overlay script takes the bars from the same layout code the
+   draw.io emitter uses and draws them under the message arrows. Verified on the final board.
+8. **ER: a relation without a label read "unnamed".** Figma accepts an empty label and draws
+   none, as draw.io does. Fix: the figjam profile writes the empty label. Verified.
 
 ## What was not known before and is now recorded
 
@@ -84,11 +93,29 @@ They are test boards in the drafts of the team that was chosen for the run and c
 - A transition from outside a composite to one of its children is drawn.
 - The first `generate_diagram` call of a session asks for a team (`planKey`); the user picks it.
 
+## Final comparison with draw.io
+
+| Fixture | Labels in the draw.io file | Not found on the board |
+|---|---|---|
+| `flowchart/valid` | 14 | 0 |
+| `sequence/valid` (after the overlay script) | 21 | 0 |
+| `state/valid-self-loop` | 11 | 0 |
+| `er/valid` | 21 | 0 |
+| `architecture/valid-aws` | 24 | 0 |
+
+An ER attribute is one cell in draw.io (`PK id: uuid`) and three or four table cells on the
+board, so it was compared part by part. The comparison script reported one attribute,
+`email: string (unique, lower-cased)`, because of how it splits the bracket; its three parts
+are on the board as the cells `string`, `email` and `unique, lower-cased`.
+
 ## Differences that remain
 
-- Every sequence participant is the same box: no actor figure, no database cylinder.
+- Shapes and layout are Figma's own: a flowchart note is a chevron, an architecture
+  component has the shape of its kind and no AWS icon (the matrix says so), and Figma places
+  the elements, sometimes with overlapping transition labels.
 - Class and activity diagrams stay unsupported for FigJam, as the matrix says.
-- An ER relation without a label reads "unnamed" on the board; draw.io shows no label.
+- In a sequence diagram the label of a block nested three deep or deeper sits close to its
+  first message, and a note longer than three lines is cut.
 
 ## Unresolved questions
 

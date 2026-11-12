@@ -1,9 +1,12 @@
 import { figjamLabel } from './mermaid-text.mjs';
+import { layoutSequence } from './layout-sequence.mjs';
 
 /**
  * What Figma's generate_diagram leaves out of a sequence diagram, as a script for the Figma
  * MCP tool `use_figma` to draw on top of the generated board: the frames of loop, alt, opt
- * and par blocks with their conditions, a message a participant sends to itself, and notes.
+ * and par blocks with their conditions, a message a participant sends to itself, notes, the
+ * kind of a participant (a figure above an actor, a stereotype line for the others) and the
+ * activation bars, each as the draw.io file shows it.
  *
  * Figma reserves a row for a self-message but draws only a stray arrow outside the section,
  * and drops the block keywords and Note statements. The figjam text therefore writes a note
@@ -40,10 +43,22 @@ export function sequenceRows(ir) {
   return rows;
 }
 
+/**
+ * The activation bars of the draw.io layout, by message index: from the call that starts
+ * one to the message it ends at (`null`: one row below the call, which nothing answers).
+ */
+function activationsOf(ir) {
+  const L = layoutSequence(ir);
+  const indexAt = new Map(ir.messages.map((m, i) => [L.messageY(m.id), i]));
+  const pIndex = new Map(ir.participants.map((p, i) => [p.id, i]));
+  return L.activations.map((a) => ({ at: pIndex.get(a.participant), from: indexAt.get(a.startY), to: indexAt.get(a.endY) ?? null }));
+}
+
 /** True when the board Figma generates lacks something of this sequence diagram. */
 export function needsOverlay(ir) {
   if (ir.kind !== 'sequence') return false;
-  return (ir.blocks ?? []).length > 0 || (ir.notes ?? []).length > 0 || ir.messages.some((m) => m.from === m.to);
+  return (ir.blocks ?? []).length > 0 || (ir.notes ?? []).length > 0 || ir.messages.some((m) => m.from === m.to)
+    || ir.participants.some((p) => (p.kind ?? 'participant') !== 'participant') || activationsOf(ir).length > 0;
 }
 
 /**
@@ -77,6 +92,8 @@ export function figjamOverlay(ir) {
   const data = {
     title: ir.title,
     participants: ir.participants.map((p) => text(p.label)),
+    kinds: ir.participants.map((p) => p.kind ?? 'participant'),
+    activations: activationsOf(ir).map((a) => ({ at: a.at, top: rowOfMessage.get(a.from), bottom: a.to === null ? null : rowOfMessage.get(a.to) })),
     rows: rows.map((r) => {
       if (r.type === 'note') {
         const n = notes[r.index];
@@ -105,7 +122,8 @@ export function figjamOverlay(ir) {
   return `${RUNTIME_HEAD}const D = ${JSON.stringify(data)};\n${RUNTIME}`;
 }
 
-const RUNTIME_HEAD = `// Zukai: completes the FigJam board of a sequence diagram (block frames, self-messages, notes).
+const RUNTIME_HEAD = `// Zukai: completes the FigJam board of a sequence diagram (block frames, self-messages, notes,
+// participant kinds, activation bars).
 // Pass this text unchanged to the Figma MCP tool use_figma, with the file key of the board.
 `;
 
@@ -123,9 +141,13 @@ const isLife = (c) => c.connectorStart.magnet === 'BOTTOM' && c.connectorEnd.mag
 const life = connectors.filter(isLife);
 const lifeIds = new Set(life.map((c) => c.id));
 if (life.length !== D.participants.length) fail('the board has ' + life.length + ' lifelines, the model ' + D.participants.length);
+const heads = [];
+const feet = [];
 for (let i = 0; i < life.length; i++) {
   const head = await figma.getNodeByIdAsync(life[i].connectorStart.endpointNodeId);
   if (!head || head.type !== 'SHAPE_WITH_TEXT' || head.text.characters !== D.participants[i]) fail('participant ' + (i + 1) + ' of the board is not "' + D.participants[i] + '"');
+  heads.push(head);
+  feet.push(await figma.getNodeByIdAsync(life[i].connectorEnd.endpointNodeId));
 }
 const drawn = connectors.filter((c) => !isLife(c) && lifeIds.has(c.connectorStart.endpointNodeId));
 const strays = connectors.filter((c) => !isLife(c) && !lifeIds.has(c.connectorStart.endpointNodeId));
@@ -191,8 +213,46 @@ for (const n of old) n.remove();
 const removed = strays.map((c) => c.id);
 for (const c of strays) c.remove();
 
+// The kind of a participant as the draw.io file shows it: a figure above an actor, a
+// stereotype line above the name for the others.
+const FIGURE = 'M 15 0 C 19 0 22 3 22 7 C 22 11 19 14 15 14 C 11 14 8 11 8 7 C 8 3 11 0 15 0 Z M 15 14 L 15 28 M 3 19 L 27 19 M 15 28 L 5 40 M 15 28 L 25 40';
+D.kinds.forEach((kind, p) => {
+  if (kind === 'participant') return;
+  if (kind === 'actor') {
+    const v = keep(figma.createVector());
+    S.appendChild(v);
+    v.vectorPaths = [{ windingRule: 'NONE', data: FIGURE }];
+    v.strokes = solid(GREY);
+    v.strokeWeight = 3;
+    v.fills = [];
+    v.x = xOf(p) - 12;
+    v.y = heads[p].y - 44;
+    return;
+  }
+  for (const box of [heads[p], feet[p]]) {
+    if (!box) continue;
+    const t = label('\u00ab' + kind + '\u00bb', 0, box.y + 14, 12);
+    t.x = box.x + (box.width - t.width) / 2;
+  }
+});
+
+// Activation bars go under the message arrows and over the lifelines.
+const firstMessage = Math.max(0, S.children.findIndex((c) => c.type === 'CONNECTOR' && c.name !== TAG && !isLife(c)));
+for (const a of D.activations) {
+  const top = yOf(a.top);
+  const bottom = a.bottom === null ? top + pitch : yOf(a.bottom);
+  const bar = keep(figma.createRectangle());
+  S.insertChild(firstMessage, bar);
+  bar.x = xOf(a.at) - 6;
+  bar.y = top;
+  bar.resize(12, Math.max(bottom - top, 12));
+  bar.fills = solid(rgb(0xffffff));
+  bar.strokes = solid(GREY);
+  bar.strokeWeight = 2;
+}
+
 let right = 0;
-// Frames first, so that they lie under the rows drawn after them.
+// Frames next, so that they lie under the rows drawn after them.
 const deepest = D.blocks.reduce((m, b) => Math.max(m, b.depth), 0);
 for (const b of [...D.blocks].sort((a, c) => a.depth - c.depth)) {
   let lo = Infinity;

@@ -6,7 +6,8 @@ agent makes the tool call. Scripts never call Figma; they have no network access
 
 `generate_diagram` draws less of a sequence diagram than draw.io does: it drops the frames
 of `loop`, `alt`, `opt` and `par` blocks, the notes, and a message a participant sends to
-itself. For a sequence diagram that has any of these the CLI also writes an overlay script,
+itself, draws every participant as the same box, and has no activation bars. For a sequence
+diagram that has any of these (nearly every one) the CLI also writes an overlay script,
 which the agent runs on the board with the Figma tool `use_figma` (section 5). Flowchart,
 state, ER and architecture boards are complete after `generate_diagram`.
 
@@ -106,8 +107,8 @@ their `kind`, frames are plain subgraphs, and one warning per field says so.
 
 Only when the emit of section 2 wrote an overlay script. Without this step the board shows
 the participants and the messages between them, and nothing else: no block frames, no
-notes, an empty row for each self-message, and a stray arrow beside the diagram for each of
-those rows.
+notes, no participant kinds, no activation bars, an empty row for each self-message, and a
+stray arrow beside the diagram for each of those rows.
 
 1. Load the Figma skills `figma-use` and `figma-use-figjam`; the Figma server requires them
    before every `use_figma` call (fallback resources: `skill://figma/figma-use/SKILL.md`,
@@ -118,16 +119,18 @@ those rows.
    be the IR `title`), checks participants, messages and row spacing against the model, and
    only then draws: a frame per block with its kind and condition, a dashed divider per
    `else` or `and` branch, each self-message as a small loop with its label, each note as a
-   yellow box. It removes the stray arrows. Running it again replaces what it drew.
+   yellow box, the figure above an actor, the `«kind»` line of a boundary, control, entity
+   or database participant, and the activation bars the draw.io file has. It removes the
+   stray arrows. Running it again replaces what it drew.
 4. If it throws `zukai overlay: ...`, nothing was changed. The message says what on the
    board differs from the model (another title, a message edited by hand, a layout Figma
    has changed since). Relay it, deliver the board as `generate_diagram` left it, and list
    the warnings that name the overlay script as what the board lacks.
 5. Look at the result (`get_screenshot` of the section) before reporting the board.
 
-What stays different from the draw.io file after the overlay: every participant is the same
-box (no actor figure, no database cylinder), the label of a block nested three deep or
-deeper sits close to its first message, and a note longer than three lines is cut.
+What stays different from the draw.io file after the overlay: the label of a block nested
+three deep or deeper sits close to its first message, and a note longer than three lines is
+cut.
 
 Without a `use_figma` tool in the session, skip this section and tell the user in one line
 what the board lacks.

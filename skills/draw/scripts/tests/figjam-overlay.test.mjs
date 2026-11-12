@@ -28,13 +28,14 @@ function fakeBoard(text, title) {
   };
   const section = make('SECTION', { name: title, x: 400, y: -50, width: 1140, height: 900, children: [], absoluteTransform: [[1, 0, 400], [0, 1, -50]] });
   section.appendChild = (c) => { c.parent = section; section.children.push(c); };
+  section.insertChild = (i, c) => { c.parent = section; section.children.splice(i, 0, c); };
   const lines = text.split('\n').map((l) => l.trim());
   const lifeOf = new Map();
   for (const l of lines) {
     const m = /^(?:participant|actor) (\S+) as (.+)$/.exec(l);
     if (!m) continue;
-    const head = make('SHAPE_WITH_TEXT', { text: { characters: m[2] } });
-    const foot = make('SHAPE_WITH_TEXT', { text: { characters: m[2] } });
+    const head = make('SHAPE_WITH_TEXT', { x: 50 + 280 * lifeOf.size, y: 50, width: 200, height: 100, text: { characters: m[2] } });
+    const foot = make('SHAPE_WITH_TEXT', { x: 50 + 280 * lifeOf.size, y: 700, width: 200, height: 100, text: { characters: m[2] } });
     const life = make('CONNECTOR', { x: 150 + 280 * lifeOf.size, y: 158, connectorStart: { endpointNodeId: head.id, magnet: 'BOTTOM' }, connectorEnd: { endpointNodeId: foot.id, magnet: 'TOP' }, connectorStartStrokeCap: 'NONE', connectorEndStrokeCap: 'NONE' });
     for (const n of [head, foot, life]) section.appendChild(n);
     lifeOf.set(m[1], life);
@@ -55,6 +56,7 @@ function fakeBoard(text, title) {
     createText: () => make('TEXT'),
     createRectangle: () => make('RECTANGLE'),
     createLine: () => make('LINE'),
+    createVector: () => make('VECTOR'),
     createConnector: () => make('CONNECTOR'),
     createShapeWithText: () => make('SHAPE_WITH_TEXT'),
   };
@@ -66,10 +68,16 @@ const runOn = (script, figma) => new AsyncFunction('figma', script)(figma);
 const sequenceFixtures = () => validFixtures().filter((f) => f.ir.kind === 'sequence');
 
 describe('figjam overlay script', () => {
-  it('is made only for a sequence diagram that has a block, a note or a self-message', async () => {
+  it('is made only for a sequence diagram, and only when the board lacks something', async () => {
     expect(figjamOverlay(loadFixture('flowchart', 'valid'))).toBeNull();
-    expect(figjamOverlay(loadFixture('sequence', 'valid-participant-kinds'))).toBeNull();
-    expect((await emit(loadFixture('sequence', 'valid-participant-kinds'), 'figjam')).overlay).toBeUndefined();
+    expect((await emit(loadFixture('er', 'valid'), 'figjam')).overlay).toBeUndefined();
+    // Plain participants and nothing but an asynchronous message: the board is complete as generated.
+    const plain = { schemaVersion: 1, kind: 'sequence', title: 'Ping', participants: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], messages: [{ id: 'm1', from: 'a', to: 'b', label: 'ping', kind: 'async' }] };
+    expect((await emit(plain, 'figjam')).ok).toBe(true);
+    expect((await emit(plain, 'figjam')).overlay).toBeUndefined();
+    // A participant kind or a call that activates its target is enough.
+    expect(figjamOverlay({ ...plain, participants: [{ id: 'a', label: 'A', kind: 'actor' }, { id: 'b', label: 'B' }] })).toContain('"kinds":["actor","participant"]');
+    expect(figjamOverlay({ ...plain, messages: [{ ...plain.messages[0], kind: 'sync' }] })).toContain('"activations":[{"at":1,"top":0,"bottom":null}]');
     expect((await emit(loadFixture('sequence', 'valid'), 'figjam')).overlay).toContain('use_figma');
     expect((await emit(loadFixture('sequence', 'valid'), 'mermaid')).overlay).toBeUndefined();
   });
@@ -101,14 +109,21 @@ describe('figjam overlay script', () => {
     expect(result.removedNodeIds).toHaveLength(3);
     const added = section.children.filter((c) => c.name === 'zukai-overlay');
     expect(section.children.length).toBe(before - 3 + added.length);
-    expect(added.filter((c) => c.type === 'TEXT').map((c) => c.characters)).toEqual(['loop  [until 3 attempts]', 'alt  [password matches]', 'else  [password wrong]', 'Verify password hash']);
+    // The kind of a participant as the draw.io file shows it: a stereotype line on the head and the foot, a figure for the actor.
+    expect(added.filter((c) => c.type === 'TEXT').map((c) => c.characters)).toEqual(['«control»', '«control»', '«database»', '«database»', 'loop  [until 3 attempts]', 'alt  [password matches]', 'else  [password wrong]', 'Verify password hash']);
+    expect(added.filter((c) => c.type === 'VECTOR')).toHaveLength(1);
     expect(added.filter((c) => c.type === 'SHAPE_WITH_TEXT').map((c) => c.text.characters)).toEqual(['Rate limited per IP', 'Hash: argon2id']);
-    // Two frames, a white patch under each of the three tags, one divider, three strokes of the self-message.
-    expect(added.filter((c) => c.type === 'RECTANGLE')).toHaveLength(2 + 3);
+    // Two frames, a white patch under each of the three tags, three activation bars, one divider, three strokes of the self-message.
+    expect(added.filter((c) => c.type === 'RECTANGLE')).toHaveLength(2 + 3 + 3);
+    // The bars lie under the message arrows: before the first message connector of the section.
+    const firstArrow = section.children.findIndex((c) => c.type === 'CONNECTOR' && c.text.characters === 'Submit credentials');
+    const bars = section.children.filter((c) => c.type === 'RECTANGLE' && c.width === 12);
+    expect(bars).toHaveLength(3);
+    for (const b of bars) expect(section.children.indexOf(b)).toBeLessThan(firstArrow);
     expect(added.filter((c) => c.type === 'LINE')).toHaveLength(1);
     expect(added.filter((c) => c.type === 'CONNECTOR')).toHaveLength(3);
     // The loop frame encloses the alt frame.
-    const [loop, alt] = added.filter((c) => c.type === 'RECTANGLE' && c.strokeWeight === 2);
+    const [loop, alt] = added.filter((c) => c.type === 'RECTANGLE' && c.cornerRadius === 6);
     expect(loop.x).toBeLessThan(alt.x);
     expect(loop.y).toBeLessThan(alt.y);
     expect(loop.y + loop.height).toBeGreaterThan(alt.y + alt.height);

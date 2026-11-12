@@ -144,7 +144,7 @@ rotated out, it moves to `history/extras/`.
 |---|---|---|
 | `drawio` | `.drawio` file, uncompressed mxGraph XML | Default. Laid out automatically; every shape and edge stays editable. Architecture diagrams of AWS systems use AWS service icons with VPC, subnet and account frames |
 | `mermaid` | Mermaid text | Paste into Markdown or a wiki |
-| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; without it you get the FigJam text to paste into the board yourself. Block frames, notes and self-messages of a sequence diagram are drawn on the board by a second, generated script |
+| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; without it you get the FigJam text to paste into the board yourself. Block frames, notes, self-messages, participant kinds and activation bars of a sequence diagram are drawn on the board by a second, generated script |
 
 draw.io is the target for `activity` diagrams. Mermaid renders them with its beta swimlane
 syntax and FigJam does not support them. The complete table of what each target supports is

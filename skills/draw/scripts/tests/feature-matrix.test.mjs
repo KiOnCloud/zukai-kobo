@@ -97,8 +97,9 @@ describe('enumerateFeatures and checkFeatureMatrix', () => {
     expect(r.ok).toBe(true);
     expect(r.warnings.map((w) => w.path).filter((p) => p.startsWith('/participants'))).toEqual(['/participants/0', '/participants/2', '/participants/3']);
     expect(r.warnings[1].message).toContain('"auth"');
-    // What generate_diagram leaves out and the overlay script draws: the self-message, both blocks, both notes.
-    expect(r.warnings.filter((w) => w.message.includes('overlay script')).map((w) => w.feature)).toEqual(['message.self', 'block.kind.alt', 'block.kind.loop', 'note', 'note']);
+    // What generate_diagram leaves out and the overlay script draws: three participant kinds, the self-message, both blocks, both notes.
+    expect(r.warnings.every((w) => w.message.includes('overlay script'))).toBe(true);
+    expect(r.warnings.map((w) => w.feature)).toEqual(['participant.kind.actor', 'participant.kind.control', 'participant.kind.database', 'message.self', 'block.kind.alt', 'block.kind.loop', 'note', 'note']);
     expect(checkFeatureMatrix(loadFixture('sequence', 'valid'), 'mermaid').warnings).toEqual([]);
   });
 

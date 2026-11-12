@@ -27,6 +27,10 @@ describe('figjam target', () => {
     expect(r.output).toContain('    decimal total "decimal(10,2)"');
     for (const line of r.output.split('\n').filter((l) => /^ {4}\S/.test(l))) expect(line.split('"')[0]).not.toContain(',');
     expect(r.warnings.filter((w) => w.path === '/entities/1/attributes/3/type')).toHaveLength(1);
+    // A relation without a label gets none on the board either; nothing was changed, so nothing warns.
+    expect(r.output).toContain('n2 |o..o{ n5 : ""');
+    expect(r.output).not.toContain('unnamed');
+    expect(r.warnings.filter((w) => w.path.startsWith('/relations'))).toEqual([]);
     const lr = await emit(loadFixture('er', 'valid-fk-anchors'), 'figjam');
     expect(lr.output).toContain('  direction LR\n');
     expect(lr.warnings.filter((w) => w.path === '/direction')).toEqual([]);

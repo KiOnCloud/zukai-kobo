@@ -380,7 +380,9 @@ function emitEr(ir, emit, t, stable) {
   ir.relations.forEach((r, i) => {
     emit(idComment('  ', r.id));
     const link = r.identifying === false ? '..' : '--';
-    emit(`  ${ids.get(r.from)} ${ER_LEFT[r.fromCardinality]}${link}${ER_RIGHT[r.toCardinality]} ${ids.get(r.to)} : "${t.inline(r.label ?? '', `/relations/${i}/label`)}"`);
+    // Figma takes an empty label and draws none, as draw.io does; the label encoder would name it "unnamed".
+    const label = t.profile === 'figjam' && !(r.label ?? '').trim() ? '' : t.inline(r.label ?? '', `/relations/${i}/label`);
+    emit(`  ${ids.get(r.from)} ${ER_LEFT[r.fromCardinality]}${link}${ER_RIGHT[r.toCardinality]} ${ids.get(r.to)} : "${label}"`);
   });
 }
 

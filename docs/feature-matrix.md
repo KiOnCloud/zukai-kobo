@@ -31,12 +31,12 @@ For each diagram kind, target and feature the value is one of:
 | Feature | mermaid | drawio | figjam |
 |---|---|---|---|
 | kind | supported | supported | supported |
-| `participant.kind.actor` | supported | supported | degraded (FigJam draws every participant of a sequence diagram as the same box) |
+| `participant.kind.actor` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the figure above the actor) |
 | `participant.kind.participant` | supported | supported | supported |
-| `participant.kind.database` | supported | supported | degraded (FigJam draws every participant of a sequence diagram as the same box) |
-| `participant.kind.boundary` | supported | supported | degraded (FigJam draws every participant of a sequence diagram as the same box) |
-| `participant.kind.control` | supported | supported | degraded (FigJam draws every participant of a sequence diagram as the same box) |
-| `participant.kind.entity` | supported | supported | degraded (FigJam draws every participant of a sequence diagram as the same box) |
+| `participant.kind.database` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it) |
+| `participant.kind.boundary` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it) |
+| `participant.kind.control` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it) |
+| `participant.kind.entity` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it) |
 | `message.kind.sync` | supported | supported | supported |
 | `message.kind.async` | supported | supported | supported |
 | `message.kind.return` | supported | supported | supported |

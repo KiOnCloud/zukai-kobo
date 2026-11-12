@@ -87,7 +87,7 @@
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam draws every participant of a sequence diagram as the same box"
+            "note": "generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the figure above the actor"
           }
         },
         "participant.kind.participant": {
@@ -100,7 +100,7 @@
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam draws every participant of a sequence diagram as the same box"
+            "note": "generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it"
           }
         },
         "participant.kind.boundary": {
@@ -108,7 +108,7 @@
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam draws every participant of a sequence diagram as the same box"
+            "note": "generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it"
           }
         },
         "participant.kind.control": {
@@ -116,7 +116,7 @@
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam draws every participant of a sequence diagram as the same box"
+            "note": "generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it"
           }
         },
         "participant.kind.entity": {
@@ -124,7 +124,7 @@
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam draws every participant of a sequence diagram as the same box"
+            "note": "generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it"
           }
         },
         "message.kind.sync": {

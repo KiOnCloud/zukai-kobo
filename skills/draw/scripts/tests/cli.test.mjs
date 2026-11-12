@@ -52,6 +52,7 @@ describe('cli (committed bundle, run from a different working directory)', () =>
     expect(JSON.parse(seq.stdout).overlay).toBe(join(otherCwd, 'fj', 'login.overlay.js'));
     expect(readFileSync(join(otherCwd, 'fj', 'login.overlay.js'), 'utf8')).toContain('"title":"Login with password"');
     expect(parseStderr(seq.stderr).warnings.some((w) => w.hint?.includes('--overlay'))).toBe(false);
+    expect(readFileSync(join(otherCwd, 'fj', 'login.overlay.js'), 'utf8')).toContain('"kinds":["actor","participant","control","database"]');
     const flow = run(['emit', '--to', 'figjam', join(fixturesDir, 'flowchart', 'valid.json'), '--out', 'fj/flow.mmd', '--overlay', 'fj/flow.overlay.js']);
     expect(JSON.parse(flow.stdout).overlay).toBeNull();
     expect(existsSync(join(otherCwd, 'fj', 'flow.overlay.js'))).toBe(false);
