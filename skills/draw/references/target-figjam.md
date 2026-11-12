@@ -46,8 +46,10 @@ architecture diagrams become flowcharts with boundaries as subgraphs. Three more
 follow from what Figma's parser was seen to do on real boards:
 
 - A sequence note is written as a message of its first participant to itself. Figma draws
-  nothing for it but keeps the row free, and the overlay script draws the note there. The
-  local preview of the `.mmd` file shows such a row as a self-message.
+  nothing for it but keeps the row free, and the overlay script draws the note there. A
+  long note is followed by further such rows, labelled `…`, so that its whole text has
+  room, and a block inside another block has one before its first message, for its label.
+  The local preview of the `.mmd` file shows each of these rows as a self-message.
 - A composite state is written on two lines, `state "Label" as n4` and `state n4 {`. Figma
   reads the one-line form as a composite called "Label as n4" and adds a stray state "n4".
 - An ER diagram always carries its `direction` line (Figma lays one out left to right unless
@@ -128,9 +130,8 @@ stray arrow beside the diagram for each of those rows.
    the warnings that name the overlay script as what the board lacks.
 5. Look at the result (`get_screenshot` of the section) before reporting the board.
 
-What stays different from the draw.io file after the overlay: the label of a block nested
-three deep or deeper sits close to its first message, and a note longer than three lines is
-cut.
+After the overlay the board shows everything the draw.io file shows. Shapes and placement
+stay Figma's own.
 
 Without a `use_figma` tool in the session, skip this section and tell the user in one line
 what the board lacks.

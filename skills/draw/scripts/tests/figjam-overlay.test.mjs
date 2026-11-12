@@ -105,10 +105,12 @@ describe('figjam overlay script', () => {
     const { figma, section } = fakeBoard(r.output, ir.title);
     const before = section.children.length;
     const result = await runOn(r.overlay, figma);
-    // One stray per row that is a message to the same participant: the self-message and the two notes.
-    expect(result.removedNodeIds).toHaveLength(3);
+    // One stray per row that is a message to the same participant: the self-message, the two
+    // notes and the row kept for the label of the alt block, which lies inside the loop.
+    expect(r.output).toContain('    alt password matches\n      n1->>n1: …\n');
+    expect(result.removedNodeIds).toHaveLength(4);
     const added = section.children.filter((c) => c.name === 'zukai-overlay');
-    expect(section.children.length).toBe(before - 3 + added.length);
+    expect(section.children.length).toBe(before - 4 + added.length);
     // The kind of a participant as the draw.io file shows it: a stereotype line on the head and the foot, a figure for the actor.
     expect(added.filter((c) => c.type === 'TEXT').map((c) => c.characters)).toEqual(['«control»', '«control»', '«database»', '«database»', 'loop  [until 3 attempts]', 'alt  [password matches]', 'else  [password wrong]', 'Verify password hash']);
     expect(added.filter((c) => c.type === 'VECTOR')).toHaveLength(1);
@@ -135,6 +137,23 @@ describe('figjam overlay script', () => {
     expect(again.replacedNodeIds).toBe(added.length);
     expect(again.removedNodeIds).toEqual([]);
     expect(section.children.filter((c) => c.name === 'zukai-overlay')).toHaveLength(added.length);
+  });
+
+  it('keeps as many rows for a note as its text needs', async () => {
+    const ir = loadFixture('sequence', 'valid-deep-blocks-long-note');
+    const r = await emit(ir, 'figjam');
+    const rows = sequenceRows(ir);
+    expect(rows.filter((x) => x.type === 'pad' && x.of === 'note')).toHaveLength(3);
+    // Three blocks lie inside another one; each has a row for its label before the first message they share.
+    expect(rows.filter((x) => x.type === 'pad' && x.of === 'block')).toHaveLength(3);
+    const { figma, section } = fakeBoard(r.output, ir.title);
+    await runOn(r.overlay, figma);
+    const note = section.children.find((c) => c.type === 'SHAPE_WITH_TEXT' && c.name === 'zukai-overlay');
+    expect(note.height).toBeGreaterThan(160);
+    expect(note.height).toBeLessThanOrEqual(4 * 80 - 8);
+    // No frame starts at the height of another one's label.
+    const tops = section.children.filter((c) => c.type === 'RECTANGLE' && c.cornerRadius === 6).map((c) => c.y).sort((a, b) => a - b);
+    for (let i = 1; i < tops.length; i++) expect(tops[i] - tops[i - 1]).toBeGreaterThanOrEqual(30);
   });
 
   it('changes nothing and says why when the board is not the one the text made', async () => {

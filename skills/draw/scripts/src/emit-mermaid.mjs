@@ -1,4 +1,5 @@
 import { sameText } from './text-metrics.mjs';
+import { noteRows, labelRowsBefore } from './figjam-overlay.mjs';
 import { encodeLabel, encodeInline, encodeMember, identifierToken, architectureLabel, figjamLabel, safeIds, frontMatter } from './mermaid-text.mjs';
 
 /**
@@ -178,10 +179,17 @@ function emitSequence(ir, emit, t, stable) {
   });
   const order = new Map(ir.messages.map((m, i) => [m.id, i]));
   const notes = ir.notes ?? [];
+  // An empty row of the figjam text: a message of the first participant to itself, which Figma leaves blank.
+  const padLine = (indent) => `${indent}${ids.get(ir.participants[0].id)}->>${ids.get(ir.participants[0].id)}: …`;
+  const labelRows = t.profile === 'figjam' ? labelRowsBefore(ir) : [];
   const noteLine = (indent, n, i) => {
     // Figma drops Note statements and gives them no room. A message of the first participant
-    // to itself keeps a row free, into which the overlay script draws the note (figjam-overlay.mjs).
-    if (t.profile === 'figjam') return `${indent}${ids.get(n.participants[0])}->>${ids.get(n.participants[0])}: ${t.label(n.label, `/notes/${i}/label`)}`;
+    // to itself keeps a row free, into which the overlay script draws the note
+    // (figjam-overlay.mjs); a long note keeps as many rows as its text needs.
+    if (t.profile === 'figjam') {
+      const who = ids.get(n.participants[0]);
+      return [`${indent}${who}->>${who}: ${t.label(n.label, `/notes/${i}/label`)}`, ...Array.from({ length: noteRows(ir, n) - 1 }, () => padLine(indent))].join('\n');
+    }
     const who = n.participants.map((p) => ids.get(p)).join(',');
     const position = n.participants.length === 2 ? 'over' : (n.position ?? 'right');
     const where = position === 'over' ? `over ${who}` : `${position} of ${who}`;
@@ -220,6 +228,8 @@ function emitSequence(ir, emit, t, stable) {
       emit(`${indent()}${keyword[b.kind]} ${t.label(b.sections[0].label, b.sections[0].path)}`);
       depth++;
     }
+    // The label of a block inside another block has no room above its first message.
+    for (let k = 0; k < (labelRows[i] ?? 0); k++) emit(padLine(indent()));
     emit(idComment(indent(), m.id));
     emit(`${indent()}${ids.get(m.from)}${MESSAGE_ARROW[m.kind ?? 'sync']}${ids.get(m.to)}: ${t.withRef(t.label(m.label, `/messages/${i}/label`), m.ref, `/messages/${i}/ref`, m.label)}`);
     notes.forEach((n, ni) => {

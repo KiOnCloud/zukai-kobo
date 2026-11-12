@@ -1,0 +1,39 @@
+---
+title: "Nightly stock sync"
+---
+sequenceDiagram
+  %% id: job
+  participant n1@{ "type" : "control" } as Sync job
+  %% id: erp
+  participant n2@{ "type" : "boundary" } as ERP
+  %% id: shop
+  participant n3@{ "type" : "database" } as Shop database
+  %% id: pages
+  loop for every page
+    %% id: m1
+    n1->>n2: GET /stock?page=n
+    %% id: m2
+    n2-->>n1: stock page
+    %% id: n1
+    Note right of n2: A page holds at most 500 items. The ERP limits the job to four requests per second, so a full run of 60000 items takes about half a minute of waiting on top of the time the updates take.
+    %% id: items
+    loop for every item
+      %% id: known
+      alt item is known
+        %% id: changed
+        opt level changed
+          %% id: m3
+          n1->>n3: UPDATE stock level
+          %% id: m4
+          n3-->>n1: rows updated
+        end
+      else item is unknown
+        %% id: m5
+        n1->>n3: INSERT sync error
+      end
+      %% id: m5b
+      n1->>n3: COMMIT
+    end
+  end
+  %% id: m6
+  n1->>n1: Write the run summary

@@ -9,7 +9,7 @@ draw.io file of the same IR. Labels sent were those of the repository fixtures.
 
 ## Outcome
 
-Eight differences from the draw.io output were found. All eight are fixed and were verified
+Ten differences from the draw.io output were found. All ten are fixed and were verified
 again on real boards. On the final board every label of the draw.io files of five fixtures
 (flowchart, sequence, state, ER, architecture) was found again by a script that compares the
 board, read back with `use_figma`, with the cell values of the `.drawio` files; every edge
@@ -84,6 +84,10 @@ They are test boards in the drafts of the team that was chosen for the run and c
    draw.io emitter uses and draws them under the message arrows. Verified on the final board.
 8. **ER: a relation without a label read "unnamed".** Figma accepts an empty label and draws
    none, as draw.io does. Fix: the figjam profile writes the empty label. Verified.
+9. **Sequence: the label of a nested block lay under the next frame.** Found on the board of
+   the stress fixture. Fix: a block inside another block gets a row of its own for its label.
+10. **Sequence: a long note ran out of its box.** Fix: a note gets as many rows as its text
+   needs.
 
 ## What was not known before and is now recorded
 
@@ -95,6 +99,9 @@ They are test boards in the drafts of the team that was chosen for the run and c
 
 ## Final comparison with draw.io
 
+Two scripts compared the final board, read back with `use_figma`, with the sources; both
+exit 0.
+
 | Fixture | Labels in the draw.io file | Not found on the board |
 |---|---|---|
 | `flowchart/valid` | 14 | 0 |
@@ -104,18 +111,31 @@ They are test boards in the drafts of the team that was chosen for the run and c
 | `architecture/valid-aws` | 24 | 0 |
 
 An ER attribute is one cell in draw.io (`PK id: uuid`) and three or four table cells on the
-board, so it was compared part by part. The comparison script reported one attribute,
-`email: string (unique, lower-cased)`, because of how it splits the bracket; its three parts
-are on the board as the cells `string`, `email` and `unique, lower-cased`.
+board, so it is compared part by part.
+
+Edges: the five IRs hold 39 edges (messages between two participants, transitions,
+relations, flowchart edges, connections). The board holds 39 connectors with an arrow head,
+each between the same two elements and with the same label; none is missing and none is
+extra.
+
+A sixth fixture, `sequence/valid-deep-blocks-long-note` (four blocks nested in each other,
+a note of eight lines, three participant kinds), was added for the two cases the first
+overlay script drew badly: the label of a nested block lay under the frame of the next one,
+and a long note ran out of its box. Each nested block now has a row for its label and a
+note has as many rows as its text needs; both were checked on the board by screenshot.
 
 ## Differences that remain
 
-- Shapes and layout are Figma's own: a flowchart note is a chevron, an architecture
-  component has the shape of its kind and no AWS icon (the matrix says so), and Figma places
-  the elements, sometimes with overlapping transition labels.
-- Class and activity diagrams stay unsupported for FigJam, as the matrix says.
-- In a sequence diagram the label of a block nested three deep or deeper sits close to its
-  first message, and a note longer than three lines is cut.
+These cannot be closed from this side, because Figma decides them:
+
+- Placement. `generate_diagram` lays the diagram out itself and takes no coordinates, so a
+  board never has the geometry of the draw.io file. Figma sometimes lets two transition
+  labels overlap, or a message label cross a lifeline.
+- Shapes. A flowchart note is a chevron and an architecture component has the shape of its
+  kind; Figma has no AWS icons (the matrix says so).
+- Class and activity diagrams: `generate_diagram` rejects both, so the target stays
+  unsupported for them, as the matrix says. Drawing them, or drawing any kind at the
+  draw.io coordinates, would need an emitter that builds the whole board with `use_figma`.
 
 ## Unresolved questions
 

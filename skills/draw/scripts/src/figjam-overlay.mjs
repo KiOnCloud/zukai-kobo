@@ -10,35 +10,83 @@ import { layoutSequence } from './layout-sequence.mjs';
  *
  * Figma reserves a row for a self-message but draws only a stray arrow outside the section,
  * and drops the block keywords and Note statements. The figjam text therefore writes a note
- * as a self-message too, so that it gets a row of its own; this script removes the stray
- * arrows and draws the real thing into each reserved row.
+ * as a self-message too, so that it gets a row of its own (several for a long note), and one
+ * more such row for the label of a block inside another block; this script removes
+ * the stray arrows and draws the real thing into each reserved row.
  *
  * The script checks what it finds (participants, messages and row pitch) against the model
  * and throws before it changes anything when the board is not the one this text made.
  */
 
+/** Lifelines stand this far apart on a board Figma generates; a row is this high. */
+const LIFELINE_PITCH = 280;
+const ROW_PITCH = 80;
+
+/** Width of the box the overlay draws for a note, as the script computes it on the board. */
+function noteWidth(ir, n) {
+  if (n.participants.length < 2) return 200;
+  const at = n.participants.map((p) => ir.participants.findIndex((x) => x.id === p));
+  return Math.abs(at[1] - at[0]) * LIFELINE_PITCH + 120;
+}
+
+/** Rows a note needs so that its whole text fits: one, or more for a long text. */
+export function noteRows(ir, n) {
+  // A box keeps about 28 px free on either side of its text; a character of the 14 px face is 7.6 px wide on average.
+  const perLine = Math.floor((noteWidth(ir, n) - 56) / 7.6);
+  const lines = Math.max(1, Math.ceil(figjamLabel(n.label).label.length / perLine));
+  return Math.max(1, Math.ceil((21 * lines + 36) / ROW_PITCH));
+}
+
+/** Blocks with the range of their messages and how many blocks enclose each. */
+function blocksOf(ir) {
+  const order = new Map(ir.messages.map((m, i) => [m.id, i]));
+  const blocks = (ir.blocks ?? []).map((b, index) => {
+    const sections = [{ label: b.label, ids: b.messages }, ...(b.branches ?? []).map((br) => ({ label: br.label, ids: br.messages }))].map((s) => {
+      const idx = s.ids.map((id) => order.get(id));
+      return { label: s.label, first: Math.min(...idx), last: Math.max(...idx) };
+    });
+    return { id: b.id, kind: b.kind, index, sections, first: sections[0].first, last: sections[sections.length - 1].last };
+  });
+  const span = (x) => x.last - x.first;
+  // Of two blocks with the same range the earlier is the outer one, as in the text.
+  for (const b of blocks) b.depth = blocks.filter((o) => o !== b && o.first <= b.first && o.last >= b.last && (span(o) > span(b) || (span(o) === span(b) && o.index < b.index))).length;
+  return blocks;
+}
+
 /**
- * The rows of a sequence diagram in the order the figjam text writes them: one per message
- * and one per note. Must stay in step with `emitSequence` of emit-mermaid.mjs.
- * @returns {Array<{ type: 'message', index: number } | { type: 'note', index: number }>}
+ * From this depth on a block gets a row of its own for its label. Only the label of an
+ * outermost block fits above the first message without lying on the frame of a nested one.
+ */
+const HEADER_ROW_DEPTH = 1;
+
+/** How many label rows of deeply nested blocks stand before each message, by message index. */
+export function labelRowsBefore(ir) {
+  const blocks = blocksOf(ir);
+  return ir.messages.map((_, i) => blocks.filter((x) => x.first === i && x.depth >= HEADER_ROW_DEPTH).length);
+}
+
+/**
+ * The rows of a sequence diagram in the order the figjam text writes them. Besides one row
+ * per message and per note there are empty rows: the further rows of a long note, and a row
+ * for the label of a block inside another block. `emitSequence` of emit-mermaid.mjs
+ * writes the same rows with `noteRows` and `labelRowsBefore`; a test holds the two together.
+ * @returns {Array<{ type: 'message' | 'note', index: number } | { type: 'pad', of: 'note' | 'block', index: number }>}
  */
 export function sequenceRows(ir) {
   const notes = ir.notes ?? [];
-  const order = new Map(ir.messages.map((m, i) => [m.id, i]));
-  const blockEnd = new Map();
-  for (const b of ir.blocks ?? []) {
-    const all = [...b.messages, ...(b.branches ?? []).flatMap((br) => br.messages)].map((id) => order.get(id));
-    const end = Math.max(...all);
-    blockEnd.set(b.id, { end, span: end - Math.min(...all) });
-  }
+  const blocks = blocksOf(ir);
   const rows = [];
-  notes.forEach((n, i) => { if (n.after === undefined) rows.push({ type: 'note', index: i }); });
+  const note = (ni) => {
+    rows.push({ type: 'note', index: ni });
+    for (let k = 1; k < noteRows(ir, notes[ni]); k++) rows.push({ type: 'pad', of: 'note', index: ni });
+  };
+  notes.forEach((n, i) => { if (n.after === undefined) note(i); });
   ir.messages.forEach((m, i) => {
+    for (const b of blocks.filter((x) => x.first === i && x.depth >= HEADER_ROW_DEPTH).sort((a, c) => a.depth - c.depth)) rows.push({ type: 'pad', of: 'block', index: b.index });
     rows.push({ type: 'message', index: i });
-    notes.forEach((n, ni) => { if (n.after === m.id) rows.push({ type: 'note', index: ni }); });
+    notes.forEach((n, ni) => { if (n.after === m.id) note(ni); });
     // Innermost block first, as the text closes them.
-    const closing = [...blockEnd].filter(([, v]) => v.end === i).sort((a, b) => a[1].span - b[1].span);
-    for (const [id] of closing) notes.forEach((n, ni) => { if (n.after === id) rows.push({ type: 'note', index: ni }); });
+    for (const b of blocks.filter((x) => x.last === i).sort((a, c) => c.depth - a.depth)) notes.forEach((n, ni) => { if (n.after === b.id) note(ni); });
   });
   return rows;
 }
@@ -72,32 +120,31 @@ export function figjamOverlay(ir) {
   const notes = ir.notes ?? [];
   const rows = sequenceRows(ir);
   const rowOfMessage = new Map();
-  const rowOfNote = new Map();
-  rows.forEach((r, k) => (r.type === 'message' ? rowOfMessage : rowOfNote).set(r.index, k));
-  const order = new Map(ir.messages.map((m, i) => [m.id, i]));
+  rows.forEach((r, k) => { if (r.type === 'message') rowOfMessage.set(r.index, k); });
+  // The first row that belongs to a message: the label rows of blocks that start with it come first.
+  const firstRowOf = (messageIndex) => {
+    let k = rowOfMessage.get(messageIndex);
+    while (rows[k - 1]?.type === 'pad' && rows[k - 1].of === 'block') k--;
+    return k;
+  };
   // A note written right after the last message of a section still stands inside its frame.
   const lastRowOf = (messageIndex) => {
     let k = rowOfMessage.get(messageIndex);
-    while (rows[k + 1]?.type === 'note' && notes[rows[k + 1].index].after === ir.messages[messageIndex].id) k++;
+    const own = (r) => r && (r.type === 'note' || (r.type === 'pad' && r.of === 'note')) && notes[r.index].after === ir.messages[messageIndex].id;
+    while (own(rows[k + 1])) k++;
     return k;
   };
-
-  const blocks = (ir.blocks ?? []).map((b) => {
-    const sections = [{ label: b.label, ids: b.messages }, ...(b.branches ?? []).map((br) => ({ label: br.label, ids: br.messages }))].map((s) => {
-      const idx = s.ids.map((id) => order.get(id));
-      return { label: s.label === undefined ? '' : text(s.label), first: Math.min(...idx), last: Math.max(...idx) };
-    });
-    return { kind: b.kind, sections, first: sections[0].first, last: sections[sections.length - 1].last };
-  });
+  const blocks = blocksOf(ir);
   const data = {
     title: ir.title,
     participants: ir.participants.map((p) => text(p.label)),
     kinds: ir.participants.map((p) => p.kind ?? 'participant'),
     activations: activationsOf(ir).map((a) => ({ at: a.at, top: rowOfMessage.get(a.from), bottom: a.to === null ? null : rowOfMessage.get(a.to) })),
     rows: rows.map((r) => {
+      if (r.type === 'pad') return { pad: r.of };
       if (r.type === 'note') {
         const n = notes[r.index];
-        return { note: text(n.label), over: n.participants.map((p) => pIndex.get(p)), side: n.participants.length === 2 ? 'over' : (n.position ?? 'right') };
+        return { note: text(n.label), over: n.participants.map((p) => pIndex.get(p)), side: n.participants.length === 2 ? 'over' : (n.position ?? 'right'), rows: noteRows(ir, n) };
       }
       const m = ir.messages[r.index];
       const from = pIndex.get(m.from);
@@ -106,18 +153,15 @@ export function figjamOverlay(ir) {
       const label = text(m.label) + (m.ref ? ` ${text(`↳ ${m.ref}`)}` : '');
       return from === to ? { self: label, at: from, kind: m.kind ?? 'sync' } : { message: label, from, to };
     }),
-    blocks: blocks.map((b) => {
-      // Blocks that enclose this one; of two with the same range the earlier is the outer, as in the text.
-      const span = (x) => x.last - x.first;
-      const depth = blocks.filter((o, oi) => o !== b && o.first <= b.first && o.last >= b.last && (span(o) > span(b) || (span(o) === span(b) && oi < blocks.indexOf(b)))).length;
-      return {
-        kind: b.kind,
-        depth,
-        top: rowOfMessage.get(b.first),
-        bottom: lastRowOf(b.last),
-        sections: b.sections.map((s) => ({ label: s.label, row: rowOfMessage.get(s.first) })),
-      };
-    }),
+    blocks: blocks.map((b) => ({
+      kind: b.kind,
+      depth: b.depth,
+      // A block nested deep enough has a row for its label; the others share the room above the first row.
+      header: b.depth >= HEADER_ROW_DEPTH ? rows.findIndex((r) => r.type === 'pad' && r.of === 'block' && r.index === b.index) : null,
+      top: firstRowOf(b.first),
+      bottom: lastRowOf(b.last),
+      sections: b.sections.map((s) => ({ label: s.label === undefined ? '' : text(s.label), row: firstRowOf(s.first) })),
+    })),
   };
   return `${RUNTIME_HEAD}const D = ${JSON.stringify(data)};\n${RUNTIME}`;
 }
@@ -260,6 +304,7 @@ for (const b of [...D.blocks].sort((a, c) => a.depth - c.depth)) {
   let selfEdge = -Infinity;
   for (let k = b.top; k <= b.bottom; k++) {
     const r = D.rows[k];
+    if (r.pad !== undefined) continue;
     const ps = r.message !== undefined ? [r.from, r.to] : r.self !== undefined ? [r.at] : r.over;
     for (const p of ps) { lo = Math.min(lo, xOf(p)); hi = Math.max(hi, xOf(p)); }
     if (r.self !== undefined) selfEdge = Math.max(selfEdge, xOf(r.at) + 270);
@@ -269,8 +314,8 @@ for (const b of [...D.blocks].sort((a, c) => a.depth - c.depth)) {
   const out = 12 * (deepest - b.depth);
   const left = lo - 100 - out;
   const edge = Math.max(hi + 100, selfEdge) + out;
-  const top = yOf(b.top) - 58 + 20 * Math.min(b.depth, 2);
-  const bottom = yOf(b.bottom) + 20 - 5 * Math.min(b.depth, 2) + (D.rows[b.bottom].message === undefined ? 14 : 0);
+  const top = b.header !== null ? yOf(b.header) - 26 : yOf(b.top) - 58;
+  const bottom = yOf(b.bottom) + 22 - 4 * Math.min(b.depth, 4) + (D.rows[b.bottom].message === undefined ? 14 : 0);
   const frame = keep(figma.createRectangle());
   S.appendChild(frame);
   frame.x = left;
@@ -324,11 +369,12 @@ D.rows.forEach((r, k) => {
     box.text.fills = solid(DARK);
     box.fills = solid(rgb(0xffecbd));
     box.strokes = solid(rgb(0xffc943));
-    const lines = Math.max(1, Math.ceil((r.note.length * 7.6) / (w - 24)));
-    const h = Math.min(76, Math.max(44, 20 * lines + 20));
+    // A long note has as many rows as its text needs; the box stands in the middle of them.
+    const lines = Math.max(1, Math.ceil(r.note.length / Math.floor((w - 56) / 7.6)));
+    const h = Math.min(pitch * r.rows - 8, Math.max(44, 21 * lines + 28));
     box.resize(w, h);
     box.x = x;
-    box.y = y - h / 2;
+    box.y = y + (pitch * (r.rows - 1)) / 2 - h / 2;
     right = Math.max(right, x + w);
   }
 });

@@ -25,6 +25,7 @@ sequenceDiagram
     n3->>n3: Hash: argon2id
     %% id: b1
     alt password matches
+      n1->>n1: …
       %% id: m6
       n3-->>n2: 200 session token
       %% id: m7
