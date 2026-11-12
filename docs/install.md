@@ -258,6 +258,30 @@ not 2; `preview` writes each file to a path of its own; `restore <run> undo|redo
 step along the run's history; hand-edited files of a rotated revision are kept under
 `history/extras/` and listed as `keptExtras`.
 
+## Upgrading to 2.1.0
+
+Version 2.1.0 adds two ways to complete a FigJam board. Nothing changes for the other
+targets, and `emit --to figjam` without the new options writes the same text as before
+except for the points listed last.
+
+- `emit --to figjam <ir.json> --overlay <file.js>` also writes a script for the Figma MCP
+  tool `use_figma`. Run after `generate_diagram`, it draws what that tool leaves out of a
+  sequence diagram: block frames, notes, messages of a participant to itself, participant
+  kinds and activation bars.
+- `emit --to figjam <ir.json> --native <file.js>` writes scripts that draw the whole board at
+  the coordinates of the draw.io file, for every kind, class and activity diagrams included.
+  With `--native` and no `--out` the command prints one JSON line, not the Mermaid text.
+- The native board is set in the font Arimo and draws the AWS pictograms from the stencil
+  geometry of draw.io, which is now part of the bundle (see `THIRD_PARTY_NOTICES.md`).
+- Both scripts stop with a message and change nothing when the board is not the one they
+  expect. Neither is checked against Figma on a schedule: before a release, run one sequence
+  fixture with `--overlay` and one fixture with `--native` on a real board and look at the
+  result, as `skills/draw/references/target-figjam.md` describes.
+- The figjam text itself changed where `generate_diagram` was found to drop or reject
+  something: a note and the label row of a nested block are written as rows of their own, a
+  composite state takes two lines, an ER diagram always states its direction, and an ER type
+  with a comma is written without it.
+
 ## Upgrading from it-diagrams
 
 Zukai was published as `it-diagrams` up to version 1.0.0. The IR format and the CLI did

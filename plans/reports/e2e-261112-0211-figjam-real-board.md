@@ -353,3 +353,34 @@ gradient). No probe is left on the board.
 4. The stencil table is packed to keep the bundle under its 2.5 MiB budget, which makes the
    data file unreadable in a diff. Raise the budget and store the table as plain JSON
    (bundle 2.94 MB), or keep it packed?
+
+## Decisions on the open questions
+
+The user left the open questions of this report to the author of the round. They are closed
+as follows.
+
+1. Scheduled check against a real board: none is set up. It would need a Figma account that
+   runs unattended, and both scripts already refuse loudly when the board is not what they
+   expect. The check is a manual step before a release, written into the upgrade notes.
+2. FigJam's own "paste Mermaid" dialog stays recorded as untested; no tool reaches it.
+3. The release is 2.1.0: it adds CLI options and a way to draw two kinds FigJam could not
+   show, which is more than a fix release.
+4. The section of the native board carries the plain IR title. The script tells its own
+   section by the tag on the nodes inside, so two sections of one name do not overwrite each
+   other, and a suffix would only be noise on a board that holds the native section alone.
+5. The stencil geometry stays in the bundle, with the source and trademark notice in
+   `THIRD_PARTY_NOTICES.md`. The geometry comes from draw.io under Apache-2.0 and is used to
+   draw architecture diagrams. A contract with a client that forbids bundled third-party
+   artwork is the one thing this decision cannot cover; in that case the table and the
+   code that draws from it have to be taken out again, which is a code change, not a switch.
+6. The stencil table stays packed: the bundle keeps its 2.5 MiB budget, and the file is
+   generated, so nobody reads it in a diff.
+7. Arimo is required without a fallback. A board without it stops the script with Figma's
+   font error before anything is drawn, which is visible; a silent fallback to another face
+   would bring back wrong line breaks.
+
+Checked again on the real board by the author after the last round, not only by the
+delegate: all eleven native sections beside their draw.io previews, and the three rerun
+behaviours (a node a user added survives and the section does not move; a section of the
+same name that is not ours is left alone; part 2 without part 1 refuses and creates
+nothing), with throwaway probe sections that were removed afterwards.
