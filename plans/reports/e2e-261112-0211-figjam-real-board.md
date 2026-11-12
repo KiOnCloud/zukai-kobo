@@ -166,8 +166,8 @@ uses the plain title).
 
 | Fixture | Section (node id) | Nodes | Result |
 |---|---|---|---|
-| `flowchart/valid` | Order checkout (native) (`14:444`) | 48 | Every node, the group frame, the note with its fold, subroutine bars, parallelogram, decision; all nine routes with their bends and heads; labels `yes`, `no`, `captured` at the draw.io places. Run before two fixes (bold group title, grey note fold) that the later boards have |
-| `class/valid` | Order domain (native) (`15:444`) | 52 | Six class boxes with header, rows and separator; inheritance and realization triangles (hollow, the second on a dashed line), filled and hollow diamond, open arrow, dashed dependency; role names and multiplicities. Run before the wrap rule was fixed: the long method is one small line there, where draw.io has two lines |
+| `flowchart/valid` | Order checkout (native) (`14:444`) | 48 | Every node, the group frame, the note with its fold, subroutine bars, parallelogram, decision; all nine routes with their bends and heads; labels `yes`, `no`, `captured` at the draw.io places. |
+| `class/valid` | Order domain (native) (`15:444`) | 52 | Six class boxes with header, rows and separator; inheritance and realization triangles (hollow, the second on a dashed line), filled and hollow diamond, open arrow, dashed dependency; role names and multiplicities. The long method wraps to two lines as in draw.io |
 | `activity/valid-two-lanes` | Return request (native) (`16:444`) | 42 | Two coloured lanes with headers, start and end state, actions, decision, subroutine, all eight flows on the draw.io routes across the lanes, guards `yes` and `no` |
 | `er/valid` | Order data model (native) (`17:444`) | 50 | Five entities with rows; the four relations with one, zero-or-one, zero-or-many and one-or-many ends; the dashed optional relation; labels |
 | `sequence/valid` | Login with password (native) (`18:444`) | 74 | Actor figure, four lifelines with heads and dashed axes, three activation bars, two notes, `loop` and `alt` frames with tab, condition and `else` divider, ten messages (filled, open, dashed, self-message loop) with labels above the lines. Run twice: the second run reported `replaced: 74` and left one drawing in the same section |
@@ -224,7 +224,12 @@ four were checked there only, not on the real board (except the replacement, see
    that holds both the `generate_diagram` section and the native one shows which is which?
    Today both carry the IR title and the script tells its own section by the name of the
    nodes inside.
-2. The first three test sections (`14:444`, `15:444`, `16:444`) were drawn before the fixes
-   listed above and were not redrawn; `18:444` and later have them. Redraw them or remove
-   the test sections from the board?
+2. The AWS pictograms are not drawn because the repository holds the stencil names only,
+   not their geometry. Bundle draw.io's AWS stencil paths (size of the bundle, and the terms
+   AWS sets for its icons) or keep the coloured squares?
+
+The first three test sections (`14:444`, `15:444`, `16:444`) were first drawn before the
+fixes listed above. They were redrawn afterwards with the scripts of the final code (48, 52
+and 42 nodes replaced in place) and screenshotted again: the group title is bold, the note
+fold is grey, and the long method of `Order` takes two lines as in draw.io.
 
