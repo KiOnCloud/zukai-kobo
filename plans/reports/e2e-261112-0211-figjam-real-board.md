@@ -601,3 +601,17 @@ delegate: all eleven native sections beside their draw.io previews, and the thre
 behaviours (a node a user added survives and the section does not move; a section of the
 same name that is not ours is left alone; part 2 without part 1 refuses and creates
 nothing), with throwaway probe sections that were removed afterwards.
+
+## Lines stay vectors: decided by the user
+
+Asked after the last round whether the lines of the native board should become FigJam
+connectors, the user chose to keep them as vectors on the draw.io routes. A connector
+follows a moved shape but routes itself and has FigJam's own line ends, so the routes, jump
+arcs and UML/ER ends would no longer be draw.io's. The native board is therefore complete as
+it stands: every line, shape, label and pictogram is where draw.io draws it, and each cell
+moves as one group.
+
+Two points listed earlier as differences are not differences from draw.io. The tab and the
+`else` divider of a sequence frame are cells of their own under the root in the draw.io file
+(`parent="1"`), so they do not move with the frame in draw.io either. The line ends `oval`,
+`dash` and `cross` are never written by the emitters, so they cannot appear on a board.
