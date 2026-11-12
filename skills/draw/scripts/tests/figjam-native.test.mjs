@@ -6,8 +6,11 @@ import { loadFixture, validFixtures } from './helpers.mjs';
 
 /**
  * A stand-in for a FigJam page: nodes keep what the script sets, a text measures itself by
- * its characters and size, and a section holds its children. Enough to run the script and
- * read back what it drew and where.
+ * its characters and size, and a section holds its children. A group behaves as FigJam's was
+ * seen to on a real board: it takes nodes out of the section in their order, has no
+ * coordinates of its own (its box is that of its children, and moving it moves them), takes
+ * more nodes with appendChild, and goes when its last child is removed. Enough to run the
+ * script and read back what it drew and where.
  */
 function fakeBoard(existing = []) {
   let seq = 0;
@@ -17,12 +20,28 @@ function fakeBoard(existing = []) {
       id: `1:${++seq}`, type, name: type, x: 0, y: 0, width: 100, height: 100, rotation: 0,
       resize(w, h) { this.width = w; this.height = h; },
       resizeWithoutConstraints(w, h) { this.width = w; this.height = h; },
-      remove() { const p = this.parent ?? page; p.children = p.children.filter((c) => c !== this); },
+      remove() {
+        const p = this.parent ?? page;
+        p.children = p.children.filter((c) => c !== this);
+        if (p.type === 'GROUP' && p.children.length === 0) p.remove();
+      },
     };
-    if (type === 'SECTION') {
+    if (type === 'SECTION' || type === 'GROUP') {
       n.children = [];
-      n.appendChild = (c) => { c.parent = n; n.children.push(c); };
-      page.children.push(n);
+      n.appendChild = (c) => {
+        if (c.parent) c.parent.children = c.parent.children.filter((x) => x !== c);
+        c.parent = n;
+        n.children.push(c);
+      };
+    }
+    if (type === 'SECTION') page.children.push(n);
+    if (type === 'GROUP') {
+      const edge = (pick, of) => pick(...n.children.map(of));
+      const move = (axis, to, from) => { for (const c of n.children) c[axis] += to - from; };
+      Object.defineProperty(n, 'x', { get: () => edge(Math.min, (c) => c.x), set: (v) => move('x', v, n.x) });
+      Object.defineProperty(n, 'y', { get: () => edge(Math.min, (c) => c.y), set: (v) => move('y', v, n.y) });
+      Object.defineProperty(n, 'width', { get: () => edge(Math.max, (c) => c.x + c.width) - n.x });
+      Object.defineProperty(n, 'height', { get: () => edge(Math.max, (c) => c.y + c.height) - n.y });
     }
     if (type === 'TEXT') {
       // One line as wide as its characters, unless the script fixed the width to wrap it.
@@ -47,6 +66,14 @@ function fakeBoard(existing = []) {
     createRectangle: () => make('RECTANGLE'),
     createEllipse: () => make('ELLIPSE'),
     createVector: () => make('VECTOR'),
+    group(nodes, parent) {
+      if (nodes.length === 0) throw new Error('group: no nodes');
+      const g = make('GROUP');
+      g.name = 'Group';
+      for (const c of nodes) g.appendChild(c);
+      parent.appendChild(g);
+      return g;
+    },
   };
   return { figma, page };
 }
@@ -81,7 +108,12 @@ function readFile(xml) {
 }
 
 const round = (v) => Math.round(v * 100) / 100;
-const drawn = (section, type) => section.children.filter((c) => c.type === type);
+/** Every node a section holds that is not a group, in the order drawn, and those of one type. */
+const leaves = (node) => node.children.flatMap((c) => (c.type === 'GROUP' ? leaves(c) : [c]));
+const drawn = (section, type) => leaves(section).filter((c) => c.type === type);
+/** The groups of a section, each with its name and what it holds. */
+const groups = (node) => node.children.filter((c) => c.type === 'GROUP').flatMap((g) => [g, ...groups(g)]);
+const treeOf = (node) => (node.children ? [node.type === 'GROUP' ? node.name : node.type, node.children.map(treeOf)] : node.type);
 const pathsOf = (section) => drawn(section, 'VECTOR').map((v) => v.vectorPaths[0].data);
 
 const fixtures = validFixtures();
@@ -236,7 +268,7 @@ describe('figjam native script', () => {
       // The section holds the whole drawing.
       expect(S.width).toBe(width);
       expect(S.height).toBe(height);
-      for (const c of S.children.filter((x) => x.type !== 'VECTOR' && x.rotation === 0)) {
+      for (const c of leaves(S).filter((x) => x.type !== 'VECTOR' && x.rotation === 0)) {
         expect(c.x).toBeGreaterThanOrEqual(0);
         expect(c.y).toBeGreaterThanOrEqual(0);
         expect(c.x + c.width).toBeLessThanOrEqual(width);
@@ -432,7 +464,7 @@ describe('figjam native script', () => {
     expect(graded[0].fills[0].gradientTransform).toEqual([[0, 1, 0], [-1, 0, 1]]);
     // The other directions of draw.io, on a plain cell style.
     const cell = (dir) => `<mxfile><diagram id="p" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="i" value="" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#112233;gradientColor=#445566;${dir}strokeColor=#ffffff;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="78" height="78" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;
-    const fillOf = (dir) => JSON.parse(/^const D = (.*);$/m.exec(figjamNative(cell(dir), { title: 't' }).parts[0])[1]).items[0][5];
+    const fillOf = (dir) => JSON.parse(/^const D = (.*);$/m.exec(figjamNative(cell(dir), { title: 't' }).parts[0])[1]).items.find((i) => i[0] === 'r')[5];
     expect(fillOf('')).toBe('112233>445566');
     expect(fillOf('gradientDirection=south;')).toBe('112233>445566');
     expect(fillOf('gradientDirection=north;')).toBe('445566>112233');
@@ -543,17 +575,31 @@ describe('figjam native script', () => {
     // A new section stands to the right of everything on the page.
     expect(S.x).toBe(1200);
     expect(S.y).toBe(-50);
-    expect(S.children.every((c) => c.name === NATIVE_TAG)).toBe(true);
-    const count = S.children.length;
+    // What the script drew carries the tag; the groups carry the names of their cells.
+    expect(S.children.every((c) => c.type === 'GROUP' && c.name !== NATIVE_TAG)).toBe(true);
+    expect(leaves(S).every((c) => c.name === NATIVE_TAG)).toBe(true);
+    const count = leaves(S).length;
     expect(first.created).toBe(count);
+    const tree = JSON.stringify(treeOf(S));
+    // A user's note in the section, and one a user dropped into a group of the drawing.
     const sticky = { type: 'STICKY', name: 'a remark of the user', x: 5, y: 5, width: 10, height: 10, parent: S };
     S.children.push(sticky);
+    const inside = { type: 'STICKY', name: 'a remark in a group', x: 6, y: 6, width: 10, height: 10, parent: S.children[0] };
+    S.children[0].children.push(inside);
+    const kept = S.children[0];
     S.x = 3000;
     const [second] = await runAll(parts, figma);
     expect(second).toMatchObject({ section: first.section, replaced: count, created: count });
     expect(page.children.filter((c) => c.type === 'SECTION').length).toBe(1);
-    expect(S.children.filter((c) => c.name === NATIVE_TAG).length).toBe(count);
+    expect(leaves(S).filter((c) => c.name === NATIVE_TAG).length).toBe(count);
     expect(S.children).toContain(sticky);
+    // The group the user used keeps the user's note and nothing of the old drawing.
+    expect(S.children).toContain(kept);
+    expect(kept.children).toEqual([inside]);
+    // Without the two notes the section holds the same groups as after the first run.
+    kept.remove();
+    S.children = S.children.filter((c) => c !== sticky);
+    expect(JSON.stringify(treeOf(S))).toBe(tree);
     // The section stays where the user moved it.
     expect(S.x).toBe(3000);
   });
@@ -582,14 +628,85 @@ describe('figjam native script', () => {
     const many = fakeBoard();
     const results = await runAll(split.parts, many.figma);
     expect(many.page.children.length).toBe(1);
-    expect(many.page.children[0].children.length).toBe(one.page.children[0].children.length);
+    // The parts make the groups the whole script makes: a group that a part leaves open goes on in the next.
+    const whole1 = JSON.stringify(treeOf(one.page.children[0]));
+    expect(JSON.stringify(treeOf(many.page.children[0]))).toBe(whole1);
+    expect(split.parts.some((p) => /\["\[","[^"]*",1\]/.test(p))).toBe(true);
+    expect(results.reduce((sum, r) => sum + r.created, 0)).toBe(leaves(one.page.children[0]).length);
     expect(results.map((r) => r.part)).toEqual(split.parts.map((_, i) => i + 1));
     expect(new Set(results.map((r) => r.section)).size).toBe(1);
     // A later part does not start a board of its own.
     await expect(runOn(split.parts[1], fakeBoard().figma)).rejects.toThrow(/run part 1 first/);
     // Run again from the first part, the whole drawing is replaced, not doubled.
     await runAll(split.parts, many.figma);
-    expect(many.page.children[0].children.length).toBe(one.page.children[0].children.length);
+    expect(JSON.stringify(treeOf(many.page.children[0]))).toBe(whole1);
+    // A part that goes on in a group does not run without the part that began the group.
+    const later = split.parts.findIndex((p) => /"items":\[\["\[","[^"]*",1\]/.test(p));
+    const bare = fakeBoard();
+    await runOn(split.parts[0], bare.figma);
+    bare.page.children[0].children = [{ type: 'RECTANGLE', name: NATIVE_TAG, x: 0, y: 0, width: 1, height: 1 }];
+    await expect(runOn(split.parts[later], bare.figma)).rejects.toThrow(/run the parts in order/);
+  });
+
+  it('makes one group of each cell, inside the group of the container the cell lies in', async () => {
+    const groupsOf = async (kind, name) => {
+      const ir = loadFixture(kind, name);
+      const xml = await drawioOf(ir);
+      const { figma, page } = fakeBoard();
+      await runAll(figjamNative(xml, { title: ir.title }).parts, figma);
+      return { S: page.children[0], cells: parseCells(xml) };
+    };
+    const within = (g, other) => { for (let p = g.parent; p; p = p.parent) if (p === other) return true; return false; };
+
+    // A flowchart: every node and every edge is one group at the top or in the group of its frame.
+    const flow = await groupsOf('flowchart', 'valid');
+    const byName = (S, name) => groups(S).filter((g) => g.name === name);
+    const [frame] = byName(flow.S, 'Fulfilment');
+    expect(frame.parent).toBe(flow.S);
+    const [reserve] = byName(flow.S, 'Reserve stock');
+    expect(reserve.parent).toBe(frame);
+    // The box, its two inner bars and its label are the one group.
+    expect(reserve.children.map((c) => c.type)).toEqual(['RECTANGLE', 'VECTOR', 'TEXT']);
+    const [start] = byName(flow.S, 'Customer submits cart');
+    expect(start.parent).toBe(flow.S);
+    // An edge is its line, its arrow head and its label with the background of the label; it is named like its label.
+    const [yes] = byName(flow.S, 'yes');
+    expect(yes.parent).toBe(flow.S);
+    expect(yes.children.map((c) => c.type)).toEqual(['VECTOR', 'VECTOR', 'RECTANGLE', 'TEXT']);
+    // A cell without a label is named by its id; a long label is cut.
+    const drawnCells = flow.cells.filter((c) => !flow.cells.find((o) => o.id === c.parent)?.edge);
+    expect(groups(flow.S).length).toBe(drawnCells.length);
+    for (const g of groups(flow.S)) expect(g.name.length).toBeLessThanOrEqual(40);
+    const unnamed = flow.cells.find((c) => c.edge && plainLabel(c.value) === '' && !flow.cells.some((o) => o.parent === c.id));
+    expect(byName(flow.S, unnamed.id).length).toBe(1);
+
+    // Moving a group moves every drawing in it by the same amount and nothing else.
+    const before = new Map(leaves(flow.S).map((c) => [c, [c.x, c.y]]));
+    frame.x += 100;
+    frame.y += 50;
+    for (const [c, [x, y]] of before) {
+      const moved = within(c, frame);
+      expect([c.x - x, c.y - y], c.type).toEqual(moved ? [100, 50] : [0, 0]);
+    }
+    expect([...before.keys()].filter((c) => within(c, frame)).length).toBeGreaterThan(reserve.children.length);
+
+    // Nested containers: an AWS icon lies in its subnet, the subnet in the VPC, the VPC in the region, the region in the cloud.
+    const aws = await groupsOf('architecture', 'valid-aws');
+    const chain = ['Order API (ECS Fargate)', 'Private subnet', 'VPC 10.0.0.0/16', 'ap-northeast-1', 'AWS Cloud'].map((n) => byName(aws.S, n)[0]);
+    for (let i = 0; i < chain.length - 1; i++) expect(chain[i].parent, chain[i].name).toBe(chain[i + 1]);
+    expect(chain.at(-1).parent).toBe(aws.S);
+    // The icon is its square, its pictogram and its name.
+    expect(chain[0].children.map((c) => c.type)).toEqual(['RECTANGLE', 'VECTOR', 'TEXT']);
+
+    // An activation bar lies in the group of its lifeline, a lane holds its actions, a class box is one group.
+    const seq = await groupsOf('sequence', 'valid');
+    const app = byName(seq.S, 'Web app')[0];
+    expect(app.children.some((c) => c.type === 'GROUP' && c.children.length === 1 && c.children[0].type === 'RECTANGLE')).toBe(true);
+    const act = await groupsOf('activity', 'valid-two-lanes');
+    expect(byName(act.S, 'Request return')[0].parent).toBe(byName(act.S, 'Customer')[0]);
+    const cls = await groupsOf('class', 'valid');
+    const line = byName(cls.S, 'OrderLine')[0];
+    expect(leaves(line).filter((c) => c.type === 'TEXT').map((t) => t.characters)).toEqual(['OrderLine', '+Quantity: int', '+UnitPrice: Money']);
   });
 });
 

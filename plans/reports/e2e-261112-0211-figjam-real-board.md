@@ -490,10 +490,77 @@ what two renderers leave on text and line edges.
 
 The stencil sample (`49:444`) has no edge and was not redrawn. No probe was created.
 
+**One cell, one object (follow-up).** Until here every shape, line and text was a child of
+the section on its own, so dragging a box left its label behind. Now the drawings of one
+draw.io cell are one group, and a cell in a container lies in the group of the container.
+
+What FigJam allows was tried on the board first, in a throwaway section that the same call
+removed: `figma.group` takes rectangles, vectors and texts that lie in a section; groups
+nest; a group has no coordinates of its own, so its children keep the coordinates of the
+section; a new group goes on top, which keeps the order when the nodes grouped are the
+topmost; `appendChild` adds to a group; setting `x` or `y` of a group moves every child; a
+group goes when its last child is removed. Nothing had to be substituted.
+
+- A vertex is its shapes and its text (and pictogram, and label background); an edge is its
+  line, its line ends and its labels. A group is named like the label of its cell, cut at 40
+  characters, or like the cell id when there is no label; an edge without a label of its own
+  is named like its first label cell.
+- The cells are now drawn in the order of draw.io's own tree (a cell, then its children),
+  not in the order of the file, where all containers come first. draw.io paints in tree
+  order too. In 34 of the 58 fixtures the two orders differ; no picture changed.
+- The tag `zukai-native` stays the name of each shape, line and text; the groups carry the
+  readable names. A rerun removes every tagged node at any depth, and a group goes with its
+  last one; a node a user put into the section or into a group stays. `created` and
+  `replaced` count shapes, lines and texts as before, not groups.
+- Parts: a group that is open where a part ends is closed there and opened again in the
+  next part, marked so that the script goes on in the group on the board (the last group of
+  the section, or of the group it lies in). This was simpler than keeping a top-level cell
+  in one part, which a large container would break. A part that goes on in a group that is
+  not there stops with an error.
+- Size: a script is about 2 000 characters longer (1 500 of runtime, the rest group marks).
+  The stencil sample is 49 809 characters, still one part.
+
+All twelve sections were redrawn with the final scripts, each as generated. For each the
+position and size of every line, marker, rectangle and ellipse and the length of every text
+were taken on the board, sorted, and compared with what the commit before grouping drew:
+equal for all twelve. Each new screenshot was compared with the one taken before grouping:
+no pixel differs in any of the twelve, so the comparison with draw.io stands as measured
+above.
+
+| Section (node id) | Replaced / created | Groups (deepest nesting) | Pixels that differ from before | Against draw.io |
+|---|---|---|---|---|
+| Order checkout (`14:444`) | 48 / 48 | 19 (2) | 0 | 0.0087, as before |
+| Order domain (`15:444`) | 52 / 52 | 22 (2) | 0 | 0.0050, as before |
+| Return request (`16:444`) | 42 / 42 | 18 (2) | 0 | 0.0018, as before |
+| Order data model (`17:444`) | 50 / 50 | 22 (2) | 0 | 0.0074, as before |
+| Login with password (`18:444`) | 74 / 74 | 26 (2) | 0 | 0.0108, as before |
+| Order lifecycle (`19:444`) | 53 / 53 | 21 (2) | 0 | 0.0046, as before |
+| Order platform on AWS (`20:444`) | 82 / 82 | 24 (5) | 0 | 0.0041, as before |
+| Corporate login, left to right (`21:444`), two parts, the second going on in a group of the first | 71 / 59 + 12 | 29 (2) | 0 | 0.0041, as before |
+| Gradient icon (`43:444`) | 10 / 10 | 3 (1) | 0 | 0.0105, as before |
+| Order fulfilment (`44:444`) | 67 / 67 | 32 (2) | 0 | 0.0038, as before |
+| Booking API on ECS Fargate (`45:444`) | 107 / 107 | 31 (4) | 0 | 0.0027, as before |
+| Stencil sample (`49:444`) | 39 / 39 | 31 (1) | 0 | no strongly different pixel, as before |
+
+Moving was tried on a copy of `20:444` that the same call removed, 82 drawings in all:
+
+| Moved by the API | Offset | Drawings in the group, moved by the offset | Other drawings, unmoved |
+|---|---|---|---|
+| the vertex group "Order API (ECS Fargate)" (square, pictogram, name) | +30, +20 | 3 of 3 | 79 of 79 |
+| the container group "Private subnet" (frame, its three services) | +100, -50 | 12 of 12 | 70 of 70 |
+| the edge group "order placed" (line, head, label and its background) | +7, +9 | 4 of 4 | 78 of 78 |
+
+On the same copy a note was put into the section and another into the group "CloudFront",
+and the removal a rerun does was run: all 82 drawings went, every emptied group went, and
+the section kept the note and the group chain "AWS Cloud" > "CloudFront" with the other
+note. No probe is left on the board.
+
 Differences from draw.io that remain:
 
-- Lines are vectors, not FigJam connectors: they do not follow a shape the user moves, and
-  the nodes of a diagram are not grouped. This is the design of the emitter.
+- Lines are vectors, not FigJam connectors: a moved node or container leaves the lines that
+  end at it where they were. This is the design of the emitter.
+- A cell is a group, not a shape with its text in it: a double click enters the group, and
+  typing into a box means editing the text node in it.
 - Markers other than those the emitters write (`oval`, `dash`, `cross`, the thin and async
   kinds) are not drawn, and their lines are not shortened.
 - Jump styles other than `arc` (`sharp`, `line`, `gap`) and curved edges are drawn straight;

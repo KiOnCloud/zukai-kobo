@@ -47,6 +47,8 @@ const WHITE = 'ffffff';
 const FONT_SIZE = 12;
 const EDGE_FONT_SIZE = 11;
 const MARKER_SIZE = 6;
+/** The most characters of a label in the name of its group on the board. */
+const GROUP_NAME_LENGTH = 40;
 
 const num = (v, fallback = 0) => (v === undefined || v === '' || Number.isNaN(Number(v)) ? fallback : Number(v));
 const round = (v) => Math.round(v * 100) / 100;
@@ -873,13 +875,43 @@ function drawCells(cells) {
     text(p.x + offset.x, p.y + offset.y, 0, 0, plainLabel(cell.value), o);
   };
 
-  for (const cell of cells) {
+  // One cell of the file is one group on the board, and a cell that lies in a container lies
+  // in the group of the container, as draw.io keeps them: its own drawing first, then its
+  // children in the order of the file. The labels of an edge are drawn into the group of the edge.
+  const children = new Map();
+  for (const cell of cells) children.set(cell.parent, [...(children.get(cell.parent) ?? []), cell]);
+  const nameOf = (cell) => {
+    const labels = [cell, ...(cell.edge ? children.get(cell.id) ?? [] : [])].map((c) => plainLabel(c.value).replace(/\s+/g, ' ').trim());
+    const label = labels.find((l) => l !== '') ?? cell.id;
+    return label.length > GROUP_NAME_LENGTH ? `${label.slice(0, GROUP_NAME_LENGTH - 1)}…` : label;
+  };
+  const draw = (cell) => {
     const owner = byId.get(cell.parent);
+    if (cell.vertex && owner?.edge) { edgeLabel(cell, owner); return; }
+    if (!cell.vertex && !cell.edge) return;
+    items.push(['[', nameOf(cell)]);
     if (cell.edge) edge(cell);
-    else if (cell.vertex && owner?.edge) edgeLabel(cell, owner);
-    else if (cell.vertex) vertex(cell);
+    else vertex(cell);
+    for (const child of children.get(cell.id) ?? []) draw(child);
+    items.push([']']);
+  };
+  for (const cell of cells) if (!byId.has(cell.parent)) draw(cell);
+  return withoutEmptyGroups(items);
+}
+
+/** The drawings without the groups that hold none: a cell that draws nothing makes no group. */
+function withoutEmptyGroups(items) {
+  const out = [];
+  const starts = [];
+  for (const item of items) {
+    if (item[0] === '[') { starts.push(out.length); out.push(item); }
+    else if (item[0] === ']') {
+      const start = starts.pop();
+      if (out.length === start + 1) out.pop();
+      else out.push(item);
+    } else out.push(item);
   }
-  return items;
+  return out;
 }
 
 /** Room a text takes, for the size of the section only: Figma measures the real text itself. */
@@ -901,6 +933,7 @@ function boundsOf(items) {
   const b = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
   const extend = (x, y) => { b.minX = Math.min(b.minX, x); b.minY = Math.min(b.minY, y); b.maxX = Math.max(b.maxX, x); b.maxY = Math.max(b.maxY, y); };
   for (const item of items) {
+    if (item[0] === '[' || item[0] === ']') continue;
     if (item[0] === 'p') {
       const numbers = item[1].filter((v) => typeof v === 'number');
       for (let i = 0; i < numbers.length; i += 2) extend(numbers[i], numbers[i + 1]);
@@ -923,6 +956,7 @@ function boundsOf(items) {
 
 /** The same drawing moved by (dx, dy), numbers rounded and a path written as text. */
 function place(item, dx, dy) {
+  if (item[0] === '[' || item[0] === ']') return item;
   if (item[0] === 'p') {
     let isX = true;
     const data = item[1].map((v) => {
@@ -972,10 +1006,27 @@ export function figjamNative(drawioXml, { title, limit = SCRIPT_LIMIT }) {
   let carried = new Set();
   /** Characters an item adds to the part being filled: itself, and its stencil path when the part does not carry it yet. */
   const cost = (item) => JSON.stringify(item).length + 1 + (item[0] === 'g' && !carried.has(item[1]) ? JSON.stringify(item[1]).length + JSON.stringify(stencilPath(item[1])).length + 2 : 0);
+  // The groups that are open where a part ends are closed there and opened again in the next
+  // part; one that has drawings on the board already is marked so that the script goes on in it.
+  const open = [];
+  const size = (list) => list.reduce((sum, item) => sum + JSON.stringify(item).length + 1, 0);
+  const closeSize = JSON.stringify([']']).length + 1;
   for (const item of items) {
-    if (used + cost(item) > room && chunks.at(-1).length > 0) { chunks.push([]); used = 0; carried = new Set(); }
+    if (item[0] === ']') { open.pop(); used += closeSize; chunks.at(-1).push(item); continue; }
+    const drawsHere = chunks.at(-1).some((i) => i[0] !== '[' && i[0] !== ']');
+    // Room is kept for closing every group that is open, the one this item opens included.
+    const closing = (open.length + (item[0] === '[' ? 1 : 0)) * closeSize;
+    if (used + cost(item) + closing > room && drawsHere) {
+      chunks.at(-1).push(...open.map(() => [']']));
+      const again = open.map((g) => (g.drawn ? ['[', g.name, 1] : ['[', g.name]));
+      chunks.push([...again]);
+      used = size(again);
+      carried = new Set();
+    }
     used += cost(item);
     chunks.at(-1).push(item);
+    if (item[0] === '[') open.push({ name: item[1], drawn: false });
+    else for (const g of open) g.drawn = true;
     if (item[0] === 'g') carried.add(item[1]);
   }
   return { parts: chunks.map((chunk, i) => script(chunk, i + 1, chunks.length)), offset, width, height };
@@ -991,12 +1042,18 @@ const RUNTIME_HEAD = `// Zukai: draws a diagram on a FigJam board at the coordin
  * the coordinates its path is written in, so nothing here knows where the section lies. */
 const RUNTIME = String.raw`const TAG = '${NATIVE_TAG}';
 const page = figma.currentPage;
-const isOurs = (n) => n.type === 'SECTION' && n.name === D.title && (n.children.length === 0 || n.children.some((c) => c.name === TAG));
+// What this script drew carries the tag as its name, also inside a group; a group is named like its cell.
+const ours = (n, found = []) => {
+  for (const c of n.children || []) { if (c.name === TAG) found.push(c); else ours(c, found); }
+  return found;
+};
+const isOurs = (n) => n.type === 'SECTION' && n.name === D.title && (n.children.length === 0 || ours(n).length > 0);
 let S = page.children.filter(isOurs).pop();
 let replaced = 0;
 if (D.part === 1) {
   if (S) {
-    const old = S.children.filter((c) => c.name === TAG);
+    // A group goes with its last drawing; what a user put into the section or into a group stays.
+    const old = ours(S);
     replaced = old.length;
     for (const n of old) n.remove();
   } else {
@@ -1025,7 +1082,29 @@ const paint = (hex) => {
   return [{ type: 'GRADIENT_LINEAR', gradientTransform: down ? [[0, 1, 0], [-1, 0, 1]] : [[1, 0, 0], [0, 1, 0]], gradientStops: [{ position: 0, color: { ...rgb(hex), a: 1 } }, { position: 1, color: { ...rgb(hex.slice(7)), a: 1 } }] }];
 };
 let created = 0;
-const add = (n) => { S.appendChild(n); n.name = TAG; created++; return n; };
+// The drawings of one cell of the draw.io file are one group, and the group of a cell in a
+// container lies in the group of the container. A group keeps the coordinates of the section.
+const open = [];
+const collect = (n) => { if (open.length > 0) open[open.length - 1].nodes.push(n); return n; };
+const add = (n) => { S.appendChild(n); n.name = TAG; created++; return collect(n); };
+const openGroup = (name, goesOn) => {
+  let node = null;
+  if (goesOn) {
+    // The group an earlier part began: the last one of the group it lies in, or of the section.
+    const up = open.length > 0 ? open[open.length - 1].node : S;
+    node = up ? up.children.filter((c) => c.type === 'GROUP').pop() : null;
+    if (!node) throw new Error('zukai native: part ' + D.part + ' goes on in a group that an earlier part drew, and it is not on the board; run the parts in order, from part 1.');
+  }
+  open.push({ name, node, nodes: [] });
+};
+const closeGroup = () => {
+  const g = open.pop();
+  if (g.node) { for (const n of g.nodes) g.node.appendChild(n); return; }
+  if (g.nodes.length === 0) return;
+  const node = figma.group(g.nodes, S);
+  node.name = g.name;
+  collect(node);
+};
 const outline = (n, stroke, dashed, width) => {
   n.strokes = paint(stroke);
   if (!stroke) return;
@@ -1043,7 +1122,9 @@ const vector = (data, fill, stroke, dashed, width, opacity) => {
 
 for (const item of D.items) {
   const kind = item[0];
-  if (kind === 'g') {
+  if (kind === '[') openGroup(item[1], item[2]);
+  else if (kind === ']') closeGroup();
+  else if (kind === 'g') {
     // A stencil path is written in the numbers of the stencil's own box: scale and move each into the section.
     const [, key, x, y, sx, sy, fill, stroke, width, opacity] = item;
     let isX = true;

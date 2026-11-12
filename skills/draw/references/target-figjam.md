@@ -181,17 +181,23 @@ leave the machine, and the secret scan gates this emit like the other.
    draw into it.
 4. The script makes a section named like the IR `title`, to the right of everything on the
    page, as large as the drawing, and draws every cell of the draw.io file into it as plain
-   shapes, vector lines and text. Each node it creates is named `zukai-native`. Running part
-   1 again removes those nodes from that section and draws anew, where the section now
-   stands; what the user added to the section stays. A section of the same name that
-   `generate_diagram` made is not touched.
+   shapes, vector lines and text. Each cell is one group, named like its label (cut at 40
+   characters; like its id when it has no label): a node with its text, bars and pictogram;
+   an edge with its line, its line ends and its labels. A cell that lies in a container of
+   the draw.io file (a frame, a lane, a composite state, an AWS group, a lifeline, a class or
+   entity box) lies in the group of the container, so moving the container moves what is in
+   it. Each shape, line and text the script creates is named `zukai-native`. Running part 1
+   again removes those from that section, wherever they lie, and draws anew where the
+   section now stands; what the user added to the section or to a group stays. A section of
+   the same name that `generate_diagram` made is not touched. The result of a call counts the
+   shapes, lines and texts it created and replaced, not the groups.
 5. Look at the result (`get_screenshot` of the section id the script returns) before
    reporting the board.
 
 What still differs from the draw.io file:
 
 - The board is a drawing, not a model. A line is a vector, not a FigJam connector, so it
-  does not follow a shape the user moves. The parts of one diagram are not grouped.
+  does not follow a shape the user moves: a moved node leaves its lines where they were.
 - Line ends of the kinds the emitters write (arrow, triangle, open arrow, diamond and the
   entity-relationship ends) are drawn by the formulas of draw.io's markers; other kinds are
   not drawn.
@@ -211,5 +217,5 @@ from the board; if the call fails because a font is missing, relay the error and
 draw.io file instead. AWS services, group frames, product logos and the client screen are
 drawn with the pictograms of draw.io's own stencils, in the colours and the opacity the
 draw.io file gives them. Only the pictograms a diagram shows are in its script: an AWS
-diagram of about ten services is some 28 000 characters, a diagram without icons 7 000 to
-9 000.
+diagram of about ten services is some 31 000 characters, a diagram without icons 10 000 to
+12 000.
