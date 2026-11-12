@@ -283,20 +283,59 @@ The three behaviours that had been checked only against the stand-in were run on
 The probe rectangle and the two probe sections were removed again; the board holds the eight
 `(native)` sections as before.
 
+### Jump arcs, gradient squares and more stencils on the board
+
+A last round closed two more differences and drew three further sections.
+
+- Jump arcs. Only the flow-edge style of `emit-drawio.mjs` carries `jumpStyle=arc;jumpSize=8`
+  (flowchart, state, activity and architecture edges; sequence messages and ER and class
+  relations do not). The rule was read from draw.io's `Graph.js` at tag v32.6.10
+  (`mxGraphView.updateLineJumps` and the connector's `paintLine`), not guessed: an edge with
+  `jumpStyle` jumps over every edge that comes before it in the file (unless that one says
+  `noJump=1`), on level and upright stretches alike; the line leaves its stretch
+  (jumpSize - 2) / 2 + stroke width = 4 px before the crossing and returns 4 px after it over
+  one cubic curve whose control points stand 1.3 x 4 = 5.2 px off the line, above a level
+  stretch and to the right of an upright one; a crossing within half a pixel of an end of
+  the stretch is no crossing, one nearer than 4 px to the point before or after it is drawn
+  straight, and two edges that run along each other do not jump. `figjam-native.mjs` does
+  the same on its own routes.
+- Three of the 58 fixtures have a crossing in their draw.io layout, one each:
+  `activity/valid-fork-join`, `architecture/valid-aws-fan-out` and
+  `architecture/valid-aws-shared-systems`. No new fixture was needed.
+- Gradient. One icon of the catalog has a gradient, not seventeen: `customer_engagement`
+  (`fillColor=#3334B9`, `gradientColor=#4D72F3`, `gradientDirection=north`). Its square is
+  now a `GRADIENT_LINEAR` fill, the gradient colour at the top and the fill colour at the
+  bottom as draw.io paints "north"; the other three directions are handled the same way.
+- A single-IR draw.io emit of a fixture with `ref` (`flowchart/valid`,
+  `activity/valid-two-lanes`) has no `link` attribute and no `UserObject`, so the missing
+  page links are no difference from the draw.io file of the same emit.
+
+On the board, each script as generated, then `get_screenshot` beside the `preview` PNG:
+
+| Fixture | Section (node id) | Nodes | Compared with the draw.io picture |
+|---|---|---|---|
+| ad-hoc IR: `aws:customer_engagement` connected to `aws:simple_email_service` | Gradient icon (native) (`43:444`) | 10 | The first square reads back as `GRADIENT_LINEAR` with stops 4D72F3 at 0 and 3334B9 at 1, top to bottom, and looks as in draw.io (lighter at the top); the second is solid. Both pictograms match |
+| `activity/valid-fork-join` | Order fulfilment (native) (`44:444`) | 67 | One arc, where the flow from "Pack parcel" down to the join crosses the "no" flow that runs level to "Put order on hold", bulging to the right: the same crossing and the same side as in draw.io. Fork and join bars, three lanes, both guards as in draw.io. Nothing else differs but the points listed below |
+| `architecture/valid-aws-fan-out` | Booking API on ECS Fargate (native) (`45:444`) | 107 | One arc, where "publish version" going up crosses "access logs", to the right as in draw.io. The ten service squares with their nine different pictograms (ECR, S3 twice, Secrets Manager, DynamoDB, SES, SQS, CloudWatch, load balancer, Fargate), the Firebase logo in its three shades, the server and the application figure, the three group corner icons and the client screen match. The three names draw.io wraps onto two lines wrap here at the same width. Differs: several of the lines that leave the Booking API run with a slant of 1 px over their first stretch where draw.io draws a 1 px step (see the list below) |
+
+The eight earlier `(native)` sections were not redrawn in this round; their scripts are
+unchanged except `valid-aws`, whose script does not change either (it has no crossing and no
+gradient). No probe is left on the board.
+
 ### Differences from draw.io that remain (after that round)
 
 - Lines are vectors, not FigJam connectors: they do not follow a shape the user moves, and
   the nodes of a diagram are not grouped. This is the design of the emitter.
-- No jump arcs where lines cross; page links of `ref` are not links.
-- Sizes of line ends follow draw.io's markers by formula, not pixel for pixel; an orthogonal
-  route whose two ends differ by less than a pixel is drawn as one line with that slant
-  where draw.io draws a tiny step.
-- The `↳` of a reference line is drawn with another glyph than in draw.io.
-- The one icon of the catalog whose square has a gradient is drawn in one colour.
-- Not looked at on the board in this round: the pictograms of the other 443 stencils. They
-  come from the same decoder and are checked by test for form and for lying inside their
-  box, and the fan-out fixture (Firebase, a server, an application figure, eight more
-  services) was compared with draw.io in a local rendering only.
+- Sizes of line ends follow draw.io's markers by formula, not pixel for pixel.
+- An orthogonal route whose two ends differ by less than a pixel, or by one pixel over a
+  long stretch, is drawn as one line with that slant where draw.io draws a tiny step.
+- The `↳` of a reference line is drawn with the glyph the board's font has; draw.io shows
+  the one of the viewing machine, so there is no reference shape.
+- Jump styles other than `arc` (`sharp`, `line`, `gap`) and curved edges are drawn straight;
+  the emitters write neither.
+- Not looked at on the board: the pictograms of the stencils no drawn section uses (434 of
+  456). They come from the same decoder and are checked by test for form and for lying
+  inside their box.
 
 ### Unresolved questions (native board)
 
@@ -304,12 +343,11 @@ The probe rectangle and the two probe sections were removed again; the board hol
    that holds both the `generate_diagram` section and the native one shows which is which?
    Today both carry the IR title and the script tells its own section by the name of the
    nodes inside.
-2. The repository and the bundle now hold the geometry of draw.io's AWS icons and of
-   fourteen product logos (Firebase, Kubernetes, TensorFlow and others), taken from
-   jgraph/drawio (Apache-2.0). `THIRD_PARTY_NOTICES.md` still says "No icon artwork is copied
-   or embedded"; that sentence is no longer true and the file was left as it is, because how
-   to state the terms of AWS and of the logo owners is the user's decision. Until it is
-   decided the commit should not be released.
+2. The repository and the bundle hold the geometry of draw.io's AWS icons and of fourteen
+   product logos (Firebase, Kubernetes, TensorFlow and others), taken from jgraph/drawio
+   (Apache-2.0). `THIRD_PARTY_NOTICES.md` was corrected for this after the round that added
+   them; whether the terms of AWS and of the logo owners ask for more than that notice is
+   the user's to decide.
 3. Arimo was found on this board. Whether every FigJam board offers it was not established;
    the script fails with Figma's font error when it does not.
 4. The stencil table is packed to keep the bundle under its 2.5 MiB budget, which makes the

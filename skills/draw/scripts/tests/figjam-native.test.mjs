@@ -137,7 +137,8 @@ describe('figjam native script', () => {
         expect(route, `${f.kind}/${f.name} ${e.id}: ${wanted.join(' , ')}`).toBeDefined();
         // Every corner of an orthogonal route is a right angle: no point follows another on a slant.
         if (s.edgeStyle === 'orthogonalEdgeStyle') {
-          const pts = route.split(/ ?[ML] /).filter(Boolean).map((t) => t.split(' ').map(Number));
+          // A jump over another line leaves the stretch and comes back to it: its end counts as a point of the route.
+          const pts = route.replace(/C( -?[\d.]+){4}/g, 'L').split(/ ?[ML] /).filter(Boolean).map((t) => t.split(' ').map(Number));
           for (let i = 1; i < pts.length; i++) expect(Math.min(Math.abs(pts[i][0] - pts[i - 1][0]), Math.abs(pts[i][1] - pts[i - 1][1])), `${f.kind}/${f.name} ${e.id}: ${route}`).toBeLessThan(1);
         }
       }
@@ -278,6 +279,90 @@ describe('figjam native script', () => {
     const many = fakeBoard();
     await runAll(split.parts, many.figma);
     expect(pathsOf(many.page.children[0]).sort()).toEqual(pathsOf(page.children[0]).sort());
+  });
+
+  it('jumps over a line drawn before it where the two cross, and nowhere else', async () => {
+    const jumpsOf = async (kind, name) => {
+      const ir = loadFixture(kind, name);
+      const { parts, offset } = figjamNative(await drawioOf(ir), { title: ir.title });
+      const { figma, page } = fakeBoard();
+      await runAll(parts, figma);
+      // The line of an edge: stroked, not filled, straight stretches (a cylinder lid has curves but no stretch before them).
+      const lines = drawn(page.children[0], 'VECTOR').filter((v) => v.fills.length === 0 && / L /.test(v.vectorPaths[0].data)).map((v) => v.vectorPaths[0].data);
+      return { lines, jumping: lines.filter((d) => / C /.test(d)), offset };
+    };
+    // The flow from the join down to the carrier crosses the flow that runs level to the hold.
+    const { lines, jumping, offset } = await jumpsOf('activity', 'valid-fork-join');
+    expect(jumping.length).toBe(1);
+    const m = /^M (\S+) (\S+) L (\S+) (\S+) C (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) L (\S+) (\S+)$/.exec(jumping[0]).slice(1).map(Number);
+    const [x, top, , before, c1x, c1y, c2x, c2y, , after, , bottom] = m;
+    // The stretch is upright: it stops 4 px before the crossing and goes on 4 px after it (half of jumpSize less 2, plus the line width).
+    expect([m[2], m[8], m[10]]).toEqual([x, x, x]);
+    expect(after - before).toBe(8);
+    expect(top).toBeLessThan(before);
+    expect(bottom).toBeGreaterThan(after);
+    // The curve bulges to the right, as draw.io's does on an upright line.
+    expect([round(c1x - x), c1y, round(c2x - x), c2y]).toEqual([5.2, before, 5.2, after]);
+    // At the crossing itself runs a level stretch of a line drawn earlier.
+    const y = (before + after) / 2;
+    const crossed = lines.slice(0, lines.indexOf(jumping[0])).filter((d) => {
+      const pts = d.split(/ ?[ML] /).filter(Boolean).map((t) => t.split(' ').map(Number));
+      return pts.some((p, i) => i > 0 && p[1] === y && pts[i - 1][1] === y && Math.min(p[0], pts[i - 1][0]) < x && Math.max(p[0], pts[i - 1][0]) > x);
+    });
+    expect(crossed.length).toBe(1);
+    expect(offset).toEqual({ x: 0, y: 0 });
+    // A level line jumps upwards; the fan-out diagram has an upright one too. A diagram without a crossing has no jump.
+    expect((await jumpsOf('architecture', 'valid-aws-shared-systems')).jumping.map((d) => / L (\S+) (\S+) C \1 (\S+) \S+ \3 /.test(d) && Number(/ C \S+ (\S+)/.exec(d)[1]) < Number(/ L \S+ (\S+) C/.exec(d)[1]))).toEqual([true]);
+    expect((await jumpsOf('architecture', 'valid-aws-fan-out')).jumping.length).toBe(1);
+    for (const [kind, name] of [['flowchart', 'valid'], ['state', 'valid'], ['activity', 'valid-two-lanes'], ['architecture', 'valid-aws'], ['flowchart', 'large-50-nodes']]) expect((await jumpsOf(kind, name)).jumping, `${kind}/${name}`).toEqual([]);
+  });
+
+  it('jumps only as draw.io does: not over a later line, not without jumpStyle, not next to a corner', () => {
+    const box = (id, x, y) => `<mxCell id="${id}" value="" style="rounded=0;" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="20" height="20" as="geometry"/></mxCell>`;
+    const line = (id, from, to, style, points = '') => `<mxCell id="${id}" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=none;${style}" edge="1" parent="1" source="${from}" target="${to}"><mxGeometry relative="1" as="geometry">${points}</mxGeometry></mxCell>`;
+    const across = 'exitX=1;exitY=0.5;entryX=0;entryY=0.5;';
+    const down = 'exitX=0.5;exitY=1;entryX=0.5;entryY=0;';
+    const xml = (edges) => `<mxfile><diagram id="p" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>${box('a', 0, 100)}${box('b', 300, 100)}${box('c', 150, 0)}${box('d', 150, 200)}${box('e', 12, 0)}${box('f', 12, 200)}${edges}</root></mxGraphModel></diagram></mxfile>`;
+    const linesOf = (edges) => JSON.parse(/^const D = (.*);$/m.exec(figjamNative(xml(edges), { title: 't' }).parts[0])[1]).items.filter((i) => i[0] === 'p' && !i[2]).map((i) => i[1]);
+    const jump = 'jumpStyle=arc;jumpSize=8;';
+    // Level first, upright second: the upright one jumps, to the right.
+    expect(linesOf(line('h', 'a', 'b', across + jump) + line('v', 'c', 'd', down + jump))).toEqual(['M 60 150 L 340 150', 'M 200 60 L 200 146 C 205.2 146 205.2 154 200 154 L 200 240']);
+    // Upright first: now the level one jumps, upwards.
+    expect(linesOf(line('v', 'c', 'd', down + jump) + line('h', 'a', 'b', across + jump))).toEqual(['M 200 60 L 200 240', 'M 60 150 L 196 150 C 196 144.8 204 144.8 204 150 L 340 150']);
+    // A line without jumpStyle goes straight through; one marked noJump is not jumped over.
+    expect(linesOf(line('h', 'a', 'b', across + jump) + line('v', 'c', 'd', down))[1]).toBe('M 200 60 L 200 240');
+    expect(linesOf(line('h', 'a', 'b', `${across}noJump=1;`) + line('v', 'c', 'd', down + jump))[1]).toBe('M 200 60 L 200 240');
+    // A crossing closer to the start of the stretch than the jump is long (here 2 px from the box) stays
+    // straight; the crossing is a point of the line all the same, as in draw.io.
+    expect(linesOf(line('v', 'e', 'f', down + jump) + line('h', 'a', 'b', across + jump))[1]).toBe('M 60 150 L 62 150 L 340 150');
+    // Two crossings on one stretch: two jumps, in the order the line meets them.
+    expect(linesOf(line('v', 'c', 'd', down) + line('w', 'c', 'd', 'exitX=1;exitY=1;entryX=1;entryY=0;') + line('h', 'a', 'b', across + jump))[2]).toBe('M 60 150 L 196 150 C 196 144.8 204 144.8 204 150 L 206 150 C 206 144.8 214 144.8 214 150 L 340 150');
+  });
+
+  it('fills the square of a service with the gradient of its style', async () => {
+    const ir = loadFixture('architecture', 'valid-aws');
+    ir.components.find((c) => c.id === 'cdn').icon = 'aws:customer_engagement';
+    const xml = await drawioOf(ir);
+    expect(xml).toContain('gradientColor=#4D72F3;gradientDirection=north;fillColor=#3334B9;');
+    const { figma, page } = fakeBoard();
+    await runAll(figjamNative(xml, { title: ir.title }).parts, figma);
+    const squares = drawn(page.children[0], 'RECTANGLE').filter((r) => r.width === 78 && r.height === 78);
+    const graded = squares.filter((r) => r.fills[0].type === 'GRADIENT_LINEAR');
+    expect(graded.length).toBe(1);
+    expect(squares.filter((r) => r.fills[0].type === 'SOLID').length).toBe(7);
+    const hex = (c) => [c.r, c.g, c.b].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+    // North: the fill colour at the bottom, the gradient colour at the top; the transform turns Figma's left-to-right run downwards.
+    expect(graded[0].fills[0].gradientStops.map((g) => [g.position, hex(g.color), g.color.a])).toEqual([[0, '4d72f3', 1], [1, '3334b9', 1]]);
+    expect(graded[0].fills[0].gradientTransform).toEqual([[0, 1, 0], [-1, 0, 1]]);
+    // The other directions of draw.io, on a plain cell style.
+    const cell = (dir) => `<mxfile><diagram id="p" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="i" value="" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#112233;gradientColor=#445566;${dir}strokeColor=#ffffff;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="78" height="78" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;
+    const fillOf = (dir) => JSON.parse(/^const D = (.*);$/m.exec(figjamNative(cell(dir), { title: 't' }).parts[0])[1]).items[0][5];
+    expect(fillOf('')).toBe('112233>445566');
+    expect(fillOf('gradientDirection=south;')).toBe('112233>445566');
+    expect(fillOf('gradientDirection=north;')).toBe('445566>112233');
+    expect(fillOf('gradientDirection=east;')).toBe('112233|445566');
+    expect(fillOf('gradientDirection=west;')).toBe('445566|112233');
+    expect(fillOf('gradientColor=none;').length).toBe(6);
   });
 
   it('sets the text in Arimo at the size of the draw.io file and wraps where the box ends', async () => {

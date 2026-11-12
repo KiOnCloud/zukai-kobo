@@ -192,9 +192,11 @@ What still differs from the draw.io file:
 
 - The board is a drawing, not a model. A line is a vector, not a FigJam connector, so it
   does not follow a shape the user moves. The parts of one diagram are not grouped.
-- A line that crosses another has no jump arc, and draw.io's page links (`ref`) are not
-  links; the `↳ <slug>` line of the label stays, with the arrow as the board's font draws it.
-- Line ends are drawn by the formulas of draw.io's markers, not pixel for pixel.
+- Line ends are drawn by the formulas of draw.io's markers, not pixel for pixel. The `↳` of
+  a reference line is the glyph the board's font has for it.
+
+A line jumps over a line drawn before it with the small arc draw.io draws there, and the
+square of a service with a gradient has that gradient.
 
 Text is set in Arimo, which has the widths of the face draw.io sizes its boxes for, at the
 sizes of the draw.io file, so a label fits its box and wraps at the same words; a bold or

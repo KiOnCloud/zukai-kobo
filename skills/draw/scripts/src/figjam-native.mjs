@@ -192,7 +192,8 @@ function shapeOf(style) {
  *   ['p', path, fill, stroke, dashed, strokeWidth]                        vector path
  *   ['t', x, y, w, h, text, options]                                      text in a box (a point when w and h are 0)
  *   ['g', key, x, y, sx, sy, fill, stroke, strokeWidth]                   a stencil path: number n of it lies at x + n * sx, y + n * sy
- * with colours as six hex digits or 0 for none. The path of a 'g' is looked up by its key
+ * with colours as six hex digits or 0 for none; the fill of a rectangle may be a gradient,
+ * `<hex>><hex>` from top to bottom or `<hex>|<hex>` from left to right. The path of a 'g' is looked up by its key
  * (`<stencil name>#<index>`), so a script carries the picture of an icon once however often
  * the diagram shows it, in the short numbers of the stencil's own box.
  */
@@ -278,6 +279,22 @@ function drawCells(cells) {
       if (f || k) items.push(['g', `${name}#${i}`, ox, oy, sx * STENCIL_UNIT, sy * STENCIL_UNIT, f ?? 0, k ?? 0, g.s ? g.s * Math.min(sx, sy) : 1]);
     });
     return true;
+  };
+
+  /**
+   * The fill of a cell with `gradientColor`: draw.io runs from the fill colour to the gradient
+   * colour in the direction named (south unless given). Written `<first>><second>` for top to
+   * bottom and `<first>|<second>` for left to right; null when the cell has no gradient.
+   */
+  const gradientOf = (s) => {
+    const from = colour(s.fillColor, WHITE);
+    const to = colour(s.gradientColor, null);
+    if (!from || !to || to === from) return null;
+    const dir = s.gradientDirection ?? 'south';
+    if (dir === 'north') return `${to}>${from}`;
+    if (dir === 'east') return `${from}|${to}`;
+    if (dir === 'west') return `${to}|${from}`;
+    return `${from}>${to}`;
   };
 
   const vertex = (cell) => {
@@ -400,7 +417,7 @@ function drawCells(cells) {
           // on it; any other stencil paints itself in the colours of the cell. One that is not in
           // the data is a neutral outline.
           if (kind === 'mxgraph.aws4.resourceIcon') {
-            rect(x, y, w, h, fill ?? '888888', null);
+            rect(x, y, w, h, gradientOf(s) ?? fill ?? '888888', null);
             stencil(s.resIcon, x + w * 0.1, y + h * 0.1, w * 0.8, h * 0.8, stroke ?? WHITE, null);
           } else if (!stencil(kind, x, y, w, h, fill, stroke)) rect(x, y, w, h, WHITE, stroke && stroke !== WHITE ? stroke : '666666', { radius: 6 });
           if (below) labelBelow(cell, b);
@@ -539,12 +556,114 @@ function drawCells(cells) {
     }
   };
 
+  /** A route without the waypoints that lie on a straight stretch of it, as draw.io tests it for crossings. */
+  const stretches = (points) => {
+    const offLine = (a, b, p) => {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const t = dx === 0 && dy === 0 ? 0 : Math.min(1, Math.max(0, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
+      return (p.x - a.x - t * dx) ** 2 + (p.y - a.y - t * dy) ** 2;
+    };
+    const out = [points[0]];
+    for (let i = 1; i < points.length; i++) {
+      while (i < points.length - 1 && offLine(out.at(-1), points[i + 1], points[i]) < 1) i++;
+      out.push(points[i]);
+    }
+    return out;
+  };
+  /** Where two stretches cross, or null when they are parallel or do not reach each other. */
+  const crossing = (a, b, c, d) => {
+    const den = (d.y - c.y) * (b.x - a.x) - (d.x - c.x) * (b.y - a.y);
+    if (den === 0) return null;
+    const ua = ((d.x - c.x) * (a.y - c.y) - (d.y - c.y) * (a.x - c.x)) / den;
+    const ub = ((b.x - a.x) * (a.y - c.y) - (b.y - a.y) * (a.x - c.x)) / den;
+    return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1 ? { x: a.x + ua * (b.x - a.x), y: a.y + ua * (b.y - a.y) } : null;
+  };
+  /** Distance of a point from the endless line through a and b. */
+  const fromLine = (a, b, p) => Math.abs((b.y - a.y) * p.x - (b.x - a.x) * p.y + b.x * a.y - b.y * a.x) / (Math.hypot(b.x - a.x, b.y - a.y) || 1);
+
+  /** The stretches of the edges drawn so far; a later edge with `jumpStyle` jumps over them. */
+  const drawnEdges = [];
+  /**
+   * The line of an edge with `jumpStyle=arc`, as draw.io's connector paints it: where a
+   * stretch crosses a stretch of an edge drawn before it, the line leaves the stretch `size`
+   * before the crossing and comes back `size` after it over a small curve, upwards on a
+   * level stretch and to the right on an upright one. A crossing nearer than `size` to the
+   * point before it or after it, or half a pixel from an end of the stretch, is drawn
+   * straight, and so is one where the two edges run along each other.
+   */
+  const lineWithJumps = (points, size) => {
+    const near = 0.5;
+    const own = stretches(points);
+    const routed = [];
+    for (let i = 0; i < own.length - 1; i++) {
+      const p0 = own[i];
+      const p1 = own[i + 1];
+      const hits = [];
+      for (const other of drawnEdges) {
+        for (let j = 0; j < other.length - 1; j++) {
+          const p2 = other[j];
+          const p3 = other[j + 1];
+          const before = other[j - 1];
+          const after = other[j + 2];
+          const pt = crossing(p0, p1, p2, p3);
+          if (!pt) continue;
+          const atEnd = (e) => Math.abs(pt.x - e.x) <= near && Math.abs(pt.y - e.y) <= near;
+          if (atEnd(p0) || atEnd(p1)) continue;
+          if (before && fromLine(p0, p1, before) <= near && fromLine(p0, p1, p2) <= near) continue;
+          if (after && fromLine(p0, p1, after) <= near && fromLine(p0, p1, p3) <= near) continue;
+          if (hits.some((h) => Math.abs(h.x - pt.x) <= near && Math.abs(h.y - pt.y) <= near)) continue;
+          hits.push({ ...pt, jump: true, d: (pt.x - p0.x) ** 2 + (pt.y - p0.y) ** 2 });
+        }
+      }
+      routed.push(p0, ...hits.sort((a, b) => a.d - b.d));
+    }
+    routed.push(own.at(-1));
+    // Without a crossing the line is the route as it is, every waypoint kept.
+    if (!routed.some((p) => p.jump)) return polyline(points);
+    const out = [];
+    let pending = [];
+    let move = true;
+    const flush = () => {
+      pending.forEach((p, k) => { if (move && k === 0) out.push('M', p.x, p.y); else if (move || k > 0) out.push('L', p.x, p.y); });
+      pending = [];
+    };
+    let last = null;
+    let n = null;
+    routed.forEach((pt, i) => {
+      let done = false;
+      if (last && pt.jump) {
+        const next = routed[i + 1];
+        if (!n) {
+          const len = Math.hypot(pt.x - last.x, pt.y - last.y);
+          n = len > 0 ? { x: ((pt.x - last.x) * size) / len, y: ((pt.y - last.y) * size) / len } : null;
+        }
+        if (n && (next.x - pt.x) ** 2 + (next.y - pt.y) ** 2 > size * size && (last.x - pt.x) ** 2 + (last.y - pt.y) ** 2 > size * size) {
+          const a = { x: pt.x - n.x, y: pt.y - n.y };
+          const b = { x: pt.x + n.x, y: pt.y + n.y };
+          pending.push(a);
+          flush();
+          const f = (Math.round(n.x) < 0 || (Math.round(n.x) === 0 && Math.round(n.y) <= 0) ? 1 : -1) * 1.3;
+          out.push('C', a.x - n.y * f, a.y + n.x * f, b.x - n.y * f, b.y + n.x * f, b.x, b.y);
+          move = false;
+          pending = [b];
+          done = true;
+        }
+      } else n = null;
+      if (!done) { pending.push(pt); last = pt; }
+    });
+    flush();
+    return out;
+  };
+
   const edge = (cell) => {
     const s = cell.style;
     const points = routeOf(cell);
     const stroke = colour(s.strokeColor, BLACK);
     const width = num(s.strokeWidth, 1);
-    path(polyline(points), null, stroke, { dashed: s.dashed === '1', width });
+    const line = s.jumpStyle === 'arc' ? lineWithJumps(points, (num(s.jumpSize, 6) - 2) / 2 + width) : polyline(points);
+    path(line, null, stroke, { dashed: s.dashed === '1', width });
+    if (s.noJump !== '1') drawnEdges.push(stretches(points));
     marker(s.startArrow, points[0], points[1], s.startFill !== '0', num(s.startSize, MARKER_SIZE), stroke, width);
     marker(s.endArrow ?? 'classic', points.at(-1), points.at(-2), s.endFill !== '0', num(s.endSize, MARKER_SIZE), stroke, width);
     const p = along(points, 0.5);
@@ -706,7 +825,14 @@ if (D.part === 1) {
 const FONT = 'Arimo';
 const fonts = { '': 'Regular', b: 'Bold', i: 'Italic', bi: 'Bold Italic' };
 for (const style of Object.values(fonts)) await figma.loadFontAsync({ family: FONT, style });
-const paint = (hex) => (hex ? [{ type: 'SOLID', color: { r: parseInt(hex.slice(0, 2), 16) / 255, g: parseInt(hex.slice(2, 4), 16) / 255, b: parseInt(hex.slice(4, 6), 16) / 255 } }] : []);
+const rgb = (hex) => ({ r: parseInt(hex.slice(0, 2), 16) / 255, g: parseInt(hex.slice(2, 4), 16) / 255, b: parseInt(hex.slice(4, 6), 16) / 255 });
+// A fill of two colours is a gradient: 'a>b' runs from the top to the bottom, 'a|b' from the left to the right.
+const paint = (hex) => {
+  if (!hex) return [];
+  if (hex.length === 6) return [{ type: 'SOLID', color: rgb(hex) }];
+  const down = hex[6] === '>';
+  return [{ type: 'GRADIENT_LINEAR', gradientTransform: down ? [[0, 1, 0], [-1, 0, 1]] : [[1, 0, 0], [0, 1, 0]], gradientStops: [{ position: 0, color: { ...rgb(hex), a: 1 } }, { position: 1, color: { ...rgb(hex.slice(7)), a: 1 } }] }];
+};
 let created = 0;
 const add = (n) => { S.appendChild(n); n.name = TAG; created++; return n; };
 const outline = (n, stroke, dashed, width) => {
