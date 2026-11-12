@@ -61,6 +61,10 @@ brainstorm (idea) ─> clarify ┘                                              
   activation bars) is drawn afterwards by a
   script that `figjam-overlay.mjs` writes for the Figma tool `use_figma`; it checks the board
   against the model and changes nothing when they differ.
+  `figjam-native.mjs` is the other way onto a board: it reads the draw.io XML and writes
+  `use_figma` scripts that draw every cell as plain shapes, vector lines and text at the
+  draw.io coordinates, so the layout is not computed twice and class and activity diagrams,
+  which `generate_diagram` rejects, reach FigJam too.
 - **The CLI** (`cli.mjs`, bundled by esbuild into the committed `bin/cli.mjs`) exposes
   `validate`, `emit`, `bundle`, `relabel` and `preview`, plus `diff`, `drift`, `snapshot`,
   `revisions` and `restore` for the revise skill, and `help`; it exits 2 on validation errors

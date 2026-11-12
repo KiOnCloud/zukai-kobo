@@ -11,6 +11,11 @@ diagram that has any of these (nearly every one) the CLI also writes an overlay 
 which the agent runs on the board with the Figma tool `use_figma` (section 5). Flowchart,
 state, ER and architecture boards are complete after `generate_diagram`.
 
+`generate_diagram` also lays the diagram out itself and rejects class and activity diagrams.
+When the user wants the board to look like the draw.io file, or the diagram is a class or
+activity diagram, skip sections 2, 4 and 5 and draw the board with `use_figma` from the
+draw.io layout instead (section 7).
+
 ## 1. Check availability
 
 Look for a tool named `generate_diagram` from the Figma MCP server in the current session
@@ -34,9 +39,10 @@ node "<skill-dir>/scripts/bin/cli.mjs" emit --to figjam <run-folder>/source/<slu
   so replace the value in the IR with a placeholder. Only if the user confirms it is not a
   secret, run again with `--allow-sensitive`. The scan reads `meta` too, so a secret in a
   note stops the emit although notes are not sent: fix it there as well.
-- Exit 2 with `kind "class" is unsupported on target "figjam"`: FigJam cannot draw class
-  diagrams. Offer `--to mermaid` or `--to drawio` instead; do not try to disguise a class
-  diagram as a flowchart.
+- Exit 2 with `kind "class" is unsupported on target "figjam"` (or `"activity"`):
+  `generate_diagram` cannot draw this kind. Draw the board as section 7 says when `use_figma`
+  is available; otherwise offer `--to mermaid` or `--to drawio`. Do not try to disguise a
+  class diagram as a flowchart.
 
 The `figjam` profile differs from plain Mermaid: no front matter (the title goes in the tool
 call), labels lose quotes, brackets and line breaks (a comparison keeps
@@ -152,3 +158,47 @@ comes out empty in the pasted board, with a stray arrow beside the diagram that 
 deleted (how FigJam's own paste dialog treats them was not verified). When `emit --to figjam` itself refuses (a class or activity diagram, or a finding of
 the secret scan), there is nothing to paste: say why, and offer `--to drawio` or
 `--to mermaid` as a file of its own.
+
+## 7. Draw the board at the draw.io coordinates
+
+Use this instead of sections 2, 4 and 5 when the user wants the layout of the draw.io file on
+the board (same positions, same routes, the shapes of draw.io), and always for a class or an
+activity diagram, which `generate_diagram` rejects. It needs a Figma tool named `use_figma`
+in the session; `generate_diagram` is not called. Sections 1 and 3 still apply: the labels
+leave the machine, and the secret scan gates this emit like the other.
+
+1. Emit the script: `node "<skill-dir>/scripts/bin/cli.mjs" emit --to figjam <ir.json> --native <file.js>`.
+   The stdout JSON lists the files under `native`: `<file>.js`, and `<file>.2.js`,
+   `<file>.3.js`, ... when the drawing is longer than one `use_figma` call takes (50 000
+   characters). The script is made from the same layout as `emit --to drawio`, so emit the
+   draw.io file from the same IR when the user wants both. For a class or activity diagram
+   `out` is `null` and `text` says that no Mermaid text was written.
+2. Load the Figma skills `figma-use` and `figma-use-figjam` (fallback resources:
+   `skill://figma/figma-use/SKILL.md`, `skill://figma/figma-use-figjam/SKILL.md`).
+3. Call `use_figma` with the file key of the board and, as `code`, the content of the file,
+   unchanged. Do not edit the script and do not write one by hand. With several parts, run
+   them in order, one call each, and not in parallel: part 1 makes the section, the others
+   draw into it.
+4. The script makes a section named like the IR `title`, to the right of everything on the
+   page, as large as the drawing, and draws every cell of the draw.io file into it as plain
+   shapes, vector lines and text. Each node it creates is named `zukai-native`. Running part
+   1 again removes those nodes from that section and draws anew, where the section now
+   stands; what the user added to the section stays. A section of the same name that
+   `generate_diagram` made is not touched.
+5. Look at the result (`get_screenshot` of the section id the script returns) before
+   reporting the board.
+
+What still differs from the draw.io file:
+
+- The board is a drawing, not a model. A line is a vector, not a FigJam connector, so it
+  does not follow a shape the user moves. The parts of one diagram are not grouped.
+- The typeface is Inter, a little wider than the one draw.io uses. A label that no longer
+  fits its box on one line is set slightly smaller; a label draw.io wrapped is wrapped again
+  and may break at another word.
+- A label is plain text in one weight: a bold or italic part of a label (the `«kind»` line of
+  a participant) is not set apart. A whole label that is bold or italic stays so.
+- AWS icons have no pictogram: a service is the square of its colour with its name under
+  it, a group frame has a square of its colour in the corner, and any other icon (a monitor,
+  a server) is a rounded outline.
+- A line that crosses another has no jump arc, and draw.io's page links (`ref`) are not
+  links; the `↳ <slug>` line of the label stays.

@@ -5,6 +5,7 @@ import { checkModel } from './check-model.mjs';
 import { checkDetail } from './check-detail.mjs';
 import { emitMermaid } from './emit-mermaid.mjs';
 import { figjamOverlay } from './figjam-overlay.mjs';
+import { figjamNative } from './figjam-native.mjs';
 import { emitDrawio, emitDrawioBundle, bundleRefs, slugify, pageIdOf } from './emit-drawio.mjs';
 
 export { TARGETS };
@@ -14,10 +15,13 @@ export { TARGETS };
  * model and size, level of detail, secret scan, emitter. Errors stop the pipeline; warnings accumulate across every stage.
  * @param {unknown} ir
  * @param {string} target
- * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, refs?: Map<string, { pageId: string, title: string }> }} [options]
- *   `refs` is set by `bundle` so a `ref` resolves to the target's title (and page link in draw.io)
- * @returns {Promise<{ ok: boolean, output?: string, overlay?: string, errors: Array<object>, warnings: Array<object> }>}
- *   `overlay` is set for a FigJam sequence diagram that needs the overlay script
+ * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, native?: boolean, refs?: Map<string, { pageId: string, title: string }> }} [options]
+ *   `refs` is set by `bundle` so a `ref` resolves to the target's title (and page link in draw.io).
+ *   `native` (figjam only) also makes the scripts that draw the board at the draw.io coordinates;
+ *   a kind generate_diagram rejects is then emitted too, without the Mermaid text.
+ * @returns {Promise<{ ok: boolean, output?: string, overlay?: string, native?: string[], textSkipped?: string, errors: Array<object>, warnings: Array<object> }>}
+ *   `overlay` is set for a FigJam sequence diagram that needs the overlay script; `native` holds
+ *   the scripts for use_figma in the order to run them; `textSkipped` says why there is no `output`
  */
 export async function emit(ir, target, options = {}) {
   const validation = validateIr(ir);
@@ -25,7 +29,11 @@ export async function emit(ir, target, options = {}) {
 
   const matrix = checkFeatureMatrix(ir, target);
   const warnings = [...matrix.warnings.map((w) => ({ stage: 'feature-matrix', ...w }))];
-  if (!matrix.ok) return { ok: false, errors: matrix.errors, warnings };
+  // The matrix speaks for generate_diagram. The native board is drawn from the draw.io layout,
+  // so what generate_diagram rejects stops only the Mermaid text, not the emit.
+  const native = target === 'figjam' && options.native === true;
+  const textSkipped = native && !matrix.ok ? matrix.errors.map((e) => e.message).join('; ') : undefined;
+  if (!matrix.ok && !native) return { ok: false, errors: matrix.errors, warnings };
 
   warnings.push(...checkModel(ir).warnings.map((w) => ({ stage: 'model', ...w })));
   warnings.push(...checkDetail(ir).warnings.map((w) => ({ stage: 'detail', ...w })));
@@ -53,9 +61,12 @@ export async function emit(ir, target, options = {}) {
       result = await emitDrawio(ir, { diagramId: options.diagramId, refs: options.refs });
       break;
     case 'figjam':
-      result = emitMermaid(ir, { profile: 'figjam' });
-      // What generate_diagram cannot draw of a sequence diagram, as a script for use_figma.
-      result.overlay = figjamOverlay(ir);
+      if (textSkipped === undefined) {
+        result = emitMermaid(ir, { profile: 'figjam' });
+        // What generate_diagram cannot draw of a sequence diagram, as a script for use_figma.
+        result.overlay = figjamOverlay(ir);
+      } else result = { warnings: [] };
+      if (native) result.native = figjamNative((await emitDrawio(ir, { diagramId: options.diagramId })).output, { title: ir.title }).parts;
       break;
     default:
       return { ok: false, errors: [{ path: '/', message: `no emitter for target "${target}"` }], warnings };
@@ -66,7 +77,7 @@ export async function emit(ir, target, options = {}) {
   const fellBack = result.warnings.some((w) => w.fallback === 'flowchart');
   const kept = fellBack ? warnings.filter((w) => w.stage !== 'feature-matrix' || /\.aws$/.test(w.feature)) : warnings;
   kept.push(...result.warnings.map((w) => ({ stage: 'emit', ...w })));
-  return { ok: true, output: result.output, ...(result.overlay ? { overlay: result.overlay } : {}), errors: [], warnings: kept };
+  return { ok: true, output: result.output, ...(result.overlay ? { overlay: result.overlay } : {}), ...(result.native ? { native: result.native } : {}), ...(textSkipped === undefined ? {} : { textSkipped }), errors: [], warnings: kept };
 }
 
 /**

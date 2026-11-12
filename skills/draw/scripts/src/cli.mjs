@@ -5,8 +5,9 @@
  * `help`, `--help` or `-h` prints the usage on stdout.
  *
  *   node cli.mjs validate <ir.json>
- *   node cli.mjs emit --to <target> <ir.json> [--out <file>] [--overlay <file.js>] [--allow-sensitive] [--mermaid-stable]
- *     (--overlay, with --to figjam: the script for use_figma that draws what generate_diagram leaves out of a sequence diagram)
+ *   node cli.mjs emit --to <target> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--allow-sensitive] [--mermaid-stable]
+ *     (--overlay, with --to figjam: the script for use_figma that draws what generate_diagram leaves out of a sequence diagram;
+ *      --native, with --to figjam: the script(s) for use_figma that draw the whole board at the draw.io coordinates, for every kind)
  *   node cli.mjs bundle --to <drawio|mermaid> --out <file> [--title <text>] [--canvas all|<id,id,...> [--gap <px>]] <run-dir|ir.json>...
  *     (one file holding every diagram; a run folder stands for its IRs with the main diagram first;
  *      --canvas adds a first draw.io page with those diagrams side by side)
@@ -31,7 +32,7 @@ import { snapshotRun, listRevisions, restoreRun } from './revisions.mjs';
 
 const USAGE = `usage:
   cli.mjs validate <ir.json>
-  cli.mjs emit --to <${TARGETS.join('|')}> <ir.json> [--out <file>] [--overlay <file.js>] [--allow-sensitive] [--mermaid-stable]
+  cli.mjs emit --to <${TARGETS.join('|')}> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--allow-sensitive] [--mermaid-stable]
   cli.mjs bundle --to <drawio|mermaid> --out <file> [--title <text>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] <run-dir|ir.json>...
   cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>
   cli.mjs preview <file.drawio|file.mmd|run.md> [--out <file.png>] [--max-px <n>]
@@ -47,6 +48,10 @@ main diagram first. An option takes its value as the next argument or as --optio
 --allow-sensitive says that what the secret scan found is not a secret.
 --overlay goes with --to figjam: it writes the script that completes a sequence diagram on the
 board (block frames, self-messages, notes); no file is written when the board needs none.
+--native goes with --to figjam too: it writes the script for use_figma that draws the whole
+board at the coordinates of the draw.io layout (<file>.js, then <file>.2.js, ... when one
+script would be too long; run them in order). It works for every kind, class and activity
+included; for those two no Mermaid text is written.
 Exit codes: 0 success, 1 usage or I/O error, 2 validation errors.`;
 
 function fail(code, payload) {
@@ -55,12 +60,12 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native' };
 const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -162,9 +167,24 @@ export async function main(argv) {
     const { ir, error } = readIr(opts.positional[0]);
     if (error) return fail(1, { ok: false, errors: [error] });
     if (opts.overlay && opts.to !== 'figjam') return fail(1, { ok: false, errors: [{ path: '/', message: `--overlay goes with --to figjam, not "${opts.to}"` }], usage: USAGE });
+    if (opts.native && opts.to !== 'figjam') return fail(1, { ok: false, errors: [{ path: '/', message: `--native goes with --to figjam, not "${opts.to}"` }], usage: USAGE });
     const diagramId = opts.out ? basename(opts.out, extname(opts.out)).replace(/\.ir$/, '') : undefined;
-    const result = await emit(ir, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, diagramId });
+    const result = await emit(ir, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, diagramId, native: opts.native !== undefined });
     if (!result.ok) return fail(2, { ok: false, errors: result.errors, warnings: result.warnings });
+    // The native scripts carry the labels too, so they are written only past the same gates:
+    // <file>.js, then <file>.2.js and so on when the drawing needs more than one script.
+    let nativePaths;
+    if (result.native) {
+      const first = resolve(opts.native);
+      const stem = first.slice(0, first.length - extname(first).length);
+      nativePaths = result.native.map((_, i) => (i === 0 ? first : `${stem}.${i + 1}${extname(first)}`));
+      try {
+        mkdirSync(dirname(first), { recursive: true });
+        result.native.forEach((script, i) => writeFileSync(nativePaths[i], script, 'utf8'));
+      } catch (e) {
+        return fail(1, { ok: false, errors: [{ path: opts.native, message: `cannot write file: ${e.message}` }] });
+      }
+    }
     // The overlay script carries the same labels as the text, so it is written only past the same gates.
     let overlayPath;
     if (result.overlay && opts.overlay) {
@@ -175,10 +195,15 @@ export async function main(argv) {
       } catch (e) {
         return fail(1, { ok: false, errors: [{ path: opts.overlay, message: `cannot write file: ${e.message}` }] });
       }
-    } else if (result.overlay) {
+    } else if (result.overlay && !result.native) {
       result.warnings.push({ stage: 'emit', path: '/', message: 'the board of this sequence diagram is complete only after the overlay script has run on it', hint: 'emit again with --overlay <file.js> and pass that script to use_figma once generate_diagram has made the board' });
     }
     if (result.warnings.length > 0) process.stderr.write(JSON.stringify({ warnings: result.warnings }) + '\n');
+    // generate_diagram rejects this kind, so there is no Mermaid text to write: only the native scripts.
+    if (result.output === undefined) {
+      process.stdout.write(JSON.stringify({ ok: true, out: null, text: `not written: ${result.textSkipped}`, overlay: null, native: nativePaths, warnings: result.warnings.length }) + '\n');
+      return 0;
+    }
     if (opts.out) {
       const outPath = resolve(opts.out);
       try {
@@ -187,7 +212,12 @@ export async function main(argv) {
       } catch (e) {
         return fail(1, { ok: false, errors: [{ path: opts.out, message: `cannot write file: ${e.message}` }] });
       }
-      process.stdout.write(JSON.stringify({ ok: true, out: outPath, ...(opts.to === 'figjam' ? { overlay: overlayPath ?? null } : {}), warnings: result.warnings.length }) + '\n');
+      process.stdout.write(JSON.stringify({ ok: true, out: outPath, ...(opts.to === 'figjam' ? { overlay: overlayPath ?? null } : {}), ...(nativePaths ? { native: nativePaths } : {}), warnings: result.warnings.length }) + '\n');
+      return 0;
+    }
+    // With --native and no --out the scripts are the result; the Mermaid text is not printed between them.
+    if (nativePaths) {
+      process.stdout.write(JSON.stringify({ ok: true, out: null, text: 'not written: no --out given', overlay: overlayPath ?? null, native: nativePaths, warnings: result.warnings.length }) + '\n');
       return 0;
     }
     process.stdout.write(result.output);

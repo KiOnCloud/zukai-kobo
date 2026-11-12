@@ -312,7 +312,7 @@
         "drawio": "supported",
         "figjam": {
           "status": "unsupported",
-          "note": "FigJam generate_diagram does not accept classDiagram; use --to mermaid or --to drawio"
+          "note": "FigJam generate_diagram does not accept classDiagram; use --to mermaid or --to drawio, or emit --native to draw the board with use_figma"
         }
       },
       "features": {
@@ -480,7 +480,7 @@
         "drawio": "supported",
         "figjam": {
           "status": "unsupported",
-          "note": "FigJam generate_diagram does not accept swimlane-beta; use --to drawio"
+          "note": "FigJam generate_diagram does not accept swimlane-beta; use --to drawio, or emit --native to draw the board with use_figma"
         }
       },
       "features": {

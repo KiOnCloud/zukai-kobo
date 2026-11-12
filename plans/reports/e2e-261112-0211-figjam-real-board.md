@@ -147,3 +147,84 @@ These cannot be closed from this side, because Figma decides them:
    reaches it). The fallback text says so.
 3. The version is still 2.0.5; the changes add a CLI option and a matrix feature. Release as
    2.0.6 or 2.1.0?
+
+## Native board at the draw.io coordinates
+
+Added after the rounds above: `emit --to figjam <ir.json> --native <file.js>` writes scripts
+for `use_figma` that draw the whole board from the draw.io XML (`src/figjam-native.mjs`).
+`generate_diagram` is not called, so the two differences named above as Figma's own
+(placement, and class and activity diagrams) no longer hold for this path. Every cell becomes
+rectangles, ellipses, vector paths and text at the draw.io position; an edge is a vector along
+the draw.io route with its ends drawn as small vectors.
+
+### What was run on the board
+
+Board `45AQFIpbiwRlA0biqsBxCY`, each script passed to `use_figma` as generated, each section
+then read back with `get_screenshot` and compared by eye with `preview` of the draw.io file of
+the same IR. Section names are the IR title with " (native)" appended for this test (the CLI
+uses the plain title).
+
+| Fixture | Section (node id) | Nodes | Result |
+|---|---|---|---|
+| `flowchart/valid` | Order checkout (native) (`14:444`) | 48 | Every node, the group frame, the note with its fold, subroutine bars, parallelogram, decision; all nine routes with their bends and heads; labels `yes`, `no`, `captured` at the draw.io places. Run before two fixes (bold group title, grey note fold) that the later boards have |
+| `class/valid` | Order domain (native) (`15:444`) | 52 | Six class boxes with header, rows and separator; inheritance and realization triangles (hollow, the second on a dashed line), filled and hollow diamond, open arrow, dashed dependency; role names and multiplicities. Run before the wrap rule was fixed: the long method is one small line there, where draw.io has two lines |
+| `activity/valid-two-lanes` | Return request (native) (`16:444`) | 42 | Two coloured lanes with headers, start and end state, actions, decision, subroutine, all eight flows on the draw.io routes across the lanes, guards `yes` and `no` |
+| `er/valid` | Order data model (native) (`17:444`) | 50 | Five entities with rows; the four relations with one, zero-or-one, zero-or-many and one-or-many ends; the dashed optional relation; labels |
+| `sequence/valid` | Login with password (native) (`18:444`) | 74 | Actor figure, four lifelines with heads and dashed axes, three activation bars, two notes, `loop` and `alt` frames with tab, condition and `else` divider, ten messages (filled, open, dashed, self-message loop) with labels above the lines. Run twice: the second run reported `replaced: 74` and left one drawing in the same section |
+| `state/valid` | Order lifecycle (native) (`19:444`) | 53 | Start and end states, rounded states, the composite state with header and its inner states, ten transitions (the two long detours included) with labels |
+| `architecture/valid-aws` | Order platform on AWS (native) (`20:444`) | 71 | Five nested group frames (solid, dashed, two filled without border) with their labels in the group colours, eight service squares in the AWS colours with the names under them, dashed external system, nine connections with labels, the label backgrounds in the colour of the frame they lie on |
+| `activity/valid-guard-collision-lr` | Corporate login, left to right (native) (`21:444`) | 42 + 29 | Extra run for two things the seven do not have: lanes that run left to right (titles turned a quarter in the band on the left) and a drawing split into two scripts (made with a lowered limit of 6 600 characters). Part 2 found the section of part 1 by name and drew into it |
+
+No script threw. No fixture of the repository needs more than one script at the real limit:
+the largest, `flowchart/large-50-nodes`, is 19 000 characters.
+
+### Found on the board and fixed
+
+- A label only a little too wide for its box (Inter is about a tenth wider than the face
+  draw.io measures with) was first shrunk even when draw.io had wrapped it. Now a text up to
+  12 % too wide is set smaller, a wider one is wrapped.
+- The label of a sequence message lay on its line and its white background cut the line. It
+  now stands 3 px above, as in draw.io.
+- A message that starts or ends an activation bar ran to the axis of the lifeline, through the
+  bar. It now touches the side of the bar, as draw.io draws it.
+- The title of a swimlane is bold in draw.io without the style saying so; the fold of a note
+  is grey.
+
+### What was checked without Figma
+
+`tests/figjam-native.test.mjs` runs the scripts of every valid fixture of every kind (58
+files) against a stand-in for the Plugin API: every label of the XML is drawn as text, every
+edge starts at its exit point, passes its waypoints and ends at its entry point with right
+angles only, known cells lie at the draw.io geometry plus the offset of the section, each
+script stays under 50 000 characters, a second run replaces the first and keeps what a user
+added to the section, a section of the same name made by `generate_diagram` is left alone, a
+later part refuses to run without the first, and the secret scan refuses the emit. The last
+four were checked there only, not on the real board (except the replacement, see above).
+
+### Differences from draw.io that remain
+
+- Lines are vectors, not FigJam connectors: they do not follow a shape the user moves, and
+  the nodes of a diagram are not grouped.
+- Typeface: Inter instead of Helvetica, so text is slightly wider; some labels are set a
+  little smaller and a wrapped label can break at another word.
+- Part of a label in italics (the `«control»` line of a participant) is upright, because a
+  label is one text in one weight.
+- AWS pictograms are missing: a service is the square of its colour, a group has a square of
+  its colour in the corner, other icons (the browser monitor) are a rounded outline.
+- No jump arcs where lines cross; page links of `ref` are not links.
+- Sizes of line ends follow draw.io's markers by formula, not pixel for pixel; an orthogonal
+  route whose two ends differ by less than a pixel is drawn as one line with that slant
+  where draw.io draws a tiny step.
+- Stroke width is 1 px as in draw.io, which is thin beside FigJam's own shapes at the same
+  zoom.
+
+### Unresolved questions (native board)
+
+1. Should the section name carry a mark such as " (native)" by default, so that a board
+   that holds both the `generate_diagram` section and the native one shows which is which?
+   Today both carry the IR title and the script tells its own section by the name of the
+   nodes inside.
+2. The first three test sections (`14:444`, `15:444`, `16:444`) were drawn before the fixes
+   listed above and were not redrawn; `18:444` and later have them. Redraw them or remove
+   the test sections from the board?
+

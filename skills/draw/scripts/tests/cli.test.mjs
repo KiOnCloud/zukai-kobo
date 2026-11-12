@@ -61,6 +61,34 @@ describe('cli (committed bundle, run from a different working directory)', () =>
     expect(parseStderr(wrong.stderr).errors[0].message).toContain('--overlay goes with --to figjam');
   });
 
+  it('emit --to figjam --native writes the script that draws the board, for a class diagram too', () => {
+    const cls = run(['emit', '--to', 'figjam', join(fixturesDir, 'class', 'valid.json'), '--out', 'nat/order.mmd', '--native', 'nat/order.native.js']);
+    expect(cls.code).toBe(0);
+    const told = JSON.parse(cls.stdout);
+    expect(told.native).toEqual([join(otherCwd, 'nat', 'order.native.js')]);
+    // generate_diagram rejects a class diagram, so no Mermaid text is written, and the output says so.
+    expect(told.out).toBeNull();
+    expect(told.text).toContain('not written: kind "class" is unsupported');
+    expect(existsSync(join(otherCwd, 'nat', 'order.mmd'))).toBe(false);
+    const script = readFileSync(join(otherCwd, 'nat', 'order.native.js'), 'utf8');
+    expect(script).toContain('"title":"Order domain"');
+    expect(script).toContain('IOrderRepository');
+    expect(script.length).toBeLessThanOrEqual(50000);
+    // Without --native the kind is refused as before.
+    expect(run(['emit', '--to', 'figjam', join(fixturesDir, 'class', 'valid.json')]).code).toBe(2);
+    // A kind generate_diagram takes keeps its text and its overlay beside the native script.
+    const seq = run(['emit', '--to', 'figjam', join(fixturesDir, 'sequence', 'valid.json'), '--out', 'nat/login.mmd', '--overlay', 'nat/login.overlay.js', '--native', 'nat/login.native.js']);
+    expect(JSON.parse(seq.stdout)).toMatchObject({ out: join(otherCwd, 'nat', 'login.mmd'), overlay: join(otherCwd, 'nat', 'login.overlay.js'), native: [join(otherCwd, 'nat', 'login.native.js')] });
+    expect(readFileSync(join(otherCwd, 'nat', 'login.mmd'), 'utf8')).toContain('sequenceDiagram');
+    // With --native and no --out the scripts are the result: stdout stays one JSON line.
+    const bare = run(['emit', '--to', 'figjam', join(fixturesDir, 'flowchart', 'valid.json'), '--native', 'nat/flow.js']);
+    expect(JSON.parse(bare.stdout)).toMatchObject({ ok: true, out: null, native: [join(otherCwd, 'nat', 'flow.js')] });
+    const wrong = run(['emit', '--to', 'drawio', join(fixturesDir, 'class', 'valid.json'), '--native', 'x.js']);
+    expect(wrong.code).toBe(1);
+    expect(parseStderr(wrong.stderr).errors[0].message).toContain('--native goes with --to figjam');
+    expect(existsSync(join(otherCwd, 'x.js'))).toBe(false);
+  });
+
   it('emit --out writes the file relative to the working directory', () => {
     const out = join(otherCwd, 'nested', 'login.mmd');
     const r = run(['emit', '--to', 'mermaid', join(fixturesDir, 'sequence', 'valid.json'), '--out', 'nested/login.mmd']);

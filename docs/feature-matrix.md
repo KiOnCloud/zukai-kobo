@@ -81,7 +81,7 @@ For each diagram kind, target and feature the value is one of:
 
 | Feature | mermaid | drawio | figjam |
 |---|---|---|---|
-| kind | supported | supported | unsupported (FigJam generate_diagram does not accept classDiagram; use --to mermaid or --to drawio) |
+| kind | supported | supported | unsupported (FigJam generate_diagram does not accept classDiagram; use --to mermaid or --to drawio, or emit --native to draw the board with use_figma) |
 | `stereotype` | supported | supported | supported |
 | `member.visibility` | supported | supported | supported |
 | `method.params` | supported | supported | supported |
@@ -117,7 +117,7 @@ For each diagram kind, target and feature the value is one of:
 
 | Feature | mermaid | drawio | figjam |
 |---|---|---|---|
-| kind | degraded (Mermaid has no activity diagram; emitted as swimlane-beta (beta syntax, Mermaid 11.16 or newer, rendering of fork and join bars unverified) or, with --mermaid-stable, as a flowchart with subgraphs as lanes) | supported | unsupported (FigJam generate_diagram does not accept swimlane-beta; use --to drawio) |
+| kind | degraded (Mermaid has no activity diagram; emitted as swimlane-beta (beta syntax, Mermaid 11.16 or newer, rendering of fork and join bars unverified) or, with --mermaid-stable, as a flowchart with subgraphs as lanes) | supported | unsupported (FigJam generate_diagram does not accept swimlane-beta; use --to drawio, or emit --native to draw the board with use_figma) |
 | `lane` | supported | supported | supported |
 | `control.kind.initial` | supported | supported | supported |
 | `control.kind.final` | supported | supported | supported |
