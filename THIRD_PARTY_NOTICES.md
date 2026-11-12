@@ -16,7 +16,16 @@ not part of the bundle and are not redistributed.
 `skills/draw/scripts/src/aws-icons.json` and `skills/draw/references/aws-icons.md`
 list the stencil names, titles and style values of the AWS shape library of draw.io
 (jgraph/drawio, Apache-2.0), read from `src/main/webapp/js/diagramly/sidebar/Sidebar-AWS4.js`
-at the tag recorded in the JSON file. No icon artwork is copied or embedded: an emitted
-`.drawio` file names the stencils and draw.io draws them. AWS service names and the AWS
-Architecture Icons are trademarks and property of Amazon Web Services, Inc.; this project is
-not affiliated with or endorsed by AWS.
+at the tag recorded in the JSON file. An emitted `.drawio` file names the stencils and
+draw.io draws them.
+
+`skills/draw/scripts/src/stencil-paths.json`, which is part of the bundle, holds the outline
+geometry of those stencils and of the product logos and figures the AWS architecture emitter
+uses, converted from the stencil libraries `aws4.xml`, `gcp2.xml` and `networks.xml` in
+`src/main/webapp/js/stencils.min.js` of draw.io (jgraph/drawio, Apache-2.0) at the tag and
+checksum recorded in the file. It is used only by `emit --to figjam --native`, which draws
+the icons a diagram uses on a FigJam board.
+
+AWS service names and the AWS Architecture Icons are trademarks and property of Amazon Web
+Services, Inc.; the product logos are trademarks of their owners. This project is not
+affiliated with or endorsed by AWS or by those owners.
