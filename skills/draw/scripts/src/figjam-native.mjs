@@ -449,17 +449,28 @@ function drawCells(cells) {
   /* ---- edges ---- */
 
   /** Where the line from the middle of a box to `p` leaves the box; on a lifeline, the point of its axis level with `p`. */
-  const leave = (cell, p) => {
+  /**
+   * The box an edge meets: the box of the cell, or, for a stencil of fixed proportions, the
+   * box the stencil is drawn in, which draw.io takes for its ports and its outline.
+   */
+  const edgeBox = (cell) => {
     const b = boxOf(cell);
+    const name = cell.style.shape;
+    const g = name !== undefined && Object.hasOwn(stencilTable(), name) ? stencilTable()[name] : undefined;
+    if (!g || !g.a) return b;
+    const k = Math.min(b.w / g.w, b.h / g.h);
+    return { x: b.x + (b.w - g.w * k) / 2, y: b.y + (b.h - g.h * k) / 2, w: g.w * k, h: g.h * k };
+  };
+
+  const leave = (cell, p) => {
+    const b = edgeBox(cell);
     const c = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
     if (cell.style.shape === 'umlLifeline') {
-      // A message that starts or ends an activation bar touches the side of the bar, as in draw.io; any other runs to the axis.
-      for (const bar of cells) {
-        if (bar.parent !== cell.id || !bar.vertex) continue;
-        const bb = boxOf(bar);
-        if (Math.abs(p.y - bb.y) < 0.5 || Math.abs(p.y - bb.y - bb.h) < 0.5) return { x: p.x < c.x ? bb.x : bb.x + bb.w, y: p.y };
-      }
-      return { x: c.x, y: p.y };
+      // A message runs to the axis of the lifeline, over an activation bar that stands there:
+      // draw.io's lifeline perimeter, which ends half the stroke left of the middle from the
+      // left and a pixel short of half the stroke right of it from the right.
+      const half = num(cell.style.strokeWidth, 1) / 2;
+      return { x: c.x + (p.x < c.x ? -half : half - 1), y: Math.min(b.y + b.h, Math.max(b.y + num(cell.style.size, 40), p.y)) };
     }
     const dx = p.x - c.x;
     const dy = p.y - c.y;
@@ -585,7 +596,7 @@ function drawCells(cells) {
     const target = byId.get(cell.target);
     const port = (end, prefix) => {
       if (!end || s[`${prefix}X`] === undefined) return null;
-      const b = boxOf(end);
+      const b = edgeBox(end);
       const p = { x: b.x + num(s[`${prefix}X`]) * b.w + num(s[`${prefix}Dx`]), y: b.y + num(s[`${prefix}Y`]) * b.h + num(s[`${prefix}Dy`]) };
       return s[`${prefix}Perimeter`] === '0' ? p : onPerimeter(end, p);
     };
@@ -611,16 +622,22 @@ function drawCells(cells) {
       };
       // draw.io sets a step in the middle by the boxes, not by a port moved onto a round outline, and in tenths of a pixel.
       const tenth = (v) => Math.round(v * 10) / 10;
-      const raw = (endCell, prefix, p) => { if (!endCell || s[`${prefix}X`] === undefined) return p; const b = boxOf(endCell); return { x: b.x + num(s[`${prefix}X`]) * b.w + num(s[`${prefix}Dx`]), y: b.y + num(s[`${prefix}Y`]) * b.h + num(s[`${prefix}Dy`]) }; };
+      const raw = (endCell, prefix, p) => { if (!endCell || s[`${prefix}X`] === undefined) return p; const b = edgeBox(endCell); return { x: b.x + num(s[`${prefix}X`]) * b.w + num(s[`${prefix}Dx`]), y: b.y + num(s[`${prefix}Y`]) * b.h + num(s[`${prefix}Dy`]) }; };
       const midY = tenth((raw(source, 'exit', start).y + raw(target, 'entry', end).y) / 2);
       const midX = tenth((raw(source, 'exit', start).x + raw(target, 'entry', end).x) / 2);
       const out = [points[0]];
       for (let i = 1; i < points.length; i++) {
         const a = out.at(-1);
         const b = points[i];
-        if (!aligned(a, b)) {
-          const first = i === 1;
-          const last = i === points.length - 1;
+        const first = i === 1;
+        const last = i === points.length - 1;
+        if (first && last && aligned(a, b)) {
+          // Two ends less than a pixel out of line: draw.io routes in tenths of a pixel, and where the
+          // ends differ in those, the first point of its step in the middle stays.
+          const leavesY = facesY('exit', Math.abs(b.y - a.y) > Math.abs(b.x - a.x));
+          const apart = leavesY ? tenth(a.x) !== tenth(b.x) && Math.abs(a.x - b.x) < 1 : tenth(a.y) !== tenth(b.y) && Math.abs(a.y - b.y) < 1;
+          if (apart && leavesY === facesY('entry', leavesY)) out.push(leavesY ? { x: tenth(a.x), y: midY } : { x: midX, y: tenth(a.y) });
+        } else if (!aligned(a, b)) {
           const before = out.at(-2);
           const leavesY = first ? facesY('exit', true) : Math.abs(before.x - a.x) >= 1;
           if (first && last && leavesY === facesY('entry', leavesY)) {
@@ -652,12 +669,36 @@ function drawCells(cells) {
     return points[0];
   };
 
-  /** The end of an edge at `tip`, the line arriving from `from`. Sizes follow the markers of draw.io. */
-  const marker = (type, tip, from, filled, size, stroke, width) => {
+  /**
+   * How far the marker of draw.io stands back from the end of its edge (`tip`), so that the
+   * stroke of its point ends where the edge ends, and how far the line stops short under it
+   * (`line`). The factors are those of draw.io's markers: half the stroke width over the sine
+   * of the half angle of the point. Under the open ring of an entity-relationship end the
+   * line stops at the far side of the ring.
+   */
+  const markerInset = (type, size, width, filled) => {
+    const L = size + width;
+    if ((type === 'ERzeroToOne' || type === 'ERzeroToMany') && !filled) return { tip: 0, line: 2 * (L + 1) - width / 2 };
+    if (type === 'classic') return { tip: 1.118 * width, line: (L * 3) / 4 + 1.118 * width };
+    if (type === 'block') return { tip: 1.118 * width, line: L + 1.118 * width };
+    if (type === 'open') return { tip: 1.118 * width, line: 2.236 * width };
+    if (type === 'diamond') return { tip: 0.7071 * width, line: L + 0.7071 * width };
+    if (type === 'diamondThin') return { tip: 0.9862 * width, line: L + 0.9862 * width };
+    return { tip: 0, line: 0 };
+  };
+  /** The point `back` before `end` on the line that arrives from `from`. */
+  const backFrom = (end, from, back) => {
+    const d = Math.hypot(end.x - from.x, end.y - from.y) || 1;
+    return { x: end.x - ((end.x - from.x) / d) * back, y: end.y - ((end.y - from.y) / d) * back };
+  };
+
+  /** The end of an edge that ends at `end`, the line arriving from `from`. Sizes follow the markers of draw.io. */
+  const marker = (type, end, from, filled, size, stroke, width) => {
     if (!type || type === 'none') return;
-    const d = Math.hypot(tip.x - from.x, tip.y - from.y) || 1;
-    const u = { x: (tip.x - from.x) / d, y: (tip.y - from.y) / d };
+    const d = Math.hypot(end.x - from.x, end.y - from.y) || 1;
+    const u = { x: (end.x - from.x) / d, y: (end.y - from.y) / d };
     const n = { x: -u.y, y: u.x };
+    const tip = backFrom(end, from, markerInset(type, size, width, filled).tip);
     const at = (back, side) => ({ x: tip.x - u.x * back + n.x * side, y: tip.y - u.y * back + n.y * side });
     const inside = filled ? stroke : WHITE;
     const L = size + width;
@@ -680,16 +721,18 @@ function drawCells(cells) {
       default: {
         if (!type.startsWith('ER')) return;
         // Entity-relationship ends: a bar for "one", a crow's foot for "many", a ring for "zero".
+        // An open ring is empty, and a short line runs from the near side of it to the end of the edge.
         const E = size + width + 1;
         const bar = (back) => segment(at(back, E / 2).x, at(back, E / 2).y, at(back, -E / 2).x, at(back, -E / 2).y);
         const foot = [...segment(at(E, 0).x, at(E, 0).y, at(0, E / 2).x, at(0, E / 2).y), ...segment(at(E, 0).x, at(E, 0).y, at(0, -E / 2).x, at(0, -E / 2).y)];
-        const ring = () => { const c = at(1.5 * E, 0); ellipse(c.x - E / 2, c.y - E / 2, E, E, WHITE, stroke, width); };
+        const ring = () => { const c = at(1.5 * E, 0); ellipse(c.x - size / 2, c.y - size / 2, size, size, filled ? WHITE : null, stroke, width); };
+        const stub = (back) => (filled ? [] : segment(at(back, 0).x, at(back, 0).y, tip.x, tip.y));
         if (type === 'ERone') path(bar(E / 2), null, stroke, { width });
         else if (type === 'ERmandOne') path([...bar(E / 2), ...bar(E)], null, stroke, { width });
         else if (type === 'ERmany') path(foot, null, stroke, { width });
         else if (type === 'ERoneToMany') path([...foot, ...bar(E)], null, stroke, { width });
-        else if (type === 'ERzeroToOne') { ring(); path(bar(E / 2), null, stroke, { width }); }
-        else if (type === 'ERzeroToMany') { ring(); path(foot, null, stroke, { width }); }
+        else if (type === 'ERzeroToOne') { ring(); path([...bar(E / 2), ...stub(E + width / 2)], null, stroke, { width }); }
+        else if (type === 'ERzeroToMany') { ring(); path([...foot, ...stub(E)], null, stroke, { width }); }
       }
     }
   };
@@ -728,9 +771,10 @@ function drawCells(cells) {
    * before the crossing and comes back `size` after it over a small curve, upwards on a
    * level stretch and to the right on an upright one. A crossing nearer than `size` to the
    * point before it or after it, or half a pixel from an end of the stretch, is drawn
-   * straight, and so is one where the two edges run along each other.
+   * straight, and so is one where the two edges run along each other. The line starts at
+   * `first` and ends at `last`, the ends of the route moved back under their markers.
    */
-  const lineWithJumps = (points, size) => {
+  const lineWithJumps = (points, size, first, last) => {
     const near = 0.5;
     const own = stretches(points);
     const routed = [];
@@ -757,9 +801,11 @@ function drawCells(cells) {
       routed.push(p0, ...hits.sort((a, b) => a.d - b.d));
     }
     routed.push(own.at(-1));
+    routed[0] = first;
+    routed[routed.length - 1] = last;
     // draw.io paints an edge with a jump style from these stretches whether it jumps or not, so a
     // bend that is less than a pixel off the straight line is not drawn.
-    if (!routed.some((p) => p.jump)) return polyline(own);
+    if (!routed.some((p) => p.jump)) return polyline(routed);
     const out = [];
     let pending = [];
     let move = true;
@@ -767,17 +813,17 @@ function drawCells(cells) {
       pending.forEach((p, k) => { if (move && k === 0) out.push('M', p.x, p.y); else if (move || k > 0) out.push('L', p.x, p.y); });
       pending = [];
     };
-    let last = null;
+    let prev = null;
     let n = null;
     routed.forEach((pt, i) => {
       let done = false;
-      if (last && pt.jump) {
+      if (prev && pt.jump) {
         const next = routed[i + 1];
         if (!n) {
-          const len = Math.hypot(pt.x - last.x, pt.y - last.y);
-          n = len > 0 ? { x: ((pt.x - last.x) * size) / len, y: ((pt.y - last.y) * size) / len } : null;
+          const len = Math.hypot(pt.x - prev.x, pt.y - prev.y);
+          n = len > 0 ? { x: ((pt.x - prev.x) * size) / len, y: ((pt.y - prev.y) * size) / len } : null;
         }
-        if (n && (next.x - pt.x) ** 2 + (next.y - pt.y) ** 2 > size * size && (last.x - pt.x) ** 2 + (last.y - pt.y) ** 2 > size * size) {
+        if (n && (next.x - pt.x) ** 2 + (next.y - pt.y) ** 2 > size * size && (prev.x - pt.x) ** 2 + (prev.y - pt.y) ** 2 > size * size) {
           const a = { x: pt.x - n.x, y: pt.y - n.y };
           const b = { x: pt.x + n.x, y: pt.y + n.y };
           pending.push(a);
@@ -789,7 +835,7 @@ function drawCells(cells) {
           done = true;
         }
       } else n = null;
-      if (!done) { pending.push(pt); last = pt; }
+      if (!done) { pending.push(pt); prev = pt; }
     });
     flush();
     return out;
@@ -800,11 +846,17 @@ function drawCells(cells) {
     const points = routeOf(cell);
     const stroke = colour(s.strokeColor, BLACK);
     const width = num(s.strokeWidth, 1);
-    const line = s.jumpStyle === 'arc' ? lineWithJumps(points, (num(s.jumpSize, 6) - 2) / 2 + width) : polyline(points);
+    const startSize = num(s.startSize, MARKER_SIZE);
+    const endSize = num(s.endSize, MARKER_SIZE);
+    const endArrow = s.endArrow ?? 'classic';
+    // The line stops short under a marker, as draw.io draws it.
+    const first = backFrom(points[0], points[1], markerInset(s.startArrow, startSize, width, s.startFill !== '0').line);
+    const last = backFrom(points.at(-1), points.at(-2), markerInset(endArrow, endSize, width, s.endFill !== '0').line);
+    const line = s.jumpStyle === 'arc' ? lineWithJumps(points, (num(s.jumpSize, 6) - 2) / 2 + width, first, last) : polyline([first, ...points.slice(1, -1), last]);
     path(line, null, stroke, { dashed: s.dashed === '1', width });
     if (s.noJump !== '1') drawnEdges.push(stretches(points));
-    marker(s.startArrow, points[0], points[1], s.startFill !== '0', num(s.startSize, MARKER_SIZE), stroke, width);
-    marker(s.endArrow ?? 'classic', points.at(-1), points.at(-2), s.endFill !== '0', num(s.endSize, MARKER_SIZE), stroke, width);
+    marker(s.startArrow, points[0], points[1], s.startFill !== '0', startSize, stroke, width);
+    marker(endArrow, points.at(-1), points.at(-2), s.endFill !== '0', endSize, stroke, width);
     const p = along(points, 0.5);
     // The label of the edge itself stands on the middle of the line, or a little above it so that its background leaves the line whole.
     const above = s.verticalAlign === 'bottom';

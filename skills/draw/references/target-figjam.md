@@ -192,7 +192,9 @@ What still differs from the draw.io file:
 
 - The board is a drawing, not a model. A line is a vector, not a FigJam connector, so it
   does not follow a shape the user moves. The parts of one diagram are not grouped.
-- Line ends are drawn by the formulas of draw.io's markers, not pixel for pixel.
+- Line ends of the kinds the emitters write (arrow, triangle, open arrow, diamond and the
+  entity-relationship ends) are drawn by the formulas of draw.io's markers; other kinds are
+  not drawn.
 
 A line runs through the points draw.io's own router gives it: the fixed exit and entry
 points moved onto the outline of an ellipse, rhombus, hexagon or parallelogram, the bends

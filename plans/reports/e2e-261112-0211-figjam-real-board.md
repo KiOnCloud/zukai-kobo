@@ -433,16 +433,74 @@ On the board, each script as generated, then `get_screenshot` beside draw.io's r
 
 The other native sections were not redrawn. No probe is left on the board.
 
+**Every edge line, every point (follow-up).** The 413 above are the edge lines of the 42
+flowchart, state, activity and architecture fixtures, compared in every point but the end
+under an arrow head. The measurement now takes every point of every edge line of all 58
+valid fixtures, class, ER and sequence included: 497 lines, and 497 of them have the
+viewer's points within 0.06 px (413 of 413 in the four kinds above, 26 of 26 class, 13 of 13
+ER, 45 of 45 sequence). What was wrong, each read from draw.io's source at v32.6.10:
+
+- A line stops short under its marker, at the start as at the end. `mxMarker.js` moves the
+  end of the line back by (size + stroke) x 3/4 + 1.118 x stroke for `classic` (6.37 px at
+  size 6), size + stroke + 1.118 x stroke for `block`, 2.236 x stroke for `open`, and
+  size + stroke + 0.7071 (`diamond`) or 0.9862 (`diamondThin`) x stroke; the point of the
+  marker itself stands 1.118, 0.7071 or 0.9862 x stroke back from the end of the edge. The
+  emitter drew the line to the end and the marker's point on the end. These were the 6
+  lines with an arrow at the start.
+- A stencil of fixed proportions is drawn smaller than its cell, and draw.io takes the box
+  it is drawn in for ports and outline (`mxCellState.getPerimeterBounds`). `aws4.servers`
+  is 440 x 430, so in a 78 x 78 cell it is 78 x 76.23 and a port on its top or bottom lies
+  0.89 px inside the cell. These were the 2 lines of `valid-aws-outside-chain` and
+  `valid-aws-outside-pair`; two more lines there end at the same figure and were hidden by
+  the earlier measurement.
+- The ring of an ER "zero" end (`mxER.js`) has the diameter of the marker size, 6 px, and is
+  not filled when the end is not; the line stops at its far side, 2 x (size + stroke + 1)
+  minus half the stroke back, and a short line runs from the near side to the end. The
+  emitter drew a white ring of 8 px over a line that ran through.
+- A sequence message runs to the axis of the lifeline (`mxPerimeter.LifelinePerimeter`: half
+  the stroke left of the middle), over an activation bar that stands there; the arrow head
+  lies on the bar. An earlier round of this report made the message stop at the side of the
+  bar and called that draw.io's drawing; the viewer's path data
+  (`M 139.5 180 L 249 180 L 349.38 180` into a bar from 353 to 363) and its picture at four
+  times the size show the opposite, and the emitter now follows the viewer.
+- Between two ends less than a pixel out of line an edge without a jump style keeps the
+  first point of draw.io's step in the middle when the ends differ in tenths of a pixel
+  (`M 118.92 64 L 118.9 170 L 119 273.76` in `class/valid-cardinality-ends`).
+
+All eleven diagram sections were then redrawn with the final scripts, each script as
+generated. After the redraw a checksum over the position and size of every line, marker,
+rectangle and ellipse and the length of every text was taken on the board and from the
+script run locally; the two agree for all eleven. Each screenshot was laid over draw.io's
+rendering of the same file at one pixel per unit; the share of strongly different pixels is
+what two renderers leave on text and line edges.
+
+| Section (node id) | Fixture | Replaced / created | Strongly different pixels | Seen beside draw.io |
+|---|---|---|---|---|
+| Order checkout (`14:444`) | `flowchart/valid` | 48 / 48 | 0.0087 | no difference |
+| Order domain (`15:444`) | `class/valid` | 52 / 52 | 0.0050 | diamond, open arrow and triangle as in draw.io |
+| Return request (`16:444`) | `activity/valid-two-lanes` | 42 / 42 | 0.0018 | no difference |
+| Order data model (`17:444`) | `er/valid` | 50 / 50 | 0.0074 | open rings of 6 px, bars and feet as in draw.io |
+| Login with password (`18:444`) | `sequence/valid` | 74 / 74 | 0.0108 | arrow heads on the activation bars as in draw.io |
+| Order lifecycle (`19:444`) | `state/valid` | 53 / 53 | 0.0046 | no difference |
+| Order platform on AWS (`20:444`) | `architecture/valid-aws` | 82 / 82 | 0.0041 | no difference |
+| Corporate login, left to right (`21:444`) | `activity/valid-guard-collision-lr`, two parts | 71 / 59 + 12 | 0.0041 | no difference |
+| Gradient icon (`43:444`) | ad-hoc IR | 10 / 10 | 0.0105 | no difference |
+| Order fulfilment (`44:444`) | `activity/valid-fork-join` | 67 / 67 | 0.0038 | no difference |
+| Booking API on ECS Fargate (`45:444`) | `architecture/valid-aws-fan-out` | 107 / 107 | 0.0027 | no difference |
+
+The stencil sample (`49:444`) has no edge and was not redrawn. No probe was created.
+
 Differences from draw.io that remain:
 
 - Lines are vectors, not FigJam connectors: they do not follow a shape the user moves, and
   the nodes of a diagram are not grouped. This is the design of the emitter.
-- Sizes of line ends follow draw.io's markers by formula, not pixel for pixel.
-- Two edge lines of 413 start 0.89 px beside draw.io's point (see above).
+- Markers other than those the emitters write (`oval`, `dash`, `cross`, the thin and async
+  kinds) are not drawn, and their lines are not shortened.
 - Jump styles other than `arc` (`sharp`, `line`, `gap`) and curved edges are drawn straight;
   the emitters write neither.
 - A machine whose Chromium falls back to another face than Inter for `↳` shows another
   arrow in its preview; the board always uses Inter.
+- The lifeline end of a message is taken at draw.io's pixel size of 1, as the viewer has it.
 - More than 400 of the 456 pictograms were compared with draw.io locally only, not on the
   board.
 

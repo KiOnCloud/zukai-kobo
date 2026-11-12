@@ -138,9 +138,11 @@ describe('figjam native script', () => {
         };
         // A port lies on the box, or up to the slant of a hexagon inside it; a waypoint gives the
         // line one of its coordinates, so the line passes within a pixel of it.
+        // Under a line end the line stops short, by up to twice the size of the end.
         const near = (a, b, by) => Math.abs(a[0] - b[0]) <= by && Math.abs(a[1] - b[1]) <= by;
-        const route = lines.find((pts) => (s.exitX === undefined || near(pts[0], port(e.source, 'exit'), 12))
-          && (s.entryX === undefined || near(pts.at(-1), port(e.target, 'entry'), 12))
+        const reach = (arrow, size) => 12 + (arrow && arrow !== 'none' ? 2 * (n(size ?? 6) + 2) : 0);
+        const route = lines.find((pts) => (s.exitX === undefined || near(pts[0], port(e.source, 'exit'), reach(s.startArrow, s.startSize)))
+          && (s.entryX === undefined || near(pts.at(-1), port(e.target, 'entry'), reach(s.endArrow ?? 'classic', s.endSize)))
           && way.every((w) => pts.some((p, i) => i > 0 && offLine(pts[i - 1], p, w) <= 1)));
         expect(route, `${f.kind}/${f.name} ${e.id}`).toBeDefined();
         // An orthogonal route has no stretch that is more than a pixel off level or upright (draw.io
@@ -152,9 +154,9 @@ describe('figjam native script', () => {
     }
   });
 
-  it('routes an orthogonal edge as draw.io does: bends by its segment rule, ports on the outline of the shape', async () => {
-    // The lines of three fixtures as the draw.io viewer (v32.6.10) draws them, read from its SVG;
-    // only the last point differs there, where the viewer stops the line under the arrow head.
+  it('draws the line of an edge through the points the draw.io viewer draws it through', async () => {
+    // Lines as the draw.io viewer (v32.6.10) draws them, read from the `d` of its SVG paths, in the
+    // coordinates of the file. A line has the viewer's points when each lies within 0.06 px.
     const linesOf = async (kind, name) => {
       const ir = loadFixture(kind, name);
       const D = JSON.parse(/^const D = (.*);$/m.exec(figjamNative(await drawioOf(ir), { title: ir.title }).parts[0])[1]);
@@ -162,34 +164,61 @@ describe('figjam native script', () => {
         let isX = true;
         return i[1].split(' ').map((t) => {
           if (Number.isNaN(Number(t))) { isX = true; return t; }
-          const v = round(Number(t) - D.offset[isX ? 0 : 1]);
+          const v = Number(t) - D.offset[isX ? 0 : 1];
           isX = !isX;
           return v;
-        }).join(' ');
+        });
       });
     };
-    const flow = await linesOf('flowchart', 'valid');
-    // No waypoint, ports 0.01 px apart: one line, as it is.
-    expect(flow).toContain('M 134.95 52 L 134.94 112');
-    // A waypoint half a pixel beside the line does not bend it: draw.io takes only its height.
-    expect(flow).toContain('M 135 292 L 134.5 489');
-    expect(flow).toContain('M 134.5 825 L 134.96 915');
-    expect(flow).toContain('M 357 662 L 357 880 L 175 880 L 175.04 915');
-    const loop = await linesOf('state', 'valid-self-loop');
-    // No waypoint and ports that do not face each other: a step halfway, leaving the corner port downwards.
-    expect(loop).toContain('M 584 142 L 584 240 L 524 240 L 524 338');
-    expect(loop).toContain('M 707 142 L 767 142 L 767 167 L 755 167 L 755 685 L 564 685 L 564.04 720');
-    const arch = await linesOf('architecture', 'valid');
-    // A port on the slanted side of a hexagon lies on that side, not on the corner of its box.
-    expect(arch).toContain('M 471.99 93.68 L 503 93.7 L 503 225 L 785 225');
-    expect(arch).toContain('M 1261 319 L 1306 319 L 1306 371 L 1669 371 L 1669 81.7 L 471.99 81.66');
+    const expectLines = async (kind, name, wanted) => {
+      const lines = await linesOf(kind, name);
+      for (const want of wanted) {
+        const w = want.split(' ').map((t) => (Number.isNaN(Number(t)) ? t : Number(t)));
+        const found = lines.some((l) => l.length === w.length && l.every((t, k) => (typeof t === 'string' ? t === w[k] : Math.abs(t - w[k]) <= 0.06)));
+        expect(found, `${kind}/${name}: ${want}`).toBe(true);
+      }
+    };
+    await expectLines('flowchart', 'valid', [
+      // No waypoint, ports 0.01 px apart: one line with that slant, short of its end under the arrow head.
+      'M 134.95 52 L 134.93 105.63',
+      // A waypoint half a pixel beside the line does not bend it: draw.io takes only its height.
+      'M 135 292 L 134.55 482.63',
+      'M 134.5 825 L 134.91 908.63',
+      'M 357 662 L 357 880 L 175 880 L 175.03 908.63',
+    ]);
+    await expectLines('state', 'valid-self-loop', [
+      // No waypoint and ports that do not face each other: a step halfway, leaving the corner port downwards.
+      'M 584 142 L 584 240 L 524 240 L 524 331.63',
+      'M 707 142 L 767 142 L 767 167 L 755 167 L 755 685 L 564 685 L 564.03 713.63',
+    ]);
+    await expectLines('architecture', 'valid', [
+      // A port on the slanted side of a hexagon lies on that side, not on the corner of its box.
+      'M 471.99 93.68 L 503 93.7 L 503 225 L 778.63 225',
+      'M 1261 319 L 1306 319 L 1306 371 L 1669 371 L 1669 81.7 L 478.36 81.66',
+      // An arrow head at the start: the line begins as far inside it as it ends inside the other.
+      'M 1267.37 303 L 1286 303 L 1286 191 L 1487.63 191',
+    ]);
+    await expectLines('architecture', 'valid-bidi-fallback', ['M 686.37 58 L 705 58 L 705 79 L 753.63 79.03', 'M 286.37 87 L 305 87 L 305 103 L 753.63 102.97']);
+    await expectLines('architecture', 'valid-aws-zones', ['M 292 1120.37 L 291.98 1187.63']);
+    await expectLines('architecture', 'valid-shop-platform', ['M 1535.87 375 L 1576 375 L 1576 459 L 1781.63 459', 'M 1535.87 278 L 2956.63 278']);
     // A port on a round end state lies on the circle.
-    expect(await linesOf('state', 'valid')).toContain('M 305 1096 L 305 1121 L 289 1121 L 289 1221 L 213.7 1221 L 213.74 1256.77');
+    await expectLines('state', 'valid', ['M 305 1096 L 305 1121 L 289 1121 L 289 1221 L 213.7 1221 L 213.74 1250.4']);
     // The lines that leave one icon a pixel apart keep their first stretch as draw.io paints it for an
     // edge with a jump style: the bend that is a pixel off the straight line is not drawn.
-    const fan = await linesOf('architecture', 'valid-aws-fan-out');
-    expect(fan).toContain('M 1036 690 L 1310 691 L 1310 746 L 1613 746');
-    expect(fan).toContain('M 1036 680.02 L 1891.5 681');
+    await expectLines('architecture', 'valid-aws-fan-out', ['M 1036 690 L 1310 691 L 1310 746 L 1606.63 746', 'M 1036 680.02 L 1885.13 681']);
+    // A figure of fixed proportions is drawn smaller than its cell (78 x 76.23 in 78 x 78); a line
+    // meets the figure, 0.89 px inside the cell, not the cell.
+    await expectLines('architecture', 'valid-aws-outside-pair', ['M 788.02 246 L 788.02 123.48', 'M 807.98 117.11 L 807.98 239.63']);
+    await expectLines('architecture', 'valid-aws-outside-chain', ['M 338 202 L 338 256 L 439 256 L 438.98 322.52', 'M 465.03 328.89 L 465 284 L 566 284 L 566 208.37']);
+    // Without a jump style the point of draw.io's step in the middle stays where two ends are less
+    // than a pixel, but more than a tenth, out of line; an open arrow shortens the line by its stroke only.
+    await expectLines('class', 'valid-cardinality-ends', ['M 118.92 64 L 118.9 170 L 119 273.76', 'M 91.97 379.99 L 92 434']);
+    // Under the open ring of a "zero" end the line stops at the far side of the ring.
+    await expectLines('er', 'valid', ['M 119.93 116 L 119.9 204.5 L 119.95 277.5']);
+    await expectLines('er', 'valid-fk-anchors', ['M 187.5 55 L 198 55 L 367.5 55.86']);
+    // A message runs to the axis of the lifeline, half a pixel left of its middle, also where an
+    // activation bar stands on the axis.
+    await expectLines('sequence', 'valid-invoice-export', ['M 139.5 180 L 249 180 L 349.38 180', 'M 357.5 254 L 249 254 L 141.74 254']);
   });
 
   it('puts a cell where the draw.io file has it, moved by the offset of the section', async () => {
