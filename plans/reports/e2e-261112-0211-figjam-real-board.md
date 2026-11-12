@@ -198,25 +198,105 @@ edge starts at its exit point, passes its waypoints and ends at its entry point 
 angles only, known cells lie at the draw.io geometry plus the offset of the section, each
 script stays under 50 000 characters, a second run replaces the first and keeps what a user
 added to the section, a section of the same name made by `generate_diagram` is left alone, a
-later part refuses to run without the first, and the secret scan refuses the emit. The last
-four were checked there only, not on the real board (except the replacement, see above).
+later part refuses to run without the first, and the secret scan refuses the emit. Keeping a
+user's node, leaving a foreign section alone and the refusal of a later part were at this
+point checked there only; the round below ran them on the real board.
 
 ### Differences from draw.io that remain
 
+Superseded by the round below ("Pictograms, text face and italics"), which closed the three
+about the typeface, the italic part of a label and the AWS pictograms.
+
+### Pictograms, text face and italics
+
+A further round closed three differences and ran every section again.
+
+What changed in the emitter:
+
+- Stencil geometry. `tools/generate-stencil-paths.mjs` reads draw.io's `stencils.min.js`
+  (tag v32.6.10, sha256 recorded in the data file) as text, decodes the libraries `aws4.xml`,
+  `gcp2.xml` and `networks.xml` with a port of the decoder at the end of that file, and
+  writes `src/stencil-paths.json`: 456 stencils, every name the emitters can write (426 AWS
+  icons, 15 group corner icons, 14 product logos, the client screen), none missing. Paths
+  hold only M, L, Q, C and Z, in whole tenths of a stencil unit; arcs, rectangles and
+  ellipses are converted to curves, and every part of a filled path is closed.
+- Size. The table is 701 104 characters as JSON. Bundled as it is, `bin/cli.mjs` went from
+  2 236 127 to 2 937 439 bytes, past the 2.5 MiB budget of `tests/bundle-drift.test.mjs`.
+  The file therefore holds the table Brotli-packed as base64 (266 636 characters), opened
+  once when a diagram first shows an icon. The bundle is now 2 506 818 bytes (+270 691,
+  +12 %), 114 622 bytes under the budget, which was not changed.
+- Scripts. A pictogram is one item that names a path of the script's `stencils` table, with
+  an offset and a scale; the runtime moves the numbers into the section. An icon shown twice
+  is carried once. `architecture/valid-aws` is 27 857 characters (16 paths of 13 stencils),
+  `valid-aws-fan-out` 29 231 (21 paths), a diagram without icons 7 000 to 8 600, the
+  fifty-node flowchart 18 500. No fixture needs a second script. Splitting counts a path
+  for the part that first needs it.
+- Text. The runtime loads Arimo (Regular, Bold, Italic, Bold Italic) instead of Inter.
+  Measured on the board, Arimo is within 1 px of the Helvetica widths the layout computes
+  with (`Customer submits cart` 121 against 120.0, `Stock is checked per warehouse` 173
+  against 172.7, the long method of `Order` 323 against 322.5), so the rule that set a label
+  smaller is gone: a text wider than its box is wrapped, any other is one line at the size of
+  the file. By the layout's own width table, 26 of the 586 boxed labels of the 58 fixtures
+  are wider than their box and so wrap.
+- Ranges. `<i>` and `<b>` inside a label become ranges (`setRangeFontName`); a label that is
+  bold or italic as a whole stays one text in that face.
+- Also found by the comparison and fixed: the name under an icon is wrapped at the
+  `labelWidth` of the draw.io style (it was one line); the disc of an end state leaves a ring
+  of 4 px as in draw.io (it left 5); a product logo keeps the shades its stencil names
+  (Firebase has three).
+
+One defect showed only on the real board: the load balancer pictogram came out with its
+rings filled. draw.io's stencil leaves those parts of the path open and a fill closes them
+by itself; a Figma vector does not count an open part as an area. The generator now closes
+every part of a filled path (40 of the 456 stencils had such parts). The local check
+(an SVG of the same paths) had not shown it, because SVG closes them too.
+
+Rerun on the board, each script as generated, then `get_screenshot` beside the `preview` PNG
+of the draw.io file:
+
+| Section | Replaced / created | Text read back | What still differs from the draw.io picture |
+|---|---|---|---|
+| Order checkout (native) `14:444` | 48 / 48 | Arimo Regular 12 and 11, Bold 12; no label wrapped | The `↳` of the reference line is drawn with another glyph than in draw.io; nothing else |
+| Order domain (native) `15:444` | 52 / 52 | The long method wrapped at 288 px into two lines, breaking after `quantity):` as in draw.io | Nothing seen |
+| Return request (native) `16:444` | 42 / 42 (twice, for the end state) | No label wrapped | The `↳` glyph; nothing else |
+| Order data model (native) `17:444` | 50 / 50 | No label wrapped | Nothing seen |
+| Login with password (native) `18:444` | 74 / 74 | `«control»` and `«database»` read back as Arimo Italic, the names under them Regular | Nothing seen |
+| Order lifecycle (native) `19:444` | 53 / 53 (twice, for the end state) | No label wrapped | Nothing seen |
+| Order platform on AWS (native) `20:444` | 71 / 82, then 82 / 82 | Arimo Regular 12 and 11 | Nothing seen: the eight service pictograms, the four kinds of group corner icon and the client screen are those of the draw.io picture. No jump arc would show here, the fixture has no crossing |
+
+Counts by node type on the board equal those of a local run of the same scripts for all
+seven sections.
+
+The three behaviours that had been checked only against the stand-in were run on the board:
+
+- A node of a user survives a rerun. A rectangle named `zukai-probe-user` was put into
+  `14:444`; the rerun reported `replaced: 48, created: 48`, the rectangle was still there at
+  its place and the section had not moved.
+- A section of the same name that is not ours is left alone. A section named
+  `zukai probe same name` with one child of another name was made, then a generated script
+  with that title was run: it drew into a new section to the right; the first kept its one
+  child unchanged.
+- Part 2 without part 1 refuses. Part 2 of a generated two-part script whose part 1 never
+  ran threw `zukai native: no section named "zukai probe no part one" drawn by part 1 on
+  this board; run part 1 first. Nothing was changed.` and left no section behind.
+
+The probe rectangle and the two probe sections were removed again; the board holds the eight
+`(native)` sections as before.
+
+### Differences from draw.io that remain (after that round)
+
 - Lines are vectors, not FigJam connectors: they do not follow a shape the user moves, and
-  the nodes of a diagram are not grouped.
-- Typeface: Inter instead of Helvetica, so text is slightly wider; some labels are set a
-  little smaller and a wrapped label can break at another word.
-- Part of a label in italics (the `«control»` line of a participant) is upright, because a
-  label is one text in one weight.
-- AWS pictograms are missing: a service is the square of its colour, a group has a square of
-  its colour in the corner, other icons (the browser monitor) are a rounded outline.
+  the nodes of a diagram are not grouped. This is the design of the emitter.
 - No jump arcs where lines cross; page links of `ref` are not links.
 - Sizes of line ends follow draw.io's markers by formula, not pixel for pixel; an orthogonal
   route whose two ends differ by less than a pixel is drawn as one line with that slant
   where draw.io draws a tiny step.
-- Stroke width is 1 px as in draw.io, which is thin beside FigJam's own shapes at the same
-  zoom.
+- The `↳` of a reference line is drawn with another glyph than in draw.io.
+- The one icon of the catalog whose square has a gradient is drawn in one colour.
+- Not looked at on the board in this round: the pictograms of the other 443 stencils. They
+  come from the same decoder and are checked by test for form and for lying inside their
+  box, and the fan-out fixture (Firebase, a server, an application figure, eight more
+  services) was compared with draw.io in a local rendering only.
 
 ### Unresolved questions (native board)
 
@@ -224,12 +304,14 @@ four were checked there only, not on the real board (except the replacement, see
    that holds both the `generate_diagram` section and the native one shows which is which?
    Today both carry the IR title and the script tells its own section by the name of the
    nodes inside.
-2. The AWS pictograms are not drawn because the repository holds the stencil names only,
-   not their geometry. Bundle draw.io's AWS stencil paths (size of the bundle, and the terms
-   AWS sets for its icons) or keep the coloured squares?
-
-The first three test sections (`14:444`, `15:444`, `16:444`) were first drawn before the
-fixes listed above. They were redrawn afterwards with the scripts of the final code (48, 52
-and 42 nodes replaced in place) and screenshotted again: the group title is bold, the note
-fold is grey, and the long method of `Order` takes two lines as in draw.io.
-
+2. The repository and the bundle now hold the geometry of draw.io's AWS icons and of
+   fourteen product logos (Firebase, Kubernetes, TensorFlow and others), taken from
+   jgraph/drawio (Apache-2.0). `THIRD_PARTY_NOTICES.md` still says "No icon artwork is copied
+   or embedded"; that sentence is no longer true and the file was left as it is, because how
+   to state the terms of AWS and of the logo owners is the user's decision. Until it is
+   decided the commit should not be released.
+3. Arimo was found on this board. Whether every FigJam board offers it was not established;
+   the script fails with Figma's font error when it does not.
+4. The stencil table is packed to keep the bundle under its 2.5 MiB budget, which makes the
+   data file unreadable in a diff. Raise the budget and store the table as plain JSON
+   (bundle 2.94 MB), or keep it packed?

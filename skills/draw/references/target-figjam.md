@@ -192,13 +192,16 @@ What still differs from the draw.io file:
 
 - The board is a drawing, not a model. A line is a vector, not a FigJam connector, so it
   does not follow a shape the user moves. The parts of one diagram are not grouped.
-- The typeface is Inter, a little wider than the one draw.io uses. A label that no longer
-  fits its box on one line is set slightly smaller; a label draw.io wrapped is wrapped again
-  and may break at another word.
-- A label is plain text in one weight: a bold or italic part of a label (the `«kind»` line of
-  a participant) is not set apart. A whole label that is bold or italic stays so.
-- AWS icons have no pictogram: a service is the square of its colour with its name under
-  it, a group frame has a square of its colour in the corner, and any other icon (a monitor,
-  a server) is a rounded outline.
 - A line that crosses another has no jump arc, and draw.io's page links (`ref`) are not
-  links; the `↳ <slug>` line of the label stays.
+  links; the `↳ <slug>` line of the label stays, with the arrow as the board's font draws it.
+- Line ends are drawn by the formulas of draw.io's markers, not pixel for pixel.
+
+Text is set in Arimo, which has the widths of the face draw.io sizes its boxes for, at the
+sizes of the draw.io file, so a label fits its box and wraps at the same words; a bold or
+italic part of a label (the `«kind»` line of a participant) is bold or italic on the board.
+The script loads Arimo from the board; if the call fails because that font is missing, relay
+the error and deliver the draw.io file instead. AWS services, group frames, product logos and
+the client screen are drawn with the pictograms of draw.io's own stencils, in the colours the
+draw.io file gives them. Only the pictograms a diagram shows are in its script: an AWS
+diagram of about ten services is some 28 000 characters, a diagram without icons 7 000 to
+9 000.

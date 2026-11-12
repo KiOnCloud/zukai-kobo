@@ -1,4 +1,6 @@
+import { brotliDecompressSync } from 'node:zlib';
 import { parseAttrs } from './relabel.mjs';
+import stencilData from './stencil-paths.json' with { type: 'json' };
 
 /**
  * A FigJam board drawn at the coordinates of the draw.io file, as scripts for the Figma MCP
@@ -12,8 +14,23 @@ import { parseAttrs } from './relabel.mjs';
  * end on a line or a label.
  *
  * All the knowledge about draw.io shapes is here, where it can be tested without Figma; the
- * part that runs inside Figma only creates what the data block lists.
+ * part that runs inside Figma only creates what the data block lists. The pictograms of
+ * draw.io's stencils (AWS services and groups, product logos, the client screen) come from
+ * stencil-paths.json, which tools/generate-stencil-paths.mjs makes from draw.io's own bundle.
  */
+
+let unpacked;
+/**
+ * Geometry of the stencils by the name a style gives them (`mxgraph.aws4.cloudfront`): the
+ * box `w` x `h` of each and what it paints, path numbers counting `unit`s of that box. The
+ * data file holds the table packed, so it is opened once, when a diagram first shows an icon.
+ * @returns {Record<string, { w: number, h: number, a?: 1, s?: number, paint: Array<Array<string>> }>}
+ */
+export function stencilTable() {
+  unpacked ??= JSON.parse(brotliDecompressSync(Buffer.from(stencilData.stencils, 'base64')).toString('utf8'));
+  return unpacked;
+}
+const STENCIL_UNIT = stencilData.unit;
 
 /** `use_figma` takes at most this many characters of code. */
 export const SCRIPT_LIMIT = 50000;
@@ -56,19 +73,57 @@ function colour(value, fallback) {
   return hex.toLowerCase();
 }
 
-/** The text of an HTML label: line breaks kept, every other tag dropped, entities decoded. */
-export function plainLabel(html) {
-  return String(html)
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(div|p)>\s*(?=<)/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCodePoint(parseInt(n, 16)))
-    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&')
-    .replace(/[ \t]+\n/g, '\n')
-    .trim();
+const ENTITIES = { nbsp: ' ', quot: '"', apos: "'", gt: '>', lt: '<', amp: '&' };
+const BOLD = 1;
+const ITALIC = 2;
+
+/**
+ * An HTML label as text and the runs of it that are bold or italic: line breaks kept, every
+ * other tag dropped, entities decoded. A run is [start, end, bits] with bit 1 bold and bit 2
+ * italic; the runs cover the whole text in order.
+ * @returns {{ text: string, runs: Array<[number, number, number]> }}
+ */
+export function richLabel(html) {
+  const units = [];
+  let bold = 0;
+  let italic = 0;
+  const push = (text) => { for (const unit of text.split('')) units.push([unit, (bold > 0 ? BOLD : 0) | (italic > 0 ? ITALIC : 0)]); };
+  for (const m of String(html).matchAll(/<(\/?)([a-zA-Z][a-zA-Z0-9]*)[^>]*>|&(#x[0-9a-fA-F]+|#\d+|[a-z]+);|[^<&]+|[<&]/g)) {
+    if (m[2] !== undefined) {
+      const tag = m[2].toLowerCase();
+      const step = m[1] === '/' ? -1 : 1;
+      if (tag === 'br') { if (step === 1) push('\n'); }
+      else if (tag === 'b' || tag === 'strong') bold += step;
+      else if (tag === 'i' || tag === 'em') italic += step;
+      // A block ends its line; one that ends the label adds nothing, the end is trimmed below.
+      else if ((tag === 'div' || tag === 'p') && step === -1 && units.at(-1)?.[0] !== '\n') push('\n');
+    } else if (m[3] !== undefined) {
+      const e = m[3];
+      if (e.startsWith('#x')) push(String.fromCodePoint(parseInt(e.slice(2), 16)));
+      else if (e.startsWith('#')) push(String.fromCodePoint(Number(e.slice(1))));
+      else push(Object.hasOwn(ENTITIES, e) ? ENTITIES[e] : m[0]);
+    } else push(m[0]);
+  }
+  // No blanks at the end of a line, none around the label.
+  const kept = [];
+  let lineEnd = true;
+  for (let i = units.length - 1; i >= 0; i--) {
+    const unit = units[i][0];
+    if (lineEnd && (unit === ' ' || unit === '\t' || (unit === '\n' && kept.length === 0))) continue;
+    lineEnd = unit === '\n';
+    kept.unshift(units[i]);
+  }
+  while (kept.length > 0 && /\s/.test(kept[0][0])) kept.shift();
+  const runs = [];
+  kept.forEach(([, bits], i) => {
+    if (runs.length > 0 && runs.at(-1)[2] === bits) runs.at(-1)[1] = i + 1;
+    else runs.push([i, i + 1, bits]);
+  });
+  return { text: kept.map((u) => u[0]).join(''), runs };
 }
+
+/** The text of an HTML label alone. */
+export const plainLabel = (html) => richLabel(html).text;
 
 function parseGeometry(inside) {
   const g = /<mxGeometry\b([^>]*?)(\/?)>([\s\S]*?)(?:<\/mxGeometry>|$)/.exec(inside);
@@ -136,7 +191,10 @@ function shapeOf(style) {
  *   ['r' | 'e', x, y, w, h, fill, stroke, radius, dashed, strokeWidth]   rectangle, ellipse
  *   ['p', path, fill, stroke, dashed, strokeWidth]                        vector path
  *   ['t', x, y, w, h, text, options]                                      text in a box (a point when w and h are 0)
- * with colours as six hex digits or 0 for none.
+ *   ['g', key, x, y, sx, sy, fill, stroke, strokeWidth]                   a stencil path: number n of it lies at x + n * sx, y + n * sy
+ * with colours as six hex digits or 0 for none. The path of a 'g' is looked up by its key
+ * (`<stencil name>#<index>`), so a script carries the picture of an icon once however often
+ * the diagram shows it, in the short numbers of the stencil's own box.
  */
 function drawCells(cells) {
   const byId = new Map(cells.map((c) => [c.id, c]));
@@ -160,13 +218,17 @@ function drawCells(cells) {
   /** Font options every label shares: size, colour, bold and italic of the whole label. */
   const fontOf = (cell, size = FONT_SIZE) => {
     const s = cell.style;
-    const bits = num(s.fontStyle);
     const o = {};
     if (num(s.fontSize, size) !== FONT_SIZE) o.f = num(s.fontSize, size);
     const c = colour(s.fontColor, BLACK);
     if (c && c !== BLACK) o.c = c;
-    if (bits & 1 || /^<b>[\s\S]*<\/b>$/.test(cell.value)) o.b = 1;
-    if (bits & 2) o.i = 1;
+    // The style of the cell holds for the whole label; a tag inside the label adds to it for its part.
+    const runs = richLabel(cell.value).runs.map(([from, to, bits]) => [from, to, bits | (num(s.fontStyle) & (BOLD | ITALIC))]);
+    const base = runs.length === 1 ? runs[0][2] : num(s.fontStyle) & (BOLD | ITALIC);
+    if (base & BOLD) o.b = 1;
+    if (base & ITALIC) o.i = 1;
+    const parts = runs.filter((r) => r[2] !== base).map(([from, to, bits]) => [from, to, (bits & BOLD ? 'b' : '') + (bits & ITALIC ? 'i' : '')]);
+    if (parts.length > 0) o.s = parts;
     const back = colour(s.labelBackgroundColor, null);
     if (back) o.g = back;
     return o;
@@ -184,8 +246,39 @@ function drawCells(cells) {
     const right = 2 + num(s.spacingRight);
     text(b.x + left, b.y, b.w - left - right, b.h, plainLabel(cell.value), alignOf(s, { ...fontOf(cell), ...options }));
   };
-  /** The label under a shape, centred on it and as wide as its text. */
-  const labelBelow = (cell, b) => text(b.x + b.w / 2, b.y + b.h + 5, 0, 0, plainLabel(cell.value), { ...fontOf(cell), v: 't' });
+  /** The label under a shape, centred on it: as wide as its text, or wrapped at the `labelWidth` of the style. */
+  const labelBelow = (cell, b) => {
+    const wide = num(cell.style.labelWidth);
+    text(b.x + (b.w - wide) / 2, b.y + b.h + 5, wide, 0, plainLabel(cell.value), { ...fontOf(cell), v: 't' });
+  };
+
+  /**
+   * The pictogram of a stencil in the box given, as draw.io's mxStencil paints it: every path
+   * scaled from the stencil's own box, a stencil of fixed proportions centred in the box.
+   * `fill` and `stroke` are the colours of the cell; a path that names its own keeps them.
+   * @returns {boolean} false when the stencil is not in the data, so the caller draws a stand-in
+   */
+  const stencil = (name, x, y, w, h, fill, stroke) => {
+    const g = name !== undefined && Object.hasOwn(stencilTable(), name) ? stencilTable()[name] : undefined;
+    if (!g) return false;
+    let sx = w / g.w;
+    let sy = h / g.h;
+    let ox = x;
+    let oy = y;
+    if (g.a) {
+      sx = Math.min(sx, sy);
+      sy = sx;
+      ox += (w - g.w * sx) / 2;
+      oy += (h - g.h * sy) / 2;
+    }
+    const own = (set, cell) => (set === undefined || set === '' ? cell : set === 'none' ? null : set);
+    g.paint.forEach(([mode, , ownFill, ownStroke], i) => {
+      const f = mode === 's' ? null : own(ownFill, fill);
+      const k = mode === 'f' ? null : own(ownStroke, stroke);
+      if (f || k) items.push(['g', `${name}#${i}`, ox, oy, sx * STENCIL_UNIT, sy * STENCIL_UNIT, f ?? 0, k ?? 0, g.s ? g.s * Math.min(sx, sy) : 1]);
+    });
+    return true;
+  };
 
   const vertex = (cell) => {
     const s = cell.style;
@@ -225,7 +318,8 @@ function drawCells(cells) {
         ellipse(x, y, w, h, colour(s.fillColor, BLACK), stroke);
         return;
       case 'endState': {
-        const inset = Math.max(3, w / 6);
+        // The disc of draw.io's end state leaves a ring of 4 px in a circle of 30.
+        const inset = Math.max(3, (w * 2) / 15);
         ellipse(x, y, w, h, WHITE, stroke);
         ellipse(x + inset, y + inset, w - 2 * inset, h - 2 * inset, colour(s.fillColor, BLACK), null);
         return;
@@ -293,18 +387,22 @@ function drawCells(cells) {
         return;
       }
       case 'mxgraph.aws4.group': {
-        // The frame of an AWS group: its pictogram cannot be drawn, a square of its colour stands in the corner for it.
+        // The frame of an AWS group with its pictogram in the corner, in the colour of the frame.
         rect(x, y, w, h, colour(s.fillColor, null), s.grStroke === '0' ? null : stroke, line);
-        if (stroke) rect(x, y, 25, 25, stroke, null);
+        if (stroke && !stencil(s.grIcon, x, y, num(s.grIconSize, 25), num(s.grIconSize, 25), stroke, null)) rect(x, y, 25, 25, stroke, null);
         const left = num(s.spacingLeft, 30);
         text(x + left, y, w - left - 4, 25, plainLabel(cell.value), alignOf(s, fontOf(cell), 'left'));
         return;
       }
       default: {
         if (kind.startsWith('mxgraph.')) {
-          // A stencil: the square of an AWS service in its colour, any other icon as a neutral outline.
-          if (kind === 'mxgraph.aws4.resourceIcon') rect(x, y, w, h, fill ?? '888888', null);
-          else rect(x, y, w, h, WHITE, stroke && stroke !== WHITE ? stroke : '666666', { radius: 6 });
+          // An AWS service is a square of its colour with the pictogram in the colour of the line (white)
+          // on it; any other stencil paints itself in the colours of the cell. One that is not in
+          // the data is a neutral outline.
+          if (kind === 'mxgraph.aws4.resourceIcon') {
+            rect(x, y, w, h, fill ?? '888888', null);
+            stencil(s.resIcon, x + w * 0.1, y + h * 0.1, w * 0.8, h * 0.8, stroke ?? WHITE, null);
+          } else if (!stencil(kind, x, y, w, h, fill, stroke)) rect(x, y, w, h, WHITE, stroke && stroke !== WHITE ? stroke : '666666', { radius: 6 });
           if (below) labelBelow(cell, b);
           else labelIn(cell, b);
           return;
@@ -477,12 +575,14 @@ function drawCells(cells) {
 /** Room a text takes, for the size of the section only: Figma measures the real text itself. */
 function textExtent(item) {
   const [, x, y, w, h, chars, o] = item;
-  if (w > 0 || h > 0) return { minX: x, minY: y, maxX: x + w, maxY: y + h };
+  if (h > 0) return { minX: x, minY: y, maxX: x + w, maxY: y + h };
   const size = o.f ?? FONT_SIZE;
   const lines = chars.split('\n');
-  const tw = Math.max(...lines.map((l) => l.length)) * size * 0.62;
-  const th = lines.length * size * 1.25;
-  const left = o.a === 'l' ? x : o.a === 'r' ? x - tw : x - tw / 2;
+  const natural = Math.max(...lines.map((l) => l.length)) * size * 0.62;
+  // A text with a width and no height (a label under an icon) wraps at that width and grows down.
+  const tw = w > 0 ? w : natural;
+  const th = (w > 0 ? Math.max(lines.length, Math.ceil(natural / w)) : lines.length) * size * 1.25;
+  const left = w > 0 || o.a === 'l' ? x : o.a === 'r' ? x - tw : x - tw / 2;
   const top = o.v === 't' ? y : o.v === 'b' ? y - th : y - th / 2;
   return { minX: left, minY: top, maxX: left + tw, maxY: top + th };
 }
@@ -494,6 +594,11 @@ function boundsOf(items) {
     if (item[0] === 'p') {
       const numbers = item[1].filter((v) => typeof v === 'number');
       for (let i = 0; i < numbers.length; i += 2) extend(numbers[i], numbers[i + 1]);
+    } else if (item[0] === 'g') {
+      // The box the stencil was scaled into: a figure that is a stencil of its own has no other drawing.
+      const g = stencilTable()[item[1].split('#')[0]];
+      extend(item[2], item[3]);
+      extend(item[2] + (g.w * item[4]) / STENCIL_UNIT, item[3] + (g.h * item[5]) / STENCIL_UNIT);
     } else if (item[0] === 't') {
       const e = textExtent(item);
       extend(e.minX, e.minY);
@@ -518,6 +623,11 @@ function place(item, dx, dy) {
     }).join(' ');
     return ['p', data, ...item.slice(2)];
   }
+  if (item[0] === 'g') {
+    const [, key, x, y, sx, sy, fill, stroke, width] = item;
+    // The scale keeps more digits than a coordinate: it is multiplied by numbers in the hundreds.
+    return ['g', key, round(x + dx), round(y + dy), Math.round(sx * 1e5) / 1e5, Math.round(sy * 1e5) / 1e5, fill, stroke, round(width)];
+  }
   const [kind, x, y, w, h, ...rest] = item;
   return [kind, round(x + dx), round(y + dy), round(w), round(h), ...rest.map((v) => (typeof v === 'number' ? round(v) : v))];
 }
@@ -540,16 +650,23 @@ export function figjamNative(drawioXml, { title, limit = SCRIPT_LIMIT }) {
   const width = Math.ceil(b.maxX + offset.x + PAD);
   const height = Math.ceil(b.maxY + offset.y + PAD);
 
-  const script = (chunk, part, parts) => `${RUNTIME_HEAD}const D = ${JSON.stringify({ title, part, parts, width, height, offset: [offset.x, offset.y], items: chunk })};\n${RUNTIME}`;
-  // Every part carries the whole runtime, so each one runs on its own; the room left is for the drawings.
+  /** The stencil paths a list of drawings refers to, by key. */
+  const stencilPath = (key) => { const [name, index] = key.split('#'); return stencilTable()[name].paint[index][1]; };
+  const stencilsOf = (chunk) => Object.fromEntries([...new Set(chunk.filter((item) => item[0] === 'g').map((item) => item[1]))].map((key) => [key, stencilPath(key)]));
+  const script = (chunk, part, parts) => `${RUNTIME_HEAD}const D = ${JSON.stringify({ title, part, parts, width, height, offset: [offset.x, offset.y], stencils: stencilsOf(chunk), items: chunk })};\n${RUNTIME}`;
+  // Every part carries the whole runtime and the stencil paths its own drawings use, so each
+  // one runs on its own; the room left is for the drawings.
   const room = limit - script([], 99, 99).length;
   const chunks = [[]];
   let used = 0;
+  let carried = new Set();
+  /** Characters an item adds to the part being filled: itself, and its stencil path when the part does not carry it yet. */
+  const cost = (item) => JSON.stringify(item).length + 1 + (item[0] === 'g' && !carried.has(item[1]) ? JSON.stringify(item[1]).length + JSON.stringify(stencilPath(item[1])).length + 2 : 0);
   for (const item of items) {
-    const size = JSON.stringify(item).length + 1;
-    if (used + size > room && chunks.at(-1).length > 0) { chunks.push([]); used = 0; }
+    if (used + cost(item) > room && chunks.at(-1).length > 0) { chunks.push([]); used = 0; carried = new Set(); }
+    used += cost(item);
     chunks.at(-1).push(item);
-    used += size;
+    if (item[0] === 'g') carried.add(item[1]);
   }
   return { parts: chunks.map((chunk, i) => script(chunk, i + 1, chunks.length)), offset, width, height };
 }
@@ -585,8 +702,10 @@ if (D.part === 1) {
   throw new Error('zukai native: no section named "' + D.title + '" drawn by part 1 on this board; run part 1 first. Nothing was changed.');
 }
 
+// Arimo has the widths of Helvetica and Arial, the faces draw.io sizes its boxes for.
+const FONT = 'Arimo';
 const fonts = { '': 'Regular', b: 'Bold', i: 'Italic', bi: 'Bold Italic' };
-for (const style of Object.values(fonts)) await figma.loadFontAsync({ family: 'Inter', style });
+for (const style of Object.values(fonts)) await figma.loadFontAsync({ family: FONT, style });
 const paint = (hex) => (hex ? [{ type: 'SOLID', color: { r: parseInt(hex.slice(0, 2), 16) / 255, g: parseInt(hex.slice(2, 4), 16) / 255, b: parseInt(hex.slice(4, 6), 16) / 255 } }] : []);
 let created = 0;
 const add = (n) => { S.appendChild(n); n.name = TAG; created++; return n; };
@@ -597,9 +716,27 @@ const outline = (n, stroke, dashed, width) => {
   if (dashed) n.dashPattern = [3, 3];
 };
 
+const vector = (data, fill, stroke, dashed, width) => {
+  const n = add(figma.createVector());
+  n.vectorPaths = [{ windingRule: fill ? 'NONZERO' : 'NONE', data }];
+  n.fills = paint(fill);
+  outline(n, stroke, dashed, width);
+};
+
 for (const item of D.items) {
   const kind = item[0];
-  if (kind === 'r' || kind === 'e') {
+  if (kind === 'g') {
+    // A stencil path is written in the numbers of the stencil's own box: scale and move each into the section.
+    const [, key, x, y, sx, sy, fill, stroke, width] = item;
+    let isX = true;
+    const data = D.stencils[key].split(' ').map((token) => {
+      if (Number.isNaN(Number(token))) { isX = true; return token; }
+      const v = isX ? x + token * sx : y + token * sy;
+      isX = !isX;
+      return Math.round(v * 100) / 100;
+    }).join(' ');
+    vector(data, fill, stroke, 0, width);
+  } else if (kind === 'r' || kind === 'e') {
     const [, x, y, w, h, fill, stroke, radius, dashed, width] = item;
     const n = add(kind === 'r' ? figma.createRectangle() : figma.createEllipse());
     n.x = x;
@@ -611,29 +748,22 @@ for (const item of D.items) {
     if (radius) n.cornerRadius = radius;
   } else if (kind === 'p') {
     const [, data, fill, stroke, dashed, width] = item;
-    const n = add(figma.createVector());
-    n.vectorPaths = [{ windingRule: fill ? 'NONZERO' : 'NONE', data }];
-    n.fills = paint(fill);
-    outline(n, stroke, dashed, width);
+    vector(data, fill, stroke, dashed, width);
   } else {
     const [, x, y, w, h, chars, o] = item;
     // The background of a label is created first so that it lies under the text.
     const back = o.g ? add(figma.createRectangle()) : null;
     const t = add(figma.createText());
-    const size = o.f || 12;
-    t.fontName = { family: 'Inter', style: fonts[(o.b ? 'b' : '') + (o.i ? 'i' : '')] };
-    t.fontSize = size;
+    t.fontName = { family: FONT, style: fonts[(o.b ? 'b' : '') + (o.i ? 'i' : '')] };
+    t.fontSize = o.f || 12;
     t.characters = chars;
+    // A part of the label that is bold or italic on its own.
+    for (const [from, to, key] of o.s || []) t.setRangeFontName(from, to, { family: FONT, style: fonts[key] });
     t.fills = paint(o.c || '000000');
     t.textAlignHorizontal = o.a === 'l' ? 'LEFT' : o.a === 'r' ? 'RIGHT' : 'CENTER';
-    // The boxes were sized for the face draw.io uses, and Inter runs about a tenth wider. A
-    // text that is too wide by no more than that was one line in draw.io and is set a little
-    // smaller; a wider one was wrapped there and is wrapped here.
+    // A text wider than its box was wrapped in draw.io and is wrapped here, at the same width.
     const room = o.r ? h : w;
-    if (room > 0 && t.width > room) {
-      if (t.width <= room * 1.12) t.fontSize = Math.floor((size * room * 10) / t.width) / 10;
-      if (t.width > room) { t.textAutoResize = 'HEIGHT'; t.resize(room, t.height); }
-    }
+    if (room > 0 && t.width > room) { t.textAutoResize = 'HEIGHT'; t.resize(room, t.height); }
     if (o.r) {
       // Turned a quarter, the text reads upwards and its box grows up and to the right of (x, y).
       t.rotation = 90;
