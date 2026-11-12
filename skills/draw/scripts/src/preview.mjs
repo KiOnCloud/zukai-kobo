@@ -278,10 +278,41 @@ async function shoot(browser, url, setup, locate, measure, out, maxPx, fixed) {
   // Tiles at scale 1 unless even the short side is over the cap.
   if (tiled) scale = Math.min(1, maxPx / shortest);
   const viewport = fixed ? { width: region.width, height: region.height } : { width: Math.ceil(region.x + region.width) + 50, height: Math.ceil(region.y + region.height) + 50 };
-  const page = await browser.newPage({ viewport, deviceScaleFactor: scale });
+  let page = await browser.newPage({ viewport, deviceScaleFactor: scale });
   await setup(page, url);
-  const box = await locate(page);
+  let box = await locate(page);
   if (!tiled) {
+    // The window was sized from the cells of the file. A label beside a line reaches past
+    // them, and the viewer then shrinks the whole drawing to fit, which leaves empty bands
+    // along the other side. The shrink shows in the drawn shapes; when there is one, the
+    // window is opened once more at the size the drawing has with its texts.
+    if (fixed) {
+      const drawn = await page.evaluate(() => {
+        const bounds = (selector) => {
+          let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+          for (const el of document.querySelectorAll(selector)) {
+            const b = el.getBoundingClientRect();
+            if (b.width === 0 && b.height === 0) continue;
+            minX = Math.min(minX, b.left); minY = Math.min(minY, b.top); maxX = Math.max(maxX, b.right); maxY = Math.max(maxY, b.bottom);
+          }
+          return Number.isFinite(minX) ? { width: maxX - minX, height: maxY - minY } : null;
+        };
+        const shapes = '.geDiagramContainer svg rect, .geDiagramContainer svg ellipse, .geDiagramContainer svg path, .geDiagramContainer svg image';
+        // The innermost block of a label: the frame around it spans far beyond the text.
+        return { shapes: bounds(shapes), all: bounds(`${shapes}, .geDiagramContainer svg foreignObject div div div, .geDiagramContainer svg text`) };
+      }).catch(() => null);
+      const fit = drawn?.shapes ? Math.max(drawn.shapes.width / Math.max(fixed.width, 1), drawn.shapes.height / Math.max(fixed.height, 1)) : 1;
+      if (drawn?.all && fit < 0.97) {
+        const cap = (v) => Math.min(Math.max(Math.ceil(v), 200), 8000);
+        await page.close();
+        region = { x: 0, y: 0, width: cap(drawn.all.width / fit + 2 * margin), height: cap(drawn.all.height / fit + 2 * margin) };
+        const side = Math.max(region.width, region.height);
+        scale = Math.min(maxPx ? maxPx / side : 2, 2, MAX_SIDE / side);
+        page = await browser.newPage({ viewport: { width: region.width, height: region.height }, deviceScaleFactor: scale });
+        await setup(page, url);
+        box = await locate(page);
+      }
+    }
     await page.screenshot({ path: out, clip: region });
     await page.close();
     return { ok: true, scale, files: [out] };

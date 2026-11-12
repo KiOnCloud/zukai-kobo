@@ -126,9 +126,11 @@ export function scanSecrets(ir) {
     }
     if (flagged) continue;
     for (const p of PERSONAL) {
-      const m = value.match(p.re);
-      if (!m || (p.what === 'e-mail address' && PLACEHOLDER_MAIL.test(m[0]))) continue;
-      warnings.push({ path, kind: 'personal-data', message: `possible ${p.what} (${preview(m[0])}); a diagram names roles and systems, not people: replace it with a placeholder such as <customer e-mail>` });
+      // Every occurrence is looked at: a placeholder address in front must not hide a real one behind it.
+      const m = [...value.matchAll(new RegExp(p.re.source, `${p.re.flags.replace('g', '')}g`))].find((x) => !(p.what === 'e-mail address' && PLACEHOLDER_MAIL.test(x[0])));
+      if (!m) continue;
+      // Nothing of the value is quoted: the first characters of an address already name a person.
+      warnings.push({ path, kind: 'personal-data', message: `possible ${p.what} (${m[0].length} characters); a diagram names roles and systems, not people: replace it with a placeholder such as ${p.what === 'e-mail address' ? '<customer e-mail>' : '<customer phone>'}` });
       flagged = true;
       break;
     }

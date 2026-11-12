@@ -131,6 +131,10 @@ room and wraps, which can put its second line beside a connection that leaves th
 downwards: when more than half of the icon names of a page are reported, say so and
 offer the translated IR for that diagram instead of delivering the relabelled page.
 
+A label on a line (a connection, a branch answer) has no box; `relabel` reports it when the
+new text is more than 60 px longer than the old one, since it then reaches towards the next
+line or shape. Look at that spot in the preview and shorten the label when it does.
+
 `relabel` writes into each page it changed the labels the page was laid out for (a
 `zukaiLabels` property of the page, which draw.io keeps on save). `drift` reads it, so a
 relabelled file is not reported as moved by hand.

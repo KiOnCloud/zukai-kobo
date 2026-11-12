@@ -75,8 +75,8 @@
         <mxCell id="pay-with-retries:b2:tab" value="alt authorized" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
           <mxGeometry x="65" y="391" width="97" height="18" as="geometry"/>
         </mxCell>
-        <mxCell id="pay-with-retries:b2:sep-label-1" value="else declined after 3 attempts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=5;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="64" y="469" width="189" height="20" as="geometry"/>
+        <mxCell id="pay-with-retries:b2:sep-label-1" value="else declined after 3 attempts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="65" y="469" width="185" height="20" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>

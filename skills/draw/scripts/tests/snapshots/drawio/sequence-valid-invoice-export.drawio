@@ -105,8 +105,8 @@
         <mxCell id="invoice-export:b3:tab" value="alt has lines" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
           <mxGeometry x="65" y="485" width="88" height="18" as="geometry"/>
         </mxCell>
-        <mxCell id="invoice-export:b3:sep-label-1" value="else no lines" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=5;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="64" y="603" width="99" height="20" as="geometry"/>
+        <mxCell id="invoice-export:b3:sep-label-1" value="else no lines" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="65" y="603" width="95" height="20" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>

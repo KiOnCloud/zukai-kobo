@@ -161,6 +161,15 @@ export function relabelDrawio(xml, map) {
           fitProblems.get(c.attrs.id).pages.unshift(p.pageId);
         }
       }
+      // A label on a line has no box to fit; what can go wrong is its length: a text much longer
+      // than the one the layout placed reaches the next line or node beside it.
+      if (c.newText !== undefined && c.geometry?.relative === '1' && c.parts.main !== '') {
+        const grows = widest(c.newText) - widest(c.parts.main);
+        if (grows > LINE_LABEL_GROWTH) {
+          if (!fitProblems.has(c.attrs.id)) fitProblems.set(c.attrs.id, { problem: `the new label on this line is about ${grows} px longer than the one it replaces and may reach a neighbouring line or shape`, pages: [] });
+          fitProblems.get(c.attrs.id).pages.unshift(p.pageId);
+        }
+      }
       let attrText = c.attrText.replace(new RegExp(`\\s${c.labelAttr}="[^"]*"`), ` ${c.labelAttr}="${xmlAttr(value)}"`);
       const widened = c.restyled ? c.style.match(/labelWidth=\d+/)[0] : undefined;
       // The style is on the cell itself, or on the mxCell inside a UserObject.
@@ -277,6 +286,8 @@ const widest = (text) => Math.ceil(widestLine(text));
 const TEXT_INSET = 8;
 /** How much wider than drawn the text metrics may measure a line (see text-metrics.mjs). */
 const WIDTH_SLACK = 1.03;
+/** How much longer than the old one a label on a line may be before it is reported, in px. */
+const LINE_LABEL_GROWTH = 60;
 /** The widest a name below a figure may become when a relabel lets it grow, in px. */
 const BELOW_MAX = 200;
 /** Room kept between a name below a figure and the line of the frame around it, in px. */
