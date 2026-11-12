@@ -85,7 +85,10 @@
         "participant.kind.actor": {
           "mermaid": "supported",
           "drawio": "supported",
-          "figjam": "supported"
+          "figjam": {
+            "status": "degraded",
+            "note": "FigJam draws every participant of a sequence diagram as the same box"
+          }
         },
         "participant.kind.participant": {
           "mermaid": "supported",
@@ -97,7 +100,7 @@
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam sequence diagrams have only actor and participant; rendered as a plain participant"
+            "note": "FigJam draws every participant of a sequence diagram as the same box"
           }
         },
         "participant.kind.boundary": {
@@ -105,7 +108,7 @@
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam sequence diagrams have only actor and participant; rendered as a plain participant"
+            "note": "FigJam draws every participant of a sequence diagram as the same box"
           }
         },
         "participant.kind.control": {
@@ -113,7 +116,7 @@
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam sequence diagrams have only actor and participant; rendered as a plain participant"
+            "note": "FigJam draws every participant of a sequence diagram as the same box"
           }
         },
         "participant.kind.entity": {
@@ -121,7 +124,7 @@
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam sequence diagrams have only actor and participant; rendered as a plain participant"
+            "note": "FigJam draws every participant of a sequence diagram as the same box"
           }
         },
         "message.kind.sync": {
@@ -139,32 +142,52 @@
           "drawio": "supported",
           "figjam": "supported"
         },
+        "message.self": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "generate_diagram leaves the row of a message to the same participant empty and a stray arrow beside the diagram; the overlay script (emit --overlay) draws the message"
+          }
+        },
         "block.kind.alt": {
           "mermaid": "supported",
           "drawio": "supported",
-          "figjam": "supported"
+          "figjam": {
+            "status": "degraded",
+            "note": "generate_diagram keeps the messages and drops the frame; the overlay script (emit --overlay) draws the frame and its conditions on the board"
+          }
         },
         "block.kind.opt": {
           "mermaid": "supported",
           "drawio": "supported",
-          "figjam": "supported"
+          "figjam": {
+            "status": "degraded",
+            "note": "generate_diagram keeps the messages and drops the frame; the overlay script (emit --overlay) draws the frame and its conditions on the board"
+          }
         },
         "block.kind.loop": {
           "mermaid": "supported",
           "drawio": "supported",
-          "figjam": "supported"
+          "figjam": {
+            "status": "degraded",
+            "note": "generate_diagram keeps the messages and drops the frame; the overlay script (emit --overlay) draws the frame and its conditions on the board"
+          }
         },
         "block.kind.par": {
           "mermaid": "supported",
           "drawio": "supported",
-          "figjam": "supported"
+          "figjam": {
+            "status": "degraded",
+            "note": "generate_diagram keeps the messages and drops the frame; the overlay script (emit --overlay) draws the frame and its conditions on the board"
+          }
         },
         "note": {
           "mermaid": "supported",
           "drawio": "supported",
           "figjam": {
             "status": "degraded",
-            "note": "FigJam drops sequence Note statements; the note is left out"
+            "note": "generate_diagram drops Note statements; the note keeps a row and the overlay script (emit --overlay) draws it there"
           }
         },
         "message.ref": {
@@ -417,10 +440,7 @@
         "connection.bidirectional": {
           "mermaid": "supported",
           "drawio": "supported",
-          "figjam": {
-            "status": "degraded",
-            "note": "flowchart edges are one-way; the label gains \"(both ways)\""
-          }
+          "figjam": "supported"
         },
         "component.ref": {
           "mermaid": "supported",

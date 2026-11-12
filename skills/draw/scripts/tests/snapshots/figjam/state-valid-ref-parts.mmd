@@ -5,7 +5,8 @@ stateDiagram-v2
   %% id: paying
   state "Paying ↳ order-sync-01-load" as n3
   %% id: fulfil
-  state "Fulfilment ↳ order-sync-02-store" as n4 {
+  state "Fulfilment ↳ order-sync-02-store" as n4
+  state n4 {
     %% id: picking
     state "Picking" as n5
     %% id: shipped

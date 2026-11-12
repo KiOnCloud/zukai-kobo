@@ -20,7 +20,7 @@ name, you are in another runtime: use the path where you read this file (for Cod
 
 ```bash
 node "<skill-dir>/scripts/bin/cli.mjs" validate <ir.json>
-node "<skill-dir>/scripts/bin/cli.mjs" emit --to <mermaid|drawio|figjam> <ir.json> [--out <file>]
+node "<skill-dir>/scripts/bin/cli.mjs" emit --to <mermaid|drawio|figjam> <ir.json> [--out <file>] [--overlay <file.js>]
 ```
 
 Node 22.13 or newer is required; the CLI has no other dependency. One command reaches the
@@ -217,7 +217,7 @@ what it talks to), each with that consequence in its description.
 |---|---|---|---|
 | `drawio` | `.drawio` file with editable shapes, laid out automatically (default) | always available | `references/target-drawio.md` |
 | `mermaid` | Mermaid text to paste into Markdown | always available | `references/target-mermaid.md` |
-| `figjam` | New or existing FigJam board | a Figma MCP tool named `generate_diagram` is available in the session; otherwise hand the user the `figjam` text to paste, as section 5 of the reference says (never the `mermaid` text), and say so | `references/target-figjam.md` |
+| `figjam` | New or existing FigJam board | a Figma MCP tool named `generate_diagram` is available in the session; otherwise hand the user the `figjam` text to paste, as section 6 of the reference says (never the `mermaid` text), and say so. A sequence diagram with blocks, notes or self-messages also needs the overlay script of section 5, run with `use_figma` | `references/target-figjam.md` |
 
 The feature matrix (`docs/feature-matrix.md` in the repository, data in
 `scripts/src/feature-matrix.json`) decides per kind, target and feature whether something is

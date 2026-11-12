@@ -56,7 +56,10 @@ brainstorm (idea) ─> clarify ┘                                              
   entity-encoded labels, own-line id comments) and `emit-drawio.mjs` (uncompressed mxGraph
   XML; ELK layout through `layout-graph.mjs` for graph-shaped kinds, the fixed grid in
   `layout-sequence.mjs` for sequence diagrams). FigJam reuses the Mermaid emitter with a
-  stricter profile and the agent makes the MCP call.
+  stricter profile and the agent makes the MCP call. What Figma's `generate_diagram` leaves
+  out of a sequence diagram (block frames, notes, self-messages) is drawn afterwards by a
+  script that `figjam-overlay.mjs` writes for the Figma tool `use_figma`; it checks the board
+  against the model and changes nothing when they differ.
 - **The CLI** (`cli.mjs`, bundled by esbuild into the committed `bin/cli.mjs`) exposes
   `validate`, `emit`, `bundle`, `relabel` and `preview`, plus `diff`, `drift`, `snapshot`,
   `revisions` and `restore` for the revise skill, and `help`; it exits 2 on validation errors

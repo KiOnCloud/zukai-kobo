@@ -37,10 +37,27 @@ describe('cli (committed bundle, run from a different working directory)', () =>
     expect(r.code).toBe(0);
     expect(r.stdout.startsWith('---\ntitle: "Login with password"\n---\nsequenceDiagram\n')).toBe(true);
     expect(r.stderr).toBe('');
-    // The figjam profile degrades the database and control participants, so it warns.
+    // FigJam draws every participant as the same box, so the actor, control and database warn.
     const fig = run(['emit', '--to', 'figjam', join(fixturesDir, 'sequence', 'valid.json')]);
     expect(fig.code).toBe(0);
-    expect(parseStderr(fig.stderr).warnings.filter((w) => w.path.startsWith('/participants'))).toHaveLength(2);
+    const warned = parseStderr(fig.stderr).warnings;
+    expect(warned.filter((w) => w.path.startsWith('/participants'))).toHaveLength(3);
+    // Without --overlay the reader is told that the board needs the overlay script.
+    expect(warned.at(-1).hint).toContain('--overlay');
+  });
+
+  it('emit --to figjam --overlay writes the overlay script only for a diagram that needs one', () => {
+    const seq = run(['emit', '--to', 'figjam', join(fixturesDir, 'sequence', 'valid.json'), '--out', 'fj/login.mmd', '--overlay', 'fj/login.overlay.js']);
+    expect(seq.code).toBe(0);
+    expect(JSON.parse(seq.stdout).overlay).toBe(join(otherCwd, 'fj', 'login.overlay.js'));
+    expect(readFileSync(join(otherCwd, 'fj', 'login.overlay.js'), 'utf8')).toContain('"title":"Login with password"');
+    expect(parseStderr(seq.stderr).warnings.some((w) => w.hint?.includes('--overlay'))).toBe(false);
+    const flow = run(['emit', '--to', 'figjam', join(fixturesDir, 'flowchart', 'valid.json'), '--out', 'fj/flow.mmd', '--overlay', 'fj/flow.overlay.js']);
+    expect(JSON.parse(flow.stdout).overlay).toBeNull();
+    expect(existsSync(join(otherCwd, 'fj', 'flow.overlay.js'))).toBe(false);
+    const wrong = run(['emit', '--to', 'mermaid', join(fixturesDir, 'sequence', 'valid.json'), '--overlay', 'x.js']);
+    expect(wrong.code).toBe(1);
+    expect(parseStderr(wrong.stderr).errors[0].message).toContain('--overlay goes with --to figjam');
   });
 
   it('emit --out writes the file relative to the working directory', () => {

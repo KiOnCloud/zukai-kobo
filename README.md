@@ -119,7 +119,6 @@ one. It edits the model, never the output, and takes one of four routes:
 Before overwriting a draw.io file it checks whether you edited it by hand in draw.io. A
 label-only change then keeps your layout; any other change asks first and keeps a copy of
 your edited file in the revision. That copy is never deleted for you: when its revision is
-rotated out, it moves to `history/extras/`. That copy is never deleted for you: when its revision is
 rotated out, it moves to `history/extras/`.
 
 ```text
@@ -145,7 +144,7 @@ rotated out, it moves to `history/extras/`.
 |---|---|---|
 | `drawio` | `.drawio` file, uncompressed mxGraph XML | Default. Laid out automatically; every shape and edge stays editable. Architecture diagrams of AWS systems use AWS service icons with VPC, subnet and account frames |
 | `mermaid` | Mermaid text | Paste into Markdown or a wiki |
-| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; without it you get the FigJam text to paste into the board yourself |
+| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; without it you get the FigJam text to paste into the board yourself. Block frames, notes and self-messages of a sequence diagram are drawn on the board by a second, generated script |
 
 draw.io is the target for `activity` diagrams. Mermaid renders them with its beta swimlane
 syntax and FigJam does not support them. The complete table of what each target supports is
@@ -199,7 +198,6 @@ diagrams/20261109_login-flow/
   drawio/<diagram>.drawio    each diagram on its own
   source/<diagram>.ir.json   the model the diagrams were generated from
   history/r001/ ... r005/    the five latest revisions of the whole run (written by revise)
-  history/extras/rNNN/       hand-edited files of revisions that were rotated out (kept until you delete them)
   history/extras/rNNN/       hand-edited files of revisions that were rotated out (kept until you delete them)
   drafts/a/ b/ c/            drafts of a what-if, until one is confirmed or dropped
 ```

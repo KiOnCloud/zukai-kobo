@@ -15,6 +15,7 @@ where the date is today and `<run-slug>` is a short English kebab-case name of t
 | `drawio/<slug>.drawio` | each diagram on its own, for reuse (target `drawio`) |
 | `mermaid/<slug>.mmd` | each diagram on its own (target `mermaid`) |
 | `figjam/<slug>.mmd` | the text sent to FigJam, kept so it can be previewed and reviewed before the board is made (target `figjam`) |
+| `figjam/<slug>.overlay.js` | for a sequence diagram with blocks, notes or self-messages: the script that draws them on the board (target `figjam`, `target-figjam.md` section 5) |
 | `<run-slug>.<lang>.drawio`, `source/labels.<lang>.json` | a language variant of the combined file and its label map (`variants.md`) |
 | `history/` | revisions written by the revise skill; only the CLI writes here |
 

@@ -4,6 +4,7 @@ import { scanSecrets, DEFINITE_KINDS } from './scan-secrets.mjs';
 import { checkModel } from './check-model.mjs';
 import { checkDetail } from './check-detail.mjs';
 import { emitMermaid } from './emit-mermaid.mjs';
+import { figjamOverlay } from './figjam-overlay.mjs';
 import { emitDrawio, emitDrawioBundle, bundleRefs, slugify, pageIdOf } from './emit-drawio.mjs';
 
 export { TARGETS };
@@ -15,7 +16,8 @@ export { TARGETS };
  * @param {string} target
  * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, refs?: Map<string, { pageId: string, title: string }> }} [options]
  *   `refs` is set by `bundle` so a `ref` resolves to the target's title (and page link in draw.io)
- * @returns {Promise<{ ok: boolean, output?: string, errors: Array<object>, warnings: Array<object> }>}
+ * @returns {Promise<{ ok: boolean, output?: string, overlay?: string, errors: Array<object>, warnings: Array<object> }>}
+ *   `overlay` is set for a FigJam sequence diagram that needs the overlay script
  */
 export async function emit(ir, target, options = {}) {
   const validation = validateIr(ir);
@@ -52,6 +54,8 @@ export async function emit(ir, target, options = {}) {
       break;
     case 'figjam':
       result = emitMermaid(ir, { profile: 'figjam' });
+      // What generate_diagram cannot draw of a sequence diagram, as a script for use_figma.
+      result.overlay = figjamOverlay(ir);
       break;
     default:
       return { ok: false, errors: [{ path: '/', message: `no emitter for target "${target}"` }], warnings };
@@ -62,7 +66,7 @@ export async function emit(ir, target, options = {}) {
   const fellBack = result.warnings.some((w) => w.fallback === 'flowchart');
   const kept = fellBack ? warnings.filter((w) => w.stage !== 'feature-matrix' || /\.aws$/.test(w.feature)) : warnings;
   kept.push(...result.warnings.map((w) => ({ stage: 'emit', ...w })));
-  return { ok: true, output: result.output, errors: [], warnings: kept };
+  return { ok: true, output: result.output, ...(result.overlay ? { overlay: result.overlay } : {}), errors: [], warnings: kept };
 }
 
 /**

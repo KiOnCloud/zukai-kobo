@@ -4,7 +4,8 @@ stateDiagram-v2
   %% id: payment
   state "Awaiting payment" as n3
   %% id: fulfil
-  state "Fulfilment" as n4 {
+  state "Fulfilment" as n4
+  state n4 {
     %% id: picking
     state "Picking" as n6
     %% id: packing

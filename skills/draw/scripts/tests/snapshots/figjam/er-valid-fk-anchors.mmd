@@ -1,4 +1,5 @@
 erDiagram
+  direction LR
   %% id: customer
   n1["Customer"] {
     uuid id PK
@@ -14,7 +15,7 @@ erDiagram
     uuid customer_id FK
     uuid billing_address_id FK
     uuid shipping_address_id FK
-    decimal(10,2) total
+    decimal total "decimal(10,2)"
     varchar(20) status
   }
   %% id: r1

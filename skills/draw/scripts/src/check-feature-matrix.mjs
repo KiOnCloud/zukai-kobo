@@ -27,7 +27,7 @@ export function enumerateFeatures(ir) {
     }
     case 'sequence': {
       list(ir, 'participants').forEach((p, i) => use(`participant.kind.${p.kind ?? 'participant'}`, `/participants/${i}`, p.id));
-      list(ir, 'messages').forEach((m, i) => { use(`message.kind.${m.kind ?? 'sync'}`, `/messages/${i}`, m.id); if (m.ref) use('message.ref', `/messages/${i}`, m.id); });
+      list(ir, 'messages').forEach((m, i) => { use(`message.kind.${m.kind ?? 'sync'}`, `/messages/${i}`, m.id); if (m.from !== undefined && m.from === m.to) use('message.self', `/messages/${i}`, m.id); if (m.ref) use('message.ref', `/messages/${i}`, m.id); });
       list(ir, 'blocks').forEach((b, i) => use(`block.kind.${b.kind}`, `/blocks/${i}`, b.id));
       list(ir, 'notes').forEach((n, i) => use('note', `/notes/${i}`, n.id));
       break;

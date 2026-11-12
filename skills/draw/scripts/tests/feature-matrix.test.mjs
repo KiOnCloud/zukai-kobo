@@ -20,7 +20,7 @@ function expectedFeatures() {
       ...enumOf(def('sequence').participants.items.properties.kind).map((k) => `participant.kind.${k}`),
       ...enumOf(def('sequence').messages.items.properties.kind).map((k) => `message.kind.${k}`),
       ...enumOf(def('sequence').blocks.items.properties.kind).map((k) => `block.kind.${k}`),
-      'note', 'message.ref',
+      'note', 'message.ref', 'message.self',
     ],
     state: [
       ...enumOf(def('state').states.items.properties.kind).map((k) => `state.kind.${k}`),
@@ -92,11 +92,13 @@ describe('enumerateFeatures and checkFeatureMatrix', () => {
   });
 
   it('warns for degraded features naming the element', () => {
-    // FigJam still has only actor and participant; Mermaid draws every kind since issue 23.
+    // FigJam draws every participant as the same box; Mermaid draws every kind since issue 23.
     const r = checkFeatureMatrix(loadFixture('sequence', 'valid'), 'figjam');
     expect(r.ok).toBe(true);
-    expect(r.warnings.map((w) => w.path).filter((p) => p.startsWith('/participants'))).toEqual(['/participants/2', '/participants/3']);
-    expect(r.warnings[0].message).toContain('"auth"');
+    expect(r.warnings.map((w) => w.path).filter((p) => p.startsWith('/participants'))).toEqual(['/participants/0', '/participants/2', '/participants/3']);
+    expect(r.warnings[1].message).toContain('"auth"');
+    // What generate_diagram leaves out and the overlay script draws: the self-message, both blocks, both notes.
+    expect(r.warnings.filter((w) => w.message.includes('overlay script')).map((w) => w.feature)).toEqual(['message.self', 'block.kind.alt', 'block.kind.loop', 'note', 'note']);
     expect(checkFeatureMatrix(loadFixture('sequence', 'valid'), 'mermaid').warnings).toEqual([]);
   });
 

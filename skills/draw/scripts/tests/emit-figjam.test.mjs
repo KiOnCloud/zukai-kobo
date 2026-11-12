@@ -13,7 +13,30 @@ describe('figjam target', () => {
     expect(r.errors[0].hint).toContain('--to');
   });
 
-  it('emits the sequence fixture without front matter, notes, line breaks or entity codes', async () => {
+  it('writes a composite state as a label line and a body line, the form Figma names correctly', async () => {
+    const r = await emit(loadFixture('state', 'valid'), 'figjam');
+    expect(r.output).toContain('  state "Processing" as n4\n  state n4 {\n');
+    expect(r.output).not.toMatch(/" as n\d+ \{/);
+    // The mermaid profile keeps the one-line form.
+    expect((await emit(loadFixture('state', 'valid'), 'mermaid')).output).toMatch(/state "Processing" as n\d+ \{/);
+  });
+
+  it('always states the ER direction and keeps a type with a comma readable for Figma', async () => {
+    const r = await emit(loadFixture('er', 'valid'), 'figjam');
+    expect(r.output.startsWith('erDiagram\n  direction TB\n')).toBe(true);
+    expect(r.output).toContain('    decimal total "decimal(10,2)"');
+    for (const line of r.output.split('\n').filter((l) => /^ {4}\S/.test(l))) expect(line.split('"')[0]).not.toContain(',');
+    expect(r.warnings.filter((w) => w.path === '/entities/1/attributes/3/type')).toHaveLength(1);
+    const lr = await emit(loadFixture('er', 'valid-fk-anchors'), 'figjam');
+    expect(lr.output).toContain('  direction LR\n');
+    expect(lr.warnings.filter((w) => w.path === '/direction')).toEqual([]);
+    // A comment the attribute already has follows the type.
+    const ir = structuredClone(loadFixture('er', 'valid'));
+    ir.entities[1].attributes[3].comment = 'gross';
+    expect((await emit(ir, 'figjam')).output).toContain('    decimal total "decimal(10,2) - gross"');
+  });
+
+  it('emits the sequence fixture without front matter, Note statements, line breaks or entity codes', async () => {
     const r = await emit(loadFixture('sequence', 'valid'), 'figjam');
     expect(r.ok).toBe(true);
     expect(r.output.startsWith('sequenceDiagram\n')).toBe(true);
@@ -21,6 +44,9 @@ describe('figjam target', () => {
     expect(r.output).not.toMatch(/\bNote\b/);
     expect(r.output).not.toMatch(/#[a-z0-9]+;/);
     expect(r.warnings.filter((w) => w.feature === 'note')).toHaveLength(2);
+    // A note keeps a row of its own: a message of its first participant to itself.
+    expect(r.output).toContain('    n2->>n2: Rate limited per IP\n');
+    expect(r.output).toContain('    n3->>n3: Hash: argon2id\n');
     for (const line of r.output.split('\n')) expect(line).not.toMatch(/"[^"]*\n/);
   });
 
@@ -32,7 +58,9 @@ describe('figjam target', () => {
     expect(r.output).toMatch(/subgraph n\d+\["VPC"\]/);
     expect(r.output).toContain('-->|"HTTPS"|');
     expect(r.output).toContain('[("PostgreSQL")]');
-    expect(r.warnings.map((w) => w.feature)).toEqual(['kind', 'connection.bidirectional']);
+    // Figma draws `<-->` with an arrow head at both ends, so a two-way connection is not degraded.
+    expect(r.output).toContain('<-->|"cache aside"|');
+    expect(r.warnings.map((w) => w.feature)).toEqual(['kind']);
   });
 
   it('refuses the adversarial fixture unless --allow-sensitive is passed', async () => {

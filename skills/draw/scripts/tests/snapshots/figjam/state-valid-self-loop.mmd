@@ -2,7 +2,8 @@ stateDiagram-v2
   %% id: pay
   state "Awaiting payment" as n2
   %% id: review
-  state "Under review" as n3 {
+  state "Under review" as n3
+  state n3 {
     %% id: check
     state "Checking" as n4
     %% id: hold

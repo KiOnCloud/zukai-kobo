@@ -64,9 +64,9 @@ Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
   and the `--mermaid-stable` flowchart form keeps it. A picture without a title is therefore expected for this form, not a defect
   of the IR.
 - `direction` is written for an `erDiagram` as it is for state and class diagrams. With
-  `--mermaid-stable`, and in the figjam profile, the line is left out because older parsers
-  may reject it; the diagram is then laid out top to bottom and, unless the IR asked for
-  `TB`, the emit warns at `/direction`.
+  `--mermaid-stable` the line is left out because older parsers may reject it; the diagram
+  is then laid out top to bottom and, unless the IR asked for `TB`, the emit warns at
+  `/direction`. The figjam profile always writes the line.
 
 ## Combined file for a run
 
