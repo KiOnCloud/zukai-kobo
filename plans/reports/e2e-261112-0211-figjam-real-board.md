@@ -354,6 +354,98 @@ gradient). No probe is left on the board.
    data file unreadable in a diff. Raise the budget and store the table as plain JSON
    (bundle 2.94 MB), or keep it packed?
 
+### Routes, the `↳` glyph and all 456 stencils measured against draw.io
+
+This round measured the three points the list above left open. Its findings replace that
+list; the list that holds now is at the end of this subsection.
+
+**Routes.** What draw.io draws was read from its viewer (the page `preview` opens), whose
+SVG paths are in the coordinates of the file, and from its source at tag v32.6.10
+(`mxEdgeStyle.js`, `mxGraphView.js`, `mxPerimeter.js`, `Graph.js`).
+
+- draw.io draws the slant itself. An orthogonal edge without waypoints whose two ports are
+  less than a pixel apart is one straight line (`flowchart/valid`: `M 134.95 52 L 134.94 112`
+  and `M 135 292 L 134.5 489`). An edge with `jumpStyle` is painted from points in which a
+  bend less than a pixel off the line is dropped, so the lines that leave the Booking API in
+  `architecture/valid-aws-fan-out` start with a slant of 1 px in draw.io too
+  (`M 1036 690 L 1310 691 L 1310 746 L 1613 746`). These slants are kept; they now have
+  draw.io's own points.
+- What did differ and is fixed: an orthogonal edge with waypoints, or one shorter than its
+  two end stubs, is routed as draw.io's segment connector does (a waypoint gives one
+  coordinate only, in turn; a bend less than a pixel from the one before is dropped); a fixed
+  port on an ellipse, rhombus, hexagon or parallelogram is moved onto the outline; a
+  misaligned edge without waypoints gets draw.io's step in the middle; a port on a corner
+  leaves along the axis on which the other end is further away.
+- Measured over the draw.io emit of all fixtures: 405 of 413 edge lines have the viewer's
+  points (every point but the end under an arrow head within 0.06 px). Of the other 8, 6
+  differ only at a start that carries an arrow, which the viewer draws 6.37 px short and the
+  emitter covers with its own marker; 2 start 0.89 px beside the viewer's point under an
+  icon label (`architecture/valid-aws-outside-chain`, `valid-aws-outside-pair`), cause not
+  found.
+
+**The `↳` glyph.** The preview's Chromium was asked which font it used
+(`CSS.getPlatformFontsForNode` on the label): Liberation Sans for the 23 other characters and
+Inter for the `↳`, 11.86 px wide at 12 px. `figma.listAvailableFontsAsync()` on the board
+lists Inter. The emitter now marks that one character as a range in Inter (Regular, Bold,
+Italic or Bold Italic as the label is); the runtime loads Inter only when a label has such a
+range. On the board the label of `flowchart/valid` reads back as three segments, Arimo /
+Inter / Arimo, is 146 px wide in a room of 152 px and does not wrap, and at eight times the
+size the arrow has the wide hook of the preview. No vector was drawn for it.
+
+**Stencils.** One draw.io file per 120 stencils placed every one of the 456 in a grid, each
+with the style the emitter writes for its kind (resource icon in its square, plain service
+figure, group frame, logo, client screen). Each sheet was rendered by the viewer and from
+the native items of `figjamNative` as SVG paths, filled with the non-zero rule and only
+where a subpath is closed, as Figma fills; both at the viewer's scale and origin, at two
+device pixels per pixel. Per stencil the share of pixels of its cell that differ strongly
+(more than 96 of 255 in a channel) was taken, at the best of nine shifts of one device
+pixel, since the two renderers snap edges to different half pixels.
+
+| | Share of strongly different pixels |
+|---|---|
+| median | 0.0000 |
+| 90th percentile | 0.0040 |
+| 99th percentile | 0.0203 |
+| largest | 0.0488 |
+
+438 of 456 are under 0.01, the threshold: the distribution is flat to there, and the cells
+above it were looked at one by one. All 456 are under 0.05. The worst five are
+`traditional_server` 0.0488, `servers` 0.0426, `tape_storage` 0.0243,
+`corporate_data_center` 0.0215 and `office_building` 0.0203, all figures of thin dark
+lines; a sheet of the worst 36 beside draw.io's shows no difference of form, and the same
+figures score at most 0.0037 when drawn at another place and scale, so what remains is how
+the two rasterisers place a line edge, not the data. Writing the paths ten times finer did
+not lower it and was not kept.
+
+One real error was found and fixed: the decoder dropped the `alpha` and `fillalpha` of a
+stencil, so the shadow of `mxgraph.gcp2.google_play_game_service` was solid black (0.119
+before, 0.000 after). The generator now keeps the opacity of a fill, the emitter passes it
+on, the runtime sets it on the vector; it is the only stencil of the catalog with one. That
+no filled part is open stays asserted by test.
+
+On the board, each script as generated, then `get_screenshot` beside draw.io's rendering:
+
+| Section (node id) | Nodes | Compared with the draw.io picture |
+|---|---|---|
+| Stencil sample (native) (`49:444`), new: the 30 stencils with the largest difference and the game controller | 39 | Per cell, at the board's own scale, no strongly different pixel in any of the 31 cells. The controller's shadow reads back with opacity 0.2 and looks as in draw.io |
+| Booking API on ECS Fargate (native) (`45:444`), redrawn | 107 | The lines read back with the viewer's points, the 1 px slants of draw.io included (`M 1023 718 L 1297 719 L 1297 774 L 1600 774` in section coordinates) |
+| Order checkout (native) (`14:444`), redrawn | 48 | The lines read back as `M 0.01 0 L 0 60` and `M 0.5 0 L 0 197`, the viewer's own points; the `↳` as described above |
+
+The other native sections were not redrawn. No probe is left on the board.
+
+Differences from draw.io that remain:
+
+- Lines are vectors, not FigJam connectors: they do not follow a shape the user moves, and
+  the nodes of a diagram are not grouped. This is the design of the emitter.
+- Sizes of line ends follow draw.io's markers by formula, not pixel for pixel.
+- Two edge lines of 413 start 0.89 px beside draw.io's point (see above).
+- Jump styles other than `arc` (`sharp`, `line`, `gap`) and curved edges are drawn straight;
+  the emitters write neither.
+- A machine whose Chromium falls back to another face than Inter for `↳` shows another
+  arrow in its preview; the board always uses Inter.
+- More than 400 of the 456 pictograms were compared with draw.io locally only, not on the
+  board.
+
 ## Decisions on the open questions
 
 The user left the open questions of this report to the author of the round. They are closed

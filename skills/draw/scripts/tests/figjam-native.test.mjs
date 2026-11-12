@@ -113,36 +113,83 @@ describe('figjam native script', () => {
     }
   });
 
-  it('draws every edge from its exit point to its entry point, through its waypoints', async () => {
+  it('draws every edge from its exit point to its entry point, along its waypoints', async () => {
+    const pointsOf = (d) => d.replace(/C( -?[\d.]+){4}/g, 'L').split(/ ?[ML] /).filter(Boolean).map((t) => t.split(' ').map(Number));
+    const offLine = ([ax, ay], [bx, by], [px, py]) => {
+      const dx = bx - ax;
+      const dy = by - ay;
+      const t = dx === 0 && dy === 0 ? 0 : Math.min(1, Math.max(0, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+      return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+    };
     for (const f of fixtures) {
       const xml = await drawioOf(f.ir);
       const { parts, offset } = figjamNative(xml, { title: f.ir.title });
       const { figma, page } = fakeBoard();
       await runAll(parts, figma);
-      const paths = pathsOf(page.children[0]);
+      const lines = drawn(page.children[0], 'VECTOR').filter((v) => v.fills.length === 0).map((v) => pointsOf(v.vectorPaths[0].data));
       const file = readFile(xml);
-      const at = (p) => `${round(p.x + offset.x)} ${round(p.y + offset.y)}`;
+      const at = (p) => [p.x + offset.x, p.y + offset.y];
       for (const e of file.cells.filter((c) => c.edge === '1')) {
         const s = styleOf(e);
-        const way = (e.mxGeometry.Array?.mxPoint ?? []).map((p) => ({ x: n(p.x), y: n(p.y) }));
+        const way = (e.mxGeometry.Array?.mxPoint ?? []).map((p) => at({ x: n(p.x), y: n(p.y) }));
         const port = (id, prefix) => {
           const b = file.box(file.byId.get(id));
-          return { x: b.x + n(s[`${prefix}X`]) * b.w + n(s[`${prefix}Dx`]), y: b.y + n(s[`${prefix}Y`]) * b.h + n(s[`${prefix}Dy`]) };
+          return at({ x: b.x + n(s[`${prefix}X`]) * b.w + n(s[`${prefix}Dx`]), y: b.y + n(s[`${prefix}Y`]) * b.h + n(s[`${prefix}Dy`]) });
         };
-        const wanted = [];
-        if (s.exitX !== undefined) wanted.push(`^M ${at(port(e.source, 'exit'))} L`);
-        for (const p of way) wanted.push(`L ${at(p)}( |$)`);
-        if (s.entryX !== undefined) wanted.push(`L ${at(port(e.target, 'entry'))}$`);
-        const route = paths.find((d) => wanted.every((w) => new RegExp(w.replace(/\./g, '\\.')).test(d)));
-        expect(route, `${f.kind}/${f.name} ${e.id}: ${wanted.join(' , ')}`).toBeDefined();
-        // Every corner of an orthogonal route is a right angle: no point follows another on a slant.
+        // A port lies on the box, or up to the slant of a hexagon inside it; a waypoint gives the
+        // line one of its coordinates, so the line passes within a pixel of it.
+        const near = (a, b, by) => Math.abs(a[0] - b[0]) <= by && Math.abs(a[1] - b[1]) <= by;
+        const route = lines.find((pts) => (s.exitX === undefined || near(pts[0], port(e.source, 'exit'), 12))
+          && (s.entryX === undefined || near(pts.at(-1), port(e.target, 'entry'), 12))
+          && way.every((w) => pts.some((p, i) => i > 0 && offLine(pts[i - 1], p, w) <= 1)));
+        expect(route, `${f.kind}/${f.name} ${e.id}`).toBeDefined();
+        // An orthogonal route has no stretch that is more than a pixel off level or upright (draw.io
+        // itself paints a stretch one pixel off where it drops a bend that small).
         if (s.edgeStyle === 'orthogonalEdgeStyle') {
-          // A jump over another line leaves the stretch and comes back to it: its end counts as a point of the route.
-          const pts = route.replace(/C( -?[\d.]+){4}/g, 'L').split(/ ?[ML] /).filter(Boolean).map((t) => t.split(' ').map(Number));
-          for (let i = 1; i < pts.length; i++) expect(Math.min(Math.abs(pts[i][0] - pts[i - 1][0]), Math.abs(pts[i][1] - pts[i - 1][1])), `${f.kind}/${f.name} ${e.id}: ${route}`).toBeLessThan(1);
+          for (let i = 1; i < route.length; i++) expect(Math.min(Math.abs(route[i][0] - route[i - 1][0]), Math.abs(route[i][1] - route[i - 1][1])), `${f.kind}/${f.name} ${e.id}: ${route.join(" ")}`).toBeLessThan(1.1);
         }
       }
     }
+  });
+
+  it('routes an orthogonal edge as draw.io does: bends by its segment rule, ports on the outline of the shape', async () => {
+    // The lines of three fixtures as the draw.io viewer (v32.6.10) draws them, read from its SVG;
+    // only the last point differs there, where the viewer stops the line under the arrow head.
+    const linesOf = async (kind, name) => {
+      const ir = loadFixture(kind, name);
+      const D = JSON.parse(/^const D = (.*);$/m.exec(figjamNative(await drawioOf(ir), { title: ir.title }).parts[0])[1]);
+      return D.items.filter((i) => i[0] === 'p' && !i[2] && / L /.test(i[1])).map((i) => {
+        let isX = true;
+        return i[1].split(' ').map((t) => {
+          if (Number.isNaN(Number(t))) { isX = true; return t; }
+          const v = round(Number(t) - D.offset[isX ? 0 : 1]);
+          isX = !isX;
+          return v;
+        }).join(' ');
+      });
+    };
+    const flow = await linesOf('flowchart', 'valid');
+    // No waypoint, ports 0.01 px apart: one line, as it is.
+    expect(flow).toContain('M 134.95 52 L 134.94 112');
+    // A waypoint half a pixel beside the line does not bend it: draw.io takes only its height.
+    expect(flow).toContain('M 135 292 L 134.5 489');
+    expect(flow).toContain('M 134.5 825 L 134.96 915');
+    expect(flow).toContain('M 357 662 L 357 880 L 175 880 L 175.04 915');
+    const loop = await linesOf('state', 'valid-self-loop');
+    // No waypoint and ports that do not face each other: a step halfway, leaving the corner port downwards.
+    expect(loop).toContain('M 584 142 L 584 240 L 524 240 L 524 338');
+    expect(loop).toContain('M 707 142 L 767 142 L 767 167 L 755 167 L 755 685 L 564 685 L 564.04 720');
+    const arch = await linesOf('architecture', 'valid');
+    // A port on the slanted side of a hexagon lies on that side, not on the corner of its box.
+    expect(arch).toContain('M 471.99 93.68 L 503 93.7 L 503 225 L 785 225');
+    expect(arch).toContain('M 1261 319 L 1306 319 L 1306 371 L 1669 371 L 1669 81.7 L 471.99 81.66');
+    // A port on a round end state lies on the circle.
+    expect(await linesOf('state', 'valid')).toContain('M 305 1096 L 305 1121 L 289 1121 L 289 1221 L 213.7 1221 L 213.74 1256.77');
+    // The lines that leave one icon a pixel apart keep their first stretch as draw.io paints it for an
+    // edge with a jump style: the bend that is a pixel off the straight line is not drawn.
+    const fan = await linesOf('architecture', 'valid-aws-fan-out');
+    expect(fan).toContain('M 1036 690 L 1310 691 L 1310 746 L 1613 746');
+    expect(fan).toContain('M 1036 680.02 L 1891.5 681');
   });
 
   it('puts a cell where the draw.io file has it, moved by the offset of the section', async () => {
@@ -393,6 +440,30 @@ describe('figjam native script', () => {
     expect(name.fixed ?? name.width).toBeLessThanOrEqual(wide);
     const b = file.box(api);
     expect(Math.abs(name.x + name.width / 2 - (b.x + b.w / 2 + offset.x))).toBeLessThan(0.01);
+  });
+
+  it('sets the arrow of a reference line in the face draw.io falls back to, and a shadow at its opacity', async () => {
+    // Arimo has no glyph for the arrow; the page of draw.io draws it from Inter where Inter is installed.
+    const ir = loadFixture('flowchart', 'valid');
+    const { figma, page } = fakeBoard();
+    await runAll(figjamNative(await drawioOf(ir), { title: ir.title }).parts, figma);
+    const label = drawn(page.children[0], 'TEXT').find((t) => t.characters === 'Capture payment\n↳ order-checkout-payment');
+    expect(label.fontName).toEqual({ family: 'Arimo', style: 'Regular' });
+    expect(label.ranges).toEqual([['↳', 'Inter', 'Regular']]);
+    expect(figma.loaded).toContain('Inter Regular');
+    // A label without the arrow loads nothing but Arimo.
+    const plain = fakeBoard();
+    const er = loadFixture('er', 'valid');
+    await runAll(figjamNative(await drawioOf(er), { title: er.title }).parts, plain.figma);
+    expect(plain.figma.loaded.every((f) => f.startsWith('Arimo '))).toBe(true);
+    // In a bold label the arrow is bold too.
+    const bold = `<mxfile><diagram id="p" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="a" value="Pay&lt;br&gt;↳ pay-flow" style="rounded=0;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="120" height="40" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;
+    expect(JSON.parse(/^const D = (.*);$/m.exec(figjamNative(bold, { title: 't' }).parts[0])[1]).items.find((i) => i[0] === 't')[6]).toEqual({ b: 1, s: [[4, 5, '~b']] });
+    // The shadow of a logo that draw.io fills at a fifth of full strength is a vector of that opacity.
+    const logo = `<mxfile><diagram id="p" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="g" value="" style="shape=mxgraph.gcp2.google_play_game_service;fillColor=#5184F3;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="78" height="54" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;
+    const board = fakeBoard();
+    await runAll(figjamNative(logo, { title: 't' }).parts, board.figma);
+    expect(drawn(board.page.children[0], 'VECTOR').map((v) => v.opacity)).toEqual([undefined, 0.2, undefined]);
   });
 
   it('sets the part of a label that is italic or bold apart', async () => {

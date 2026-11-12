@@ -192,18 +192,22 @@ What still differs from the draw.io file:
 
 - The board is a drawing, not a model. A line is a vector, not a FigJam connector, so it
   does not follow a shape the user moves. The parts of one diagram are not grouped.
-- Line ends are drawn by the formulas of draw.io's markers, not pixel for pixel. The `↳` of
-  a reference line is the glyph the board's font has for it.
+- Line ends are drawn by the formulas of draw.io's markers, not pixel for pixel.
 
-A line jumps over a line drawn before it with the small arc draw.io draws there, and the
-square of a service with a gradient has that gradient.
+A line runs through the points draw.io's own router gives it: the fixed exit and entry
+points moved onto the outline of an ellipse, rhombus, hexagon or parallelogram, the bends
+draw.io makes of the waypoints, and the slant of a pixel or less that draw.io itself draws
+where two ends are not quite in line. A line jumps over a line drawn before it with the
+small arc draw.io draws there, and the square of a service with a gradient has that gradient.
 
 Text is set in Arimo, which has the widths of the face draw.io sizes its boxes for, at the
 sizes of the draw.io file, so a label fits its box and wraps at the same words; a bold or
 italic part of a label (the `«kind»` line of a participant) is bold or italic on the board.
-The script loads Arimo from the board; if the call fails because that font is missing, relay
-the error and deliver the draw.io file instead. AWS services, group frames, product logos and
-the client screen are drawn with the pictograms of draw.io's own stencils, in the colours the
+The `↳` of a reference line, which Arimo lacks, is set in Inter, the face the draw.io
+preview falls back to for it. The script loads Arimo (and Inter, when a label has a `↳`)
+from the board; if the call fails because a font is missing, relay the error and deliver the
+draw.io file instead. AWS services, group frames, product logos and the client screen are
+drawn with the pictograms of draw.io's own stencils, in the colours and the opacity the
 draw.io file gives them. Only the pictograms a diagram shows are in its script: an AWS
 diagram of about ten services is some 28 000 characters, a diagram without icons 7 000 to
 9 000.

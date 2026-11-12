@@ -74,6 +74,25 @@ describe('stencil geometry', () => {
     ] });
   });
 
+  it('keeps the opacity a shape gives a fill, as long as the shape does not restore it', () => {
+    const el = (name, attrs = {}, children = []) => ({ name, attrs, children });
+    const square = (x) => el('path', {}, [el('move', { x, y: 0 }), el('line', { x: x + 4, y: 0 }), el('line', { x: x + 4, y: 4 }), el('close')]);
+    const shape = el('shape', { w: '20', h: '10' }, [el('foreground', {}, [
+      el('save'), el('fillcolor', { color: '#8dc34c' }), square(0), el('fill'),
+      el('fillcolor', { color: '#000000' }), el('fillalpha', { alpha: '0.2' }), square(5), el('fill'), el('restore'),
+      el('fillcolor', { color: '#ffffff' }), square(10), el('fill'),
+    ])]);
+    expect(shapeGeometry(shape).paint).toEqual([
+      ['f', 'M 0 0 L 40 0 L 40 40 Z', '8dc34c', ''],
+      ['f', 'M 50 0 L 90 0 L 90 40 Z', '000000', '', 0.2],
+      ['f', 'M 100 0 L 140 0 L 140 40 Z', 'ffffff', ''],
+    ]);
+    // The shadow of the game controller is the one such fill among the stencils the emitters write.
+    const withAlpha = Object.entries(data.stencils).filter(([, g]) => g.paint.some((p) => p.length > 4)).map(([name]) => name);
+    expect(withAlpha).toEqual(['mxgraph.gcp2.google_play_game_service']);
+    expect(data.stencils['mxgraph.gcp2.google_play_game_service'].paint.map((p) => p.slice(2))).toEqual([['8dc34c', ''], ['000000', '', 0.2], [], ['ffffff', '']]);
+  });
+
   it('closes every part of a filled path, so that a hole left open in the stencil stays a hole', () => {
     const el = (name, attrs = {}, children = []) => ({ name, attrs, children });
     const open = el('path', {}, [el('move', { x: 0, y: 0 }), el('line', { x: 9, y: 0 }), el('line', { x: 9, y: 9 }), el('move', { x: 2, y: 2 }), el('line', { x: 2, y: 5 }), el('line', { x: 5, y: 5 })]);

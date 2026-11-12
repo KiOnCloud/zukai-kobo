@@ -73,6 +73,13 @@ function colour(value, fallback) {
   return hex.toLowerCase();
 }
 
+/**
+ * Characters the labels carry that Arimo has no glyph for. A browser draws them from another
+ * installed face; the one the draw.io page gets for the arrow of a reference line where Inter
+ * is installed is Inter's, as wide as the layout counts it, and Figma has Inter.
+ */
+const FALLBACK_CHARS = '↳';
+
 const ENTITIES = { nbsp: ' ', quot: '"', apos: "'", gt: '>', lt: '<', amp: '&' };
 const BOLD = 1;
 const ITALIC = 2;
@@ -191,7 +198,7 @@ function shapeOf(style) {
  *   ['r' | 'e', x, y, w, h, fill, stroke, radius, dashed, strokeWidth]   rectangle, ellipse
  *   ['p', path, fill, stroke, dashed, strokeWidth]                        vector path
  *   ['t', x, y, w, h, text, options]                                      text in a box (a point when w and h are 0)
- *   ['g', key, x, y, sx, sy, fill, stroke, strokeWidth]                   a stencil path: number n of it lies at x + n * sx, y + n * sy
+ *   ['g', key, x, y, sx, sy, fill, stroke, strokeWidth, opacity?]         a stencil path: number n of it lies at x + n * sx, y + n * sy
  * with colours as six hex digits or 0 for none; the fill of a rectangle may be a gradient,
  * `<hex>><hex>` from top to bottom or `<hex>|<hex>` from left to right. The path of a 'g' is looked up by its key
  * (`<stencil name>#<index>`), so a script carries the picture of an icon once however often
@@ -228,7 +235,14 @@ function drawCells(cells) {
     const base = runs.length === 1 ? runs[0][2] : num(s.fontStyle) & (BOLD | ITALIC);
     if (base & BOLD) o.b = 1;
     if (base & ITALIC) o.i = 1;
-    const parts = runs.filter((r) => r[2] !== base).map(([from, to, bits]) => [from, to, (bits & BOLD ? 'b' : '') + (bits & ITALIC ? 'i' : '')]);
+    const key = (bits) => (bits & BOLD ? 'b' : '') + (bits & ITALIC ? 'i' : '');
+    const parts = runs.filter((r) => r[2] !== base).map(([from, to, bits]) => [from, to, key(bits)]);
+    // A character Arimo lacks is set in the face draw.io's page falls back to for it, in the
+    // weight of its place (`~` before the key says: the other face).
+    const chars = richLabel(cell.value).text;
+    for (let i = 0; i < chars.length; i++) {
+      if (FALLBACK_CHARS.includes(chars[i])) parts.push([i, i + 1, `~${key(runs.find((r) => i >= r[0] && i < r[1])[2])}`]);
+    }
     if (parts.length > 0) o.s = parts;
     const back = colour(s.labelBackgroundColor, null);
     if (back) o.g = back;
@@ -273,10 +287,10 @@ function drawCells(cells) {
       oy += (h - g.h * sy) / 2;
     }
     const own = (set, cell) => (set === undefined || set === '' ? cell : set === 'none' ? null : set);
-    g.paint.forEach(([mode, , ownFill, ownStroke], i) => {
+    g.paint.forEach(([mode, , ownFill, ownStroke, alpha], i) => {
       const f = mode === 's' ? null : own(ownFill, fill);
       const k = mode === 'f' ? null : own(ownStroke, stroke);
-      if (f || k) items.push(['g', `${name}#${i}`, ox, oy, sx * STENCIL_UNIT, sy * STENCIL_UNIT, f ?? 0, k ?? 0, g.s ? g.s * Math.min(sx, sy) : 1]);
+      if (f || k) items.push(['g', `${name}#${i}`, ox, oy, sx * STENCIL_UNIT, sy * STENCIL_UNIT, f ?? 0, k ?? 0, g.s ? g.s * Math.min(sx, sy) : 1, ...(alpha === undefined ? [] : [alpha])]);
     });
     return true;
   };
@@ -453,7 +467,115 @@ function drawCells(cells) {
     const t = Math.min(dx === 0 ? Infinity : b.w / 2 / Math.abs(dx), dy === 0 ? Infinity : b.h / 2 / Math.abs(dy));
     return { x: c.x + dx * t, y: c.y + dy * t };
   };
+  /**
+   * A port given as a fraction of the box, moved onto the outline of a round or diamond
+   * shape as draw.io moves it (mxPerimeter): towards the middle of the shape, the distance
+   * of an ellipse taken in whole pixels as there.
+   */
+  const onPerimeter = (cell, p) => {
+    const b = boxOf(cell);
+    const cx = b.x + b.w / 2;
+    const cy = b.y + b.h / 2;
+    const kind = cell.style.perimeter ?? ('ellipse' in cell.style ? 'ellipsePerimeter' : 'rhombus' in cell.style ? 'rhombusPerimeter' : '');
+    if (kind === 'ellipsePerimeter') {
+      const dx = Math.trunc(p.x - cx);
+      const dy = Math.trunc(p.y - cy);
+      if (dx === 0) return dy === 0 ? p : { x: cx, y: cy + (b.h / 2) * Math.sign(dy) };
+      const t = ((b.w / 2) * (b.h / 2)) / Math.sqrt((b.h / 2) ** 2 * dx * dx + (b.w / 2) ** 2 * dy * dy);
+      return { x: cx + t * dx, y: cy + t * dy };
+    }
+    if (kind === 'rhombusPerimeter') {
+      if (cx === p.x) return { x: cx, y: cy > p.y ? b.y : b.y + b.h };
+      if (cy === p.y) return { x: cx > p.x ? b.x : b.x + b.w, y: cy };
+      const side = { x: p.x < cx ? b.x : b.x + b.w, y: cy };
+      const tip = { x: cx, y: p.y < cy ? b.y : b.y + b.h };
+      return crossing(p, { x: cx, y: cy }, tip, side) ?? p;
+    }
+    // A slanted outline: where the line from the port to the middle meets it.
+    const slant = (fallback) => (cell.style.fixedSize === '1' ? num(cell.style.size, 20) : b.w * num(cell.style.size, fallback));
+    let outline;
+    if (kind === 'hexagonPerimeter2') {
+      const d = Math.min(b.w, slant(0.25));
+      outline = [{ x: b.x + d, y: b.y }, { x: b.x + b.w - d, y: b.y }, { x: b.x + b.w, y: cy }, { x: b.x + b.w - d, y: b.y + b.h }, { x: b.x + d, y: b.y + b.h }, { x: b.x, y: cy }];
+    } else if (kind === 'parallelogramPerimeter') {
+      const d = cell.style.fixedSize === '1' ? Math.min(b.w / 2, slant(0.2)) : slant(0.2);
+      outline = [{ x: b.x + d, y: b.y }, { x: b.x + b.w, y: b.y }, { x: b.x + b.w - d, y: b.y + b.h }, { x: b.x, y: b.y + b.h }];
+    } else return p;
+    for (let i = 0; i < outline.length; i++) {
+      const hit = crossing({ x: cx, y: cy }, p, outline[i], outline[(i + 1) % outline.length]);
+      if (hit) return hit;
+    }
+    return p;
+  };
   const aligned = (a, b) => Math.abs(a.x - b.x) < 1 || Math.abs(a.y - b.y) < 1;
+  /** Room draw.io keeps at an end of an orthogonal edge (`jettySize=auto`: by the size of the line end there). */
+  const jetty = (s, end) => {
+    const value = s[end === 'start' ? 'sourceJettySize' : 'targetJettySize'] ?? s.jettySize ?? '10';
+    if (value !== 'auto') return num(value, 10);
+    const type = s[`${end}Arrow`] ?? (end === 'end' ? 'classic' : 'none');
+    return type === 'none' ? 20 : Math.max(2, Math.ceil((num(s[`${end}Size`], MARKER_SIZE) + 10) / 10)) * 10;
+  };
+  /**
+   * The bends of an orthogonal edge between two fixed ports, as draw.io's segment connector
+   * sets them (mxEdgeStyle.SegmentConnector, which the orthogonal style uses whenever an edge
+   * has waypoints or is very short). The line runs level and upright in turn and takes from
+   * each waypoint only the coordinate that its turn needs, so a waypoint that is a little off
+   * the line does not bend it; a bend closer than a pixel to the one before it is dropped,
+   * and so is one that close to the end.
+   */
+  const segmentBends = (p0, pe, way) => {
+    const tol = 1;
+    const temp = [];
+    let hints = way.map((p) => ({ ...p }));
+    let horizontal = true;
+    let hint = p0;
+    const pt = { ...p0 };
+    if (hints.length > 0) {
+      const snap = (h, to) => { if (Math.abs(h.x - to.x) < tol) h.x = to.x; if (Math.abs(h.y - to.y) < tol) h.y = to.y; };
+      snap(hints[0], p0);
+      snap(hints.at(-1), pe);
+      hint = hints[0];
+      let current = p0;
+      let currentHint = hint;
+      // Which way the first stretch runs: by the waypoint next to the start, else by the one next to the end.
+      for (let i = 0; i < 2; i++) {
+        const upright = current.x === currentHint.x;
+        const level = current.y === currentHint.y;
+        if (!(i === 0 && upright && level) && (upright || level)) {
+          horizontal = i === 1 ? (hints.length % 2 === 0 ? level : upright) : level;
+          break;
+        }
+        current = pe;
+        currentHint = hints.at(-1);
+        if (upright && level) hints = hints.slice(1);
+      }
+      if (horizontal && p0.y !== hint.y) temp.push({ x: pt.x, y: hint.y });
+      else if (!horizontal && p0.x !== hint.x) temp.push({ x: hint.x, y: pt.y });
+      if (horizontal) pt.y = hint.y;
+      else pt.x = hint.x;
+      for (const h of hints) {
+        horizontal = !horizontal;
+        hint = h;
+        if (horizontal) pt.y = h.y;
+        else pt.x = h.x;
+        temp.push({ ...pt });
+      }
+    }
+    if (horizontal && pe.y !== hint.y) temp.push({ x: pe.x, y: hint.y });
+    else if (!horizontal && pe.x !== hint.x) temp.push({ x: hint.x, y: pe.y });
+    const out = [];
+    let last = p0;
+    for (const t of temp) {
+      const q = { x: Math.round(t.x * 10) / 10, y: Math.round(t.y * 10) / 10 };
+      if (Math.abs(last.x - q.x) >= tol || Math.abs(last.y - q.y) >= tol) { out.push(q); last = q; }
+    }
+    if (out.length > 0 && Math.abs(pe.x - out.at(-1).x) <= tol && Math.abs(pe.y - out.at(-1).y) <= tol) {
+      out.pop();
+      if (out.length > 0) snapTo(out.at(-1), pe, tol);
+    }
+    return out;
+  };
+  const snapTo = (p, to, tol) => { if (Math.abs(p.x - to.x) < tol) p.x = to.x; if (Math.abs(p.y - to.y) < tol) p.y = to.y; };
   const routes = new Map();
   /** The points of an edge as draw.io draws it: the two ends, the waypoints and the bends it adds between them. */
   const routeOf = (cell) => {
@@ -464,7 +586,8 @@ function drawCells(cells) {
     const port = (end, prefix) => {
       if (!end || s[`${prefix}X`] === undefined) return null;
       const b = boxOf(end);
-      return { x: b.x + num(s[`${prefix}X`]) * b.w + num(s[`${prefix}Dx`]), y: b.y + num(s[`${prefix}Y`]) * b.h + num(s[`${prefix}Dy`]) };
+      const p = { x: b.x + num(s[`${prefix}X`]) * b.w + num(s[`${prefix}Dx`]), y: b.y + num(s[`${prefix}Y`]) * b.h + num(s[`${prefix}Dy`]) };
+      return s[`${prefix}Perimeter`] === '0' ? p : onPerimeter(end, p);
     };
     const way = cell.geo.points;
     const middleOf = (end) => { const b = boxOf(end); return { x: b.x + b.w / 2, y: b.y + b.h / 2 }; };
@@ -472,10 +595,25 @@ function drawCells(cells) {
     const start = port(source, 'exit') ?? (source ? leave(source, way[0] ?? far(target, cell.geo.targetPoint ?? middleOf(source))) : cell.geo.sourcePoint ?? { x: 0, y: 0 });
     const end = port(target, 'entry') ?? (target ? leave(target, way.at(-1) ?? start) : cell.geo.targetPoint ?? start);
     let points = [start, ...way, end];
-    if (s.edgeStyle === 'orthogonalEdgeStyle') {
+    const fixed = port(source, 'exit') && port(target, 'entry');
+    if (s.edgeStyle === 'orthogonalEdgeStyle' && fixed && (way.length > 0 || Math.hypot(end.x - start.x, end.y - start.y) < jetty(s, 'start') + jetty(s, 'end'))) {
+      points = [start, ...segmentBends(start, end, way), end];
+    } else if (s.edgeStyle === 'orthogonalEdgeStyle') {
       // Between two points that share neither x nor y draw.io adds a bend when it renders. The
       // side a port lies on says which way the line leaves or arrives; in between, the line turns.
-      const facesY = (prefix, fallback) => (s[`${prefix}X`] === undefined ? fallback : ['0', '1'].includes(s[`${prefix}Y`]) && !['0', '1'].includes(s[`${prefix}X`]));
+      // A port in a corner faces the way the other end lies further off.
+      const taller = Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
+      const facesY = (prefix, fallback) => {
+        if (s[`${prefix}X`] === undefined) return fallback;
+        const onLevelSide = ['0', '1'].includes(s[`${prefix}Y`]);
+        const onUprightSide = ['0', '1'].includes(s[`${prefix}X`]);
+        return onLevelSide && onUprightSide ? taller : onLevelSide;
+      };
+      // draw.io sets a step in the middle by the boxes, not by a port moved onto a round outline, and in tenths of a pixel.
+      const tenth = (v) => Math.round(v * 10) / 10;
+      const raw = (endCell, prefix, p) => { if (!endCell || s[`${prefix}X`] === undefined) return p; const b = boxOf(endCell); return { x: b.x + num(s[`${prefix}X`]) * b.w + num(s[`${prefix}Dx`]), y: b.y + num(s[`${prefix}Y`]) * b.h + num(s[`${prefix}Dy`]) }; };
+      const midY = tenth((raw(source, 'exit', start).y + raw(target, 'entry', end).y) / 2);
+      const midX = tenth((raw(source, 'exit', start).x + raw(target, 'entry', end).x) / 2);
       const out = [points[0]];
       for (let i = 1; i < points.length; i++) {
         const a = out.at(-1);
@@ -487,8 +625,8 @@ function drawCells(cells) {
           const leavesY = first ? facesY('exit', true) : Math.abs(before.x - a.x) >= 1;
           if (first && last && leavesY === facesY('entry', leavesY)) {
             // Both ends face the same way: a step in the middle.
-            if (leavesY) out.push({ x: a.x, y: (a.y + b.y) / 2 }, { x: b.x, y: (a.y + b.y) / 2 });
-            else out.push({ x: (a.x + b.x) / 2, y: a.y }, { x: (a.x + b.x) / 2, y: b.y });
+            if (leavesY) out.push({ x: a.x, y: midY }, { x: tenth(b.x), y: midY });
+            else out.push({ x: midX, y: a.y }, { x: midX, y: tenth(b.y) });
           } else if (last && !first ? !facesY('entry', !leavesY) : leavesY) out.push({ x: a.x, y: b.y });
           else out.push({ x: b.x, y: a.y });
         }
@@ -619,8 +757,9 @@ function drawCells(cells) {
       routed.push(p0, ...hits.sort((a, b) => a.d - b.d));
     }
     routed.push(own.at(-1));
-    // Without a crossing the line is the route as it is, every waypoint kept.
-    if (!routed.some((p) => p.jump)) return polyline(points);
+    // draw.io paints an edge with a jump style from these stretches whether it jumps or not, so a
+    // bend that is less than a pixel off the straight line is not drawn.
+    if (!routed.some((p) => p.jump)) return polyline(own);
     const out = [];
     let pending = [];
     let move = true;
@@ -743,9 +882,9 @@ function place(item, dx, dy) {
     return ['p', data, ...item.slice(2)];
   }
   if (item[0] === 'g') {
-    const [, key, x, y, sx, sy, fill, stroke, width] = item;
+    const [, key, x, y, sx, sy, fill, stroke, width, ...opacity] = item;
     // The scale keeps more digits than a coordinate: it is multiplied by numbers in the hundreds.
-    return ['g', key, round(x + dx), round(y + dy), Math.round(sx * 1e5) / 1e5, Math.round(sy * 1e5) / 1e5, fill, stroke, round(width)];
+    return ['g', key, round(x + dx), round(y + dy), Math.round(sx * 1e5) / 1e5, Math.round(sy * 1e5) / 1e5, fill, stroke, round(width), ...opacity];
   }
   const [kind, x, y, w, h, ...rest] = item;
   return [kind, round(x + dx), round(y + dy), round(w), round(h), ...rest.map((v) => (typeof v === 'number' ? round(v) : v))];
@@ -842,18 +981,19 @@ const outline = (n, stroke, dashed, width) => {
   if (dashed) n.dashPattern = [3, 3];
 };
 
-const vector = (data, fill, stroke, dashed, width) => {
+const vector = (data, fill, stroke, dashed, width, opacity) => {
   const n = add(figma.createVector());
   n.vectorPaths = [{ windingRule: fill ? 'NONZERO' : 'NONE', data }];
   n.fills = paint(fill);
   outline(n, stroke, dashed, width);
+  if (opacity) n.opacity = opacity;
 };
 
 for (const item of D.items) {
   const kind = item[0];
   if (kind === 'g') {
     // A stencil path is written in the numbers of the stencil's own box: scale and move each into the section.
-    const [, key, x, y, sx, sy, fill, stroke, width] = item;
+    const [, key, x, y, sx, sy, fill, stroke, width, opacity] = item;
     let isX = true;
     const data = D.stencils[key].split(' ').map((token) => {
       if (Number.isNaN(Number(token))) { isX = true; return token; }
@@ -861,7 +1001,7 @@ for (const item of D.items) {
       isX = !isX;
       return Math.round(v * 100) / 100;
     }).join(' ');
-    vector(data, fill, stroke, 0, width);
+    vector(data, fill, stroke, 0, width, opacity);
   } else if (kind === 'r' || kind === 'e') {
     const [, x, y, w, h, fill, stroke, radius, dashed, width] = item;
     const n = add(kind === 'r' ? figma.createRectangle() : figma.createEllipse());
@@ -883,8 +1023,12 @@ for (const item of D.items) {
     t.fontName = { family: FONT, style: fonts[(o.b ? 'b' : '') + (o.i ? 'i' : '')] };
     t.fontSize = o.f || 12;
     t.characters = chars;
-    // A part of the label that is bold or italic on its own.
-    for (const [from, to, key] of o.s || []) t.setRangeFontName(from, to, { family: FONT, style: fonts[key] });
+    // A part of the label that is bold or italic on its own, or a character that Arimo lacks ('~': set in Inter).
+    for (const [from, to, key] of o.s || []) {
+      const face = key[0] === '~' ? { family: 'Inter', style: fonts[key.slice(1)] } : { family: FONT, style: fonts[key] };
+      if (key[0] === '~') await figma.loadFontAsync(face);
+      t.setRangeFontName(from, to, face);
+    }
     t.fills = paint(o.c || '000000');
     t.textAlignHorizontal = o.a === 'l' ? 'LEFT' : o.a === 'r' ? 'RIGHT' : 'CENTER';
     // A text wider than its box was wrapped in draw.io and is wrapped here, at the same width.

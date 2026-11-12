@@ -207,8 +207,9 @@ function pathCommands(node) {
 const hex = (value) => (/^#[0-9a-fA-F]{6}$/.test(value ?? '') ? value.slice(1).toLowerCase() : value === 'none' ? 'none' : undefined);
 
 /**
- * What a `shape` element paints, in the order it paints it. Each entry is
- * `[mode, path]` or `[mode, path, fill, stroke]`: mode `f` fills, `s` strokes, `b` does both;
+ * What a `shape` element paints, in the order it paints it. Each entry is `[mode, path]`,
+ * `[mode, path, fill, stroke]` or, for a fill that is not opaque, `[mode, path, fill, stroke,
+ * alpha]`: mode `f` fills, `s` strokes, `b` does both;
  * a colour is given only where the stencil sets one itself (six hex digits or `none`),
  * otherwise the colours of the cell apply. Paths painted alike, one after the other, are
  * joined into one.
@@ -219,7 +220,7 @@ const hex = (value) => (/^#[0-9a-fA-F]{6}$/.test(value ?? '') ? value.slice(1).t
 export function shapeGeometry(shape) {
   const paint = [];
   let current = null;
-  let state = { fill: undefined, stroke: undefined };
+  let state = { fill: undefined, stroke: undefined, alpha: 1 };
   const saved = [];
   /**
    * The same commands with every part closed. A fill closes an open part by itself in draw.io;
@@ -238,10 +239,11 @@ export function shapeGeometry(shape) {
     if (!current || current.length === 0) return;
     const data = (mode === 'f' ? closed(current) : current).map((v) => (typeof v === 'number' ? tenths(v) : v)).join(' ');
     const last = paint.at(-1);
-    const colours = state.fill !== undefined || state.stroke !== undefined ? [state.fill ?? '', state.stroke ?? ''] : [];
+    const alpha = mode === 's' ? 1 : state.alpha;
+    const colours = alpha !== 1 || state.fill !== undefined || state.stroke !== undefined ? [state.fill ?? '', state.stroke ?? ''] : [];
     // Two fills that overlap would cancel nothing under the non-zero rule, so they may share one path.
-    if (last && last[0] === mode && mode === 'f' && (last[2] ?? '') === (colours[0] ?? '') && (last[3] ?? '') === (colours[1] ?? '')) last[1] += ` ${data}`;
-    else paint.push([mode, data, ...colours]);
+    if (last && last[0] === mode && mode === 'f' && alpha === 1 && last.length < 5 && (last[2] ?? '') === (colours[0] ?? '') && (last[3] ?? '') === (colours[1] ?? '')) last[1] += ` ${data}`;
+    else paint.push([mode, data, ...colours, ...(alpha !== 1 ? [alpha] : [])]);
   };
   const walk = (nodes) => {
     for (const c of nodes) {
@@ -257,6 +259,8 @@ export function shapeGeometry(shape) {
         // A colour may name a key of the cell style (`fillColor2`) with a default; no emitter sets such a key, so the default holds.
         case 'fillcolor': state.fill = hex(a.color) ?? hex(a.default); break;
         case 'strokecolor': state.stroke = hex(a.color) ?? hex(a.default); break;
+        case 'alpha':
+        case 'fillalpha': state.alpha = Number(a.alpha); break;
         case 'save': saved.push({ ...state }); break;
         case 'restore': state = saved.pop() ?? state; break;
         default: break;
