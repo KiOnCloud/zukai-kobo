@@ -171,14 +171,17 @@ facts alone:
     the service whose box carried the link), with a `meta.notes` entry saying it moved.
   - the view: `business` follows `variants.md`; the technical names it removes are listed in
     `meta.omitted` with the reason "business view".
-- **Every text is accounted for.** A text that does not become a label (a merged duplicate,
-  a layout note, a legend, a page title already used as the diagram title, a sticky with a
-  question) goes into `meta.omitted` with the text quoted and the reason, in the user's
+- **Every text is accounted for.** A page title used as the diagram title is kept (it is
+  the title). A text that does not become a label (a merged duplicate, a layout note, a
+  legend, a sticky with a question) goes into `meta.omitted` with the text quoted and the reason, in the user's
   language: `"Ghi chú: giờ cao điểm": ghi chú bên cạnh luồng, không phải một bước`. A text
   moved into a part needs nothing: it is found there. A text with a `<redacted ...>`
   placeholder is quoted with your own placeholder in its place (`"Cấu hình: DB_PASSWORD=<db
   password>": thông tin cấu hình, không thuộc hệ thống`); never look the value up in the
   source.
+- **Anchors draw, they do not add.** Which attribute row an ER line meets (`fromAttribute`,
+  `toAttribute`) and the like may be chosen from the rows the facts give (the foreign key
+  that names the other entity) when the facts leave it open; it is layout, not content.
 - **Ids** follow the closing contract (from names, English ASCII). A source id that is
   already such a name is kept, and so is a short id of the source (`e1`, `m3`, `KH`), in lower
   case; an id
@@ -228,6 +231,8 @@ with the offer of a `revise`, never `wrong` (the checklist says so for `meta.sou
   under `overview`; merged; left out (each `meta.omitted` entry with its reason); added (each
   `added:` note); joined by position (every edge the facts marked inferred);
 - the coverage result (`covered` of `units` texts);
+- with `--audience both` given as a flag, when the business view came out a near copy of the
+  technical one (a source with no technical names), say so in one line;
 - the kind of each diagram and, when it differs from the source's best hint, why.
 
 ## Rules
@@ -237,6 +242,8 @@ with the offer of a `revise`, never `wrong` (the checklist says so for `meta.sou
 - Never hand-write Mermaid, draw.io XML or FigJam content; every rule of the closing contract
   holds, the secret scan included: a source often carries a password or a real address in a
   label or a sticky. The facts already show it as `<redacted ...>`; the IR carries a
-  placeholder of its own, and the report says so.
+  placeholder of its own, and the report says so. The scan does not know people's names:
+  a person named in a note or sticky ("経理の○○さん") is written as the role (`<経理担当者>`) in the
+  IR and in any `meta.omitted` quote.
 - A later change to the delivered run goes through the revise skill, which treats it like
   any other run.

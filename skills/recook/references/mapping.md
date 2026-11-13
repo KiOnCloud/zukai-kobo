@@ -141,6 +141,12 @@ never a `return`.
 
 ## Mixed pages
 
+An edge between an element of the main diagram and a shape moved into a part (a step that
+writes to a table drawn beside it) is shown by the `ref` the element gets; its label goes
+into the part when the part's kind has a place for it, otherwise into `meta.omitted` with
+the reason "shown by the link to part <slug>".
+
+
 Write the main diagram from the shapes of the page's best kind. Shapes of another kind
 become a part of that kind, and the element of the main diagram they detail gets its `ref`
 (a database component with `ref` to the `er` part of its tables). A shape that belongs to no
