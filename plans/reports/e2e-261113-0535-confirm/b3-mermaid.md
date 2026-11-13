@@ -76,7 +76,7 @@ Báo cáo cuối của request 1 (tóm tắt các mục bắt buộc): run folde
 | L10 (out of scope): lifeline VNPay cắt nhãn message | **OUT OF SCOPE, vẫn xảy ra** | Ở cả 4 PNG sequence, lifeline "Cổng VNPay" cắt qua "Lưu yêu cầu (PENDING)" và "Cập nhật DONE" |
 
 Những điểm khác đã kiểm tra:
-- E-mail nhân viên ở phần văn xuôi: chạy `grep -rn -i -e congty -e "lien\.nguyen" -e @ diagrams` → không có kết quả (exit 1). Không có file nào trong `diagrams/` tên giống file nguồn. Facts không thấy địa chỉ này (nó nằm ngoài khối Mermaid) nên không có mục `sensitive`; như vậy là đúng.
+- E-mail nhân viên ở phần văn xuôi: chạy `grep -rn -i -e [redacted] -e "[redacted]" -e @ diagrams` → không có kết quả (exit 1). Không có file nào trong `diagrams/` tên giống file nguồn. Facts không thấy địa chỉ này (nó nằm ngoài khối Mermaid) nên không có mục `sensitive`; như vậy là đúng.
 - Dashed `-->>` thành `return`; PNG vẽ nét đứt.
 
 ## 3. Lỗi mới / còn lại
