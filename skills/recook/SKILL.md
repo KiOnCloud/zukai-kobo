@@ -151,9 +151,10 @@ facts alone:
   give the element its `ref`.
 - **Zukai's rules decide the structure,** and a source that breaks them is split, not
   drawn as it was:
-  - one kind per diagram: the parts of a page that belong to another kind become a part of
-    that kind (the tables of a flowchart an `er` part, the call order drawn into an
-    architecture diagram a `sequence` part);
+  - one kind per diagram, whatever the scope: the parts of a page that belong to another
+    kind become a part of that kind (the tables of a flowchart an `er` part, the call order
+    drawn into an architecture diagram a `sequence` part), linked with `ref` from the
+    element they belong to; `overview` only stops the splitting of one kind into sub-flows;
   - architecture at resource level: one component per deployed resource, connection labels
     that name a protocol or purpose; tables, endpoints, statements, job names and numbered
     steps move into parts, and the CLI's `detail:` warnings are handled as the closing

@@ -396,9 +396,11 @@ export function kindHints(nodes, edges) {
   const umlEnds = edges.filter((e) => /^(block-open|diamond|diamondThin|diamond-open|diamondThin-open)$/.test(e.endArrow ?? '') || /^(diamond|diamondThin)/.test(e.startArrow ?? '')).length;
   if (classes.length > 0) add('class', 8 * classes.length, `${plural(classes.length, 'box')} with members or a «stereotype»`);
   if (umlEnds > 0) add('class', 5 * umlEnds, `${plural(umlEnds, 'inheritance or composition end')}`);
-  if (entities.length > 0) add('er', 8 * entities.length, `${plural(entities.length, 'table')} with key columns`);
+  // A table weighs about as much as a decision: a page of eight steps and two tables beside
+  // them is a flowchart with an ER part, not an ER diagram.
+  if (entities.length > 0) add('er', 5 * entities.length, `${plural(entities.length, 'table')} with key columns`);
   if (plainTables.length > 0) add('er', 3 * plainTables.length, `${plural(plainTables.length, 'table')} with rows`);
-  if (erEnds > 0) add('er', 5 * erEnds, `${plural(erEnds, 'relation')} with crow's-foot ends`);
+  if (erEnds > 0) add('er', 3 * erEnds, `${plural(erEnds, 'relation')} with crow's-foot ends`);
 
   const initial = of('initial');
   const final = of('final');

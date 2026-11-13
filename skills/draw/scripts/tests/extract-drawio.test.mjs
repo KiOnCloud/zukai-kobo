@@ -174,6 +174,10 @@ describe('kind hints', () => {
     const table = (texts) => ({ id: 't', label: 'orders', shape: 'table', texts });
     expect(kindHints([table(['PK id bigint', 'total decimal(12,2)'])], [])[0].kind).toBe('er');
     expect(kindHints([table(['- total: decimal', 'pay(amount): void'])], [])[0].kind).toBe('class');
+    const steps = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, label: id, shape: 'box' }));
+    const flow = [...steps, { id: 'q1', label: '?', shape: 'decision' }, { id: 'q2', label: '?', shape: 'decision' }];
+    const tables = [{ ...table(['PK id bigint']), id: 't1' }, { ...table(['PK id bigint']), id: 't2' }];
+    expect(kindHints([...flow, ...tables], [{ id: 'r', from: 't1', to: 't2', startArrow: 'ERmandOne', endArrow: 'ERzeroToMany' }]).map((h) => h.kind)).toEqual(['flowchart', 'er']);
   });
 });
 
