@@ -29,6 +29,9 @@ import { diffIr, diffRun } from './ir-diff.mjs';
 import { driftDrawio, driftMarkdown } from './drift.mjs';
 import { orderIrFiles, runSlugOf } from './run-order.mjs';
 import { snapshotRun, listRevisions, restoreRun } from './revisions.mjs';
+import { extractFacts, extractBoards } from './extract.mjs';
+import { figjamReaderScript } from './extract-figjam.mjs';
+import { cover } from './cover.mjs';
 
 const USAGE = `usage:
   cli.mjs validate <ir.json>
@@ -41,6 +44,9 @@ const USAGE = `usage:
   cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
   cli.mjs revisions <run-dir>
   cli.mjs restore <run-dir> <rNNN|undo|redo> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
+  cli.mjs extract <file.drawio|file.drawio.svg|file.drawio.png|file.mmd|file.md|board.json...> [--out <facts.json>]
+  cli.mjs extract --figjam-script <file.js> [--section <name>] [--from <n>]
+  cli.mjs cover <facts.json> <ir.json|run-dir>...
   cli.mjs help
 
 A run folder (diagrams/<yyyymmdd>_<run-slug>) stands for the IR files in its source/ folder,
@@ -52,6 +58,10 @@ board (block frames, self-messages, notes); no file is written when the board ne
 board at the coordinates of the draw.io layout (<file>.js, then <file>.2.js, ... when one
 script would be too long; run them in order). It works for every kind, class and activity
 included; for those two no Mermaid text is written.
+extract reads a diagram made elsewhere into facts (pages, nodes, edges, kind hints) for the
+recook skill; --figjam-script writes the read-only use_figma script whose JSON result extract
+then reads (a large board comes back in parts: run the script again with --from <next> and
+pass every part to extract). cover exits 2 when a text of the facts is in none of the IRs.
 Exit codes: 0 success, 1 usage or I/O error, 2 validation errors.`;
 
 function fail(code, payload) {
@@ -60,12 +70,12 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from' };
 const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -378,6 +388,77 @@ export async function main(argv) {
     else if (opts.command === 'restore') result = restoreRun(opts.positional[0], opts.positional[1], { keep, request: opts.request, extras, bundle: bundleOptions });
     else result = snapshotRun(opts.positional[0], { keep, request: opts.request, extras, bundle: bundleOptions });
     if (!result.ok) return fail(result.code, { ok: false, errors: result.errors });
+    process.stdout.write(JSON.stringify(result) + '\n');
+    return 0;
+  }
+  if (opts.command === 'extract') {
+    if (opts.figjamScript !== undefined) {
+      if (opts.positional.length !== 0) return fail(1, { ok: false, errors: [{ path: '/', message: 'extract --figjam-script takes no input file: it writes the script that reads the board' }], usage: USAGE });
+      const from = opts.from === undefined ? 0 : Number(opts.from);
+      if (!(Number.isInteger(from) && from >= 0)) return fail(1, { ok: false, errors: [{ path: '/', message: '--from takes a whole number, 0 or more: the "next" a part returned' }], usage: USAGE });
+      try {
+        mkdirSync(dirname(resolve(opts.figjamScript)), { recursive: true });
+        writeFileSync(resolve(opts.figjamScript), figjamReaderScript({ section: opts.section, from }));
+      } catch (e) {
+        return fail(1, { ok: false, errors: [{ path: opts.figjamScript, message: `cannot write file: ${e.message}` }] });
+      }
+      process.stdout.write(JSON.stringify({ ok: true, script: opts.figjamScript, section: opts.section ?? null, from, next: 'run the script unchanged with use_figma on the board and save the JSON it returns to a file; when that JSON has "next" set, write the script again with --from <next> and read the next part; then run extract on every part' }) + '\n');
+      return 0;
+    }
+    if (opts.section !== undefined || opts.from !== undefined) return fail(1, { ok: false, errors: [{ path: '/', message: `${opts.section !== undefined ? '--section' : '--from'} goes with --figjam-script` }], usage: USAGE });
+    if (opts.positional.length === 0) return fail(1, { ok: false, errors: [{ path: '/', message: 'extract takes a file (or every part of a board read in parts)' }], usage: USAGE });
+    const bufs = [];
+    for (const f of opts.positional) {
+      try {
+        bufs.push(readFileSync(resolve(f)));
+      } catch (e) {
+        return fail(1, { ok: false, errors: [{ path: f, message: `cannot read file: ${e.message}` }] });
+      }
+    }
+    const file = opts.positional.length === 1 ? opts.positional[0] : opts.positional;
+    const result = opts.positional.length === 1 ? extractFacts(bufs[0], file) : extractBoards(bufs);
+    if (!result.ok) return fail(1, { ok: false, errors: [{ path: String(opts.positional[0]), message: result.error, ...(opts.positional.length > 1 ? { hint: 'several files are read only as the parts of one FigJam board' } : {}) }] });
+    const facts = { ...result.facts, file };
+    if (!opts.out) {
+      process.stdout.write(JSON.stringify(facts, null, 2) + '\n');
+      return 0;
+    }
+    try {
+      mkdirSync(dirname(resolve(opts.out)), { recursive: true });
+      writeFileSync(resolve(opts.out), JSON.stringify(facts, null, 2) + '\n');
+    } catch (e) {
+      return fail(1, { ok: false, errors: [{ path: opts.out, message: `cannot write file: ${e.message}` }] });
+    }
+    const pages = facts.pages.map((p) => ({ id: p.id, name: p.name, nodes: p.nodes.length, edges: p.edges.length, kindHints: p.kindHints.slice(0, 3), warnings: p.warnings }));
+    process.stdout.write(JSON.stringify({ ok: true, format: facts.format, out: opts.out, pages }) + '\n');
+    return 0;
+  }
+  if (opts.command === 'cover') {
+    if (opts.positional.length < 2) return fail(1, { ok: false, errors: [{ path: '/', message: 'cover takes the facts file that extract wrote and the IR files (or run folder) made from it' }], usage: USAGE });
+    const [factsFile, ...targets] = opts.positional;
+    const read = readIr(factsFile);
+    if (read.error) return fail(1, { ok: false, errors: [read.error] });
+    if (read.ir.facts !== 1 || !Array.isArray(read.ir.pages)) return fail(1, { ok: false, errors: [{ path: factsFile, message: 'not a facts file (no "facts": 1 and "pages")', hint: 'pass the file extract --out wrote' }] });
+    const irs = [];
+    for (const target of targets) {
+      let files;
+      try {
+        files = statSync(resolve(target)).isDirectory() ? irFilesOf(resolve(target)) : [target];
+      } catch (e) {
+        return fail(1, { ok: false, errors: [{ path: target, message: `cannot read: ${e.message}` }] });
+      }
+      for (const f of files) {
+        const { ir, error } = readIr(f);
+        if (error) return fail(1, { ok: false, errors: [error] });
+        irs.push({ name: diagramIdOf(f), ir });
+      }
+    }
+    if (irs.length === 0) return fail(1, { ok: false, errors: [{ path: targets[0], message: 'no IR files found' }] });
+    const result = cover(read.ir, irs);
+    if (!result.ok) {
+      process.stderr.write(JSON.stringify({ ok: false, units: result.units, covered: result.covered, missing: result.missing, hint: 'put each missing text into the IR, or name it in a meta.omitted entry with the reason (merged into another element, moved to a part, left out on purpose)' }) + '\n');
+      return 2;
+    }
     process.stdout.write(JSON.stringify(result) + '\n');
     return 0;
   }

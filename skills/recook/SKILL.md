@@ -1,0 +1,183 @@
+---
+name: recook
+description: Rebuild a diagram made elsewhere (a draw.io file, a FigJam board or Mermaid text) as Zukai diagrams. Reads the source with a deterministic extractor, maps what it shows to the validated JSON model under Zukai's rules (one kind per diagram, architecture at resource level, sub-flows as linked parts, business or technical view), checks that no text of the source was lost, then emits and reviews through the draw skill's closing contract. Use for "recook this drawio", "redo our old architecture diagram the Zukai way", "convert this FigJam board", "clean up this Mermaid chart". Not for a diagram Zukai delivered, which the revise skill changes, nor for a picture or screenshot.
+---
+
+# Zukai recook
+
+Take a diagram someone drew in another tool and deliver it again as Zukai diagrams: same
+content, Zukai's rules, Zukai's layout. The source is read by the CLI, never by eye: `extract`
+turns it into facts (pages, nodes, edges, kind hints), the agent writes IR from the facts,
+and `cover` proves that every text of the source is in the IR or is listed as left out with
+a reason. Everything after the IR is the draw skill's closing contract.
+
+## Locate the draw skill
+
+`<recook-dir>` is the directory that contains this `SKILL.md`. Claude Code substitutes it
+here: `${CLAUDE_SKILL_DIR}`. If that line shows a literal variable name, use the path where
+you read this file.
+
+`<draw-dir>` is the sibling folder of the draw skill: `<recook-dir>/../draw` inside the
+plugin, `<recook-dir>/../zukai` in a copied install (`.agents/skills/zukai` for Codex,
+`.claude/skills/zukai` without the plugin). Use the first of the two that contains
+`scripts/bin/cli.mjs`; if neither does, stop and name both paths you tried.
+
+```bash
+node "<draw-dir>/scripts/bin/cli.mjs" extract <file> [<board-part>...] --out <facts.json>
+node "<draw-dir>/scripts/bin/cli.mjs" extract --figjam-script <file.js> [--section <name>] [--from <n>]
+node "<draw-dir>/scripts/bin/cli.mjs" cover <facts.json> <run-folder>
+```
+
+Shared references: `<draw-dir>/SKILL.md` (opening questions, kinds, targets, AWS icons, level
+of detail), `<draw-dir>/references/ir-reference.md`, `variants.md`, `closing-contract.md`,
+`review-checklist.md`, the `target-*.md` files. This skill's own reference is
+`<recook-dir>/references/mapping.md`: how each shape of the facts becomes an IR element.
+
+## Arguments
+
+Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them from the request.
+
+```text
+<source> [--to drawio|mermaid|figjam] [--kind <kind>] [--scope overview|detailed] [--audience technical|business|both] [<request>]
+```
+
+- `<source>` is a file path (`.drawio`, `.xml`, `.drawio.svg`, `.drawio.png`, `.mmd`, `.md`)
+  or a FigJam board: a `figma.com/board/...` link, optionally with `node-id` of a section, or
+  the words "the board" / a section name when a Figma tool is connected and the user named
+  the board earlier. No source given: ask for it in one plain question; nothing else is
+  asked first.
+- A PNG or JPEG without a draw.io copy inside, a screenshot, a PDF, a PlantUML or an Excel
+  file is not a source: `extract` refuses it. Say so in one line, name the sources that work,
+  and offer the draw skill's `clarify` mode with the picture as the description. Never read a
+  picture by eye into an IR here.
+- The flags mean what they mean in the draw skill and are checked the same way: a value it
+  does not have fixes nothing and is asked.
+- `--to` defaults to the source's own tool: `drawio` for a draw.io file, `mermaid` for
+  Mermaid text, `figjam` for a board. The report offers the other targets.
+
+## 1. Read the source
+
+1. Make the run folder now, as the closing contract names it
+   (`diagrams/<yyyymmdd>_<run-slug>/`, the slug from the source's title or file name), and
+   copy the source file unchanged into `<run>/source/original/`. The original is never
+   edited; it is what a later recook or a reviewer compares with.
+2. A file: `extract <run>/source/original/<file> --out <run>/source/<run-slug>.facts.json`.
+3. A FigJam board: it needs a Figma tool named `use_figma` (see `<draw-dir>/references/target-figjam.md`
+   for loading the Figma tools and the skills it names). Take the file key and the section
+   from the link (`node-id=1-2` is node `1:2`; read its name with `use_figma` or
+   `get_metadata` if only the id is given), then:
+   `extract --figjam-script <tmp>/read-board.js [--section "<name>"]` (a file outside the run
+   folder), run that file's content unchanged as the `code` of one `use_figma` call on the
+   board, and save the JSON the call returns as `<run>/source/original/board-1.json`. A tool
+   result holds at most 48 000 bytes, so a large board comes back in parts: while the saved
+   JSON has `next` set, write the script again with `--from <next>`, read again and save
+   `board-2.json`, and so on. Then run step 2 with every part:
+   `extract <run>/source/original/board-*.json --out ...`. The script only reads; never edit
+   it or write one by hand. Without `use_figma`, stop: say that the board cannot be read
+   without the Figma connector, and offer an export of the board as an alternative source
+   only if FigJam can give one of the formats above.
+   Without a section the whole page is read, and every diagram on it becomes a page of the
+   facts (`page:<name>#1`, `#2` ...): `generate_diagram` puts its diagrams on the page itself,
+   side by side. Recook only the ones the user asked for; ask which when the request does not
+   say and the facts hold more than one.
+4. On exit 1, quote the error and stop; never fall back to reading the XML or the board
+   yourself.
+
+Then read the facts file and tell the user what was read, in a few lines: the source, each
+page with its name, its numbers of nodes and edges and its best kind hint with the evidence,
+and every warning of the facts verbatim (texts over no shape, edges joined by position,
+pictures that cannot be read).
+
+## 2. Opening questions
+
+Ask what the draw skill's "Diagram kinds: always ask first" section asks (kind, scope,
+view; target only when `--to` named an unknown one), in one `AskUserQuestion` call, in the
+user's language, with these differences:
+
+- The kind is never guessed, but it is suggested from the facts: the page's best kind hint
+  is the first option, labelled "(suggested)", and its description names the evidence ("4
+  lifelines, 2 block frames"). The next hints that scored are the other options.
+- A source with several pages: one diagram per page unless the user says otherwise. Ask the
+  kind once for the page with the most nodes and list the suggestion for every other page in
+  the question text ("Page 'Orders ERD' becomes an `er` part"); pick "Other" to change one.
+  A page that only repeats the others (an overview page whose labels all occur on other
+  pages) is named and left out unless the user wants it.
+- A page whose two best hints both score at least half of the best one mixes kinds (a
+  flowchart with database tables drawn into it). Say so in the question text: it is split by
+  Zukai's rules, the best kind as the main diagram and the rest as parts (step 3).
+- `--kind`, `--scope` and `--audience` skip their question as in the draw skill.
+
+## 3. Write the IR
+
+Read `<recook-dir>/references/mapping.md` and `<draw-dir>/references/ir-reference.md` for
+each kind you write; for an `architecture` diagram also the draw skill's "AWS icons" and
+"Level of detail" paragraphs. Then write one IR per diagram into `<run>/source/`, from the
+facts alone:
+
+- **Content stays.** Every label is copied as the source writes it: no rewording, no
+  translation, no spelling fixes, no shortening. Only a line break inside a label may become
+  a space, since it was layout. A wording the user wants changed is a `revise` afterwards.
+- **Nothing is invented.** Add only what the kind needs to be valid and the source shows by
+  shape alone (a start node where an arrow starts from nothing), and record each in
+  `meta.notes` as `added: <what> (<why>)`. A missing branch, outcome or reply stays missing:
+  name it in the report.
+- **Zukai's rules decide the structure,** and a source that breaks them is split, not
+  drawn as it was:
+  - one kind per diagram: the parts of a page that belong to another kind become a part of
+    that kind (the tables of a flowchart an `er` part, the call order drawn into an
+    architecture diagram a `sequence` part);
+  - architecture at resource level: one component per deployed resource, connection labels
+    that name a protocol or purpose; tables, endpoints, job names and numbered steps move
+    into parts, and the CLI's `detail:` warnings are handled as the closing contract says;
+  - size: with `overview` the main diagram keeps about 15 elements and each sub-flow is
+    collapsed into one step that keeps its decisive rule; with `detailed` each sub-flow
+    becomes a part `<slug>-NN-<part>` linked with `ref`. A page link of the source (`link` on
+    a node) is such a part already: keep it as a `ref`, on that element, or on the element
+    Zukai's rules give that detail to (the tables of a database belong to the store, not to
+    the service whose box carried the link), with a `meta.notes` entry saying it moved.
+  - the view: `business` follows `variants.md`; the technical names it removes are listed in
+    `meta.omitted` with the reason "business view".
+- **Every text is accounted for.** A text that does not become a label (a merged duplicate,
+  a layout note, a legend, a page title already used as the diagram title, a sticky with a
+  question) goes into `meta.omitted` with the text quoted and the reason: `"Ghi chú: giờ cao
+  điểm": a free note beside the flow, not a step`. A text moved into a part needs nothing: it
+  is found there.
+- **Ids** follow the closing contract (from names, English ASCII). A source id that is
+  already such a name is kept; an id of a Zukai file (`<page>:<id>`) keeps the part after the
+  colon.
+- **Order** comes from the facts: participants and lanes left to right by `box.x` (top to
+  bottom for horizontal lanes), messages by `y`, the rest by the edges.
+- `meta.source` is `recook`, and the first `meta.notes` entry says where it came from:
+  `recooked from source/original/<file>, page "<name>"`.
+
+## 4. Coverage gate
+
+Run `cover <run>/source/<run-slug>.facts.json <run>`. Exit 0: go on. Exit 2: the JSON on
+stderr lists each `missing` text with its page and source element. For each one, put it
+where it belongs in the IR, or add the `meta.omitted` entry that says why it is left out, and
+run `cover` again until it passes. Never satisfy the check with an element the source does
+not have, and never put a text into `meta.notes` to hide it: a dropped text is either
+omitted on purpose and said so, or it is a mistake to fix.
+
+## 5. Closing contract
+
+Run `<draw-dir>/references/closing-contract.md` in full on the run folder: validate, emit,
+bundle, review until it passes, report. The facts file and `source/original/` stay in the run
+folder; they are not IR and no command emits them. The report adds:
+
+- the source read (file or board, format, pages) and the facts warnings;
+- the change list, in plain words, against the source: kept as it was; split into parts
+  (which part holds what); merged; left out (each `meta.omitted` entry with its reason);
+  added (each `added:` note); joined by position (every edge the facts marked inferred);
+- the coverage result (`covered` of `units` texts);
+- the kind of each diagram and, when it differs from the source's best hint, why.
+
+## Rules
+
+- Never edit the source file, never read raw draw.io XML or a board in place of `extract`,
+  and never write the reader script by hand.
+- Never hand-write Mermaid, draw.io XML or FigJam content; every rule of the closing contract
+  holds, the secret scan included: a source often carries a password or a real address in a
+  label or a sticky. Replace it with a placeholder in the IR and say so in the report.
+- A later change to the delivered run goes through the revise skill, which treats it like
+  any other run.

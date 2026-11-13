@@ -74,7 +74,8 @@ brainstorm (idea) ─> clarify ┘                                              
   under its size budget, and a script carries only the paths its diagram shows.
 - **The CLI** (`cli.mjs`, bundled by esbuild into the committed `bin/cli.mjs`) exposes
   `validate`, `emit`, `bundle`, `relabel` and `preview`, plus `diff`, `drift`, `snapshot`,
-  `revisions` and `restore` for the revise skill, and `help`; it exits 2 on validation errors
+  `revisions` and `restore` for the revise skill, `extract` and `cover` for the recook
+  skill, and `help`; it exits 2 on validation errors
   and 1 on a usage error (an unknown target, an option without its value) with the errors as
   JSON on stderr, and is invoked with the absolute skill directory because the working
   directory is always the user's project. A run folder given to `bundle`, `diff` or `drift`
@@ -82,8 +83,8 @@ brainstorm (idea) ─> clarify ┘                                              
   after the run, its business view, then each part with its business view. A file-name sort
   would put the parts first, since `-` sorts before `.`.
 - **The closing contract** (`skills/draw/references/closing-contract.md`) is the one place
-  that says how every run ends: write, validate, emit, bundle, review, report. Both skills
-  read it; neither copies it.
+  that says how every run ends: write, validate, emit, bundle, review, report. All three
+  skills read it; none copies it.
 
 ## Visual check
 
@@ -310,6 +311,37 @@ choices.
   a business view or a diagram of its own. A second diagram of the kind and subject of a
   delivered one is never written; the detail becomes parts of the kind that shows it.
 
+## Recooking a diagram
+
+`skills/recook/SKILL.md` rebuilds a diagram drawn in another tool. Like revise it has no CLI
+of its own; it adds two commands to the draw skill's.
+
+- **The source is read by code, not by the model.** `extract.mjs` picks the reader by
+  content. `extract-drawio.mjs` inflates compressed pages (also from the `content` attribute
+  of an editable SVG and the `mxfile` text chunk of a PNG), turns each style into a shape
+  class, folds the parts of one thing into it (table rows, class members, activation bars,
+  edge label cells, a text box laid over a shape), joins an edge that ends near a shape but is
+  not connected to it (flagged as inferred), and tells lanes from frames by geometry (touching
+  siblings of one size, or a single frame that holds nearly every step). `extract-mermaid.mjs`
+  reads every diagram type the emitter writes, plus hand-written variants, without the
+  Mermaid package. `extract-figjam.mjs` writes a `use_figma` script that only reads a board
+  and returns it as JSON in parts of at most 45 000 bytes (a `use_figma` result holds 48 000),
+  and turns the joined parts into facts: connectors keep their ends, a sequence diagram that
+  `generate_diagram` drew (two boxes and a line per participant, the overlay's frames as
+  shapes) is read back as lifelines and frames, a board drawn by `emit --native` is read back
+  from its groups, and a whole page splits into one facts page per diagram on it. All three write the same
+  facts, with kind hints scored from the shapes so the skill can suggest a kind with its
+  evidence; the model maps facts to IR by `skills/recook/references/mapping.md`.
+- **Coverage instead of trust.** `cover.mjs` lists every text of the facts that is in no
+  element of the IRs and in no `meta.omitted` or `meta.notes` entry. The match is per
+  element (all words of the text in one element, or its letters in order for labels without
+  spaces), so a dropped step is not found through words that happen to occur elsewhere; UML
+  operators (`else`) and multiplicities stored as relation ends are not asked for. The skill
+  loops until the check passes, then runs the closing contract unchanged.
+- **Zukai's rules over the source's structure.** A page that mixes kinds or draws the inside
+  of resources is split into a main diagram and `ref` parts, as the user chose for this
+  skill, rather than redrawn as it was; the change list in the report says what moved.
+
 ## Extension rule
 
 Adding a target means one new `emit-<target>.mjs`, one column in `feature-matrix.json`, one
@@ -332,4 +364,9 @@ hints on a run, `drift.test.mjs` re-emits every fixture without drift and finds 
 reworded, copied and deleted cells (also on compressed pages and inside a bundle), and
 `revisions.test.mjs` covers rotation, multi-file restore, undoing an undo, the undo and redo
 line, kept extras and an interrupted snapshot. `fixes-e2e.test.mjs` runs the committed bundle
-as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that both skills are installed side by side.
+as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that the three skills are installed side by side. For recook,
+`extract-drawio.test.mjs` extracts every fixture emitted to draw.io and asserts its kind hint
+and full coverage against its own IR, and reads hand-drawn files (compressed, SVG, PNG,
+several pages, loose edges, lanes); `extract-mermaid.test.mjs` does the same for Mermaid;
+`extract-figjam.test.mjs` runs the reader script against a stand-in for the Figma API that
+throws on any change.

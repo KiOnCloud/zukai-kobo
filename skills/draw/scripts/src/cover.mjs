@@ -1,0 +1,107 @@
+/**
+ * Did a recook keep everything the source showed? Every text of the source facts (the label
+ * and the extra texts of each node, the labels of each edge) must be found in the IRs written
+ * from it: in one element of one IR, in a diagram title, or in a `meta.omitted` or
+ * `meta.notes` entry that says where it went and why. A source text found nowhere is
+ * reported, so a step, a member or a branch cannot drop out of a recooked diagram unseen.
+ *
+ * A text is found in an element when every word of it is a word of that element (its own
+ * strings and those of what it holds, such as the attributes of an entity), or when its
+ * letters and digits appear in that order in the element's: the second test keeps a label
+ * written without spaces (Japanese, Chinese) or broken over two lines in the source. The test
+ * runs element by element, never against the IR as a whole, so a dropped "Approve order" is
+ * not found merely because "approve" and "order" occur somewhere else. A short, common word
+ * (an edge "yes") can still be found in another element; the check catches what was dropped,
+ * not where a kept text was attached.
+ *
+ * Ids and references (`id`, `from`, `to`, `children`, `after`, `lane`) are not looked at:
+ * they are made from names, and a name that survives only as an id is not shown to anyone.
+ */
+
+const REF_KEYS = new Set(['id', 'from', 'to', 'children', 'after', 'lane', 'schemaVersion']);
+
+/**
+ * Words a diagram tool writes around a text rather than words of the text: the operators of a
+ * UML block (`else` before the condition of a branch). They are dropped from a source text
+ * that has other words, since the IR stores the operator as the block's kind.
+ */
+const FRAME_WORDS = new Set(['else', 'and', 'loop', 'alt', 'opt', 'par', 'critical', 'break', 'ref', 'sd']);
+
+const MULTIPLICITY = /^\s*[0-9*nNmM]+(\s*\.\.\s*[0-9*nNmM]+)?\s*$/;
+
+const normal = (text) => String(text).normalize('NFKC').toLowerCase();
+const tokensOf = (text) => normal(text).match(/[\p{L}\p{N}]+/gu) ?? [];
+
+/** Every string an element holds, nested objects and arrays included, references left out. */
+function stringsOf(value, out = []) {
+  if (typeof value === 'string') out.push(value);
+  else if (Array.isArray(value)) for (const v of value) stringsOf(v, out);
+  else if (value && typeof value === 'object') for (const [k, v] of Object.entries(value)) if (!REF_KEYS.has(k)) stringsOf(v, out);
+  return out;
+}
+
+/** The places a source text may be found in: each element of each IR, each title and each meta entry. */
+export function holdersOf(irs) {
+  const holders = [];
+  const hold = (where, strings) => {
+    const tokens = new Set(strings.flatMap(tokensOf));
+    if (tokens.size > 0) holders.push({ where, tokens, compact: [...strings.flatMap(tokensOf)].join('') });
+  };
+  for (const { name, ir } of irs) {
+    if (typeof ir.title === 'string') hold(`${name}:title`, [ir.title]);
+    for (const entry of ir.meta?.omitted ?? []) hold(`${name}:meta.omitted`, [entry]);
+    for (const entry of ir.meta?.notes ?? []) hold(`${name}:meta.notes`, [entry]);
+    const walk = (value, path) => {
+      if (Array.isArray(value)) value.forEach((v, i) => {
+        if (v && typeof v === 'object' && !Array.isArray(v)) hold(`${name}:${path}/${i}${v.id ? ` (${v.id})` : ''}`, stringsOf(v));
+        walk(v, `${path}/${i}`);
+      });
+      else if (value && typeof value === 'object') for (const [k, v] of Object.entries(value)) if (k !== 'meta') walk(v, `${path}/${k}`);
+    };
+    walk(ir, '');
+  }
+  return holders;
+}
+
+/** The texts a facts file asks to find: one per line of every label. */
+export function unitsOf(facts) {
+  const units = [];
+  const push = (page, element, text) => {
+    for (const line of String(text ?? '').split('\n')) if (tokensOf(line).length > 0) units.push({ page, element, text: line.trim() });
+  };
+  for (const page of facts.pages ?? []) {
+    for (const node of page.nodes ?? []) {
+      push(page.id, node.id, node.label);
+      for (const t of node.texts ?? []) push(page.id, node.id, t);
+    }
+    for (const edge of page.edges ?? []) {
+      push(page.id, edge.id, edge.label);
+      push(page.id, edge.id, edge.startLabel);
+      push(page.id, edge.id, edge.endLabel);
+    }
+  }
+  return units;
+}
+
+/**
+ * @param {object} facts output of `extract`
+ * @param {Array<{ name: string, ir: object }>} irs
+ */
+export function cover(facts, irs) {
+  const holders = holdersOf(irs);
+  const units = unitsOf(facts);
+  // A multiplicity drawn as text ("0..*") is stored as an end of a relation, in words for an
+  // ER diagram ("many"): it is kept when the IRs give their relations cardinalities.
+  const cardinalities = irs.some(({ ir }) => (ir.relations ?? []).some((r) => r.fromCardinality !== undefined || r.toCardinality !== undefined));
+  const missing = [];
+  for (const unit of units) {
+    if (cardinalities && MULTIPLICITY.test(unit.text)) continue;
+    const all = tokensOf(unit.text);
+    const words = all.filter((t) => !FRAME_WORDS.has(t));
+    const tokens = words.length > 0 ? words : all;
+    const compact = tokens.join('');
+    const found = holders.some((h) => tokens.every((t) => h.tokens.has(t)) || h.compact.includes(compact));
+    if (!found) missing.push(unit);
+  }
+  return { ok: missing.length === 0, units: units.length, covered: units.length - missing.length, missing };
+}
