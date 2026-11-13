@@ -1,6 +1,6 @@
 # Recook skill
 
-Status: done (FigJam read verified on one real board section; whole-page and native-board reads verified against a stand-in only)
+Status: done. Every end-to-end case passes on the final state: draw.io (e2e-261113-0535-confirm/a-drawio.md), Mermaid (b3-mermaid.md), Codex copy with .drawio.svg, both views and revise (d-codex-svg-revise.md), FigJam real board (c4-figjam.md). install.ps1 not run (no PowerShell).
 
 ## Outcome
 
