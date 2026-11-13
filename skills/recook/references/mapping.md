@@ -39,7 +39,7 @@ diagram `title` when it is one, as a note element when the kind has one, or list
 | `lifeline`, `actor` | `participants[]`, left to right by `box.x`; `detail` or a `«kind»` line gives `kind` (`actor`, `database`, `boundary`, `control`, `entity`), else `participant`. The `«kind»` line is not part of the label |
 | edge between two participants | `messages[]` in `y` order; a `dashed` line is `return` (Mermaid's `-->>` and `--)` included), a solid line with an `open` end `async`, any other `sync` |
 | `frame` | `blocks[]`: the operator (`loop`, `alt`, `opt`, `par`) is the block's `kind`, the rest of its label its condition; each `texts` line that starts with `else` or `and` is a branch |
-| `note` | `notes[]` beside or over the participants its box overlaps |
+| `note` | `notes[]`: `over` the participants whose lifeline (the line through the middle of the head, not the head's width) its box crosses; with none crossed, `right` (or `left`) of the nearest lifeline on its left (or right) |
 
 A board read from FigJam draws a sequence diagram with boxes and connectors: the extractor
 already turns each pair of participant boxes and their line into one `lifeline`, and the
@@ -99,7 +99,7 @@ is the only one; otherwise list it in `meta.omitted`.
 | edge between tables | `relations[]`; `fromPart` / `toPart` name the attributes (`fromAttribute`, `toAttribute`); `dashed` means not identifying |
 | crow's-foot ends | `ERmandOne`, `ERone` → `one`; `ERzeroToOne` → `zero-one`; `ERoneToMany` → `one-many`; `ERzeroToMany`, `ERmany` → `many` |
 | end texts `1`, `0..1`, `0..*`, `1..*` | the same four values; the texts themselves need no `meta.omitted` entry |
-| ends read from a board drawn as shapes | a circle is read as zero and a marker reaching along the line as many; on a slanted stretch "one" and "many" look alike, so check those ends against the picture or ask |
+| ends read from a board drawn as shapes | read from the drawing (a circle is zero, a crow's foot many, a bar one); a board read before version 2.2.0 of the reader gives `classic` for an arrowhead whose fill it could not see: then check that end against the picture |
 
 ## class
 
@@ -108,7 +108,7 @@ is the only one; otherwise list it in `meta.omitted`.
 | `table` with members | `classes[]`; `«interface»`, `«abstract»`, `«enum»` lines are the `stereotype`; each `texts` row is an attribute (no parentheses) or a method (parentheses): `+ - # ~` are `public`, `private`, `protected`, `package`; `name(params): returns` |
 | `block-open` end | `inheritance` (a dashed line: `realization`) |
 | `diamond` / `diamond-open` end | `composition` / `aggregation` |
-| `open` end, dashed | `dependency`; a plain line `association` |
+| `open` end, dashed | `dependency`; a plain line with an `open` or a filled `block` end, or none, `association` |
 | end texts | the multiplicities of that end |
 
 ## architecture
@@ -116,6 +116,7 @@ is the only one; otherwise list it in `meta.omitted`.
 | Facts | IR |
 |---|---|
 | `icon` with `aws:` / `gcp:` | a component with that `icon` (copy it; never rename it from memory) and the `kind` its service is (`database` for a database or storage icon, `queue`, `cache`, else `service`) |
+| `icon` with `aws:` / `gcp:` read from a board | the same: a board Zukai drew from version 2.2.0 on names each picture's stencil in its group (`Order API [aws:lambda]`) |
 | `icon` with `drawio:` | a component of the kind its label says (`client` for a browser or an app, else `service`); `drawio:unknown` is a picture on a board whose stencil is not named. When the diagram is an AWS one (the draw skill's "AWS icons" applies) and the label names the service ("SQS orders", "Aurora PostgreSQL"), take its icon from `aws-icons.md` by that name and record `added: icon aws:<name> from the label`; a label that names no service ("Fulfilment worker") keeps no icon, and the report lists it |
 | `store` | `database`; `queue`, `detail: hexagon` → `queue` |
 | `client`, `actor` | `client` |

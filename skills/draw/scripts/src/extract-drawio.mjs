@@ -73,10 +73,15 @@ function pngText(buf, keyword) {
 
 /* ---- shape classes ---- */
 
-const AWS_GROUP_BY_ICON = new Map(Object.entries(catalog.groups).flatMap(([name, g]) => {
+// Several frames share one picture (a public and a private subnet): their colour tells them apart.
+const AWS_GROUPS_BY_ICON = Map.groupBy(Object.entries(catalog.groups).flatMap(([name, g]) => {
   const icon = /grIcon=([^;]+)/.exec(g.style)?.[1];
-  return icon ? [[icon, name]] : [];
-}));
+  return icon ? [{ name, icon, stroke: /strokeColor=([^;]+)/.exec(g.style)?.[1]?.toLowerCase() }] : [];
+}), (g) => g.icon);
+const awsGroupOf = (style) => {
+  const list = AWS_GROUPS_BY_ICON.get(style.grIcon) ?? [];
+  return (list.find((g) => g.stroke === String(style.strokeColor ?? '').toLowerCase()) ?? list[0])?.name;
+};
 const AWS_GROUP_BY_TITLE = new Map(Object.entries(catalog.groups).map(([name, g]) => [g.title.toLowerCase(), name]));
 const CLIENT_SHAPES = /^mxgraph\.(networks\.(monitor|pc|laptop|mobile|tablet)|ios|android|mockup)/;
 
@@ -96,7 +101,7 @@ function classify(style, value) {
   if (style.perimeter === 'orthogonalPerimeter' || style.targetShapes === 'umlLifeline') return { shape: 'activation' };
   if (has('rhombus') || shape === 'rhombus' || shape === 'mxgraph.flowchart.decision') return { shape: 'decision' };
   if (style.grIcon || shape.startsWith('mxgraph.aws4.group')) {
-    const group = AWS_GROUP_BY_ICON.get(style.grIcon) ?? AWS_GROUP_BY_TITLE.get(plainLabel(value).toLowerCase());
+    const group = awsGroupOf(style) ?? AWS_GROUP_BY_TITLE.get(plainLabel(value).toLowerCase());
     return { shape: 'group', ...(group ? { group: `aws:${group}` } : {}) };
   }
   const aws = /^mxgraph\.aws4\.(.+)$/.exec(style.resIcon ?? '') ?? /^mxgraph\.aws4\.(.+)$/.exec(shape);
@@ -124,6 +129,17 @@ function classify(style, value) {
   if (style.container === '1' || has('group')) return { shape: 'container' };
   if (style.rounded === '1') return { shape: 'rounded' };
   return { shape: 'box' };
+}
+
+/**
+ * The Zukai name of the stencil a style draws (`aws:lambda`, `aws:vpc`, `gcp:firebase`), or ''
+ * when it draws none Zukai knows. The native FigJam board writes it into the name of a cell's
+ * group, so a board read back keeps the icons its pictures cannot tell.
+ */
+export function stencilTag(style, value = '') {
+  const kind = classify(style, value);
+  const tag = kind.icon ?? kind.group ?? '';
+  return /^(aws|gcp):/.test(tag) ? tag : '';
 }
 
 /** The visible text of a cell: HTML labels lose their tags, plain labels keep their breaks. */

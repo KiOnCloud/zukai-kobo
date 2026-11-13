@@ -82,7 +82,10 @@ const walk = (n, parent) => {
       // and a hollow triangle are three different arrowheads.
       try {
         if (c.type === 'VECTOR' && c.vectorPaths && c.vectorPaths.some((p) => /z/i.test(p.data))) o.closed = 1;
-        if (Array.isArray(c.fills) && c.fills.some((f) => f.visible !== false && (f.opacity === undefined || f.opacity > 0))) o.filled = 1;
+        // A hollow arrowhead is drawn filled with white over the line it covers: only a
+        // coloured fill makes it a filled one.
+        const white = (f) => f.type === 'SOLID' && f.color && f.color.r > 0.97 && f.color.g > 0.97 && f.color.b > 0.97;
+        if (Array.isArray(c.fills) && c.fills.some((f) => f.visible !== false && (f.opacity === undefined || f.opacity > 0) && !white(f))) o.filled = 1;
       } catch (e) { /* a property this node does not have */ }
     }
     if (c.type === 'TABLE') {
@@ -217,6 +220,12 @@ export function extractFigjamBoard(board) {
     else {
       if (n.type !== 'WIDGET' && n.type !== 'STAMP') warnings.push(`a ${n.type} ("${n.name}") cannot be read and was left out`);
       continue;
+    }
+    // A board Zukai drew names each picture's stencil after its group's label: `Order API [aws:lambda]`.
+    const tag = n.type === 'GROUP' && /\s\[((?:aws|gcp):[a-z0-9_]+)\]$/.exec(n.name ?? '')?.[1];
+    if (tag) {
+      if (node.shape === 'group' || node.shape === 'container') Object.assign(node, { shape: 'group', group: tag });
+      else Object.assign(node, { shape: 'icon', icon: tag });
     }
     if (n.dashed === 1) node.dashed = true;
     node.box = { x: Math.round(n.box.x), y: Math.round(n.box.y), w: Math.round(n.box.w), h: Math.round(n.box.h) };
@@ -550,6 +559,15 @@ function edgeEnds(line, markers, texts) {
     return k.box.w * Math.abs(c[0] - end[0]) / d + k.box.h * Math.abs(c[1] - end[1]) / d;
   };
   const tiny = (k) => k.type !== 'ELLIPSE' && Math.max(k.box.w, k.box.h) <= 10;
+  /** How far point `p` lies from the axis of the line where marker `k` sits. */
+  const offLine = (k, p) => {
+    const c = centre(k);
+    const end = near(k, a) < near(k, b) ? a : b;
+    const d = dist([end, c]) || 1;
+    const ux = (c[0] - end[0]) / d;
+    const uy = (c[1] - end[1]) / d;
+    return Math.abs((p[0] - end[0]) * uy - (p[1] - end[1]) * ux);
+  };
   // An ER relation shows a circle or a bar at one end at least.
   const er = markers.some((k) => k.type === 'ELLIPSE' || (tiny(k) && along(k) <= 5));
   const name = (list) => {
@@ -557,8 +575,9 @@ function edgeEnds(line, markers, texts) {
     const ellipse = list.some((k) => k.type === 'ELLIPSE');
     const strokes = list.filter((k) => k.type !== 'ELLIPSE');
     if (er && list.every((k) => k.type === 'ELLIPSE' || tiny(k))) {
-      // A circle is zero; a marker reaching along the line is a crow's foot (many), else one.
-      const many = strokes.some((k) => along(k) >= 6);
+      // A circle is zero. A crow's foot starts at its apex on the line itself; a bar (with the
+      // short stub of an open ring) starts at one tip of the bar, off the line.
+      const many = strokes.some((k) => offLine(k, k.ends[0]) <= 1.5);
       if (ellipse) return many ? 'ERzeroToMany' : 'ERzeroToOne';
       return many ? 'ERoneToMany' : 'ERmandOne';
     }

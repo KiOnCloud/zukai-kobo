@@ -250,4 +250,29 @@ describe('FigJam reader script', () => {
     expect(page.edges.find((e) => e.label === 'lines')).toMatchObject({ startArrow: 'diamond', startLabel: '1', endLabel: '1..*' });
     expect(page.edges.filter((e) => e.endArrow === 'block-open')).toHaveLength(2);
   });
+
+  it('reads a class box and an ER box, a hollow and a filled end, and the stencils a native board names', () => {
+    const facts = extractFacts(readFileSync(join(scriptsDir, 'tests', 'recook-sources', 'figjam-native', 'class-15-444.json')), 'b.json').facts;
+    const page = facts.pages[0];
+    const rel = (from, to) => page.edges.find((e) => page.nodes.find((n) => n.id === e.from)?.label.endsWith(from) && page.nodes.find((n) => n.id === e.to)?.label.endsWith(to));
+    expect(rel('Order', 'Entity')).toMatchObject({ endArrow: 'block-open' });
+    expect(rel('Order', 'OrderLine')).toMatchObject({ startArrow: 'diamond', startLabel: '1', endLabel: '1..*', label: 'lines' });
+    expect(rel('Order', 'Product')).toMatchObject({ startArrow: 'diamond-open' });
+    expect(rel('EfOrderRepository', 'IOrderRepository')).toMatchObject({ endArrow: 'block-open', dashed: true });
+    expect(rel('EfOrderRepository', 'Order')).toMatchObject({ endArrow: 'open', dashed: true });
+    expect(cover(facts, [{ name: 'c', ir: loadFixture('class', 'valid') }]).missing).toEqual([]);
+    const er = extractFacts(readFileSync(join(scriptsDir, 'tests', 'recook-sources', 'figjam-native', 'er-17-444.json')), 'b.json').facts.pages[0];
+    expect(er.edges.find((e) => e.dashed)).toMatchObject({ startArrow: 'ERzeroToOne', endArrow: 'ERzeroToMany' });
+
+    const tagged = extractFigjamBoard({ zukaiBoard: 1, page: 'P', section: 'S', root: 's', nodes: [
+      { id: 'g', type: 'GROUP', name: 'VPC [aws:vpc]', parent: 's', box: [0, 0, 300, 200] },
+      { id: 'gr', type: 'RECTANGLE', parent: 'g', box: [0, 0, 300, 200] },
+      { id: 'gt', type: 'TEXT', parent: 'g', text: 'VPC', box: [30, 4, 30, 14] },
+      { id: 'i', type: 'GROUP', name: 'Fulfilment worker [aws:lambda]', parent: 'g', box: [40, 40, 92, 97] },
+      { id: 'ir', type: 'RECTANGLE', parent: 'i', box: [47, 40, 78, 78] },
+      { id: 'iv', type: 'VECTOR', parent: 'i', box: [55, 48, 60, 60], ends: [[60, 50], [100, 100]] },
+      { id: 'it', type: 'TEXT', parent: 'i', text: 'Fulfilment worker', box: [40, 123, 92, 14] },
+    ] });
+    expect(tagged.pages[0].nodes.map((n) => [n.label, n.shape, n.icon ?? n.group])).toEqual([['VPC', 'group', 'aws:vpc'], ['Fulfilment worker', 'icon', 'aws:lambda']]);
+  });
 });

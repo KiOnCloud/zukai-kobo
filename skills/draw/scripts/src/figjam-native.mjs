@@ -1,6 +1,7 @@
 import { brotliDecompressSync } from 'node:zlib';
 import { parseAttrs } from './relabel.mjs';
 import stencilData from './stencil-paths.json' with { type: 'json' };
+import { stencilTag } from './extract-drawio.mjs';
 
 /**
  * A FigJam board drawn at the coordinates of the draw.io file, as scripts for the Figma MCP
@@ -883,7 +884,10 @@ function drawCells(cells) {
   const nameOf = (cell) => {
     const labels = [cell, ...(cell.edge ? children.get(cell.id) ?? [] : [])].map((c) => plainLabel(c.value).replace(/\s+/g, ' ').trim());
     const label = labels.find((l) => l !== '') ?? cell.id;
-    return label.length > GROUP_NAME_LENGTH ? `${label.slice(0, GROUP_NAME_LENGTH - 1)}…` : label;
+    const short = label.length > GROUP_NAME_LENGTH ? `${label.slice(0, GROUP_NAME_LENGTH - 1)}…` : label;
+    // The stencil a picture stands for, which the picture itself cannot tell a reader of the board.
+    const tag = cell.vertex ? stencilTag(cell.style, cell.value) : '';
+    return tag ? `${short} [${tag}]` : short;
   };
   const draw = (cell) => {
     const owner = byId.get(cell.parent);

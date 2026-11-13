@@ -692,7 +692,10 @@ describe('figjam native script', () => {
 
     // Nested containers: an AWS icon lies in its subnet, the subnet in the VPC, the VPC in the region, the region in the cloud.
     const aws = await groupsOf('architecture', 'valid-aws');
-    const chain = ['Order API (ECS Fargate)', 'Private subnet', 'VPC 10.0.0.0/16', 'ap-northeast-1', 'AWS Cloud'].map((n) => byName(aws.S, n)[0]);
+    // A picture's group also names the stencil it draws, so a board read back keeps its icons.
+    const byLabel = (S, label) => groups(S).filter((g) => g.name === label || g.name.startsWith(`${label} [`));
+    const chain = ['Order API (ECS Fargate)', 'Private subnet', 'VPC 10.0.0.0/16', 'ap-northeast-1', 'AWS Cloud'].map((n) => byLabel(aws.S, n)[0]);
+    expect(chain.map((g) => /\[(.+)\]$/.exec(g.name)?.[1])).toEqual([loadFixture('architecture', 'valid-aws').components.find((c) => c.label === 'Order API (ECS Fargate)').icon, 'aws:private_subnet', 'aws:vpc', 'aws:region', 'aws:aws_cloud']);
     for (let i = 0; i < chain.length - 1; i++) expect(chain[i].parent, chain[i].name).toBe(chain[i + 1]);
     expect(chain.at(-1).parent).toBe(aws.S);
     // The icon is its square, its pictogram and its name.
