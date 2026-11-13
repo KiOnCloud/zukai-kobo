@@ -17,7 +17,7 @@ where the date is today and `<run-slug>` is a short English kebab-case name of t
 | `figjam/<slug>.mmd` | the text sent to FigJam, kept so it can be previewed and reviewed before the board is made (target `figjam`) |
 | `figjam/<slug>.overlay.js` | for a sequence diagram: the script that draws on the board what `generate_diagram` leaves out (target `figjam`, `target-figjam.md` section 5) |
 | `<run-slug>.<lang>.drawio`, `source/labels.<lang>.json` | a language variant of the combined file and its label map (`variants.md`) |
-| `source/original/`, `source/<run-slug>.facts.json` | a recooked run only: the source file or board as read, unchanged, and the facts `extract` read from it |
+| `source/<run-slug>.facts.json` | a recooked run only: what `extract` read from the source, with credentials and personal data replaced by placeholders (the source itself is never copied here) |
 | `history/` | revisions written by the revise skill; only the CLI writes here |
 
 Only the folders of the targets actually emitted exist; `source/` always does.

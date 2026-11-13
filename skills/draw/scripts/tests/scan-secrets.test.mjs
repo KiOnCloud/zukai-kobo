@@ -58,3 +58,24 @@ describe('scanSecrets', () => {
     expect(scanSecrets({ 'a/b': { 'c~d': ['postgres://u:p@h/db'] } }).warnings[0].path).toBe('/a~1b/c~0d/0');
   });
 });
+
+describe('secrets written the way configuration names them', () => {
+  it('reports a password or key at the end of an environment-variable or dotted name', () => {
+    for (const label of ['DB_PASSWORD=Xy7!qwertz', 'MYSQL_ROOT_PASSWORD: Xy7!qwertz', 'AWS_SECRET_ACCESS_KEY=Xy7qwertzuiop', 'API_TOKEN=Xy7qwertzuiop', 'db.password: Xy7!qwertz']) {
+      expect(kinds({ label }), label).toEqual(['/label:token-pattern']);
+    }
+    expect(kinds({ label: 'mypassword=Xy7!qwertz' })).toEqual([]);
+    expect(kinds({ label: 'DB_PASSWORD: required' })).toEqual(['/label:assignment']);
+  });
+});
+
+describe('redactText', () => {
+  it('replaces each value the scan reports with a placeholder and keeps the words around it', async () => {
+    const { redactText } = await import('../src/scan-secrets.mjs');
+    expect(redactText('Cấu hình: DB_PASSWORD=Xy7!qwertz (tạm thời)')).toEqual({ text: 'Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời)', kinds: ['token-pattern'] });
+    expect(redactText('postgres://app:hunter22@db:5432/x').text).toBe('postgres://<redacted credential>@db:5432/x');
+    expect(redactText('Liên hệ lien.nguyen@congty.vn, 0912345678').text).toBe('Liên hệ <redacted e-mail>, <redacted phone>');
+    expect(redactText('key AKIAABCDEFGHIJKLMNOP').text).toBe('key <redacted token>');
+    for (const plain of ['password: required', 'user@example.com', 'Order service', 'POST /api/orders']) expect(redactText(plain)).toEqual({ text: plain, kinds: [] });
+  });
+});

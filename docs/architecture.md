@@ -336,7 +336,12 @@ of its own; it adds two commands to the draw skill's.
   element of the IRs and in no `meta.omitted` or `meta.notes` entry. The match is per
   element (all words of the text in one element, or its letters in order for labels without
   spaces), so a dropped step is not found through words that happen to occur elsewhere; UML
-  operators (`else`) and multiplicities stored as relation ends are not asked for. The skill
+  operators (`else`) and multiplicities stored as relation ends are not asked for, and
+  `meta.notes` does not count, since a note is not shown. Facts are redacted on the way out
+  of `extract` with the secret scan's own patterns (`redactText`), so a value never reaches
+  the run folder, and `cover` asks only for the words around a `<redacted ...>` placeholder.
+  The match ignores which page a text came from: a word of one page can be found in a
+  diagram made from another. The skill
   loops until the check passes, then runs the closing contract unchanged.
 - **Zukai's rules over the source's structure.** A page that mixes kinds or draws the inside
   of resources is split into a main diagram and `ref` parts, as the user chose for this

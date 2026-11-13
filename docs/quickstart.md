@@ -106,7 +106,8 @@ An old draw.io file, a FigJam board or a Mermaid chart can be rebuilt the Zukai 
 Zukai reads the file, tells you what it found on each page and which kind it looks like,
 asks the same questions as `draw` with that kind suggested, and delivers a run folder like
 the one above. Every label is kept as written; anything it leaves out is listed with the
-reason. The original file is copied into `source/original/` and never changed.
+reason. Your file is never changed or copied; a password or address in it never reaches the
+diagrams.
 
 ## 7. Update the plugin
 

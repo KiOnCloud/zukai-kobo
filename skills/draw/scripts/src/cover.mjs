@@ -50,7 +50,6 @@ export function holdersOf(irs) {
   for (const { name, ir } of irs) {
     if (typeof ir.title === 'string') hold(`${name}:title`, [ir.title]);
     for (const entry of ir.meta?.omitted ?? []) hold(`${name}:meta.omitted`, [entry]);
-    for (const entry of ir.meta?.notes ?? []) hold(`${name}:meta.notes`, [entry]);
     const walk = (value, path) => {
       if (Array.isArray(value)) value.forEach((v, i) => {
         if (v && typeof v === 'object' && !Array.isArray(v)) hold(`${name}:${path}/${i}${v.id ? ` (${v.id})` : ''}`, stringsOf(v));
@@ -96,7 +95,10 @@ export function cover(facts, irs) {
   const missing = [];
   for (const unit of units) {
     if (cardinalities && MULTIPLICITY.test(unit.text)) continue;
-    const all = tokensOf(unit.text);
+    // A value extract redacted (`<redacted credential>`) must not be copied into the IR, which
+    // carries its own placeholder: the words around it are what must be found.
+    const all = tokensOf(unit.text.replace(/<redacted[^<>]*>/g, ' '));
+    if (all.length === 0) continue;
     const words = all.filter((t) => !FRAME_WORDS.has(t));
     const tokens = words.length > 0 ? words : all;
     const compact = tokens.join('');

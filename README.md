@@ -151,7 +151,8 @@ Zukai diagrams: the same content, Zukai's rules and layout. It never reads the s
    with a reason, then the usual validate, emit and review run.
 
 The report lists what was kept, split, merged, left out, added and joined by position. The
-source is copied unchanged into `source/original/` of the run.
+source stays where it is; the run keeps only the facts, with any password or personal data
+replaced by a placeholder.
 
 ```text
 /zukai:recook docs/legacy/order-flow.drawio
@@ -228,7 +229,7 @@ diagrams/20261109_login-flow/
   login-flow.drawio          the whole run: one page per diagram
   drawio/<diagram>.drawio    each diagram on its own
   source/<diagram>.ir.json   the model the diagrams were generated from
-  source/original/           the diagram a recook started from, unchanged (with source/<run>.facts.json, what extract read)
+  source/<run>.facts.json    what a recook read from its source, secrets replaced by placeholders
   history/r001/ ... r005/    the five latest revisions of the whole run (written by revise)
   history/extras/rNNN/       hand-edited files of revisions that were rotated out (kept until you delete them)
   drafts/a/ b/ c/            drafts of a what-if, until one is confirmed or dropped

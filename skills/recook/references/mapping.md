@@ -11,7 +11,7 @@ element.
 
 | Field | Meaning |
 |---|---|
-| `nodes[].shape` | `box`, `rounded`, `decision`, `terminal`, `ellipse`, `initial`, `final`, `io`, `subroutine`, `document`, `note`, `store`, `queue`, `cloud`, `client`, `actor`, `lifeline`, `frame`, `lane`, `container`, `group`, `table`, `icon`, `bar`, `text` |
+| `nodes[].shape` | `box`, `process`, `rounded`, `decision`, `terminal`, `ellipse`, `initial`, `final`, `io`, `subroutine`, `document`, `note`, `store`, `queue`, `cloud`, `client`, `actor`, `lifeline`, `frame`, `lane`, `container`, `group`, `table`, `icon`, `bar`, `text` |
 | `nodes[].texts` | further lines of one node: the rows of a table or class box, a text laid over a shape, the branch conditions of a sequence block |
 | `nodes[].parent` | the frame, lane, group or composite the node lies in |
 | `nodes[].icon`, `group` | `aws:<name>` / `gcp:<name>` when the stencil is in Zukai's catalog (copy as is); `drawio:<stencil>` when it is not |
@@ -33,7 +33,7 @@ diagram `title` when it is one, as a note element when the kind has one, or list
 | Facts | IR |
 |---|---|
 | `lifeline`, `actor` | `participants[]`, left to right by `box.x`; `detail` or a `«kind»` line gives `kind` (`actor`, `database`, `boundary`, `control`, `entity`), else `participant`. The `«kind»` line is not part of the label |
-| edge between two participants | `messages[]` in `y` order; `dashed` with an open end is `return`, an open end alone `async`, else `sync` |
+| edge between two participants | `messages[]` in `y` order; a `dashed` line is `return` (Mermaid's `-->>` and `--)` included), a solid line with an `open` end `async`, any other `sync` |
 | `frame` | `blocks[]`: the operator (`loop`, `alt`, `opt`, `par`) is the block's `kind`, the rest of its label its condition; each `texts` line that starts with `else` or `and` is a branch |
 | `note` | `notes[]` beside or over the participants its box overlaps |
 
@@ -50,7 +50,7 @@ A `critical`, `break` or `rect` frame has no block kind: keep its messages, list
 
 | Facts | IR `nodes[].shape` |
 |---|---|
-| `box`, `rounded` | `process` |
+| `box`, `process`, `rounded` | `process` |
 | `decision` | `decision`; edge labels leaving it become `conditional` edges with that label |
 | `terminal`, `ellipse`, `initial`, `final` with a start or end word | `terminal` |
 | `io`, `document` | `io` |
@@ -119,6 +119,17 @@ The level of detail of the draw skill holds: several tables of one database are 
 component, and an edge label that is an endpoint path, a job or a field moves into a part
 (`sequence` for the calls, `er` for the tables), with the connection label reduced to the
 protocol or purpose.
+
+## A sequence part made from another kind
+
+The call order drawn into an architecture diagram (numbered labels, endpoints, statements on
+its connections) becomes a `sequence` part. Its participants are the components those
+connections join, left to right in the order a request reaches them; its messages are those
+connections, ordered by the path of the request from the client along the edges, then by the
+step numbers the labels carry. `y` is not an order here: on an architecture page it is only
+where a line was drawn. A connection that fits no place in that order (a side read, a call to
+an outside system with no step) stays in the architecture diagram only, and the report says
+so. Add no reply the source does not draw.
 
 ## Mixed pages
 

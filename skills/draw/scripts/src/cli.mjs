@@ -21,6 +21,7 @@
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 import { validateIr } from './validate-ir.mjs';
 import { emit, bundle, inspect, TARGETS } from './pipeline.mjs';
 import { preview } from './preview.mjs';
@@ -44,7 +45,7 @@ const USAGE = `usage:
   cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
   cli.mjs revisions <run-dir>
   cli.mjs restore <run-dir> <rNNN|undo|redo> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
-  cli.mjs extract <file.drawio|file.drawio.svg|file.drawio.png|file.mmd|file.md|board.json...> [--out <facts.json>]
+  cli.mjs extract <file.drawio|file.drawio.svg|file.drawio.png|file.mmd|file.md|board.json...> [--page <id|name>[,...]] [--out <facts.json>]
   cli.mjs extract --figjam-script <file.js> [--section <name>] [--from <n>]
   cli.mjs cover <facts.json> <ir.json|run-dir>...
   cli.mjs help
@@ -61,7 +62,7 @@ included; for those two no Mermaid text is written.
 extract reads a diagram made elsewhere into facts (pages, nodes, edges, kind hints) for the
 recook skill; --figjam-script writes the read-only use_figma script whose JSON result extract
 then reads (a large board comes back in parts: run the script again with --from <next> and
-pass every part to extract). cover exits 2 when a text of the facts is in none of the IRs.
+pass every part to extract). --page keeps only the pages named, by id or name. cover exits 2 when a text of the facts is in none of the IRs.
 Exit codes: 0 success, 1 usage or I/O error, 2 validation errors.`;
 
 function fail(code, payload) {
@@ -70,12 +71,12 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page' };
 const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -405,6 +406,7 @@ export async function main(argv) {
       process.stdout.write(JSON.stringify({ ok: true, script: opts.figjamScript, section: opts.section ?? null, from, next: 'run the script unchanged with use_figma on the board and save the JSON it returns to a file; when that JSON has "next" set, write the script again with --from <next> and read the next part; then run extract on every part' }) + '\n');
       return 0;
     }
+    if (opts.page !== undefined && opts.figjamScript !== undefined) return fail(1, { ok: false, errors: [{ path: '/', message: '--page goes with reading a file, not with --figjam-script' }], usage: USAGE });
     if (opts.section !== undefined || opts.from !== undefined) return fail(1, { ok: false, errors: [{ path: '/', message: `${opts.section !== undefined ? '--section' : '--from'} goes with --figjam-script` }], usage: USAGE });
     if (opts.positional.length === 0) return fail(1, { ok: false, errors: [{ path: '/', message: 'extract takes a file (or every part of a board read in parts)' }], usage: USAGE });
     const bufs = [];
@@ -418,7 +420,14 @@ export async function main(argv) {
     const file = opts.positional.length === 1 ? opts.positional[0] : opts.positional;
     const result = opts.positional.length === 1 ? extractFacts(bufs[0], file) : extractBoards(bufs);
     if (!result.ok) return fail(1, { ok: false, errors: [{ path: String(opts.positional[0]), message: result.error, ...(opts.positional.length > 1 ? { hint: 'several files are read only as the parts of one FigJam board' } : {}) }] });
-    const facts = { ...result.facts, file };
+    let facts = { ...result.facts, file, sha256: createHash('sha256').update(Buffer.concat(bufs)).digest('hex') };
+    if (opts.page !== undefined) {
+      // The pages the user wants, by id or by name; cover then asks only for their texts.
+      const wanted = opts.page.split(',').map((x) => x.trim()).filter(Boolean);
+      const unknown = wanted.filter((w) => !facts.pages.some((p) => p.id === w || p.name === w));
+      if (unknown.length > 0) return fail(1, { ok: false, errors: [{ path: '--page', message: `no page ${unknown.map((u) => `"${u}"`).join(', ')} in this source`, hint: `pages: ${facts.pages.map((p) => `${p.id} ("${p.name}")`).join(', ')}` }] });
+      facts = { ...facts, pages: facts.pages.filter((p) => wanted.includes(p.id) || wanted.includes(p.name)) };
+    }
     if (!opts.out) {
       process.stdout.write(JSON.stringify(facts, null, 2) + '\n');
       return 0;

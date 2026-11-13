@@ -100,7 +100,7 @@ offer it. The renderer is draw.io desktop when its CLI is on `PATH` (offline), e
 Playwright with Chromium loading draw.io's viewer page in a local browser (the XML is rendered
 locally; only the page itself is fetched). Exit 1 with a hint when neither is installed; the
 step is optional and `docs/install.md` says how to set a renderer up. Look at the PNG as
-described in `SKILL.md` before reporting.
+the review gate of `closing-contract.md` describes before reporting.
 
 ## Where the output goes and how to open it
 

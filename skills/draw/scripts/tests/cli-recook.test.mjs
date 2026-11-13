@@ -56,7 +56,7 @@ describe('cli recook commands (committed bundle)', () => {
     writeFileSync(join(cwd, 'notes.txt'), 'just some text\n');
     const bad = run(['extract', 'notes.txt']);
     expect(bad.code).toBe(1);
-    expect(bad.error.errors[0].message).toMatch(/not a draw.io file/);
+    expect(bad.error.errors[0].message).toMatch(/not a diagram this skill can read/);
     expect(run(['extract', 'missing.drawio']).code).toBe(1);
     expect(run(['extract']).code).toBe(1);
   });
@@ -103,5 +103,24 @@ describe('cli recook commands (committed bundle)', () => {
     mkdirSync(join(cwd, 'empty'), { recursive: true });
     expect(run(['cover', 'flow.facts.json', 'empty']).code).toBe(1);
     expect(run(['cover', 'flow.facts.json']).code).toBe(1);
+  });
+
+  it('extract --page keeps the pages named, records the source hash, and names the pages when one is unknown', () => {
+    const r = spawnSync(process.execPath, [cli, 'extract', join(sources, 'hand-two-pages.drawio'), '--page', 'Orders ERD'], { cwd, encoding: 'utf8' });
+    expect(r.status).toBe(0);
+    const facts = JSON.parse(r.stdout);
+    expect(facts.pages.map((p) => p.id)).toEqual(['erd']);
+    expect(facts.sha256).toMatch(/^[0-9a-f]{64}$/);
+    const bad = run(['extract', join(sources, 'hand-two-pages.drawio'), '--page', 'nope']);
+    expect(bad.code).toBe(1);
+    expect(bad.error.errors[0].hint).toMatch(/arch \("Architecture"\), erd \("Orders ERD"\)/);
+  });
+
+  it('cover does not count a text hidden in meta.notes', () => {
+    const run1 = join(cwd, 'diagrams', '20261113_order');
+    const ir = orderIr(false);
+    ir.meta.notes.push('Báo hết hàng, Không');
+    writeFileSync(join(run1, 'source', 'order.ir.json'), JSON.stringify(ir));
+    expect(run(['cover', join(run1, 'source', 'order.facts.json'), run1]).code).toBe(2);
   });
 });

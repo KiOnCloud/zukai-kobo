@@ -298,8 +298,15 @@ diagrams. Nothing changes for existing runs and commands.
   JSON it returns. A tool result holds at most 48 000 bytes, so a large board is read in
   parts (`--from` the `next` of the previous part) and `extract` takes every part at once. A
   whole page read without a section gives one facts page per diagram on it.
+- `extract --page <id|name>[,...]` keeps only those pages of a source with several.
+- Facts never hold a credential or personal data: `extract` replaces each such value with a
+  `<redacted ...>` placeholder and lists where under `sensitive`. The skill never copies the
+  source into the run folder.
 - `cover <facts.json> <run-folder>` exits 2 when a text of the source is in none of the IRs
-  and in no `meta.omitted` or `meta.notes` entry.
+  and in no `meta.omitted` entry.
+- The secret scan now also reports a password or key at the end of a name joined by `_` or
+  `.` (`DB_PASSWORD=`, `db.password:`), and the level-of-detail check reports a connection
+  labelled with a SQL statement.
 - `meta.source` accepts `recook`.
 - The copied install has a third folder, `zukai-recook`; run the installer again to get it.
   A fork that installs the skills by hand has to copy `skills/recook/` beside the others.

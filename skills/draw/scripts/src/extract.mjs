@@ -2,6 +2,7 @@ import { extname } from 'node:path';
 import { drawioXmlOf, extractDrawio } from './extract-drawio.mjs';
 import { extractMermaid } from './extract-mermaid.mjs';
 import { extractFigjamBoard, joinBoardParts } from './extract-figjam.mjs';
+import { redactText } from './scan-secrets.mjs';
 
 /**
  * Facts of a source diagram, whatever made it: a draw.io file (`.drawio`, `.xml`,
@@ -28,10 +29,10 @@ export function extractFacts(buf, file = '') {
   const ext = extname(file).toLowerCase();
   const xmlLike = /<(mxfile|mxGraphModel|svg)\b/.test(head) || buf.subarray(1, 4).toString('latin1') === 'PNG';
   const mermaidLike = ext === '.mmd' || ext === '.mermaid' || ext === '.md' || /^(```\s*mermaid|---\n|%%|(flowchart|graph|sequenceDiagram|stateDiagram|erDiagram|classDiagram|architecture-beta|swimlane)\b)/m.test(head);
-  if (!xmlLike && mermaidLike) return { ok: true, facts: extractMermaid(buf.toString('utf8')) };
+  if (!xmlLike && mermaidLike) return { ok: true, facts: redactFacts(extractMermaid(buf.toString('utf8'))) };
   const xml = drawioXmlOf(buf);
   if (xml.error) return { ok: false, error: xml.error };
-  return { ok: true, facts: extractDrawio(xml.xml) };
+  return { ok: true, facts: redactFacts(extractDrawio(xml.xml)) };
 }
 
 /**
@@ -54,7 +55,36 @@ export function extractBoards(bufs) {
   }
   const joined = joinBoardParts(parts);
   if (joined.error) return { ok: false, error: joined.error };
-  return { ok: true, facts: extractFigjamBoard(joined.board) };
+  return { ok: true, facts: redactFacts(extractFigjamBoard(joined.board)) };
+}
+
+/**
+ * Facts never hold a credential or personal data read from the source: each such value is
+ * replaced by a placeholder (`<redacted credential>`, `<redacted e-mail>`), the page lists
+ * where under `sensitive`, and a warning says so. The facts are kept in the run folder, which
+ * is committed or sent to a client, and the IR must carry a placeholder there anyway.
+ */
+export function redactFacts(facts) {
+  for (const page of facts.pages) {
+    const sensitive = [];
+    const clean = (element, field, value) => {
+      if (typeof value !== 'string' || value === '') return value;
+      const r = redactText(value);
+      if (r.kinds.length > 0) sensitive.push({ element, field, kinds: [...new Set(r.kinds)] });
+      return r.text;
+    };
+    page.name = clean(page.id, 'name', page.name);
+    for (const n of page.nodes) {
+      n.label = clean(n.id, 'label', n.label);
+      if (n.texts) n.texts = n.texts.map((t, i) => clean(n.id, `texts/${i}`, t));
+    }
+    for (const e of page.edges) for (const f of ['label', 'startLabel', 'endLabel']) if (e[f] !== undefined) e[f] = clean(e.id, f, e[f]);
+    if (sensitive.length > 0) {
+      page.sensitive = sensitive;
+      page.warnings.push(`${sensitive.length} text${sensitive.length > 1 ? 's hold' : ' holds'} what looks like a credential or personal data (${[...new Set(sensitive.flatMap((x) => x.kinds))].join(', ')}): the value is replaced by a <redacted ...> placeholder in these facts; the source file itself still holds it`);
+    }
+  }
+  return facts;
 }
 
 function findBoard(value, depth = 0) {

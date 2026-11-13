@@ -39,7 +39,7 @@ export function drawioXmlOf(buf) {
   }
   if (/<mxfile\b/.test(text)) return { xml: inflatePages(text) };
   if (/<mxGraphModel\b/.test(text)) return { xml: `<mxfile><diagram id="page-1" name="Page-1">${text.slice(text.indexOf('<mxGraphModel'))}</diagram></mxfile>` };
-  return { error: 'not a draw.io file: no <mxfile> or <mxGraphModel> element' };
+  return { error: 'not a diagram this skill can read: no draw.io XML (<mxfile> or <mxGraphModel>) and no Mermaid diagram; the sources are .drawio, .xml, .drawio.svg, .drawio.png, .mmd, Markdown with ```mermaid blocks, and a FigJam board read with --figjam-script' };
 }
 
 const safeDecode = (text) => { try { return decodeURIComponent(text); } catch { return text; } };
