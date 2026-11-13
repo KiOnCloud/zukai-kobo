@@ -117,7 +117,8 @@ describes, with these differences:
   "Other" (in the text form: naming another kind) changes one. A page that only repeats the others (an overview page whose
   labels all occur on other pages) is named and left out unless the user wants it.
 - A page mixes kinds when a second kind hint scored on shapes the best kind does not draw
-  (tables, lifelines or lanes on an architecture or flowchart page), or scores at least half
+  (entity tables with key rows, lifelines or lanes on an architecture or flowchart page; a
+  class page whose boxes also earn a small `er` hint is not mixed), or scores at least half
   of the best one. Say so in the question text: it is split by Zukai's rules, the best kind
   as the main diagram and the rest as parts (step 3).
 - A kind the request names in the user's language ("sơ đồ trạng thái", "シーケンス図") is

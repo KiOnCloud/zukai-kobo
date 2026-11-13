@@ -387,6 +387,8 @@ export function extractFigjamBoard(board) {
     for (const e of pageEdges) if (e.from === null || e.to === null) out.push(`edge "${e.id}"${e.label ? ` ("${e.label.split('\n')[0]}")` : ''} has an end that touches no shape`);
     const free = pageNodes.filter((m) => m.shape === 'text');
     if (free.length > 0) out.push(`${free.length} text${free.length > 1 ? 's stand' : ' stands'} over no shape: ${free.slice(0, 5).map((m) => `"${m.label.split('\n')[0]}"`).join(', ')}${free.length > 5 ? ', …' : ''}`);
+    const unseen = pageEdges.filter((e) => e.startArrow === 'classic' || e.endArrow === 'classic').length;
+    if (unseen > 0) out.push(`${unseen} drawn arrowhead${unseen > 1 ? 's' : ''} could not be told filled or open (a read without the closed and filled marks): \`classic\` stands for either; check against the picture`);
     const drawnLines = pageEdges.filter((e) => e.fromInferred || e.toInferred).length;
     if (drawnLines > 0) out.push(`${drawnLines} edge${drawnLines > 1 ? 's are' : ' is'} not connected to a shape at one end or both; ${drawnLines > 1 ? 'their ends were' : 'its end was'} taken from the shape where the line stops (fromInferred / toInferred)`);
     return out;

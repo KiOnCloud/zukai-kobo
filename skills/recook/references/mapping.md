@@ -39,7 +39,7 @@ diagram `title` when it is one, as a note element when the kind has one, or list
 | `lifeline`, `actor` | `participants[]`, left to right by `box.x`; `detail` or a `«kind»` line gives `kind` (`actor`, `database`, `boundary`, `control`, `entity`), else `participant`. The `«kind»` line is not part of the label |
 | edge between two participants | `messages[]` in `y` order; a `dashed` line is `return` (Mermaid's `-->>` and `--)` included), a solid line with an `open` end `async`, any other `sync` |
 | `frame` | `blocks[]`: the operator (`loop`, `alt`, `opt`, `par`) is the block's `kind`, the rest of its label its condition; each `texts` line that starts with `else` or `and` is a branch |
-| `note` | `notes[]`: `over` the participants whose lifeline (the line through the middle of the head, not the head's width) its box crosses; with none crossed, `right` (or `left`) of the nearest lifeline on its left (or right) |
+| `note` | `notes[]`: `over` the participants whose lifeline (the line through the middle of the head, not the head's width) its box crosses; with none crossed, `right` of the nearest lifeline on its left (at equal distance too), or `left` of the first lifeline when the note stands left of every lifeline |
 
 A board read from FigJam draws a sequence diagram with boxes and connectors: the extractor
 already turns each pair of participant boxes and their line into one `lifeline`, and the
@@ -99,7 +99,7 @@ is the only one; otherwise list it in `meta.omitted`.
 | edge between tables | `relations[]`; `fromPart` / `toPart` name the attributes (`fromAttribute`, `toAttribute`); `dashed` means not identifying |
 | crow's-foot ends | `ERmandOne`, `ERone` → `one`; `ERzeroToOne` → `zero-one`; `ERoneToMany` → `one-many`; `ERzeroToMany`, `ERmany` → `many` |
 | end texts `1`, `0..1`, `0..*`, `1..*` | the same four values; the texts themselves need no `meta.omitted` entry |
-| ends read from a board drawn as shapes | read from the drawing (a circle is zero, a crow's foot many, a bar one); a board read before version 2.2.0 of the reader gives `classic` for an arrowhead whose fill it could not see: then check that end against the picture |
+| ends read from a board drawn as shapes | read from the drawing (a circle is zero, a crow's foot many, a bar one); an arrowhead given as `classic` is one whose fill the read could not see (the facts warn about it): check that end against the picture |
 
 ## class
 
