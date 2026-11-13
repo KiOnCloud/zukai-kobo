@@ -83,7 +83,8 @@ The facts are what the run keeps of it, with such values already replaced by pla
    side by side. Recook only the ones the user asked for: extract again with `--page`, and ask
    which when the request does not say and the facts hold more than one.
 3. On exit 1, quote the error and stop; never fall back to reading the XML or the board
-   yourself.
+   yourself. The one exception is `--page` naming a page the source does not have: its hint
+   lists the pages, so choose from that list (or ask) and extract again.
 4. Make the run folder as the closing contract names it, `diagrams/<yyyymmdd>_<run-slug>/`,
    with a short English kebab-case slug of what the source shows (`order-system`,
    `refund-gateway-call`). Every recook is a new run: when that folder already holds another
@@ -136,8 +137,10 @@ facts alone:
     statement, a numbered step) is replaced by the protocol or purpose that text names
     (`POST /api/orders` → `HTTP`, `INSERT INTO orders` → `SQL`; a TLS the source does not show is not added), or by no label when it names
     none; the full text is in the part;
-  - under `overview`, a sub-flow collapsed into one step takes the title the source gives
-    that sub-flow (a subgraph, a frame, a group); with no title, the new label is an
+  - under `overview`, a sub-flow is what the source groups (a subgraph, a frame, a group) or,
+    without a group, a run of steps with one way in and one way out that a decision of the
+    main flow does not depend on; collapsed into one step, it takes the title the source gives
+    that sub-flow; with no title, the new label is an
     `added:` note. The texts of the steps it hides go into `meta.omitted`: `"Lấy lịch sử hoàn
     tiền", "Chấm điểm rủi ro": collapsed into "Kiểm tra gian lận"`.
 - **Nothing is invented.** Add only what the kind needs to be valid and the source shows by
@@ -177,7 +180,8 @@ facts alone:
   password>": thông tin cấu hình, không thuộc hệ thống`); never look the value up in the
   source.
 - **Ids** follow the closing contract (from names, English ASCII). A source id that is
-  already such a name is kept, and so is a short counter id of the source (`e1`, `m3`); an id
+  already such a name is kept, and so is a short id of the source (`e1`, `m3`, `KH`), in lower
+  case; an id
   of a Zukai file (`<page>:<id>`) keeps the part after the colon.
 - **Facts that cannot be right.** The facts are all you read, positions included: `box`
   and `y` may be used to order and to place what the shapes say. When the facts contradict

@@ -465,7 +465,7 @@ export async function main(argv) {
     if (irs.length === 0) return fail(1, { ok: false, errors: [{ path: targets[0], message: 'no IR files found' }] });
     const result = cover(read.ir, irs);
     if (!result.ok) {
-      process.stderr.write(JSON.stringify({ ok: false, units: result.units, covered: result.covered, missing: result.missing, hint: 'put each missing text into the IR, or name it in a meta.omitted entry with the reason (merged into another element, moved to a part, left out on purpose)' }) + '\n');
+      process.stderr.write(JSON.stringify({ ok: false, units: result.units, covered: result.covered, missing: result.missing, hint: 'put each missing text into the IR, or add a meta.omitted entry of the form "\"<text>\": <reason>" (merged into another element, collapsed into a step, left out on purpose); a meta.notes entry does not count' }) + '\n');
       return 2;
     }
     process.stdout.write(JSON.stringify(result) + '\n');

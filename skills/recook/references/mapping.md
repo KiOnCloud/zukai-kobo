@@ -56,7 +56,7 @@ A `critical`, `break` or `rect` frame has no block kind: keep its messages, list
 |---|---|
 | `box`, `process`, `rounded` | `process` |
 | `decision` | `decision`; edge labels leaving it become `conditional` edges with that label |
-| `terminal`, `ellipse`, `initial`, `final` with a start or end word | `terminal` |
+| `terminal`, `initial`, `final`, and an `ellipse` where the flow starts or ends | `terminal` |
 | `io`, `document` | `io` |
 | `subroutine` | `subroutine`, with `ref` when its sub-flow is drawn on another page or becomes a part |
 | `note` | `note` |

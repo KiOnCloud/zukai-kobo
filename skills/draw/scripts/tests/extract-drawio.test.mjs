@@ -230,6 +230,7 @@ describe('cover by page', () => {
     const ir = (omitted) => ({ ...flow([{ id: 'a', label: 'Thành công?' }]), meta: { notes: ['page "Refund flow"'], omitted } });
     const one = { facts: 1, pages: [facts.pages[0]] };
     expect(cover(one, [{ name: 'f', ir: ir(['"Thử lại tối đa 3 lần"']) }]).ok).toBe(false);
+    expect(cover(one, [{ name: 'f', ir: ir(['Chấm điểm "x": Thử lại tối đa 3 lần']) }]).ok).toBe(false);
     expect(cover(one, [{ name: 'f', ir: ir(['"Thử lại tối đa 3 lần": gộp vào bước gọi cổng thanh toán']) }]).ok).toBe(true);
   });
 });

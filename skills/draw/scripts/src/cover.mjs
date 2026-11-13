@@ -58,8 +58,9 @@ export function holdersOf(irs) {
       if (tokens.size > 0) holders.push({ where, tokens, compact: [...strings.flatMap(tokensOf)].join(''), pages });
     };
     if (typeof ir.title === 'string') hold(`${name}:title`, [ir.title]);
-    // An omission counts when it gives its reason after the quoted text: `"text": reason`.
-    for (const entry of ir.meta?.omitted ?? []) if (typeof entry === 'string' && /["”»』」]\s*:\s*\S/.test(entry)) hold(`${name}:meta.omitted`, [entry]);
+    // An omission counts when it starts with the quoted text and gives its reason after it:
+    // `"text": reason`.
+    for (const entry of ir.meta?.omitted ?? []) if (typeof entry === 'string' && /^\s*["“«「『][\s\S]*["”»』」]\s*:\s*\S/.test(entry)) hold(`${name}:meta.omitted`, [entry]);
     const walk = (value, path) => {
       if (Array.isArray(value)) value.forEach((v, i) => {
         if (v && typeof v === 'object' && !Array.isArray(v)) hold(`${name}:${path}/${i}${v.id ? ` (${v.id})` : ''}`, stringsOf(v));
