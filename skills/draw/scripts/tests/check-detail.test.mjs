@@ -150,4 +150,11 @@ describe('level of detail of an architecture diagram', () => {
       expect(detail[0].message, target).toMatch(/^detail: /);
     }
   });
+
+  it('reports a connection labelled with a SQL statement, not one named in plain words', () => {
+    for (const label of ['INSERT INTO orders', 'SELECT * FROM users', 'UPDATE orders SET status', 'DELETE FROM carts']) {
+      expect(checkDetail(labelled(label)).warnings.map((w) => w.message).join('\n'), label).toMatch(/reads as a database statement/);
+    }
+    for (const label of ['SQL', 'Update stock', 'read / write']) expect(checkDetail(labelled(label)).warnings, label).toEqual([]);
+  });
 });

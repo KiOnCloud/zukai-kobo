@@ -17,15 +17,17 @@
 export const DEFINITE_KINDS = new Set(['uri-credential', 'token-pattern']);
 
 /**
- * Words that name a secret, followed by `=` or `:` and a value. A Latin word needs a word
- * boundary; Japanese is written without spaces, so its words match anywhere.
+ * Words that name a secret, followed by `=` or `:` and a value. A Latin word must not be the
+ * tail of a longer word ("mypassword"), but may end a name joined by `_` (`DB_PASSWORD=`, the
+ * way environment variables are written); Japanese is written without spaces, so its words
+ * match anywhere.
  */
 const SECRET_WORDS_LATIN = [
   'password', 'passwd', 'pwd', 'passphrase', 'secret', 'token', 'api[_-]?key', 'access[_-]?key', 'secret[_-]?key', 'private[_-]?key', 'client[_-]?secret',
   'mật khẩu', 'mat khau', 'mật mã', 'mat ma', 'mã bí mật', 'ma bi mat', 'khóa bí mật', 'khoá bí mật', 'khoa bi mat', 'khóa api', 'khoá api', 'khoa api', 'mã truy cập', 'ma truy cap',
 ];
 const SECRET_WORDS_CJK = ['パスワード', 'パスフレーズ', '暗証番号', '秘密鍵', '秘密キー', 'シークレット', 'トークン', 'APIキー', 'アクセスキー', '認証キー', '合言葉'];
-const SECRET_ASSIGNMENT = new RegExp(`(?:(?<![\\p{L}\\p{N}_])(?:${SECRET_WORDS_LATIN.join('|')})|(?:${SECRET_WORDS_CJK.join('|')}))\\s*[=:＝：]\\s*['"「『]?[^\\s'"」』]{6,}`, 'iu');
+const SECRET_ASSIGNMENT = new RegExp(`(?:(?<![\\p{L}\\p{N}])(?:${SECRET_WORDS_LATIN.join('|')})|(?:${SECRET_WORDS_CJK.join('|')}))\\s*[=:＝：]\\s*['"「『]?[^\\s'"」』]{6,}`, 'iu');
 
 const PATTERNS = [
   { kind: 'uri-credential', re: /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:[^\s/@]+@/i, what: 'URI with embedded credentials (scheme://user:password@host)' },
@@ -58,6 +60,12 @@ const PERSONAL = [
 const PLACEHOLDER_MAIL = /@(?:example\.(?:com|org|net)|[\w.-]+\.(?:example|test|invalid|localhost))$|^(?:user|name|email|someone|xxx+)@/i;
 
 const TOKEN_RE = /[A-Za-z0-9+/=_-]{20,}/g;
+/**
+ * The link of a Figma file or board: its key is random-looking but is no secret (opening the
+ * file still needs the owner's sharing), and a recooked IR records the board it came from.
+ */
+const SHARE_LINK = /\bhttps?:\/\/(?:www\.)?figma\.com\/(?:board|design|file|proto|slides|make)\/[A-Za-z0-9]{16,}[^\s"'<>]*/g;
+const withoutShareLinks = (value) => value.replace(SHARE_LINK, ' ');
 const HEX_RE = /\b[0-9a-f]{32,}\b/i;
 const ENTROPY_THRESHOLD = 4.2;
 
@@ -135,12 +143,12 @@ export function scanSecrets(ir) {
       break;
     }
     if (flagged) continue;
-    const hex = value.match(HEX_RE);
+    const hex = withoutShareLinks(value).match(HEX_RE);
     if (hex) {
       warnings.push({ path, kind: 'high-entropy', message: `long hexadecimal string (${preview(hex[0])}) looks like a key or hash; confirm it is not a secret` });
       continue;
     }
-    for (const m of value.matchAll(TOKEN_RE)) {
+    for (const m of withoutShareLinks(value).matchAll(TOKEN_RE)) {
       if (looksRandom(m[0])) {
         warnings.push({ path, kind: 'high-entropy', message: `high-entropy string (${preview(m[0])}) looks like a token; confirm it is not a secret` });
         break;
@@ -148,4 +156,43 @@ export function scanSecrets(ir) {
     }
   }
   return { warnings };
+}
+
+/**
+ * A text with every value the scan would report replaced by a placeholder in angle brackets
+ * (`DB_PASSWORD=<redacted credential>`, `<redacted e-mail>`), and the kinds it replaced. Used
+ * where a text read from a source must be kept without the value: the facts of a recook. A
+ * rule such as "password: required" is not a value and stays.
+ * @returns {{ text: string, kinds: string[] }}
+ */
+export function redactText(value) {
+  let text = String(value);
+  const kinds = [];
+  const replace = (re, make, kind) => {
+    text = text.replace(new RegExp(re.source, `${re.flags.replace('g', '')}g`), (m) => {
+      const out = make(m);
+      if (out !== m) kinds.push(kind);
+      return out;
+    });
+  };
+  for (const p of PATTERNS) {
+    if (p.re === SECRET_ASSIGNMENT) {
+      replace(p.re, (m) => (/[=:＝：]\s*['"「『]?\p{Ll}+$/u.test(m) ? m : m.replace(/([=:＝：]\s*['"「『]?).*$/u, '$1<redacted credential>')), p.kind);
+    } else if (p.kind === 'uri-credential') {
+      replace(p.re, (m) => m.replace(/:\/\/[^\s/:@]+:[^\s/@]+@/, '://<redacted credential>@'), p.kind);
+    } else replace(p.re, () => '<redacted token>', p.kind);
+  }
+  for (const p of PERSONAL) {
+    const mail = p.what === 'e-mail address';
+    replace(p.re, (m) => (mail && PLACEHOLDER_MAIL.test(m) ? m : mail ? '<redacted e-mail>' : '<redacted phone>'), 'personal-data');
+  }
+  const links = new Set(text.match(SHARE_LINK) ?? []);
+  const inLink = (m) => [...links].some((l) => l.includes(m));
+  replace(HEX_RE, (m) => (inLink(m) ? m : '<redacted value>'), 'high-entropy');
+  text = text.replace(TOKEN_RE, (m) => {
+    if (!looksRandom(m) || inLink(m)) return m;
+    kinds.push('high-entropy');
+    return '<redacted value>';
+  });
+  return { text, kinds };
 }

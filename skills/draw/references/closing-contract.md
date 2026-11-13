@@ -17,6 +17,7 @@ where the date is today and `<run-slug>` is a short English kebab-case name of t
 | `figjam/<slug>.mmd` | the text sent to FigJam, kept so it can be previewed and reviewed before the board is made (target `figjam`) |
 | `figjam/<slug>.overlay.js` | for a sequence diagram: the script that draws on the board what `generate_diagram` leaves out (target `figjam`, `target-figjam.md` section 5) |
 | `<run-slug>.<lang>.drawio`, `source/labels.<lang>.json` | a language variant of the combined file and its label map (`variants.md`) |
+| `source/<run-slug>.facts.json` | a recooked run only: what `extract` read from the source, with credentials and personal data replaced by placeholders (the source itself is never copied here) |
 | `history/` | revisions written by the revise skill; only the CLI writes here |
 
 Only the folders of the targets actually emitted exist; `source/` always does.
@@ -68,7 +69,9 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    bundle and preview again, and review again. Repeat until `PASS` or three rounds; after
    three rounds deliver anyway and list the remaining findings verbatim. On `PASS`, apply
    the `polish` findings that are plain IR edits (a label wording), validate, emit and
-   bundle again without a new review round, and list the ones not applied. A finding that asks
+   bundle again without a new review round, and list the ones not applied. In a recooked
+   run (`meta.source: "recook"`) a polish finding that only rewords a label copied from the
+   source is not applied: list it with the offer of a `revise`. A finding that asks
    for something the user chose to leave out is not applied: record the omission in
    `meta.omitted` (with its reason) so the next round does not raise it again. If no
    preview could be rendered, the review runs on the IR and warnings only and says so.

@@ -1,0 +1,11 @@
+<mxfile><diagram id="lanes" name="Return">
+<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="pool" value="Return process" style="swimlane;childLayout=stackLayout;resizeParent=1;resizeParentMax=0;horizontal=1;startSize=20;horizontalStack=1;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="480" height="420" as="geometry"/></mxCell>
+<mxCell id="lane-c" value="Customer" style="swimlane;startSize=20;html=1;" vertex="1" parent="pool"><mxGeometry y="20" width="240" height="400" as="geometry"/></mxCell>
+<mxCell id="lane-s" value="Support" style="swimlane;startSize=20;html=1;" vertex="1" parent="pool"><mxGeometry x="240" y="20" width="240" height="400" as="geometry"/></mxCell>
+<mxCell id="ask" value="Request return" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="lane-c"><mxGeometry x="60" y="60" width="120" height="50" as="geometry"/></mxCell>
+<mxCell id="ok" value="Eligible?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="lane-s"><mxGeometry x="70" y="140" width="100" height="80" as="geometry"/></mxCell>
+<mxCell id="label" value="Send label" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="lane-s"><mxGeometry x="60" y="280" width="120" height="50" as="geometry"/></mxCell>
+<mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="ask" target="ok"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f2" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="ok" target="label"><mxGeometry relative="1" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>

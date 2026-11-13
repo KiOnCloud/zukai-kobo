@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { scanSecrets } from '../src/scan-secrets.mjs';
 import { loadFixture, validFixtures } from './helpers.mjs';
 
+// Made-up values, assembled at run time so that secret scanners of the repository do not take
+// the test inputs for credentials.
+const FAKE = ['Zq8', 'wertyu'].join('!');
+const FAKE_KEY = ['Zq8', 'wertyuiop'].join('');
+
 const kinds = (ir) => scanSecrets(ir).warnings.map((w) => `${w.path}:${w.kind}`);
 
 describe('scanSecrets', () => {
@@ -56,5 +61,36 @@ describe('scanSecrets', () => {
 
   it('uses JSON-pointer paths with escaping', () => {
     expect(scanSecrets({ 'a/b': { 'c~d': ['postgres://u:p@h/db'] } }).warnings[0].path).toBe('/a~1b/c~0d/0');
+  });
+});
+
+describe('secrets written the way configuration names them', () => {
+  it('reports a password or key at the end of an environment-variable or dotted name', () => {
+    for (const label of [`DB_PASSWORD=${FAKE}`, `MYSQL_ROOT_PASSWORD: ${FAKE}`, `AWS_SECRET_ACCESS_KEY=${FAKE_KEY}`, `API_TOKEN=${FAKE_KEY}`, `db.password: ${FAKE}`]) {
+      expect(kinds({ label }), label).toEqual(['/label:token-pattern']);
+    }
+    expect(kinds({ label: `mypassword=${FAKE}` })).toEqual([]);
+    expect(kinds({ label: 'DB_PASSWORD: required' })).toEqual(['/label:assignment']);
+  });
+});
+
+describe('redactText', () => {
+  it('replaces each value the scan reports with a placeholder and keeps the words around it', async () => {
+    const { redactText } = await import('../src/scan-secrets.mjs');
+    expect(redactText(`Cấu hình: DB_PASSWORD=${FAKE} (tạm thời)`)).toEqual({ text: 'Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời)', kinds: ['token-pattern'] });
+    expect(redactText(`postgres://app:${FAKE_KEY}@db:5432/x`).text).toBe('postgres://<redacted credential>@db:5432/x');
+    expect(redactText('Liên hệ lien.nguyen@congty.vn, 0912345678').text).toBe('Liên hệ <redacted e-mail>, <redacted phone>');
+    expect(redactText('key AKIAABCDEFGHIJKLMNOP').text).toBe('key <redacted token>');
+    for (const plain of ['password: required', 'user@example.com', 'Order service', 'POST /api/orders']) expect(redactText(plain)).toEqual({ text: plain, kinds: [] });
+  });
+});
+
+describe('share links', () => {
+  it('does not take the key of a Figma board link for a token, but still reports a token beside it', async () => {
+    const { redactText } = await import('../src/scan-secrets.mjs');
+    const note = 'recooked from https://www.figma.com/board/45AQFIpbiwRlA0biqsBxCY/Zukai-test?node-id=18-444, page "Login"';
+    expect(kinds({ meta: { notes: [note] } })).toEqual([]);
+    expect(redactText(note)).toEqual({ text: note, kinds: [] });
+    expect(kinds({ label: `${note} key Zx9Qw3Lp7Rt2Vb8Nm4Kd6Hs1` })).toEqual(['/label:high-entropy']);
   });
 });

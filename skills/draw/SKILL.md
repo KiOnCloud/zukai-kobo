@@ -109,7 +109,9 @@ feature, and they differ in how sub-flows are handled:
   part id in a label, no note. Each sub-diagram's title names the element it details. Report
   the main diagram first, then its parts.
 
-Never produce parts without a main diagram, and never split under `overview`.
+Never produce parts without a main diagram, and never split under `overview` (a recook keeps
+the pages its source already has and splits a page that mixes kinds, as the recook skill
+says).
 
 Ask the view in the same call too, unless `--audience` was given or the request names the
 reader. What is chosen is the view of the diagram (whether technical names stay), so the

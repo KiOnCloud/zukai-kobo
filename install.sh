@@ -2,11 +2,12 @@
 # Copy the Zukai skills into a project for OpenAI Codex (.agents/skills) or, as a
 # documented fallback, for Claude Code without the plugin (.claude/skills).
 #
-# Inside the plugin the skills are named "draw" and "revise" (/zukai:draw, /zukai:revise).
-# A copied skill has no plugin namespace, so the copies are installed as "zukai" and
-# "zukai-revise": the folder and the "name" line of each SKILL.md take that name ($zukai and
-# $zukai-revise in Codex, /zukai and /zukai-revise in Claude Code). revise finds the draw
-# skill's CLI in the sibling zukai folder, so the two are always installed together.
+# Inside the plugin the skills are named "draw", "revise" and "recook" (/zukai:draw, /zukai:revise, /zukai:recook).
+# A copied skill has no plugin namespace, so the copies are installed as "zukai",
+# "zukai-revise" and "zukai-recook": the folder and the "name" line of each SKILL.md take
+# that name ($zukai, $zukai-revise and $zukai-recook in Codex, /zukai, /zukai-revise and
+# /zukai-recook in Claude Code). revise and recook find the draw skill's CLI in the sibling
+# zukai folder, so the three are always installed together.
 #
 # Usage: install.sh --target codex|claude-project [--dest <project-dir>]
 #
@@ -50,7 +51,7 @@ esac
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 MANIFEST="$SCRIPT_DIR/.claude-plugin/plugin.json"
 # Each skill as <source folder>:<installed name>:<version marker>.
-SKILLS="draw:zukai:.zukai-version revise:zukai-revise:.zukai-revise-version"
+SKILLS="draw:zukai:.zukai-version revise:zukai-revise:.zukai-revise-version recook:zukai-recook:.zukai-recook-version"
 # The name the draw skill was installed under before it was renamed.
 LEGACY_NAME="it-diagrams"
 LEGACY_MARKER=".it-diagrams-version"
@@ -124,7 +125,7 @@ backup() {
 # Backups that an earlier version of this script left inside the skills folder
 # (<name>.bak-<timestamp>) still carry a SKILL.md with the skill's name: move them out too.
 sweep_old_backups() {
-  for name in zukai zukai-revise "$LEGACY_NAME"; do
+  for name in zukai zukai-revise zukai-recook "$LEGACY_NAME"; do
     for old in "$DEST_DIR/$name".bak-*; do
       [ -d "$old" ] || continue
       stamp=${old##*.bak-}
@@ -133,7 +134,7 @@ sweep_old_backups() {
   done
 }
 
-# Decide for both skills before touching anything. A copy already at this version is left
+# Decide for every skill before touching anything. A copy already at this version is left
 # alone (backing it up would leave a second copy with the same name competing for routing);
 # the others are installed.
 TODO=""
@@ -153,7 +154,7 @@ for spec in $SKILLS; do
 done
 if [ -z "$TODO" ]; then
   sweep_old_backups
-  echo "zukai $SRC_VERSION already up to date at $DEST_DIR (zukai, zukai-revise)"
+  echo "zukai $SRC_VERSION already up to date at $DEST_DIR (zukai, zukai-revise, zukai-recook)"
   exit 0
 fi
 
@@ -196,7 +197,7 @@ if [ -f "$LEGACY/$LEGACY_MARKER" ]; then
 fi
 sweep_old_backups
 
-# Both copies are complete before either is moved in; only a failure between these moves
+# Every copy is complete before any is moved in; only a failure between these moves
 # (a locked folder) can leave one updated, and running the installer again finishes the job.
 for spec in $TODO; do
   rest=${spec#*:}; name=${rest%%:*}

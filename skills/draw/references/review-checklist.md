@@ -47,7 +47,10 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
    `detailed` and are referenced with `ref` on the element they detail (a step, a message,
    a state, a component, a class or an entity), never by an id written into a label;
    no second diagram repeats the kind and subject of another one at a different level of
-   detail; nothing in the request is missing and nothing outside it was added.
+   detail; nothing in the request is missing and nothing outside it was added. A recooked
+   run (`meta.source: "recook"`) also keeps each page of its source as a diagram of its own
+   whatever the scope, linked with `ref` when it details an element of another page, and
+   splits a page that mixes kinds into one diagram per kind whatever the scope.
 9. No degenerate control: a merge or join with one incoming flow, a decision or fork with
    one outgoing flow, a node nothing reaches, a branch that never ends.
 10. In `scout` mode the diagram contains only what the code does, with the source files in
@@ -61,6 +64,10 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
     infrastructure purpose, connection labels that carry step numbers or tell what the
     code does in order, a component label that carries what the code does or the data it
     holds (a batch size, a field list) instead of the resource and its operating settings.
+    In a recooked diagram (`meta.source: "recook"`) a component label is the source's own
+    wording, which the recook keeps: a label that names what the resource does ("Gửi email
+    xác nhận" on a Lambda) is a `polish` finding there, with the offer of a `revise`; the
+    structural breaches above stay `wrong`.
     The fix is one component with the count in its label, a label that passes the test of
     that section, and the order of calls in a part of another kind linked with `ref`. A
     CLI warning that starts with `detail:` names such a breach and is resolved. It stays

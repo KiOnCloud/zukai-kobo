@@ -40,8 +40,9 @@ always produces the same file.
   enough to review and to diff, and it is the file you edit when the diagram has to change.
 - **Editable results.** The default target is an uncompressed `.drawio` file, laid out
   automatically, in which every shape and connection can still be moved and restyled.
-- **Three ways in.** Interview the user (`clarify`), read the code (`scout`), or start from
-  an idea and choose among proposed diagram sets (`brainstorm`).
+- **Four ways in.** Interview the user (`clarify`), read the code (`scout`), start from
+  an idea and choose among proposed diagram sets (`brainstorm`), or rebuild a diagram made in
+  draw.io, FigJam or Mermaid (`/zukai:recook`), with a check that no text of it was lost.
 - **Nothing approximated silently.** A feature matrix states, per diagram kind, target and
   feature, whether it is supported, degraded with a named warning, or rejected.
 - **Two audiences from one subject.** A technical view keeps component, endpoint and data
@@ -128,6 +129,37 @@ rotated out, it moves to `history/extras/`.
 /zukai:revise undo
 ```
 
+### Recooking a diagram made elsewhere
+
+```text
+/zukai:recook <file|figjam-board-link> [--to drawio|mermaid|figjam] [--kind ...] [--scope ...] [--audience ...]
+```
+
+`recook` takes a diagram someone drew in draw.io, FigJam or Mermaid and delivers it again as
+Zukai diagrams: the same content, Zukai's rules and layout. It never reads the source by eye:
+
+1. `extract` reads the file (`.drawio` compressed or not, every page, `.drawio.svg`,
+   `.drawio.png`, `.mmd`, Markdown with Mermaid blocks) or the board (through a read-only
+   script for the Figma tool `use_figma`) into facts: nodes, edges and the kind each page
+   looks like, with the evidence.
+2. The opening question suggests the kind from that evidence; scope and view are asked as in
+   `draw`.
+3. The IR is written from the facts under Zukai's rules. Labels are copied as written; a page
+   that mixes kinds or is too detailed is split into a main diagram and linked parts (the
+   tables drawn into an architecture diagram become an `er` part).
+4. `cover` checks that every text of the source is in the IR or listed in `meta.omitted`
+   with a reason, then the usual validate, emit and review run.
+
+The report lists what was kept, split, merged, left out, added and joined by position. The
+source stays where it is; the run keeps only the facts, with any password or personal data
+replaced by a placeholder.
+
+```text
+/zukai:recook docs/legacy/order-flow.drawio
+/zukai:recook https://www.figma.com/board/<key>/Checkout?node-id=12-34 --to drawio
+/zukai:recook --scope detailed architecture.md
+```
+
 ## Diagram kinds and targets
 
 | Kind | Shows |
@@ -197,6 +229,7 @@ diagrams/20261109_login-flow/
   login-flow.drawio          the whole run: one page per diagram
   drawio/<diagram>.drawio    each diagram on its own
   source/<diagram>.ir.json   the model the diagrams were generated from
+  source/<run>.facts.json    what a recook read from its source, secrets replaced by placeholders
   history/r001/ ... r005/    the five latest revisions of the whole run (written by revise)
   history/extras/rNNN/       hand-edited files of revisions that were rotated out (kept until you delete them)
   drafts/a/ b/ c/            drafts of a what-if, until one is confirmed or dropped
@@ -215,13 +248,13 @@ is an output, not a source.
 ## Other runtimes
 
 The same skill folders run outside the Claude Code plugin. `install.sh` (and `install.ps1`
-on Windows) copies both into a project:
+on Windows) copies all three into a project:
 
 | Runtime | Install | Invoke |
 |---|---|---|
-| Claude Code plugin | `claude plugin install zukai@zukai` | `/zukai:draw`, `/zukai:revise` |
-| OpenAI Codex | `install.sh --target codex --dest <project>` | `$zukai`, `$zukai-revise` |
-| Claude Code without the plugin | `install.sh --target claude-project --dest <project>` | `/zukai`, `/zukai-revise` |
+| Claude Code plugin | `claude plugin install zukai@zukai` | `/zukai:draw`, `/zukai:revise`, `/zukai:recook` |
+| OpenAI Codex | `install.sh --target codex --dest <project>` | `$zukai`, `$zukai-revise`, `$zukai-recook` |
+| Claude Code without the plugin | `install.sh --target claude-project --dest <project>` | `/zukai`, `/zukai-revise`, `/zukai-recook` |
 
 Use one channel per machine. Details, uninstall, update and private-fork credentials are in
 [docs/install.md](docs/install.md).
@@ -239,6 +272,7 @@ working; see [Upgrading from it-diagrams](docs/install.md#upgrading-from-it-diag
 | [docs/feature-matrix.md](docs/feature-matrix.md) | What each target supports for each diagram kind |
 | [skills/draw/SKILL.md](skills/draw/SKILL.md) | The draw skill's own contract, as the agent reads it |
 | [skills/revise/SKILL.md](skills/revise/SKILL.md) | The revise skill's own contract, as the agent reads it |
+| [skills/recook/SKILL.md](skills/recook/SKILL.md) | The recook skill's own contract, as the agent reads it |
 
 ## Development
 
@@ -252,7 +286,8 @@ sources.
 
 ## Status
 
-Version 2.1.0 is the open beta. Version 2.0.0 added `/zukai:revise`; forks of the skill should read
+Version 2.2.0 is the open beta. Version 2.2.0 added `/zukai:recook` and version 2.0.0 added `/zukai:revise`; forks of the skill should read
+[Upgrading to 2.2.0](docs/install.md#upgrading-to-220),
 [Upgrading to 2.0.0](docs/install.md#upgrading-to-200) and
 [Upgrading to 2.0.1](docs/install.md#upgrading-to-201). Every diagram kind and target listed above works and is
 covered by tests. Layout is what still changes between releases, so a diagram emitted again

@@ -24,6 +24,8 @@ const STORE_ICON_CATEGORIES = new Set(['Databases', 'Storage']);
 /** How many components of one kind, used by one component alone, read as the parts of one resource. */
 const PARTS_MIN = 3;
 
+/** A statement of SQL: `INSERT INTO orders`, `SELECT user by email`. */
+const SQL_STATEMENT = /^\s*(?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO|UPSERT)\s+\S/;
 /** An HTTP method before a path of any length: `POST /redeem`. */
 const METHOD_PATH = /\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/[\w{:]/;
 /** An absolute path with two or more named parts: `/hubs/imageProcessing`, `/api/v1/orders`. */
@@ -128,7 +130,7 @@ export function checkDetail(ir) {
   // A connection labelled with what travels over it instead of how it travels.
   connections.forEach((c, i) => {
     if (typeof c.label !== 'string') return;
-    const what = METHOD_PATH.test(c.label) || ENDPOINT_PATH.test(c.label) ? 'an endpoint path' : JOB_PATH.test(c.label) ? 'a job or resource path' : CAMEL_CASE.test(c.label) ? 'a field or method name' : namesData(c.label) ? 'a resource or data path' : namesJob(c.label) ? 'the name of a job or a route' : undefined;
+    const what = METHOD_PATH.test(c.label) || ENDPOINT_PATH.test(c.label) ? 'an endpoint path' : SQL_STATEMENT.test(c.label) ? 'a database statement' : JOB_PATH.test(c.label) ? 'a job or resource path' : CAMEL_CASE.test(c.label) ? 'a field or method name' : namesData(c.label) ? 'a resource or data path' : namesJob(c.label) ? 'the name of a job or a route' : undefined;
     if (!what) return;
     warnings.push({
       ids: [c.id],

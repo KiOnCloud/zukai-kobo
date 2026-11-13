@@ -3,11 +3,12 @@
 Copy the Zukai skills into a project for OpenAI Codex (.agents/skills) or, as a
 documented fallback, for Claude Code without the plugin (.claude/skills).
 
-Inside the plugin the skills are named "draw" and "revise" (/zukai:draw, /zukai:revise).
-A copied skill has no plugin namespace, so the copies are installed as "zukai" and
-"zukai-revise": the folder and the "name" line of each SKILL.md take that name ($zukai and
-$zukai-revise in Codex, /zukai and /zukai-revise in Claude Code). revise finds the draw
-skill's CLI in the sibling zukai folder, so the two are always installed together.
+Inside the plugin the skills are named "draw", "revise" and "recook" (/zukai:draw, /zukai:revise, /zukai:recook).
+A copied skill has no plugin namespace, so the copies are installed as "zukai",
+"zukai-revise" and "zukai-recook": the folder and the "name" line of each SKILL.md take
+that name ($zukai, $zukai-revise and $zukai-recook in Codex, /zukai, /zukai-revise and
+/zukai-recook in Claude Code). revise and recook find the draw skill's CLI in the sibling
+zukai folder, so the three are always installed together.
 
 .EXAMPLE
 powershell -ExecutionPolicy Bypass -File install.ps1 -Target codex -Dest C:\work\my-project
@@ -37,6 +38,7 @@ $manifest = Join-Path $scriptDir '.claude-plugin\plugin.json'
 $skills = @(
   @{ Source = 'draw'; Name = 'zukai'; Marker = '.zukai-version' },
   @{ Source = 'revise'; Name = 'zukai-revise'; Marker = '.zukai-revise-version' }
+  @{ Source = 'recook'; Name = 'zukai-recook'; Marker = '.zukai-recook-version' }
 )
 # The name the draw skill was installed under before it was renamed.
 $legacyName = 'it-diagrams'
@@ -83,7 +85,7 @@ function Move-ToBackup([string]$Path, [string]$Name) {
 # Backups that an earlier version of this script left inside the skills folder
 # (<name>.bak-<timestamp>) still carry a SKILL.md with the skill's name: move them out too.
 function Move-OldBackups {
-  foreach ($name in @('zukai', 'zukai-revise', $legacyName)) {
+  foreach ($name in @('zukai', 'zukai-revise', 'zukai-recook', $legacyName)) {
     Get-ChildItem -Path $destDir -Directory -Filter "$name.bak-*" -Force -ErrorAction SilentlyContinue | ForEach-Object {
       $stamp = $_.Name.Substring(("$name.bak-").Length)
       Write-Output "Backup from an earlier install moved out of the skills folder: $(Move-ToBackup $_.FullName "$name-$stamp")"
@@ -120,7 +122,7 @@ foreach ($s in $skills) {
 }
 if ($todo.Count -eq 0) {
   Move-OldBackups
-  Write-Output "zukai $srcVersion already up to date at $destDir (zukai, zukai-revise)"
+  Write-Output "zukai $srcVersion already up to date at $destDir (zukai, zukai-revise, zukai-recook)"
   exit 0
 }
 

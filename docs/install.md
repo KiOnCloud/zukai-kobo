@@ -123,22 +123,23 @@ On Windows:
 powershell -ExecutionPolicy Bypass -File .\zukai\install.ps1 -Target codex -Dest C:\path\to\your-project
 ```
 
-The installer copies `skills/draw/` to `<project>/.agents/skills/zukai/` and
-`skills/revise/` to `<project>/.agents/skills/zukai-revise/`, changes the `name` line of
-each copied `SKILL.md` (`draw` to `zukai`, `revise` to `zukai-revise`) so it matches the
-folder, and writes a version file next to each (`.zukai-version`,
-`.zukai-revise-version`). The two belong together: `zukai-revise` runs the CLI of the
-sibling `zukai/` folder, so a run installs whichever of the two is missing or older and
-leaves one already at this version alone. It copies into a temporary sibling and moves the
+The installer copies `skills/draw/` to `<project>/.agents/skills/zukai/`,
+`skills/revise/` to `<project>/.agents/skills/zukai-revise/` and `skills/recook/` to
+`<project>/.agents/skills/zukai-recook/`, changes the `name` line of each copied `SKILL.md`
+(`draw` to `zukai`, `revise` to `zukai-revise`, `recook` to `zukai-recook`) so it matches the
+folder, and writes a version file next to each (`.zukai-version`, `.zukai-revise-version`,
+`.zukai-recook-version`). The three belong together: `zukai-revise` and `zukai-recook` run
+the CLI of the sibling `zukai/` folder, so a run installs whichever of them is missing or
+older and leaves one already at this version alone. It copies into a temporary sibling and moves the
 copies into place only when all of them are complete, so an interrupted copy never leaves a
 half-copied folder; if a move itself fails (a locked folder on Windows), one skill can end up
-updated and the other not, and running the installer again finishes the job. It never runs `npm`, never touches the network, and never deletes an existing copy:
+updated and another not, and running the installer again finishes the job. It never runs `npm`, never touches the network, and never deletes an existing copy:
 a differing one is moved out of the skills folder first, to
 `<project>/.agents/zukai-backups/<name>-<timestamp>` (a backup inside `skills/` would still
 be a skill named `zukai` and compete with the new one). Backups that an earlier version left
 as `<name>.bak-<timestamp>` inside `skills/` are moved there on the next run. The copy holds
 what the skills run with (`SKILL.md`, `references/`, `scripts/bin/cli.mjs` and the feature
-matrix, about 2.3 MB); the sources, tests and fixtures of the CLI stay in the repository.
+matrix, about 2.8 MB); the sources, tests and fixtures of the CLI stay in the repository.
 
 To update, pull the repository and run the installer again. Exit codes:
 
@@ -148,20 +149,21 @@ To update, pull the repository and run the installer again. Exit codes:
 | 1 | Usage or I/O error, or a prerelease version marker that cannot be compared |
 | 3 | An installed copy is newer than the source; nothing changed |
 
-In Codex, invoke the skills with `$zukai` and `$zukai-revise`, or let them route from their
-descriptions. To uninstall, delete both folders (`zukai/` and `zukai-revise/`) and the
+In Codex, invoke the skills with `$zukai`, `$zukai-revise` and `$zukai-recook`, or let them
+route from their descriptions. To uninstall, delete the three folders (`zukai/`,
+`zukai-revise/` and `zukai-recook/`) and the
 `zukai-backups/` folder beside `skills/` when you no longer need its copies.
 
 ## Claude Code without the plugin (fallback)
 
-If a machine cannot add the marketplace, the same installer copies both skills into
+If a machine cannot add the marketplace, the same installer copies the three skills into
 `.claude/skills/` of a project:
 
 ```bash
 ./zukai-kobo/install.sh --target claude-project --dest /path/to/your-project
 ```
 
-Invoke the copies with `/zukai` and `/zukai-revise`. The script warns that this channel
+Invoke the copies with `/zukai`, `/zukai-revise` and `/zukai-recook`. The script warns that this channel
 competes with the plugin if both are present.
 
 ## Upgrading to 2.0.0
@@ -281,6 +283,36 @@ except for the points listed last.
   something: a note and the label row of a nested block are written as rows of their own, a
   composite state takes two lines, an ER diagram always states its direction, and an ER type
   with a comma is written without it.
+
+## Upgrading to 2.2.0
+
+Version 2.2.0 adds the recook skill, `/zukai:recook` (`$zukai-recook` and `/zukai-recook` in
+a copied install), which rebuilds a diagram made in draw.io, FigJam or Mermaid as Zukai
+diagrams. Nothing changes for existing runs and commands.
+
+- `extract <file> --out <facts.json>` reads a `.drawio` file (compressed or not, every page),
+  an editable `.drawio.svg` or `.drawio.png`, Mermaid text (`.mmd`, or Markdown with fenced
+  blocks) or a board read from FigJam, and writes facts: nodes, edges and kind hints per page.
+- `extract --figjam-script <file.js> [--section <name|node-id>] [--from <n>]` writes a script for the
+  Figma MCP tool `use_figma` that reads a board without changing it; `extract` then reads the
+  JSON it returns. A tool result holds at most 48 000 bytes, so a large board is read in
+  parts (`--from` the `next` of the previous part) and `extract` takes every part at once. A
+  whole page read without a section gives one facts page per diagram on it.
+- `extract --page <id|name>[,...]` keeps only those pages of a source with several.
+- Facts never hold a credential or personal data: `extract` replaces each such value with a
+  `<redacted ...>` placeholder and lists where under `sensitive`. The skill never copies the
+  source into the run folder.
+- `cover <facts.json> <run-folder>` exits 2 when a text of the source is in none of the IRs
+  and in no `meta.omitted` entry.
+- The secret scan now also reports a password or key at the end of a name joined by `_` or
+  `.` (`DB_PASSWORD=`, `db.password:`), and the level-of-detail check reports a connection
+  labelled with a SQL statement.
+- `meta.source` accepts `recook`.
+- The copied install has a third folder, `zukai-recook`; run the installer again to get it.
+  A fork that installs the skills by hand has to copy `skills/recook/` beside the others.
+- Before a release, read one real board with the reader script and compare the facts with
+  the board, as for the other FigJam scripts: the script is tested against a stand-in for the
+  Figma API only.
 
 ## Upgrading from it-diagrams
 

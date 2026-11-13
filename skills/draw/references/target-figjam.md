@@ -182,7 +182,8 @@ leave the machine, and the secret scan gates this emit like the other.
 4. The script makes a section named like the IR `title`, to the right of everything on the
    page, as large as the drawing, and draws every cell of the draw.io file into it as plain
    shapes, vector lines and text. Each cell is one group, named like its label (cut at 40
-   characters; like its id when it has no label): a node with its text, bars and pictogram;
+   characters; like its id when it has no label; an AWS icon or frame, or a product logo, adds
+   its stencil in brackets, `Order API [aws:lambda]`, so a recook of the board keeps it): a node with its text, bars and pictogram;
    an edge with its line, its line ends and its labels. A cell that lies in a container of
    the draw.io file (a frame, a lane, a composite state, an AWS group, a lifeline, a class or
    entity box) lies in the group of the container, so moving the container moves what is in

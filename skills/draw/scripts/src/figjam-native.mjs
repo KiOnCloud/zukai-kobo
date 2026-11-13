@@ -1,6 +1,7 @@
 import { brotliDecompressSync } from 'node:zlib';
 import { parseAttrs } from './relabel.mjs';
 import stencilData from './stencil-paths.json' with { type: 'json' };
+import { stencilTag } from './extract-drawio.mjs';
 
 /**
  * A FigJam board drawn at the coordinates of the draw.io file, as scripts for the Figma MCP
@@ -54,7 +55,7 @@ const num = (v, fallback = 0) => (v === undefined || v === '' || Number.isNaN(Nu
 const round = (v) => Math.round(v * 100) / 100;
 
 /** `a=b;c;d=e` as a map; a word without a value (swimlane, rhombus, text) maps to ''. */
-function parseStyle(text) {
+export function parseStyle(text) {
   const style = {};
   for (const part of text.split(';')) {
     if (!part) continue;
@@ -134,7 +135,7 @@ export function richLabel(html) {
 /** The text of an HTML label alone. */
 export const plainLabel = (html) => richLabel(html).text;
 
-function parseGeometry(inside) {
+export function parseGeometry(inside) {
   const g = /<mxGeometry\b([^>]*?)(\/?)>([\s\S]*?)(?:<\/mxGeometry>|$)/.exec(inside);
   if (!g) return { x: 0, y: 0, w: 0, h: 0, relative: false, points: [] };
   const a = parseAttrs(g[1]);
@@ -160,7 +161,7 @@ export function parseCells(xml) {
   const cells = [];
   const push = (a, inside) => {
     if (a.id === undefined || a.id === '0' || a.id === '1') return;
-    cells.push({ id: a.id, value: a.value ?? '', style: parseStyle(a.style ?? ''), parent: a.parent ?? '1', source: a.source, target: a.target, vertex: a.vertex === '1', edge: a.edge === '1', geo: parseGeometry(inside) });
+    cells.push({ id: a.id, value: a.value ?? '', style: parseStyle(a.style ?? ''), parent: a.parent ?? '1', source: a.source, target: a.target, vertex: a.vertex === '1', edge: a.edge === '1', geo: parseGeometry(inside), ...(a.link ? { link: a.link } : {}) });
   };
   const re = /<(UserObject|object)\b([^>]*)>([\s\S]*?)<\/\1>|<mxCell\b([^>]*?)(\/?)>/g;
   let m;
@@ -168,7 +169,7 @@ export function parseCells(xml) {
     if (m[1]) {
       const outer = parseAttrs(m[2]);
       const inner = /<mxCell\b([^>]*?)(\/?)>([\s\S]*)$/.exec(m[3]);
-      if (inner) push({ ...parseAttrs(inner[1]), id: outer.id, value: outer.label ?? '' }, inner[2] === '/' ? '' : inner[3]);
+      if (inner) push({ ...parseAttrs(inner[1]), id: outer.id, value: outer.label ?? '', link: outer.link }, inner[2] === '/' ? '' : inner[3]);
       continue;
     }
     let inside = '';
@@ -883,7 +884,10 @@ function drawCells(cells) {
   const nameOf = (cell) => {
     const labels = [cell, ...(cell.edge ? children.get(cell.id) ?? [] : [])].map((c) => plainLabel(c.value).replace(/\s+/g, ' ').trim());
     const label = labels.find((l) => l !== '') ?? cell.id;
-    return label.length > GROUP_NAME_LENGTH ? `${label.slice(0, GROUP_NAME_LENGTH - 1)}…` : label;
+    const short = label.length > GROUP_NAME_LENGTH ? `${label.slice(0, GROUP_NAME_LENGTH - 1)}…` : label;
+    // The stencil a picture stands for, which the picture itself cannot tell a reader of the board.
+    const tag = cell.vertex ? stencilTag(cell.style, cell.value) : '';
+    return tag ? `${short} [${tag}]` : short;
   };
   const draw = (cell) => {
     const owner = byId.get(cell.parent);
