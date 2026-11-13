@@ -88,20 +88,18 @@ describe('emitMermaid', () => {
     expect(plain.output).not.toContain('direction');
   });
 
-  it('drops the ER direction line where the renderer may not read it, with a warning unless it is the default', async () => {
+  it('drops the ER direction line for the stable Mermaid form, with a warning unless it is the default', async () => {
     const ir = loadFixture('er', 'valid-fk-anchors');
-    for (const [target, options, who] of [['mermaid', { mermaidStable: true }, 'the stable Mermaid form'], ['figjam', {}, 'FigJam']]) {
-      const r = await emit(ir, target, options);
-      expect(r.ok).toBe(true);
-      expect(r.output).not.toContain('direction');
-      const w = r.warnings.filter((x) => x.path === '/direction');
-      expect(w).toHaveLength(1);
-      expect(w[0].message).toContain(`direction "LR" is not written for ${who}`);
-      expect(w[0].message).toContain('top to bottom');
-      const tb = await emit({ ...ir, direction: 'TB' }, target, options);
-      expect(tb.output).not.toContain('direction');
-      expect(tb.warnings.filter((x) => x.path === '/direction')).toEqual([]);
-    }
+    const r = await emit(ir, 'mermaid', { mermaidStable: true });
+    expect(r.ok).toBe(true);
+    expect(r.output).not.toContain('direction');
+    const w = r.warnings.filter((x) => x.path === '/direction');
+    expect(w).toHaveLength(1);
+    expect(w[0].message).toContain('direction "LR" is not written for the stable Mermaid form');
+    expect(w[0].message).toContain('top to bottom');
+    const tb = await emit({ ...ir, direction: 'TB' }, 'mermaid', { mermaidStable: true });
+    expect(tb.output).not.toContain('direction');
+    expect(tb.warnings.filter((x) => x.path === '/direction')).toEqual([]);
   });
 
   it('returns validation errors instead of output for an invalid document', async () => {

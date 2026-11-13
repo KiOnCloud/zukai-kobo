@@ -56,7 +56,22 @@ brainstorm (idea) ─> clarify ┘                                              
   entity-encoded labels, own-line id comments) and `emit-drawio.mjs` (uncompressed mxGraph
   XML; ELK layout through `layout-graph.mjs` for graph-shaped kinds, the fixed grid in
   `layout-sequence.mjs` for sequence diagrams). FigJam reuses the Mermaid emitter with a
-  stricter profile and the agent makes the MCP call.
+  stricter profile and the agent makes the MCP call. What Figma's `generate_diagram` leaves
+  out of a sequence diagram (block frames, notes, self-messages, participant kinds,
+  activation bars) is drawn afterwards by a
+  script that `figjam-overlay.mjs` writes for the Figma tool `use_figma`; it checks the board
+  against the model and changes nothing when they differ.
+  `figjam-native.mjs` is the other way onto a board: it reads the draw.io XML and writes
+  `use_figma` scripts that draw every cell as plain shapes, vector lines and text at the
+  draw.io coordinates, so the layout is not computed twice and class and activity diagrams,
+  which `generate_diagram` rejects, reach FigJam too. The pictograms of draw.io's stencils
+  (AWS services and groups, product logos, the client screen) are data as well:
+  `src/stencil-paths.json`, which `tools/generate-stencil-paths.mjs` makes from draw.io's
+  `stencils.min.js` at the tag of the icon catalog
+  (`node tools/generate-stencil-paths.mjs <path to the downloaded file> [tag]`). It holds, for
+  every stencil name the emitters can write, the paths of the stencil in its own box, arcs
+  already turned into curves; the table is stored Brotli-packed so that the bundle keeps
+  under its size budget, and a script carries only the paths its diagram shows.
 - **The CLI** (`cli.mjs`, bundled by esbuild into the committed `bin/cli.mjs`) exposes
   `validate`, `emit`, `bundle`, `relabel` and `preview`, plus `diff`, `drift`, `snapshot`,
   `revisions` and `restore` for the revise skill, and `help`; it exits 2 on validation errors

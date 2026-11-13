@@ -31,20 +31,21 @@ For each diagram kind, target and feature the value is one of:
 | Feature | mermaid | drawio | figjam |
 |---|---|---|---|
 | kind | supported | supported | supported |
-| `participant.kind.actor` | supported | supported | supported |
+| `participant.kind.actor` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the figure above the actor) |
 | `participant.kind.participant` | supported | supported | supported |
-| `participant.kind.database` | supported | supported | degraded (FigJam sequence diagrams have only actor and participant; rendered as a plain participant) |
-| `participant.kind.boundary` | supported | supported | degraded (FigJam sequence diagrams have only actor and participant; rendered as a plain participant) |
-| `participant.kind.control` | supported | supported | degraded (FigJam sequence diagrams have only actor and participant; rendered as a plain participant) |
-| `participant.kind.entity` | supported | supported | degraded (FigJam sequence diagrams have only actor and participant; rendered as a plain participant) |
+| `participant.kind.database` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it) |
+| `participant.kind.boundary` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it) |
+| `participant.kind.control` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it) |
+| `participant.kind.entity` | supported | supported | degraded (generate_diagram draws every participant as the same box; the overlay script (emit --overlay) adds the kind as a stereotype line, as the draw.io file shows it) |
 | `message.kind.sync` | supported | supported | supported |
 | `message.kind.async` | supported | supported | supported |
 | `message.kind.return` | supported | supported | supported |
-| `block.kind.alt` | supported | supported | supported |
-| `block.kind.opt` | supported | supported | supported |
-| `block.kind.loop` | supported | supported | supported |
-| `block.kind.par` | supported | supported | supported |
-| `note` | supported | supported | degraded (FigJam drops sequence Note statements; the note is left out) |
+| `message.self` | supported | supported | degraded (generate_diagram leaves the row of a message to the same participant empty and a stray arrow beside the diagram; the overlay script (emit --overlay) draws the message) |
+| `block.kind.alt` | supported | supported | degraded (generate_diagram keeps the messages and drops the frame; the overlay script (emit --overlay) draws the frame and its conditions on the board) |
+| `block.kind.opt` | supported | supported | degraded (generate_diagram keeps the messages and drops the frame; the overlay script (emit --overlay) draws the frame and its conditions on the board) |
+| `block.kind.loop` | supported | supported | degraded (generate_diagram keeps the messages and drops the frame; the overlay script (emit --overlay) draws the frame and its conditions on the board) |
+| `block.kind.par` | supported | supported | degraded (generate_diagram keeps the messages and drops the frame; the overlay script (emit --overlay) draws the frame and its conditions on the board) |
+| `note` | supported | supported | degraded (generate_diagram drops Note statements; the note keeps a row and the overlay script (emit --overlay) draws it there) |
 | `message.ref` | supported | supported | supported |
 
 ## state
@@ -80,7 +81,7 @@ For each diagram kind, target and feature the value is one of:
 
 | Feature | mermaid | drawio | figjam |
 |---|---|---|---|
-| kind | supported | supported | unsupported (FigJam generate_diagram does not accept classDiagram; use --to mermaid or --to drawio) |
+| kind | supported | supported | unsupported (FigJam generate_diagram does not accept classDiagram; use --to mermaid or --to drawio, or emit --native to draw the board with use_figma) |
 | `stereotype` | supported | supported | supported |
 | `member.visibility` | supported | supported | supported |
 | `method.params` | supported | supported | supported |
@@ -107,7 +108,7 @@ For each diagram kind, target and feature the value is one of:
 | `boundary` | supported | supported | supported |
 | `boundary.nested` | supported | supported | supported |
 | `connection.label` | degraded (architecture-beta edges have no labels; the label is dropped) | supported | supported |
-| `connection.bidirectional` | supported | supported | degraded (flowchart edges are one-way; the label gains "(both ways)") |
+| `connection.bidirectional` | supported | supported | supported |
 | `component.ref` | supported | supported | supported |
 | `component.icon.aws` | degraded (Mermaid has no AWS icons; each component is drawn with the generic icon or shape of its kind) | supported | degraded (FigJam has no AWS icons; each component is drawn with the shape of its kind) |
 | `boundary.group.aws` | degraded (the AWS group frames are drawn as plain groups) | supported | degraded (the AWS group frames are drawn as plain subgraphs) |
@@ -116,7 +117,7 @@ For each diagram kind, target and feature the value is one of:
 
 | Feature | mermaid | drawio | figjam |
 |---|---|---|---|
-| kind | degraded (Mermaid has no activity diagram; emitted as swimlane-beta (beta syntax, Mermaid 11.16 or newer, rendering of fork and join bars unverified) or, with --mermaid-stable, as a flowchart with subgraphs as lanes) | supported | unsupported (FigJam generate_diagram does not accept swimlane-beta; use --to drawio) |
+| kind | degraded (Mermaid has no activity diagram; emitted as swimlane-beta (beta syntax, Mermaid 11.16 or newer, rendering of fork and join bars unverified) or, with --mermaid-stable, as a flowchart with subgraphs as lanes) | supported | unsupported (FigJam generate_diagram does not accept swimlane-beta; use --to drawio, or emit --native to draw the board with use_figma) |
 | `lane` | supported | supported | supported |
 | `control.kind.initial` | supported | supported | supported |
 | `control.kind.final` | supported | supported | supported |

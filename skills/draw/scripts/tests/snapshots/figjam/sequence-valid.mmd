@@ -11,6 +11,8 @@ sequenceDiagram
   loop until 3 attempts
     %% id: m1
     n1->>n2: Submit credentials
+    %% id: n1
+    n2->>n2: Rate limited per IP
     %% id: m2
     n2->>n3: POST /login
     %% id: m3
@@ -19,8 +21,11 @@ sequenceDiagram
     n4-->>n3: user row
     %% id: m5
     n3->>n3: Verify password hash
+    %% id: n2
+    n3->>n3: Hash: argon2id
     %% id: b1
     alt password matches
+      n1->>n1: …
       %% id: m6
       n3-->>n2: 200 session token
       %% id: m7

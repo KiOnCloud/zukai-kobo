@@ -1,0 +1,114 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="nightly-stock-sync" name="Nightly stock sync">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="nightly-stock-sync:pages" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=135;height=20;" vertex="1" parent="1">
+          <mxGeometry x="16" y="160" width="608" height="646" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:items" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=131;height=20;" vertex="1" parent="1">
+          <mxGeometry x="32" y="450" width="576" height="340" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:known" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=121;height=20;" vertex="1" parent="1">
+          <mxGeometry x="48" y="484" width="544" height="250" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:known:sep-1" value="" style="line;strokeWidth=1;dashed=1;html=1;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="48" y="663" width="544" height="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:changed" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;boundedLbl=1;verticalAlign=top;align=left;spacingLeft=5;width=127;height=20;" vertex="1" parent="1">
+          <mxGeometry x="64" y="518" width="512" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:job" value="&lt;i&gt;«control»&lt;/i&gt;&lt;br&gt;Sync job" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="120" height="786" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:erp" value="&lt;i&gt;«boundary»&lt;/i&gt;&lt;br&gt;ERP" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="260" y="100" width="120" height="786" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:shop" value="&lt;i&gt;«database»&lt;/i&gt;&lt;br&gt;Shop database" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;" vertex="1" parent="1">
+          <mxGeometry x="440" y="100" width="120" height="786" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:act-m1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="nightly-stock-sync:erp">
+          <mxGeometry x="55" y="114" width="10" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:act-m3" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="nightly-stock-sync:shop">
+          <mxGeometry x="55" y="472" width="10" height="126" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:act-m5" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="nightly-stock-sync:shop">
+          <mxGeometry x="55" y="598" width="10" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:act-m5b" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="nightly-stock-sync:shop">
+          <mxGeometry x="55" y="654" width="10" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:n1" value="A page holds at most 500 items. The ERP limits the job to four requests per second, so a full run of 60000 items takes about half a minute of waiting on top of the time the updates take." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;spacingLeft=10;spacingRight=16;" vertex="1" parent="1">
+          <mxGeometry x="332" y="280" width="156" height="164" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:m1" value="GET /stock?page=n" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="nightly-stock-sync:job" target="nightly-stock-sync:erp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="214"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:m2" value="stock page" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="nightly-stock-sync:erp" target="nightly-stock-sync:job">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="254"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:m3" value="UPDATE stock level" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="nightly-stock-sync:job" target="nightly-stock-sync:shop">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="572"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:m4" value="rows updated" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="nightly-stock-sync:shop" target="nightly-stock-sync:job">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="612"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:m5" value="INSERT sync error" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="nightly-stock-sync:job" target="nightly-stock-sync:shop">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="698"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:m5b" value="COMMIT" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="nightly-stock-sync:job" target="nightly-stock-sync:shop">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="754"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:m6" value="Write the run summary" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=716;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=736;entryPerimeter=0;" edge="1" parent="1" source="nightly-stock-sync:job" target="nightly-stock-sync:job">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="816"/>
+              <mxPoint x="190" y="836"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:pages:tab" value="loop for every page" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="17" y="161" width="127" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:items:tab" value="loop for every item" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="33" y="451" width="123" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:known:tab" value="alt item is known" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="49" y="485" width="113" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:known:sep-label-1" value="else item is unknown" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="49" y="653" width="140" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-stock-sync:changed:tab" value="opt level changed" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="65" y="519" width="119" height="18" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

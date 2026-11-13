@@ -13,6 +13,8 @@ sequenceDiagram
   loop up to 3 attempts
     %% id: m2
     n2->>n4: Authorize card payment for the order total
+    %% id: n1
+    n4->>n4: Timeout 10 s
     %% id: m3
     n4-->>n2: authorized
   end

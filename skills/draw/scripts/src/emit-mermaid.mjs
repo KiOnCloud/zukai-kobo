@@ -1,4 +1,5 @@
 import { sameText } from './text-metrics.mjs';
+import { noteRows, labelRowsBefore } from './figjam-overlay.mjs';
 import { encodeLabel, encodeInline, encodeMember, identifierToken, architectureLabel, figjamLabel, safeIds, frontMatter } from './mermaid-text.mjs';
 
 /**
@@ -10,8 +11,9 @@ import { encodeLabel, encodeInline, encodeMember, identifierToken, architectureL
  * Profiles: `mermaid` (default) writes standard Mermaid 12 text with a front matter title
  * (swimlane-beta takes none: the renderer draws it over the lane headers). `figjam` writes
  * the subset Figma's generate_diagram accepts: no front matter, labels with no entity codes,
- * HTML or line breaks, sequence notes dropped, architecture rendered as a flowchart with
- * boundaries as subgraphs.
+ * HTML or line breaks, a sequence note written as a message of its participant to itself (the
+ * row the overlay script of figjam-overlay.mjs draws the note into), architecture rendered as
+ * a flowchart with boundaries as subgraphs.
  * @param {object} ir validated IR
  * @param {{ profile?: 'mermaid' | 'figjam', stable?: boolean, refs?: Map<string, { title: string }> }} [options] `stable` renders activity
  *   diagrams as a plain flowchart instead of swimlane-beta, and leaves out the syntax that
@@ -176,9 +178,18 @@ function emitSequence(ir, emit, t, stable) {
     emit(`  ${keyword} ${head} as ${t.label(p.label, `/participants/${i}/label`)}`);
   });
   const order = new Map(ir.messages.map((m, i) => [m.id, i]));
-  // The figjam profile drops notes (degraded in the matrix, which owns the warning).
-  const notes = t.profile === 'figjam' ? [] : (ir.notes ?? []);
+  const notes = ir.notes ?? [];
+  // An empty row of the figjam text: a message of the first participant to itself, which Figma leaves blank.
+  const padLine = (indent) => `${indent}${ids.get(ir.participants[0].id)}->>${ids.get(ir.participants[0].id)}: …`;
+  const labelRows = t.profile === 'figjam' ? labelRowsBefore(ir) : [];
   const noteLine = (indent, n, i) => {
+    // Figma drops Note statements and gives them no room. A message of the first participant
+    // to itself keeps a row free, into which the overlay script draws the note
+    // (figjam-overlay.mjs); a long note keeps as many rows as its text needs.
+    if (t.profile === 'figjam') {
+      const who = ids.get(n.participants[0]);
+      return [`${indent}${who}->>${who}: ${t.label(n.label, `/notes/${i}/label`)}`, ...Array.from({ length: noteRows(ir, n) - 1 }, () => padLine(indent))].join('\n');
+    }
     const who = n.participants.map((p) => ids.get(p)).join(',');
     const position = n.participants.length === 2 ? 'over' : (n.position ?? 'right');
     const where = position === 'over' ? `over ${who}` : `${position} of ${who}`;
@@ -217,6 +228,8 @@ function emitSequence(ir, emit, t, stable) {
       emit(`${indent()}${keyword[b.kind]} ${t.label(b.sections[0].label, b.sections[0].path)}`);
       depth++;
     }
+    // The label of a block inside another block has no room above its first message.
+    for (let k = 0; k < (labelRows[i] ?? 0); k++) emit(padLine(indent()));
     emit(idComment(indent(), m.id));
     emit(`${indent()}${ids.get(m.from)}${MESSAGE_ARROW[m.kind ?? 'sync']}${ids.get(m.to)}: ${t.withRef(t.label(m.label, `/messages/${i}/label`), m.ref, `/messages/${i}/ref`, m.label)}`);
     notes.forEach((n, ni) => {
@@ -313,7 +326,12 @@ function emitState(ir, emit, t) {
       if (kind === 'initial' || kind === 'final') continue; // rendered as [*] by their transitions
       emit(idComment(indent, id));
       if (isComposite(id)) {
-        emit(`${indent}state "${text(s)}" as ${ids.get(id)} {`);
+        // Figma reads `state "Label" as id {` as a composite named "Label as id" and draws a
+        // second, plain state called by the id; the label and the body go on two lines there.
+        if (t.profile === 'figjam') {
+          emit(`${indent}state "${text(s)}" as ${ids.get(id)}`);
+          emit(`${indent}state ${ids.get(id)} {`);
+        } else emit(`${indent}state "${text(s)}" as ${ids.get(id)} {`);
         emitScope(id, indent + '  ');
         emit(`${indent}}`);
       } else {
@@ -335,11 +353,13 @@ const ER_RIGHT = { one: '||', 'zero-one': 'o|', many: 'o{', 'one-many': '|{' };
 function emitEr(ir, emit, t, stable) {
   const ids = safeIds();
   emit('erDiagram');
-  // erDiagram reads a direction line in current Mermaid; the stable form and FigJam's parser
-  // are not known to, and there the default top-to-bottom layout stands in for another one.
-  if (ir.direction) {
-    if (!stable && t.profile !== 'figjam') emit(`  direction ${ir.direction}`);
-    else if (ir.direction !== 'TB') t.warnings.push({ path: '/direction', message: `direction "${ir.direction}" is not written for ${stable ? 'the stable Mermaid form' : 'FigJam'}: the erDiagram direction line needs a current Mermaid renderer, so the diagram is laid out top to bottom` });
+  // erDiagram reads a direction line in current Mermaid and in Figma; the stable form is not
+  // known to, and there the default top-to-bottom layout stands in for another one. Figma
+  // lays an erDiagram out left to right unless told, so the figjam text always says it.
+  if (t.profile === 'figjam') emit(`  direction ${ir.direction ?? 'TB'}`);
+  else if (ir.direction) {
+    if (!stable) emit(`  direction ${ir.direction}`);
+    else if (ir.direction !== 'TB') t.warnings.push({ path: '/direction', message: `direction "${ir.direction}" is not written for the stable Mermaid form: the erDiagram direction line needs a current Mermaid renderer, so the diagram is laid out top to bottom` });
   }
   ir.entities.forEach((e, i) => {
     ids.add(e.id);
@@ -352,12 +372,17 @@ function emitEr(ir, emit, t, stable) {
     }
     emit(`${head} {`);
     attrs.forEach((a, j) => {
-      const type = identifierToken(a.type, '()\\[\\],~');
+      // Figma's erDiagram parser stops at a comma inside a type ("decimal(10,2)") and rejects the
+      // whole diagram. The type keeps its name there and the full type goes to the comment column.
+      const split = t.profile === 'figjam' && String(a.type).includes(',');
+      const type = split ? identifierToken(String(a.type).replace(/[(<\[].*$/s, '')) : identifierToken(a.type, '()\\[\\],~');
       const name = identifierToken(a.name);
-      if (type.altered) t.warnings.push({ path: `/entities/${i}/attributes/${j}/type`, message: `attribute type "${a.type}" of "${e.id}" was rewritten as "${type.token}" for erDiagram syntax` });
+      if (split) t.warnings.push({ path: `/entities/${i}/attributes/${j}/type`, message: `attribute type "${a.type}" of "${e.id}" has a comma, which FigJam cannot read in a type; written as "${type.token}" with the full type in the comment column` });
+      else if (type.altered) t.warnings.push({ path: `/entities/${i}/attributes/${j}/type`, message: `attribute type "${a.type}" of "${e.id}" was rewritten as "${type.token}" for erDiagram syntax` });
       if (name.altered) t.warnings.push({ path: `/entities/${i}/attributes/${j}/name`, message: `attribute name "${a.name}" of "${e.id}" was rewritten as "${name.token}" for erDiagram syntax` });
       const key = a.key === 'pk' ? ' PK' : a.key === 'fk' ? ' FK' : '';
-      const comment = a.comment ? ` "${t.inline(a.comment, `/entities/${i}/attributes/${j}/comment`)}"` : '';
+      const said = [split ? t.inline(a.type) : '', a.comment ? t.inline(a.comment, `/entities/${i}/attributes/${j}/comment`) : ''].filter(Boolean).join(' - ');
+      const comment = said ? ` "${said}"` : '';
       emit(`    ${type.token} ${name.token}${key}${comment}`);
     });
     emit('  }');
@@ -365,7 +390,9 @@ function emitEr(ir, emit, t, stable) {
   ir.relations.forEach((r, i) => {
     emit(idComment('  ', r.id));
     const link = r.identifying === false ? '..' : '--';
-    emit(`  ${ids.get(r.from)} ${ER_LEFT[r.fromCardinality]}${link}${ER_RIGHT[r.toCardinality]} ${ids.get(r.to)} : "${t.inline(r.label ?? '', `/relations/${i}/label`)}"`);
+    // Figma takes an empty label and draws none, as draw.io does; the label encoder would name it "unnamed".
+    const label = t.profile === 'figjam' && !(r.label ?? '').trim() ? '' : t.inline(r.label ?? '', `/relations/${i}/label`);
+    emit(`  ${ids.get(r.from)} ${ER_LEFT[r.fromCardinality]}${link}${ER_RIGHT[r.toCardinality]} ${ids.get(r.to)} : "${label}"`);
   });
 }
 

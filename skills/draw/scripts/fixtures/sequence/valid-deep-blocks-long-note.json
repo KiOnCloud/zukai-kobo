@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "kind": "sequence",
+  "title": "Nightly stock sync",
+  "participants": [
+    {
+      "id": "job",
+      "label": "Sync job",
+      "kind": "control"
+    },
+    {
+      "id": "erp",
+      "label": "ERP",
+      "kind": "boundary"
+    },
+    {
+      "id": "shop",
+      "label": "Shop database",
+      "kind": "database"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "job",
+      "to": "erp",
+      "label": "GET /stock?page=n",
+      "kind": "sync"
+    },
+    {
+      "id": "m2",
+      "from": "erp",
+      "to": "job",
+      "label": "stock page",
+      "kind": "return"
+    },
+    {
+      "id": "m3",
+      "from": "job",
+      "to": "shop",
+      "label": "UPDATE stock level",
+      "kind": "sync"
+    },
+    {
+      "id": "m4",
+      "from": "shop",
+      "to": "job",
+      "label": "rows updated",
+      "kind": "return"
+    },
+    {
+      "id": "m5",
+      "from": "job",
+      "to": "shop",
+      "label": "INSERT sync error",
+      "kind": "sync"
+    },
+    {
+      "id": "m5b",
+      "from": "job",
+      "to": "shop",
+      "label": "COMMIT",
+      "kind": "sync"
+    },
+    {
+      "id": "m6",
+      "from": "job",
+      "to": "job",
+      "label": "Write the run summary",
+      "kind": "sync"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "pages",
+      "kind": "loop",
+      "label": "for every page",
+      "messages": [
+        "m1",
+        "m2",
+        "m3",
+        "m4",
+        "m5",
+        "m5b"
+      ]
+    },
+    {
+      "id": "items",
+      "kind": "loop",
+      "label": "for every item",
+      "messages": [
+        "m3",
+        "m4",
+        "m5",
+        "m5b"
+      ]
+    },
+    {
+      "id": "known",
+      "kind": "alt",
+      "label": "item is known",
+      "messages": [
+        "m3",
+        "m4"
+      ],
+      "branches": [
+        {
+          "label": "item is unknown",
+          "messages": [
+            "m5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "changed",
+      "kind": "opt",
+      "label": "level changed",
+      "messages": [
+        "m3",
+        "m4"
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "id": "n1",
+      "label": "A page holds at most 500 items. The ERP limits the job to four requests per second, so a full run of 60000 items takes about half a minute of waiting on top of the time the updates take.",
+      "participants": [
+        "erp"
+      ],
+      "position": "right",
+      "after": "m2"
+    }
+  ]
+}

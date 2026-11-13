@@ -1,4 +1,5 @@
 erDiagram
+  direction TB
   %% id: customer
   n1["Customer"] {
     uuid id PK
@@ -10,7 +11,7 @@ erDiagram
     uuid id PK
     uuid customer_id FK
     string status
-    decimal(10,2) total
+    decimal total "decimal(10,2)"
   }
   %% id: order-line
   n3["Order line"] {
@@ -33,4 +34,4 @@ erDiagram
   %% id: r3
   n4 ||--o{ n3 : "appears in"
   %% id: r4
-  n2 |o..o{ n5 : "unnamed"
+  n2 |o..o{ n5 : ""
