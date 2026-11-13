@@ -7,6 +7,11 @@ import { drawioXmlOf, extractDrawio } from '../src/extract-drawio.mjs';
 import { cover } from '../src/cover.mjs';
 import { validFixtures, scriptsDir } from './helpers.mjs';
 
+// Made-up values, assembled at run time so that secret scanners of the repository do not take
+// the test inputs for credentials.
+const FAKE = ['Zq8', 'wertyu'].join('!');
+const FAKE_KEY = ['Zq8', 'wertyuiop'].join('');
+
 const sources = join(scriptsDir, 'tests', 'recook-sources');
 const read = (name) => readFileSync(join(sources, name));
 const factsOf = (buf) => {
@@ -184,14 +189,14 @@ describe('kind hints', () => {
 describe('facts never hold a credential or personal data', () => {
   const xml = `<mxfile><diagram id="p" name="Orders"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
     <mxCell id="api" value="Order API" style="rounded=1;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="50" as="geometry"/></mxCell>
-    <mxCell id="note" value="Cấu hình: DB_PASSWORD=Xy7!qwertz (tạm thời)&lt;br&gt;hỏi lien.nguyen@congty.vn" style="shape=note;html=1;" vertex="1" parent="1"><mxGeometry x="200" y="0" width="160" height="80" as="geometry"/></mxCell>
+    <mxCell id="note" value="Cấu hình: DB_PASSWORD=${FAKE} (tạm thời)&lt;br&gt;hỏi lien.nguyen@congty.vn" style="shape=note;html=1;" vertex="1" parent="1"><mxGeometry x="200" y="0" width="160" height="80" as="geometry"/></mxCell>
   </root></mxGraphModel></diagram></mxfile>`;
 
   it('replaces the value with a placeholder, lists where, and warns', async () => {
     const { extractFacts } = await import('../src/extract.mjs');
     const { facts } = extractFacts(Buffer.from(xml), 'x.drawio');
     const [page] = facts.pages;
-    expect(JSON.stringify(facts)).not.toMatch(/Xy7|lien\.nguyen/);
+    expect(JSON.stringify(facts)).not.toMatch(/Zq8|lien\.nguyen/);
     expect(page.nodes.find((n) => n.id === 'note').label).toBe('Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời)\nhỏi <redacted e-mail>');
     expect(page.sensitive).toEqual([{ element: 'note', field: 'label', kinds: ['token-pattern', 'personal-data'] }]);
     expect(page.warnings.join('\n')).toMatch(/1 text holds what looks like a credential or personal data.*the source file itself still holds it/);

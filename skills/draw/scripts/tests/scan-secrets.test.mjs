@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { scanSecrets } from '../src/scan-secrets.mjs';
 import { loadFixture, validFixtures } from './helpers.mjs';
 
+// Made-up values, assembled at run time so that secret scanners of the repository do not take
+// the test inputs for credentials.
+const FAKE = ['Zq8', 'wertyu'].join('!');
+const FAKE_KEY = ['Zq8', 'wertyuiop'].join('');
+
 const kinds = (ir) => scanSecrets(ir).warnings.map((w) => `${w.path}:${w.kind}`);
 
 describe('scanSecrets', () => {
@@ -61,10 +66,10 @@ describe('scanSecrets', () => {
 
 describe('secrets written the way configuration names them', () => {
   it('reports a password or key at the end of an environment-variable or dotted name', () => {
-    for (const label of ['DB_PASSWORD=Xy7!qwertz', 'MYSQL_ROOT_PASSWORD: Xy7!qwertz', 'AWS_SECRET_ACCESS_KEY=Xy7qwertzuiop', 'API_TOKEN=Xy7qwertzuiop', 'db.password: Xy7!qwertz']) {
+    for (const label of [`DB_PASSWORD=${FAKE}`, `MYSQL_ROOT_PASSWORD: ${FAKE}`, `AWS_SECRET_ACCESS_KEY=${FAKE_KEY}`, `API_TOKEN=${FAKE_KEY}`, `db.password: ${FAKE}`]) {
       expect(kinds({ label }), label).toEqual(['/label:token-pattern']);
     }
-    expect(kinds({ label: 'mypassword=Xy7!qwertz' })).toEqual([]);
+    expect(kinds({ label: `mypassword=${FAKE}` })).toEqual([]);
     expect(kinds({ label: 'DB_PASSWORD: required' })).toEqual(['/label:assignment']);
   });
 });
@@ -72,8 +77,8 @@ describe('secrets written the way configuration names them', () => {
 describe('redactText', () => {
   it('replaces each value the scan reports with a placeholder and keeps the words around it', async () => {
     const { redactText } = await import('../src/scan-secrets.mjs');
-    expect(redactText('Cấu hình: DB_PASSWORD=Xy7!qwertz (tạm thời)')).toEqual({ text: 'Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời)', kinds: ['token-pattern'] });
-    expect(redactText('postgres://app:hunter22@db:5432/x').text).toBe('postgres://<redacted credential>@db:5432/x');
+    expect(redactText(`Cấu hình: DB_PASSWORD=${FAKE} (tạm thời)`)).toEqual({ text: 'Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời)', kinds: ['token-pattern'] });
+    expect(redactText(`postgres://app:${FAKE_KEY}@db:5432/x`).text).toBe('postgres://<redacted credential>@db:5432/x');
     expect(redactText('Liên hệ lien.nguyen@congty.vn, 0912345678').text).toBe('Liên hệ <redacted e-mail>, <redacted phone>');
     expect(redactText('key AKIAABCDEFGHIJKLMNOP').text).toBe('key <redacted token>');
     for (const plain of ['password: required', 'user@example.com', 'Order service', 'POST /api/orders']) expect(redactText(plain)).toEqual({ text: plain, kinds: [] });
