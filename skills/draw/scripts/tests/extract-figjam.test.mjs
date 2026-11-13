@@ -219,4 +219,35 @@ describe('FigJam reader script', () => {
     expect(state.kindHints[0].kind).toBe('state');
     expect(state.nodes.map((n) => n.shape)).toEqual(expect.arrayContaining(['initial', 'final']));
   });
+
+  it('reads the ends of drawn lines on fresh reads of native sections: arrowheads, ER ends, multiplicities, branches', () => {
+    const read = (name) => extractFacts(readFileSync(join(scriptsDir, 'tests', 'recook-sources', 'figjam-native', name)), 'board.json').facts;
+    const seqFacts = read('sequence-18-444.json');
+    const seq = seqFacts.pages[0];
+    const label = (id) => seq.nodes.find((n) => n.id === id)?.label.split('\n').pop();
+    const msg = (text) => seq.edges.find((e) => e.label === text);
+    expect(msg('POST /login')).toMatchObject({ endArrow: 'block' });
+    expect(msg('user row')).toMatchObject({ endArrow: 'open', dashed: true });
+    expect(msg('Audit login attempt').endArrow).toBe('open');
+    expect(msg('Audit login attempt').dashed).toBeUndefined();
+    const self = msg('Verify password hash');
+    expect([label(self.from), label(self.to)]).toEqual(['Auth service', 'Auth service']);
+    expect(seq.nodes.find((n) => n.shape === 'frame' && n.label === 'alt password matches').detail).toBe('"else password wrong" from y 469');
+    expect(cover(seqFacts, [{ name: 'login', ir: loadFixture('sequence', 'valid') }]).missing).toEqual([]);
+
+    const erFacts = read('er-17-444.json');
+    const er = erFacts.pages[0];
+    const rel = (text) => er.edges.find((e) => e.label === text);
+    expect(er.kindHints[0].kind).toBe('er');
+    expect(rel('places')).toMatchObject({ startArrow: 'ERmandOne', endArrow: 'ERzeroToMany' });
+    expect(rel('contains')).toMatchObject({ startArrow: 'ERmandOne', endArrow: 'ERoneToMany' });
+    expect(rel('appears in')).toMatchObject({ startArrow: 'ERmandOne', endArrow: 'ERzeroToMany' });
+    expect(cover(erFacts, [{ name: 'er', ir: loadFixture('er', 'valid') }]).missing).toEqual([]);
+
+    // A class composition on the older page read: the diamond, and each multiplicity at its end.
+    const dir = join(scriptsDir, 'tests', 'recook-sources', 'figjam-page');
+    const page = extractBoards([1, 2, 3].map((i) => readFileSync(join(dir, `board-${i}.json`)))).facts.pages.find((p) => p.name === 'Order domain (native)');
+    expect(page.edges.find((e) => e.label === 'lines')).toMatchObject({ startArrow: 'diamond', startLabel: '1', endLabel: '1..*' });
+    expect(page.edges.filter((e) => e.endArrow === 'block-open')).toHaveLength(2);
+  });
 });

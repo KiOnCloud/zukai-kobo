@@ -60,6 +60,12 @@ const PERSONAL = [
 const PLACEHOLDER_MAIL = /@(?:example\.(?:com|org|net)|[\w.-]+\.(?:example|test|invalid|localhost))$|^(?:user|name|email|someone|xxx+)@/i;
 
 const TOKEN_RE = /[A-Za-z0-9+/=_-]{20,}/g;
+/**
+ * The link of a Figma file or board: its key is random-looking but is no secret (opening the
+ * file still needs the owner's sharing), and a recooked IR records the board it came from.
+ */
+const SHARE_LINK = /\bhttps?:\/\/(?:www\.)?figma\.com\/(?:board|design|file|proto|slides|make)\/[A-Za-z0-9]{16,}[^\s"'<>]*/g;
+const withoutShareLinks = (value) => value.replace(SHARE_LINK, ' ');
 const HEX_RE = /\b[0-9a-f]{32,}\b/i;
 const ENTROPY_THRESHOLD = 4.2;
 
@@ -137,12 +143,12 @@ export function scanSecrets(ir) {
       break;
     }
     if (flagged) continue;
-    const hex = value.match(HEX_RE);
+    const hex = withoutShareLinks(value).match(HEX_RE);
     if (hex) {
       warnings.push({ path, kind: 'high-entropy', message: `long hexadecimal string (${preview(hex[0])}) looks like a key or hash; confirm it is not a secret` });
       continue;
     }
-    for (const m of value.matchAll(TOKEN_RE)) {
+    for (const m of withoutShareLinks(value).matchAll(TOKEN_RE)) {
       if (looksRandom(m[0])) {
         warnings.push({ path, kind: 'high-entropy', message: `high-entropy string (${preview(m[0])}) looks like a token; confirm it is not a secret` });
         break;
@@ -180,9 +186,11 @@ export function redactText(value) {
     const mail = p.what === 'e-mail address';
     replace(p.re, (m) => (mail && PLACEHOLDER_MAIL.test(m) ? m : mail ? '<redacted e-mail>' : '<redacted phone>'), 'personal-data');
   }
-  replace(HEX_RE, () => '<redacted value>', 'high-entropy');
+  const links = new Set(text.match(SHARE_LINK) ?? []);
+  const inLink = (m) => [...links].some((l) => l.includes(m));
+  replace(HEX_RE, (m) => (inLink(m) ? m : '<redacted value>'), 'high-entropy');
   text = text.replace(TOKEN_RE, (m) => {
-    if (!looksRandom(m)) return m;
+    if (!looksRandom(m) || inLink(m)) return m;
     kinds.push('high-entropy');
     return '<redacted value>';
   });

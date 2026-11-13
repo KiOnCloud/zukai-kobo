@@ -76,7 +76,14 @@ const walk = (n, parent) => {
       else if (c.vectorNetwork && c.vectorNetwork.vertices.length > 1) {
         const v = c.vectorNetwork.vertices;
         o.ends = [apply(t, v[0].x, v[0].y), apply(t, v[v.length - 1].x, v[v.length - 1].y)];
+        if (c.width <= 30 && c.height <= 30) o.nv = v.length;
       }
+      // Whether the stroke closes on itself and is filled: a filled triangle, an open chevron
+      // and a hollow triangle are three different arrowheads.
+      try {
+        if (c.type === 'VECTOR' && c.vectorPaths && c.vectorPaths.some((p) => /z/i.test(p.data))) o.closed = 1;
+        if (Array.isArray(c.fills) && c.fills.some((f) => f.visible !== false && (f.opacity === undefined || f.opacity > 0))) o.filled = 1;
+      } catch (e) { /* a property this node does not have */ }
     }
     if (c.type === 'TABLE') {
       o.rows = [];
@@ -187,7 +194,11 @@ export function extractFigjamBoard(board) {
         const texts = kids.filter((k) => k.type === 'TEXT' && k.text).sort(byPlace);
         const drawn = drawnKind(kids);
         if (drawn.edge) {
-          edges.push({ id: n.id, label: lines(texts.map((t) => t.text).join('\n')), ends: drawn.edge.ends, dashed: drawn.edge.dashed === 1, endArrow: drawn.arrow ? 'classic' : 'none', drawing: true });
+          edges.push({
+            id: n.id, label: lines(drawn.labelTexts.sort(byPlace).map((t) => t.text).join('\n')), ends: drawn.edge.ends, dashed: drawn.edge.dashed === 1,
+            startArrow: drawn.startArrow ?? 'none', endArrow: drawn.endArrow ?? 'none', drawing: true,
+            ...(drawn.startTexts ? { startLabel: lines(drawn.startTexts.join('\n')) } : {}), ...(drawn.endTexts ? { endLabel: lines(drawn.endTexts.join('\n')) } : {}),
+          });
           continue;
         }
         if (drawn.pictogram) { pictograms.push({ id: n.id, box: n.box }); continue; }
@@ -279,8 +290,11 @@ export function extractFigjamBoard(board) {
   for (const f of nodes.filter((m) => m.shape === 'frame' && m.heads && !owner.has(m.id))) {
     for (const b of nodes.filter((m) => m.shape === 'box' && m.label && !owner.has(m.id) && Math.abs(m.box.x - f.box.x) <= 4 && m.box.y >= f.box.y - 4 && m.box.y < f.box.y + f.box.h)) {
       if (!f.label && Math.abs(b.box.y - f.box.y) <= 4 && /^(loop|alt|opt|par|critical|break|neg|ref)\b/i.test(b.label)) f.label = b.label;
-      else if (/^(else|and)\b/i.test(b.label)) (f.texts ??= []).push(b.label);
-      else continue;
+      else if (/^(else|and)\b/i.test(b.label)) {
+        (f.texts ??= []).push(b.label);
+        // Where the branch starts, to set against the y of the messages.
+        f.detail = `${f.detail ? `${f.detail}; ` : ''}"${b.label}" from y ${Math.round(b.box.y)}`;
+      } else continue;
       owner.set(b.id, f.id);
     }
   }
@@ -320,7 +334,7 @@ export function extractFigjamBoard(board) {
     const near = (p) => kept.filter((m) => m.shape !== 'text' && inside({ x, y }, m.box, p));
     // A shape near the end wins over the frame around it; a drawn line may stop farther from
     // its shape (a UML end marker), so look a little wider before settling on a frame.
-    return smallest(near(pad).filter((m) => !FRAMES.has(m.shape))) ?? (pad === DRAWN_NEAR ? smallest(near(2 * pad).filter((m) => !FRAMES.has(m.shape))) : undefined) ?? smallest(near(pad));
+    return smallest(near(0).filter((m) => !FRAMES.has(m.shape))) ?? smallest(near(pad).filter((m) => !FRAMES.has(m.shape))) ?? (pad === DRAWN_NEAR ? smallest(near(2 * pad).filter((m) => !FRAMES.has(m.shape))) : undefined) ?? smallest(near(pad));
   };
   let loose = 0;
   // A plain line from one border of a frame to the other divides it (the branches of a block).
@@ -349,6 +363,8 @@ export function extractFigjamBoard(board) {
     if (toInferred) edge.toInferred = true;
     if (e.dashed) edge.dashed = true;
     if (e.startArrow && e.startArrow !== 'none') edge.startArrow = e.startArrow;
+    if (e.startLabel) edge.startLabel = e.startLabel;
+    if (e.endLabel) edge.endLabel = e.endLabel;
     edge.endArrow = e.endArrow ?? 'none';
     const a = kept.find((m) => m.id === edge.from)?.box;
     const b = kept.find((m) => m.id === edge.to)?.box;
@@ -474,8 +490,9 @@ function drawnKind(kids) {
   const arrow = line && strokes.some((k) => k !== line && small(k));
   // A picture with its name written under it (a client screen) is not a line with a label.
   const caption = texts.length > 0 && strokes.length > 0 && texts.every((t) => strokes.every((k) => t.box.y >= k.box.y + k.box.h - 2));
-  if (line && !caption && rects.every((r) => r.box.h <= LABEL_BACK) && ellipses.length === 0 && ((main && dist(main.ends) >= 20) || arrow)) {
-    return { edge: line, arrow };
+  const tinyEllipses = ellipses.every((e) => e.box.w <= 10 && e.box.h <= 10);
+  if (line && !caption && rects.every((r) => r.box.h <= LABEL_BACK) && tinyEllipses && ((main && dist(main.ends) >= 20) || arrow)) {
+    return { edge: line, arrow, ...edgeEnds(line, [...strokes.filter((k) => k !== line && small(k)), ...ellipses], texts) };
   }
   if (texts.length === 0 && rects.length === 0 && ellipses.length >= 1 && ellipses.every((e) => e.box.w <= 40)) {
     if (strokes.length > 0) return { pictogram: true };
@@ -509,6 +526,67 @@ function drawnKind(kids) {
     return { shape: 'io' };
   }
   return { shape: 'text' };
+}
+
+/**
+ * The ends of a drawn line: which marker sits at each end, read from its size and form, and
+ * which texts stand at an end (a multiplicity, a role) rather than along the line. A marker
+ * near the start end is the start arrow. Without the closed / filled marks of the reader
+ * (an older read), an arrowhead is `classic`.
+ */
+function edgeEnds(line, markers, texts) {
+  const [a, b] = line.ends;
+  const centre = (k) => [k.box.x + k.box.w / 2, k.box.y + k.box.h / 2];
+  const near = (k, p) => dist([centre(k), p]);
+  const at = { start: [], end: [] };
+  for (const m of markers) at[near(m, a) < near(m, b) ? 'start' : 'end'].push(m);
+  // How far a marker reaches along the line where it sits: a bar across the line reaches
+  // little, a crow's foot as far as it is wide. The line's last stretch runs from its end
+  // to the marker, which gives the direction even on a bent route.
+  const along = (k) => {
+    const c = centre(k);
+    const end = near(k, a) < near(k, b) ? a : b;
+    const d = dist([end, c]) || 1;
+    return k.box.w * Math.abs(c[0] - end[0]) / d + k.box.h * Math.abs(c[1] - end[1]) / d;
+  };
+  const tiny = (k) => k.type !== 'ELLIPSE' && Math.max(k.box.w, k.box.h) <= 10;
+  // An ER relation shows a circle or a bar at one end at least.
+  const er = markers.some((k) => k.type === 'ELLIPSE' || (tiny(k) && along(k) <= 5));
+  const name = (list) => {
+    if (list.length === 0) return undefined;
+    const ellipse = list.some((k) => k.type === 'ELLIPSE');
+    const strokes = list.filter((k) => k.type !== 'ELLIPSE');
+    if (er && list.every((k) => k.type === 'ELLIPSE' || tiny(k))) {
+      // A circle is zero; a marker reaching along the line is a crow's foot (many), else one.
+      const many = strokes.some((k) => along(k) >= 6);
+      if (ellipse) return many ? 'ERzeroToMany' : 'ERzeroToOne';
+      return many ? 'ERoneToMany' : 'ERmandOne';
+    }
+    const m = strokes.sort((x, y) => diag(y.box) - diag(x.box))[0];
+    if (!m) return undefined;
+    const long = Math.max(m.box.w, m.box.h) / Math.max(1, Math.min(m.box.w, m.box.h));
+    // A read that counted vertices (`nv`) also marks every closed and filled stroke, so a
+    // missing mark there means open or hollow; an older read says neither.
+    const marked = m.nv !== undefined || m.closed !== undefined || m.filled !== undefined;
+    if (Math.max(m.box.w, m.box.h) > 12) {
+      if (long >= 1.4) return !marked || m.filled === 1 ? 'diamond' : 'diamond-open';
+      return m.filled === 1 ? 'block' : 'block-open';
+    }
+    if (!marked) return 'classic';
+    return m.closed === 1 ? 'block' : 'open';
+  };
+  const out = { startArrow: name(at.start), endArrow: name(at.end) };
+  // A text close to an end belongs to that end; the others are the label.
+  const label = [];
+  for (const t of texts) {
+    const da = near(t, a);
+    const db = near(t, b);
+    const d = Math.min(da, db);
+    if (d <= 36 && d < 0.25 * dist(line.ends)) (da < db ? (out.startTexts ??= []) : (out.endTexts ??= [])).push(t.text);
+    else label.push(t);
+  }
+  out.labelTexts = label;
+  return out;
 }
 
 /**

@@ -79,3 +79,13 @@ describe('redactText', () => {
     for (const plain of ['password: required', 'user@example.com', 'Order service', 'POST /api/orders']) expect(redactText(plain)).toEqual({ text: plain, kinds: [] });
   });
 });
+
+describe('share links', () => {
+  it('does not take the key of a Figma board link for a token, but still reports a token beside it', async () => {
+    const { redactText } = await import('../src/scan-secrets.mjs');
+    const note = 'recooked from https://www.figma.com/board/45AQFIpbiwRlA0biqsBxCY/Zukai-test?node-id=18-444, page "Login"';
+    expect(kinds({ meta: { notes: [note] } })).toEqual([]);
+    expect(redactText(note)).toEqual({ text: note, kinds: [] });
+    expect(kinds({ label: `${note} key Zx9Qw3Lp7Rt2Vb8Nm4Kd6Hs1` })).toEqual(['/label:high-entropy']);
+  });
+});

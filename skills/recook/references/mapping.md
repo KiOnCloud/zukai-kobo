@@ -47,6 +47,10 @@ overlay's frames into `frame` nodes. A message to itself comes as two or three u
 edges from a lifeline to the same lifeline (joined by position) with a free `text` beside
 them: that text is the label of one self-message.
 
+On a board drawn by `emit --native`, a frame's `detail` gives where each further branch
+starts (`"else password wrong" from y 469`): the messages whose `y` is below it belong to that
+branch. A message to itself is one edge from a lifeline to the same lifeline with its label.
+
 A `critical`, `break` or `rect` frame has no block kind: keep its messages, list the frame in
 `meta.omitted`.
 
@@ -95,6 +99,7 @@ is the only one; otherwise list it in `meta.omitted`.
 | edge between tables | `relations[]`; `fromPart` / `toPart` name the attributes (`fromAttribute`, `toAttribute`); `dashed` means not identifying |
 | crow's-foot ends | `ERmandOne`, `ERone` → `one`; `ERzeroToOne` → `zero-one`; `ERoneToMany` → `one-many`; `ERzeroToMany`, `ERmany` → `many` |
 | end texts `1`, `0..1`, `0..*`, `1..*` | the same four values; the texts themselves need no `meta.omitted` entry |
+| ends read from a board drawn as shapes | a circle is read as zero and a marker reaching along the line as many; on a slanted stretch "one" and "many" look alike, so check those ends against the picture or ask |
 
 ## class
 
@@ -111,7 +116,7 @@ is the only one; otherwise list it in `meta.omitted`.
 | Facts | IR |
 |---|---|
 | `icon` with `aws:` / `gcp:` | a component with that `icon` (copy it; never rename it from memory) and the `kind` its service is (`database` for a database or storage icon, `queue`, `cache`, else `service`) |
-| `icon` with `drawio:` | a component without `icon`, of the kind its label says (`client` for a browser or an app, else `service`); list the lost stencil in the report; `drawio:unknown` is a picture on a board whose stencil is not named |
+| `icon` with `drawio:` | a component of the kind its label says (`client` for a browser or an app, else `service`); `drawio:unknown` is a picture on a board whose stencil is not named. When the diagram is an AWS one (the draw skill's "AWS icons" applies) and the label names the service ("SQS orders", "Aurora PostgreSQL"), take its icon from `aws-icons.md` by that name and record `added: icon aws:<name> from the label`; a label that names no service ("Fulfilment worker") keeps no icon, and the report lists it |
 | `store` | `database`; `queue`, `detail: hexagon` → `queue` |
 | `client`, `actor` | `client` |
 | `cloud`, a component outside every boundary that the system calls | `external` |

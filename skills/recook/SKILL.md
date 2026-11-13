@@ -65,8 +65,10 @@ The facts are what the run keeps of it, with such values already replaced by pla
    project. When the user wants only some pages of a source with several ("only the
    sequence"), add `--page <id or name>[,...]` with the pages the facts name; when that is
    unclear, extract without it, show the pages, ask which, and extract again with `--page`.
-2. A FigJam board: it needs a Figma tool named `use_figma` (see `<draw-dir>/references/target-figjam.md`
-   for loading the Figma tools and the skills it names). Take the file key and the section
+2. A FigJam board: it needs a Figma tool named `use_figma`. Load it (a deferred tool is
+   loaded first), call the server's `create_session` once with the file key when it offers
+   one, and read the `figma-use` skill (or its resource `skill://figma/figma-use/SKILL.md`)
+   before the first call, as `<draw-dir>/references/target-figjam.md` says for its own scripts. Take the file key and the section
    from the link (`node-id=1-2` is node `1:2`, which `--section` takes as it is, like a
    section name), then:
    `extract --figjam-script <tmp>/read-board.js [--section "<name or 1:2>"]`, run that file's
@@ -87,7 +89,9 @@ The facts are what the run keeps of it, with such values already replaced by pla
    lists the pages, so choose from that list (or ask) and extract again.
 4. Make the run folder as the closing contract names it, `diagrams/<yyyymmdd>_<run-slug>/`,
    with a short English kebab-case slug of what the source shows (`order-system`,
-   `refund-gateway-call`). Every recook is a new run: when that folder already holds another
+   `refund-gateway-call`). A facts page without a name (a diagram on a board page outside
+   any section) gets its title from what it shows, in the user's language, recorded as an
+   `added:` note. Every recook is a new run: when that folder already holds another
    run, take another slug. Move the facts to `<run>/source/<run-slug>.facts.json`.
 
 Then tell the user what was read, in a few lines: the source, each page with its name, its
