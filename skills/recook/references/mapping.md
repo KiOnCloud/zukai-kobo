@@ -107,7 +107,7 @@ is the only one; otherwise list it in `meta.omitted`.
 | Facts | IR |
 |---|---|
 | `icon` with `aws:` / `gcp:` | a component with that `icon` (copy it; never rename it from memory) and the `kind` its service is (`database` for a database or storage icon, `queue`, `cache`, else `service`) |
-| `icon` with `drawio:` | a component without `icon`, of the kind its label says; list the lost stencil in the report |
+| `icon` with `drawio:` | a component without `icon`, of the kind its label says (`client` for a browser or an app, else `service`); list the lost stencil in the report; `drawio:unknown` is a picture on a board whose stencil is not named |
 | `store` | `database`; `queue`, `detail: hexagon` → `queue` |
 | `client`, `actor` | `client` |
 | `cloud`, a component outside every boundary that the system calls | `external` |
@@ -129,7 +129,11 @@ connections, ordered by the path of the request from the client along the edges,
 step numbers the labels carry. `y` is not an order here: on an architecture page it is only
 where a line was drawn. A connection that fits no place in that order (a side read, a call to
 an outside system with no step) stays in the architecture diagram only, and the report says
-so. Add no reply the source does not draw.
+so. Add no reply the source does not draw. When the source draws the client, the first message
+comes from it; an unnumbered call goes where the path of the request reaches its caller,
+before the numbered steps that follow from there. A dashed connection of an architecture
+diagram means asynchronous (as its legend usually says): it becomes an `async` message,
+never a `return`.
 
 ## Mixed pages
 

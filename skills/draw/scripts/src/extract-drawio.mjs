@@ -233,21 +233,7 @@ function extractPage(id, name, pageXml) {
 
   // Sibling containers of one size that touch are lanes.
   const containers = [...vertices.values()].filter((v) => v.shape === 'container' && !owner.has(v.cell.id));
-  const bySiblings = Map.groupBy(containers, (v) => v.cell.parent);
-  for (const group of bySiblings.values()) {
-    if (group.length < 2) continue;
-    for (const axis of ['x', 'y']) {
-      const size = axis === 'x' ? 'h' : 'w';
-      const along = axis === 'x' ? 'w' : 'h';
-      const sorted = [...group].sort((a, b) => a.box[axis] - b.box[axis]);
-      for (let i = 0; i < sorted.length; i++) {
-        let j = i;
-        while (j + 1 < sorted.length && Math.abs(sorted[j + 1].box[size] - sorted[i].box[size]) <= 2 && Math.abs(sorted[j + 1].box[axis] - (sorted[j].box[axis] + sorted[j].box[along])) <= 2) j++;
-        if (j > i) for (let k = i; k <= j; k++) sorted[k].shape = 'lane';
-        i = j;
-      }
-    }
-  }
+  markLanes(containers, (v) => v.cell.parent);
 
   // A single frame with a header that holds nearly every step of the page is a lane too
   // (an activity diagram of one actor); a frame that holds a few of them is a group.
@@ -341,6 +327,29 @@ function extractPage(id, name, pageXml) {
   return { id, name, kindHints: kindHints(nodes, edges), nodes, edges, warnings };
 }
 
+/**
+ * Mark as lanes the frames that stand side by side or one above the other, touching, with
+ * the same height (or width) and the same parent: the lanes of a pool or of an activity
+ * diagram. A frame alone, or frames of different sizes, are groups.
+ * @param {Array<{ shape: string, box: { x: number, y: number, w: number, h: number } }>} frames
+ */
+export function markLanes(frames, parentOf) {
+  for (const group of Map.groupBy(frames, parentOf).values()) {
+    if (group.length < 2) continue;
+    for (const axis of ['x', 'y']) {
+      const size = axis === 'x' ? 'h' : 'w';
+      const along = axis === 'x' ? 'w' : 'h';
+      const sorted = [...group].sort((a, b) => a.box[axis] - b.box[axis]);
+      for (let i = 0; i < sorted.length; i++) {
+        let j = i;
+        while (j + 1 < sorted.length && Math.abs(sorted[j + 1].box[size] - sorted[i].box[size]) <= 2 && Math.abs(sorted[j + 1].box[axis] - (sorted[j].box[axis] + sorted[j].box[along])) <= 2) j++;
+        if (j > i) for (let k = i; k <= j; k++) sorted[k].shape = 'lane';
+        i = j;
+      }
+    }
+  }
+}
+
 const roundBox = (b) => ({ x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.w), h: Math.round(b.h) });
 
 /** An arrow end in draw.io's words; an unfilled triangle or diamond says so. */
@@ -364,7 +373,7 @@ export function kindHints(nodes, edges) {
     entry.evidence.push(evidence);
     scores.set(kind, entry);
   };
-  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const plural = (n, word) => `${n} ${n === 1 ? word : /(x|s|ch|sh)$/.test(word) ? `${word}es` : /[^aeiou]y$/.test(word) ? `${word.slice(0, -1)}ies` : `${word}s`}`;
 
   const lifelines = of('lifeline');
   if (lifelines >= 2) add('sequence', 10 * lifelines, plural(lifelines, 'lifeline'));

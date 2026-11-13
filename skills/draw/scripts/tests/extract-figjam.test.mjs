@@ -61,6 +61,7 @@ describe('FigJam reader script', () => {
     expect(result.section).toBeNull();
     expect(result.nodes.map((n) => n.id)).toContain('2:1');
     await expect(run(fakeFigma('Board', board()), { section: 'Nope' })).rejects.toThrow(/no section named "Nope".*sections: Checkout/);
+    expect((await run(fakeFigma('Board', board()), { section: '1:1' })).section).toBe('Checkout');
   });
 
   it('returns a board too large for one tool result in parts under the limit, which join back into one board', async () => {
@@ -178,5 +179,44 @@ describe('FigJam reader script', () => {
     // The self-message drawn as three segments joins the Auth service to itself, by position.
     expect(page.edges.filter((e) => !e.label).every((e) => e.from === byId['Auth service'] && e.to === byId['Auth service'] && e.fromInferred)).toBe(true);
     expect(cover(r.facts, [{ name: 'login', ir: loadFixture('sequence', 'valid') }])).toMatchObject({ ok: true, units: 21 });
+  });
+
+  it('reads a whole real page in three parts: 19 diagrams, each with its kind, the native ones read back from their groups', () => {
+    // Read with the reader script from the FigJam test board: the diagrams generate_diagram
+    // drew on the page and the sections emit --native drew from the repository fixtures.
+    const dir = join(scriptsDir, 'tests', 'recook-sources', 'figjam-page');
+    const r = extractBoards([1, 2, 3].map((i) => readFileSync(join(dir, `board-${i}.json`))));
+    expect(r.ok).toBe(true);
+    const pages = r.facts.pages;
+    expect(pages).toHaveLength(19);
+    const kind = (name) => pages.find((p) => p.name === name).kindHints[0].kind;
+    expect(kind('Order checkout (native)')).toBe('flowchart');
+    expect(kind('Order domain (native)')).toBe('class');
+    expect(kind('Return request (native)')).toBe('activity');
+    expect(kind('Order data model (native)')).toBe('er');
+    expect(kind('Login with password (native)')).toBe('sequence');
+    expect(kind('Order lifecycle (native)')).toBe('state');
+    expect(kind('Order platform on AWS (native)')).toBe('architecture');
+    expect(kind('Order fulfilment (native)')).toBe('activity');
+    // Every text the source model holds is found again (only the section title, which says "(native)", is extra).
+    for (const [name, k, fixture] of [['Order checkout (native)', 'flowchart', 'valid'], ['Order domain (native)', 'class', 'valid'], ['Login with password (native)', 'sequence', 'valid'], ['Order lifecycle (native)', 'state', 'valid'], ['Order platform on AWS (native)', 'architecture', 'valid-aws']]) {
+      const page = pages.find((p) => p.name === name);
+      expect(cover({ ...r.facts, pages: [page] }, [{ name: fixture, ir: loadFixture(k, fixture) }]).missing.map((m) => m.text), name).toEqual([name]);
+    }
+    const flow = pages.find((p) => p.name === 'Order checkout (native)');
+    expect(flow.nodes.map((n) => n.shape).sort()).toEqual(['box', 'box', 'container', 'container', 'decision', 'io', 'note', 'rounded', 'rounded', 'subroutine', 'subroutine']);
+    expect(flow.edges.every((e) => flow.nodes.find((n) => n.id === e.from)?.shape !== 'container' && flow.nodes.find((n) => n.id === e.to)?.shape !== 'container')).toBe(true);
+    const seq = pages.find((p) => p.name === 'Login with password (native)');
+    expect(seq.nodes.filter((n) => n.shape === 'frame').map((n) => [n.label, n.texts ?? []])).toEqual([['alt password matches', ['else password wrong']], ['loop until 3 attempts', []]]);
+    expect(seq.nodes.find((n) => n.label === 'User')).toMatchObject({ shape: 'lifeline', detail: 'actor' });
+    const cls = pages.find((p) => p.name === 'Order domain (native)');
+    expect(cls.nodes.find((n) => n.label === 'OrderLine')).toMatchObject({ shape: 'table', texts: ['+Quantity: int', '+UnitPrice: Money'] });
+    const aws = pages.find((p) => p.name === 'Order platform on AWS (native)');
+    expect(aws.nodes.find((n) => n.label === 'Customer browser')).toMatchObject({ shape: 'icon' });
+    expect(aws.edges.find((e) => e.label === 'HTTPS')).toMatchObject({ from: aws.nodes.find((n) => n.label === 'Customer browser').id, to: aws.nodes.find((n) => n.label === 'CloudFront').id });
+    // The state diagram generate_diagram drew on the page: its start and end circles are read.
+    const state = pages.find((p) => p.nodes.some((n) => n.label === 'Awaiting payment'));
+    expect(state.kindHints[0].kind).toBe('state');
+    expect(state.nodes.map((n) => n.shape)).toEqual(expect.arrayContaining(['initial', 'final']));
   });
 });

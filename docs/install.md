@@ -293,7 +293,7 @@ diagrams. Nothing changes for existing runs and commands.
 - `extract <file> --out <facts.json>` reads a `.drawio` file (compressed or not, every page),
   an editable `.drawio.svg` or `.drawio.png`, Mermaid text (`.mmd`, or Markdown with fenced
   blocks) or a board read from FigJam, and writes facts: nodes, edges and kind hints per page.
-- `extract --figjam-script <file.js> [--section <name>] [--from <n>]` writes a script for the
+- `extract --figjam-script <file.js> [--section <name|node-id>] [--from <n>]` writes a script for the
   Figma MCP tool `use_figma` that reads a board without changing it; `extract` then reads the
   JSON it returns. A tool result holds at most 48 000 bytes, so a large board is read in
   parts (`--from` the `next` of the previous part) and `extract` takes every part at once. A

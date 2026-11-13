@@ -24,7 +24,7 @@ plugin, `<recook-dir>/../zukai` in a copied install (`.agents/skills/zukai` for 
 
 ```bash
 node "<draw-dir>/scripts/bin/cli.mjs" extract <file> [<board-part>...] [--page <id|name>[,...]] --out <facts.json>
-node "<draw-dir>/scripts/bin/cli.mjs" extract --figjam-script <file.js> [--section <name>] [--from <n>]
+node "<draw-dir>/scripts/bin/cli.mjs" extract --figjam-script <file.js> [--section <name|node-id>] [--from <n>]
 node "<draw-dir>/scripts/bin/cli.mjs" cover <facts.json> <run-folder>
 ```
 
@@ -67,9 +67,9 @@ The facts are what the run keeps of it, with such values already replaced by pla
    unclear, extract without it, show the pages, ask which, and extract again with `--page`.
 2. A FigJam board: it needs a Figma tool named `use_figma` (see `<draw-dir>/references/target-figjam.md`
    for loading the Figma tools and the skills it names). Take the file key and the section
-   from the link (`node-id=1-2` is node `1:2`; read its name with `use_figma` or
-   `get_metadata` if only the id is given), then:
-   `extract --figjam-script <tmp>/read-board.js [--section "<name>"]`, run that file's
+   from the link (`node-id=1-2` is node `1:2`, which `--section` takes as it is, like a
+   section name), then:
+   `extract --figjam-script <tmp>/read-board.js [--section "<name or 1:2>"]`, run that file's
    content unchanged as the `code` of one `use_figma` call on the board, and save the JSON
    the call returns, exactly, as `<tmp>/board-1.json`. A tool result holds at most 48 000
    bytes, so a large board comes back in parts: while the saved JSON has `next` set, write
@@ -115,6 +115,8 @@ describes, with these differences:
   (tables, lifelines or lanes on an architecture or flowchart page), or scores at least half
   of the best one. Say so in the question text: it is split by Zukai's rules, the best kind
   as the main diagram and the rest as parts (step 3).
+- A kind the request names in the user's language ("sơ đồ trạng thái", "シーケンス図") is
+  named as surely as the English word: the kind question is skipped for it.
 - `--kind`, `--scope` and `--audience` skip their question as in the draw skill. With
   several pages, `--kind` fixes the kind of the page the request names (`--page`), else of
   the page with the most nodes; the others keep their suggestion.
@@ -132,7 +134,7 @@ facts alone:
   come from Zukai's rules, never from taste, and each is listed in the report:
   - a connection label that the level of detail moves into a part (an endpoint, a
     statement, a numbered step) is replaced by the protocol or purpose that text names
-    (`POST /api/orders` → `HTTPS`, `INSERT INTO orders` → `SQL`), or by no label when it names
+    (`POST /api/orders` → `HTTP`, `INSERT INTO orders` → `SQL`; a TLS the source does not show is not added), or by no label when it names
     none; the full text is in the part;
   - under `overview`, a sub-flow collapsed into one step takes the title the source gives
     that sub-flow (a subgraph, a frame, a group); with no title, the new label is an
@@ -175,6 +177,17 @@ facts alone:
 - **Ids** follow the closing contract (from names, English ASCII). A source id that is
   already such a name is kept, and so is a short counter id of the source (`e1`, `m3`); an id
   of a Zukai file (`<page>:<id>`) keeps the part after the colon.
+- **Facts that cannot be right.** The facts are all you read, positions included: `box`
+  and `y` may be used to order and to place what the shapes say. When the facts contradict
+  themselves (an edge with no ends where the picture plainly has a line, a decision drawn as
+  a line), do not guess past them: say in the report which elements look misread, keep what
+  is sure, and offer the user to fix those few by hand or with `revise`.
+- **Layout is free.** The direction (`TB`, `LR`) and every position are Zukai's to choose;
+  they are not content.
+- **What a Zukai drawing adds is not content.** A board or file that Zukai drew carries a
+  `↳ <slug>` line under an element that has a part (that is its `ref`, not part of its
+  label) and writes `<`, `>`, `%`, `&` in labels sent to FigJam as ＜, ＞, ％, ＆ (write them
+  back as ASCII).
 - **Order** comes from the facts: participants and lanes left to right by `box.x` (top to
   bottom for horizontal lanes), messages by `y` when the source draws lifelines; a
   `sequence` part made from the edges of another kind follows `mapping.md`.

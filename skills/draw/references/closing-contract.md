@@ -69,7 +69,9 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    bundle and preview again, and review again. Repeat until `PASS` or three rounds; after
    three rounds deliver anyway and list the remaining findings verbatim. On `PASS`, apply
    the `polish` findings that are plain IR edits (a label wording), validate, emit and
-   bundle again without a new review round, and list the ones not applied. A finding that asks
+   bundle again without a new review round, and list the ones not applied. In a recooked
+   run (`meta.source: "recook"`) a polish finding that only rewords a label copied from the
+   source is not applied: list it with the offer of a `revise`. A finding that asks
    for something the user chose to leave out is not applied: record the omission in
    `meta.omitted` (with its reason) so the next round does not raise it again. If no
    preview could be rendered, the review runs on the IR and warnings only and says so.
