@@ -47,7 +47,9 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
    `detailed` and are referenced with `ref` on the element they detail (a step, a message,
    a state, a component, a class or an entity), never by an id written into a label;
    no second diagram repeats the kind and subject of another one at a different level of
-   detail; nothing in the request is missing and nothing outside it was added.
+   detail; nothing in the request is missing and nothing outside it was added. A recooked
+   run (`meta.source: "recook"`) also keeps each page of its source as a diagram of its own
+   whatever the scope, linked with `ref` when it details an element of another page.
 9. No degenerate control: a merge or join with one incoming flow, a decision or fork with
    one outgoing flow, a node nothing reaches, a branch that never ends.
 10. In `scout` mode the diagram contains only what the code does, with the source files in

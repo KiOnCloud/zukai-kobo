@@ -340,8 +340,9 @@ of its own; it adds two commands to the draw skill's.
   `meta.notes` does not count, since a note is not shown. Facts are redacted on the way out
   of `extract` with the secret scan's own patterns (`redactText`), so a value never reaches
   the run folder, and `cover` asks only for the words around a `<redacted ...>` placeholder.
-  The match ignores which page a text came from: a word of one page can be found in a
-  diagram made from another. The skill
+  Each IR names its source page in a `meta.notes` entry (`page "<name>"`), and a page's
+  texts are looked for only in the IRs of that page, so a word of one diagram cannot stand in
+  for the same word dropped from another; an omission counts only as `"<text>": <reason>`. The skill
   loops until the check passes, then runs the closing contract unchanged.
 - **Zukai's rules over the source's structure.** A page that mixes kinds or draws the inside
   of resources is split into a main diagram and `ref` parts, as the user chose for this

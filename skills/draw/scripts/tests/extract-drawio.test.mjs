@@ -201,3 +201,31 @@ describe('facts never hold a credential or personal data', () => {
     expect(cover(facts, [{ name: 'o', ir: ir([]) }]).missing.map((m) => m.text)).toEqual(['Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời)', 'hỏi <redacted e-mail>']);
   });
 });
+
+describe('cover by page', () => {
+  const facts = { facts: 1, pages: [
+    { id: 'p1', name: 'Refund flow', nodes: [{ id: 'a', label: 'Thành công?', shape: 'decision' }, { id: 'b', label: 'Thử lại tối đa 3 lần', shape: 'box' }], edges: [] },
+    { id: 'p2', name: 'Gateway call', nodes: [{ id: 'f', label: 'alt Thành công', shape: 'frame' }, { id: 'n', label: 'Thử lại tối đa 3 lần', shape: 'note' }], edges: [] },
+  ] };
+  const flow = (nodes) => ({ schemaVersion: 1, kind: 'flowchart', title: 'Refund flow', nodes, edges: [], meta: { notes: ['recooked from docs/x.md, page "Refund flow"'] } });
+  const seq = { schemaVersion: 1, kind: 'sequence', title: 'Gateway call', participants: [], messages: [], blocks: [{ id: 'b1', kind: 'alt', branches: [{ label: 'Thành công' }] }], notes: [{ id: 'n1', label: 'Thử lại tối đa 3 lần', participants: [] }], meta: { notes: ['recooked from docs/x.md, page "Gateway call"'] } };
+
+  it('looks for the texts of a page only in the IRs made from it', () => {
+    expect(cover(facts, [{ name: 'flow', ir: flow([]) }, { name: 'seq', ir: seq }]).missing.map((m) => [m.page, m.text])).toEqual([['p1', 'Thành công?'], ['p1', 'Thử lại tối đa 3 lần']]);
+    expect(cover(facts, [{ name: 'flow', ir: flow([{ id: 'a', label: 'Thành công?' }, { id: 'b', label: 'Thử lại tối đa 3 lần' }]) }, { name: 'seq', ir: seq }]).ok).toBe(true);
+  });
+
+  it('searches every IR when an IR names no page, or a page the facts do not have', () => {
+    const unnamed = { ...flow([]), meta: {} };
+    expect(cover(facts, [{ name: 'flow', ir: unnamed }, { name: 'seq', ir: { ...seq, meta: {} } }]).ok).toBe(true);
+    const slip = { ...flow([]), meta: { notes: ['page "Refund flw"'] } };
+    expect(cover(facts, [{ name: 'flow', ir: slip }, { name: 'seq', ir: { ...seq, meta: {} } }]).ok).toBe(true);
+  });
+
+  it('counts an omission only when it gives a reason after the quoted text', () => {
+    const ir = (omitted) => ({ ...flow([{ id: 'a', label: 'Thành công?' }]), meta: { notes: ['page "Refund flow"'], omitted } });
+    const one = { facts: 1, pages: [facts.pages[0]] };
+    expect(cover(one, [{ name: 'f', ir: ir(['"Thử lại tối đa 3 lần"']) }]).ok).toBe(false);
+    expect(cover(one, [{ name: 'f', ir: ir(['"Thử lại tối đa 3 lần": gộp vào bước gọi cổng thanh toán']) }]).ok).toBe(true);
+  });
+});

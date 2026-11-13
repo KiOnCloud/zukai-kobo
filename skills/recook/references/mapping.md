@@ -24,6 +24,10 @@ element.
 | `edges[].startLabel`, `endLabel` | texts at the ends of a line (multiplicities, roles) |
 | `edges[].y` | vertical position, or the order of a Mermaid message: the order of messages |
 
+Facts read from Mermaid have no `box`: the order of the text is the order, and a frame's or
+a note's `detail` says where it stands (`"alt e3..e4 | else e5"`: the messages each section
+spans; `"over W,P; after e3"`: the participants and the message a note follows).
+
 A `text` node that stands over no shape is a title, a legend or a note: use it as the
 diagram `title` when it is one, as a note element when the kind has one, or list it in
 `meta.omitted`.

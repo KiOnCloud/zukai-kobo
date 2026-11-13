@@ -109,7 +109,7 @@ describes, with these differences:
 - A source with several pages: one diagram per page unless the user says otherwise. Ask the
   kind once for the page with the most nodes and list the suggestion for every other page in
   the question text ("Page 'Orders ERD' becomes an `er` diagram linked from 'Orders DB'");
-  pick "Other" to change one. A page that only repeats the others (an overview page whose
+  "Other" (in the text form: naming another kind) changes one. A page that only repeats the others (an overview page whose
   labels all occur on other pages) is named and left out unless the user wants it.
 - A page mixes kinds when a second kind hint scored on shapes the best kind does not draw
   (tables, lifelines or lanes on an architecture or flowchart page), or scores at least half
@@ -158,8 +158,9 @@ facts alone:
     that name a protocol or purpose; tables, endpoints, statements, job names and numbered
     steps move into parts, and the CLI's `detail:` warnings are handled as the closing
     contract says;
-  - size: with `overview` the main diagram keeps about 15 elements and each sub-flow is
-    collapsed into one step that keeps its decisive rule; with `detailed` each sub-flow
+  - size: with `overview` each sub-flow is collapsed into one step that keeps its decisive
+    rule, which brings the main diagram toward about 15 elements; the steps of the main flow
+    itself are never dropped to reach the number; with `detailed` each sub-flow
     becomes a part `<slug>-NN-<part>` linked with `ref`. A page link of the source (`link` on
     a node) is such a part already: keep it as a `ref`, on that element, or on the element
     Zukai's rules give that detail to (the tables of a database belong to the store, not to
@@ -192,15 +193,17 @@ facts alone:
   bottom for horizontal lanes), messages by `y` when the source draws lifelines; a
   `sequence` part made from the edges of another kind follows `mapping.md`.
 - `meta.source` is `recook`, and the first `meta.notes` entry says where it came from:
-  `recooked from <source path or board link>, page "<name>"`.
+  `recooked from <source path or board link>, page "<name>"`, with the page's name (or id)
+  as the facts give it, and every page it was made from when there are several. `cover`
+  reads it to look for a page's texts only in the diagrams made from that page.
 
 ## 4. Coverage gate
 
 Run `cover <run>/source/<run-slug>.facts.json <run>`. Exit 0: go on. Exit 2: the JSON on
 stderr lists each `missing` text with its page and source element. For each one, put it
 where it belongs in the IR, or add the `meta.omitted` entry that says why it is left out, and
-run `cover` again until it passes. Never satisfy the check with an element the source does
-not have. `meta.notes` does not count: a note is not shown, so a text put there is dropped
+run `cover` again until it passes. An omission counts only in the form `"<text>": <reason>`.
+Never satisfy the check with an element the source does not have. `meta.notes` does not count: a note is not shown, so a text put there is dropped
 without saying so.
 
 ## 5. Closing contract
