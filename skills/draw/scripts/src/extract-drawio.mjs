@@ -376,7 +376,9 @@ export function kindHints(nodes, edges) {
   if (lanes.length >= 1 && inLanes > 0) add('activity', 8 * lanes.length + inLanes, `${plural(lanes.length, 'lane')} holding ${plural(inLanes, 'step')}`);
 
   const tables = nodes.filter((n) => n.shape === 'table');
-  const memberLike = (t) => /^[+\-#~]\s*\S|\(.*\)|^«/.test(t);
+  // A member has a visibility sign, or is a method whose name stands right before its
+  // parentheses ("pay(amount)"); a column type with a size ("decimal(12,2)") is neither.
+  const memberLike = (t) => /^[+\-#~]\s*\S|^\s*\w+\s*\(.*\)|^«/.test(t);
   const keyLike = (t) => /\b(PK|FK|UK)\b|🔑/.test(t);
   const classes = tables.filter((n) => (n.texts ?? []).some(memberLike) || /«/.test(n.label));
   const entities = tables.filter((n) => !classes.includes(n) && (n.texts ?? []).some(keyLike));

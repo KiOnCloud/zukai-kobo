@@ -167,3 +167,12 @@ describe('cover', () => {
     expect(cover(facts1, [{ name: 'main', ir: main }]).missing.map((m) => m.text)).toEqual(['Load stock']);
   });
 });
+
+describe('kind hints', () => {
+  it('reads a column type with a size as an attribute, not a method', async () => {
+    const { kindHints } = await import('../src/extract-drawio.mjs');
+    const table = (texts) => ({ id: 't', label: 'orders', shape: 'table', texts });
+    expect(kindHints([table(['PK id bigint', 'total decimal(12,2)'])], [])[0].kind).toBe('er');
+    expect(kindHints([table(['- total: decimal', 'pay(amount): void'])], [])[0].kind).toBe('class');
+  });
+});
