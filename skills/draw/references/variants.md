@@ -150,6 +150,14 @@ matched nothing are listed in `unmatched`; they usually mean a typo in the id.
 { "$keep": ["API", "get"], "login:title": "ログイン", "login:a-submit": "送信する" }
 ```
 
+The description tables of a run (`<run-slug>.doc.md`, closing contract) take their labels
+from the IRs, so a relabelled draw.io file does not change them. `--lang` there picks only
+the language of the headings and column headers (`en`, `ja`, `vi`). For tables whose labels
+are translated too, write them from translated IRs, listed one by one in run order:
+`bundle --to doc --lang <lang> --out <run-folder>/<run-slug>.doc.<lang>.md <translated IRs>`.
+A business view needs nothing of its own: its IR is in the run folder, so its tables are in
+the document, after those of the technical view.
+
 For Mermaid: copy each IR to `source/<slug>.<lang>.ir.json`, translate the labels, set
 `meta.lang`, validate, emit and bundle as in the closing contract (`references/closing-contract.md`). The relabel map and the
 translated IR go through the same review as any diagram: wording items apply, layout items

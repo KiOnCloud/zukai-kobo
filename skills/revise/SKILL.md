@@ -52,7 +52,7 @@ the user's answer is awaited; never pick for them.
 Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them from the request.
 
 ```text
-[<run-folder|ir-path>] [--preview|--apply] <request>
+[<run-folder|ir-path>] [--preview|--apply] [--doc] <request>
 ```
 
 - A path first selects the run (an IR path means the run folder that holds it). The first
@@ -61,6 +61,11 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
 - `--preview` forces the consult route, `--apply` the direct route. Both together is an
   error: say so and stop. They choose between those two routes only: neither turns a request
   for a new diagram into an edit.
+- `--doc` asks for the description tables of the run (`<run-slug>.doc.md`), as in the draw
+  skill. With a change it adds them to what the change rebuilds. Alone, or with a request
+  that asks only for the tables ("also give me the tables for the design document"), it
+  changes no IR: write the file as the closing contract's section "Description tables"
+  says and report where it is, with no snapshot, no route and no review.
 
 ## 1. Find the run
 
@@ -91,6 +96,9 @@ step 2.
 
 Read every `source/*.ir.json`, `<draw-dir>/references/ir-reference.md`, and note the targets
 the run has: `drawio/` and a `<run-slug>.drawio`, or `mermaid/` and a `<run-slug>.md`.
+Note also whether it has description tables, `<run-slug>.doc.md` or
+`<run-slug>.doc.<lang>.md`: they are text generated from the IRs, so every change to an IR
+writes them again (the closing contract's revise section says with which options).
 
 ## 3. Check for hand edits (draw.io runs)
 
@@ -259,6 +267,9 @@ changed, and every hint with what was done about it), and the outcome of the han
 - Never edit `.drawio` or `.mmd` files by hand, and never touch `history/` except through
   the CLI. The IR is the source; `relabel` is the only tool that writes a delivered draw.io
   file without emitting it.
+- Never edit `<run-slug>.doc.md` by hand either: a wording the user wants changed in a table
+  is a label of the IR, changed by the direct route, and the tables are written again with
+  the diagrams.
 - Never overwrite delivered files before the user confirmed a consult draft.
 - Keep every rule of the closing contract: labels in the user's language, file names and ids
   in English ASCII, no secrets in labels, warnings shown verbatim.
