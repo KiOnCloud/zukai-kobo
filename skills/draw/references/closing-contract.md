@@ -156,7 +156,15 @@ the run folder and its run slug, never a new folder, and changes these steps:
   applied with `relabel` (the IR gets the same wording); any other finding is listed in the
   report and applied only if the user agrees to redraw that file, after a `snapshot` with
   the file as `--extra`.
+- Step 4 also renders the picture of the change, when revise wrote one
+  (`preview <run>/drafts/changes-<rNNN>.diff.drawio --max-px 1600`; it renders the first
+  page, the main diagram when that changed), and the reviewer gets that PNG with the request
+  in the user's words: it is where the reviewer sees whether what is coloured is what was
+  asked (`review-checklist.md`, Revision). Without a renderer, or for a Mermaid run, the
+  review reads the change list instead and says so. The picture is rebuilt with the same
+  `diff --drawio` call after every review round that edits an IR.
 - Step 5 adds the route taken (direct, consult, new diagram or undo), the revision written
-  (`history/rNNN`), the change list from `diff` in plain words and the outcome of the drift
+  (`history/rNNN`), the change list from `diff` in plain words, the path of the picture of
+  the change as a review aid beside the delivered files, and the outcome of the drift
   check.
 - Step 6 is skipped unless the user asks for another target.

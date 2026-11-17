@@ -24,12 +24,22 @@ plugin, `<revise-dir>/../zukai` in a copied install (`.agents/skills/zukai` for 
 and every shared reference comes from `<draw-dir>`:
 
 ```bash
-node "<draw-dir>/scripts/bin/cli.mjs" diff <old.ir.json|old-dir> <new.ir.json|new-dir>
+node "<draw-dir>/scripts/bin/cli.mjs" diff <old.ir.json|old-dir> <new.ir.json|new-dir> [--drawio <out.diff.drawio>]
 node "<draw-dir>/scripts/bin/cli.mjs" drift <file.drawio|run-slug.md> <ir.json|run-dir>...
 node "<draw-dir>/scripts/bin/cli.mjs" snapshot <run-dir> --request "<text>" [--extra <file>]... [--bundle @<file>]
 node "<draw-dir>/scripts/bin/cli.mjs" revisions <run-dir>
 node "<draw-dir>/scripts/bin/cli.mjs" restore <run-dir> <rNNN|undo|redo> [--extra <file>]... [--bundle @<file>]
 ```
+
+`diff --drawio` also draws the change list: a draw.io file of the new version with one page per
+diagram that changed, in which what was added is green, what changed or moved is amber and
+what was removed is drawn again in red with a dashed outline, and a legend under each page
+that lists the old value of everything amber. A diagram that is in one version only is a
+page marked as a whole; the diagrams that did not change are left out and named under
+`drawio.unchanged`; `drawio.notDrawn` names a removed element the picture could not hold.
+Nothing is written when the two versions do not differ. The picture is a review aid, never
+a delivered file: write it under `drafts/` with a name that ends in `.diff.drawio`. The CLI
+refuses to write it over any other draw.io file, and `drift` refuses to read it.
 
 `--extra` paths are read from the working directory like every other path. `--bundle` takes
 the `bundle` object that `drift` printed; write it to a temporary file outside the run
@@ -81,11 +91,12 @@ A run is a folder `diagrams/<yyyymmdd>_<run-slug>/` with a `source/` folder of I
 4. No run at all: stop and say that nothing was delivered yet, so the draw skill is the one
    to use (`/zukai:draw` in the plugin, `/zukai` or `$zukai` in a copied install).
 
-Once the run is found, a `drafts/` folder left in it by an earlier session is reported
-first: offer to resume that consult (go to the consult protocol, step 4, with the request and
+Once the run is found, a `drafts/` folder with a `consult.json` left in it by an earlier
+session is reported first: offer to resume that consult (go to the consult protocol, step 4, with the request and
 the draft names from `drafts/consult.json`) or drop it (delete `drafts/`). On "resume" the
 new request waits until that consult is confirmed or dropped; on "drop" it goes on from
-step 2.
+step 2. A `drafts/` folder that holds only `changes-<rNNN>.diff.drawio` files is no open
+consult: those are the pictures of earlier changes, and they are left where they are.
 
 ## 2. Read the state
 
@@ -171,7 +182,9 @@ why, in one line, in the user's language.
    about a part or a business view is either applied now or answered in the report. The
    list has four parts: `added`, `removed`, `changed` (with the fields that differ) and
    `reordered` (the elements that moved and what each now follows), since the order of
-   messages, participants and lanes is part of what the reader sees.
+   messages, participants and lanes is part of what the reader sees. With a draw.io
+   target, add `--drawio <run>/drafts/changes-<rNNN>.diff.drawio` to the same call: it
+   draws that list on the diagrams, for the review and for the report.
 5. Run `<draw-dir>/references/closing-contract.md` in full (its section "When revise calls
    this contract" says what changes for a revision).
 
@@ -244,7 +257,10 @@ about the diagram itself from the draw skill, which it never copies.
    element a part details). Old ids never change.
 5. `diff <run>/history/<rNNN>/source <run>/source` and read every hint. "is not the ref of
    any element" and "is a second architecture diagram" name exactly the placements step 2
-   rules out: fix the run, or, for a diagram of its own, say so in the report.
+   rules out: fix the run, or, for a diagram of its own, say so in the report. With a
+   draw.io target, add `--drawio <run>/drafts/changes-<rNNN>.diff.drawio`, as in the direct
+   route: the new diagram is a page marked as added, beside the page of the diagram that
+   now links to it.
 6. Run `<draw-dir>/references/closing-contract.md` in full. The canvas of the combined file
    gains the new diagram, as the contract's revise section says.
 
@@ -253,6 +269,10 @@ about the diagram itself from the draw skill, which it never copies.
 The closing contract's report, plus: the route and why, the revision written and where the
 previous state is (`history/rNNN`), the `diff` change list in plain words (added, removed,
 changed, and every hint with what was done about it), and the outcome of the hand-edit check.
+When the picture of the change was written, give its path as the file to open to see the
+change on the diagrams (green added, amber changed or moved, red removed), say that it is
+a review aid and not part of the delivery, and repeat every `drawio.notDrawn` entry with
+its reason.
 
 ## Rules
 
@@ -260,5 +280,7 @@ changed, and every hint with what was done about it), and the outcome of the han
   the CLI. The IR is the source; `relabel` is the only tool that writes a delivered draw.io
   file without emitting it.
 - Never overwrite delivered files before the user confirmed a consult draft.
+- The picture of a change (`*.diff.drawio`) is never delivered, bundled, relabelled or
+  passed to `drift`, and never stands in for the combined file of the run.
 - Keep every rule of the closing contract: labels in the user's language, file names and ids
   in English ASCII, no secrets in labels, warnings shown verbatim.
