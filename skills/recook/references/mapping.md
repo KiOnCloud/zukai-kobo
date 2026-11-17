@@ -24,7 +24,7 @@ element.
 | `edges[].startLabel`, `endLabel` | texts at the ends of a line (multiplicities, roles) |
 | `edges[].y` | vertical position, or the order of a Mermaid message: the order of messages |
 
-Facts read from Mermaid have no `box`: the order of the text is the order, and a frame's or
+Facts read from Mermaid or PlantUML text have no `box`: the order of the text is the order, and a frame's or
 a note's `detail` says where it stands (`"alt e3..e4 | else e5"`: the messages each section
 spans; `"over W,P; after e3"`: the participants and the message a note follows).
 
@@ -129,6 +129,123 @@ The level of detail of the draw skill holds: several tables of one database are 
 component, and an edge label that is an endpoint path, a job or a field moves into a part
 (`sequence` for the calls, `er` for the tables), with the connection label reduced to the
 protocol or purpose.
+
+## PlantUML sources
+
+PlantUML text has no header that names its type: the reader tells it from the statements and
+gives the kind hints. Its facts use the shapes and line ends of the tables above, so those
+tables hold; this section says what `detail`, `texts` and the page fields add.
+
+| Facts | Meaning |
+|---|---|
+| page `direction` | `LR` or `TB`, from `left to right direction`: the IR's `direction` |
+| page `autonumber` | the source numbers its messages itself: the numbers are not content and are not written into labels |
+| page `unsupported` | `{ type, reason }`: a diagram type that is not read; no diagram is made from it |
+| `detail` of a node | the keyword it was declared with (`component`, `node`, `artifact`, `interface`, `abstract`, `enum`, `usecase`, `package`, `rectangle`, `database` on a container ...), or where a note, divider or delay stands (`right of OrderService; after e3`, `divider; after e10`) |
+| a `texts` line `«name»` | a stereotype written `<<name>>` |
+| `text` node with `detail` `legend`, `header`, `footer`, `caption` | a free text of the page: `meta.omitted`, unless it is the title |
+| edge `startLabel`, `endLabel` | the quoted texts at the ends of a relation (`"1" *-- "many"`) |
+| edge `fromPart`, `toPart` | the member a relation is attached to (`Order::customerId`) |
+
+Sequence (`lifeline` nodes):
+
+- `detail` is the participant's keyword: `actor`, `boundary`, `control`, `entity`, `database`
+  are the IR `kind` of the same name; `participant`, `collections` and `queue` are
+  `participant`. A `«stereotype»` line of a participant has no place in a sequence diagram:
+  `meta.omitted`.
+- A message is written from its sender, whichever way the arrow was typed (`A <- B` is from B).
+  A `dashed` message (`-->`, and every `return`) is `return`; a solid one with an `open` end
+  (`->>`, `-\`) is `async`; any other is `sync`. A `cross` end (`->x`, a lost message) is kept
+  as the kind its line gives, and the report says the source drew it as lost. A message with
+  `from` or `to` `null` enters or leaves the diagram (`[->`, `->]`): it has no second
+  participant and cannot be a message; list it in `meta.omitted` and in the report.
+- A `frame` is a block as in the table above; its `detail` names the sections and the
+  messages each spans (`alt e5..e8 | else e9`), its `texts` are the conditions of the further
+  sections in order. A `group` frame has no block kind, like `critical` and `break`: keep its
+  messages and list its title in `meta.omitted`. A `frame` whose `detail` starts with `ref
+  over` points to another diagram: when that diagram is a page of the same source and is
+  recooked too, the message before it gets the `ref`; otherwise it becomes a note over those
+  participants.
+- A `text` node with `detail` `divider` (`== Phase ==`) or `delay` (`... later ...`) becomes a
+  note over the first and the last participant, placed with `after` as its `detail` says; the
+  report lists it as a divider drawn as a note.
+- A note, divider or delay inside a block has that frame as its `parent`. One without a
+  `parent` whose `detail` says `after eN`, where `eN` is the last message of a block, stands
+  below that block: its `after` is the block's id, not the message's.
+- A `group` node is a `box` around participants: a sequence diagram draws none, so its title
+  goes to `meta.omitted`.
+
+Class and ER (`table` nodes):
+
+- `detail` `interface`, `abstract`, `enum`, `annotation`, `struct` ... is the `stereotype`
+  when the class has no `«stereotype»` line of its own; a class takes one stereotype, a
+  second one goes to `meta.omitted`. Rows are members as in the class table; a row that is
+  the title of a section (`-- private --`) goes to `meta.omitted`.
+- A `table` whose `detail` starts with `entity` is an ER entity: `key: a, b` names the rows
+  above the first rule of its body, which are its primary key (`pk`); a row with `«FK»` is
+  `fk`; `mandatory:` lists the rows marked `*` (not null), which the IR does not record. A
+  remark such as `«generated»` is the attribute's `comment`.
+- Line ends: `block-open` is inheritance (dashed: realization) and the class at the other end
+  is the subclass, so that end is `from`; `diamond` is composition and `diamond-open`
+  aggregation, with the whole at the diamond; a dashed line with an `open` end is a
+  dependency; any other line is an association. `ER...` ends are the crow's-foot values of the
+  ER table. `plus` (nesting), `box`, `cross`, `circle` and `socket` ends have no relation
+  kind: an association, with the end named in the report.
+- A `container` with `detail` `package` or `namespace` is not drawn in a class or ER diagram:
+  it gives the title when it holds every class, otherwise `meta.omitted`. A `note` goes to
+  `meta.omitted` (these kinds have no note), quoted with what it stands beside.
+
+State:
+
+- `rounded` and `container` are states; a `texts` line of a state is its description
+  (`Review : Second agent checks`), which a Zukai state does not show: `meta.omitted`.
+- A `decision` (`<<choice>>`) follows the state table: one transition per way out, from the
+  state before the choice, with the choice's guard. A `bar` (`<<fork>>`, `<<join>>`) and an
+  `ellipse` with `detail` `history` have no element: join the transitions through it where
+  one line enters or one leaves, and name it in the report; otherwise the page is better
+  drawn as an `activity` diagram, which is asked, not decided.
+- A `container` with `detail` `concurrent regions` held regions side by side; the IR has one
+  composite: keep the states, and say in the report that the regions are not separated.
+
+Activity (the new syntax; the reader rebuilds the flow as nodes and edges):
+
+- `lane` → `lanes[]`; `rounded`, `io`, `subroutine` → `actions[]`; `decision`, `bar` (`detail`
+  `fork` / `join`, `split` / `split end`), `initial`, `final` → `controls[]`; edges →
+  `flows[]`, an edge label (`then (yes)`, `else (no)`, `-> text;`) being the `guard`.
+- A diagram without swimlanes is hinted as a `flowchart` first; when the user chooses
+  `activity`, give it one lane named after who performs the flow, as an `added:` note.
+- Where two or more edges enter a `bar` or a step after an `if`, the source drew a merge:
+  add a `merge` control before a fork, recorded as `added:`; a step may take several flows.
+- A `container` (`partition`, `group`) is not a lane: `meta.omitted`, or the title when it
+  holds the whole flow. A `note` goes to `meta.omitted`. An `ellipse` with `detail`
+  `connector` joins two places of the flow: draw the flow straight through it.
+
+Component and deployment (architecture-shaped facts):
+
+- `box` with `detail` `component`, `node`, `artifact`, `agent`, `stack`, `card`, `file`,
+  `folder`, `frame`, `rectangle` → a `service` component; `store` → `database`; `queue`, or
+  `detail` `hexagon` → `queue`; `cloud` → `external`; `actor` → `client`.
+- `container` (a `node`, `cloud`, `frame`, `folder`, `package`, `rectangle`, or a `database`
+  drawn around other elements) → a boundary. A `database` container that holds only tables is
+  one `database` component, and its tables are an `er` part linked with `ref`.
+- An `ellipse` with `detail` `interface` (`() "REST"`, `interface`) is the provided interface
+  of the component it is joined to by a plain line: a connection that ends at it ends at that
+  component, and the interface name goes to `meta.omitted` (merged), or becomes the
+  connection's label when the connection has none.
+- A `«stereotype»` line that names the technology (`«Next.js»`, `«PostgreSQL 15»`) joins the
+  component label in parentheses: `Storefront (Next.js)`.
+- A `dashed` connection is asynchronous or a dependency; the IR draws one line style, so say
+  in the report which connections the source drew dashed.
+
+Use case (the `usecase` kind): `ellipse` with `detail` `usecase` is a use case, `actor` an
+actor (`detail` `business` for `actor/`), a `container` with `detail` `rectangle` or
+`package` the system boundary with the use cases inside it. An edge between an actor and a
+use case is an association; a dashed edge labelled `«include»` or `«extend»` is that
+relation, from the edge's `from` to its `to` as drawn; a `block-open` end is a
+generalization, the element at the other end being the special one. A `note` goes to
+`meta.omitted` unless the kind has notes. Write this page with the `usecase` section of
+`<draw-dir>/references/ir-reference.md`; when that reference lists no `usecase` kind, this
+Zukai version cannot draw one: say so, and ask the user for another kind or to leave the page out.
 
 ## A sequence part made from another kind
 
