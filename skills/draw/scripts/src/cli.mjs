@@ -5,12 +5,14 @@
  * `help`, `--help` or `-h` prints the usage on stdout.
  *
  *   node cli.mjs validate <ir.json>
- *   node cli.mjs emit --to <target> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--allow-sensitive] [--mermaid-stable]
- *     (--overlay, with --to figjam: the script for use_figma that draws what generate_diagram leaves out of a sequence diagram;
+ *   node cli.mjs emit --to <target> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--lang <en|ja|vi>] [--allow-sensitive] [--mermaid-stable]
+ *     (--to doc: the description tables of the diagram as Markdown, with headings and column headers in the language of --lang;
+ *      --overlay, with --to figjam: the script for use_figma that draws what generate_diagram leaves out of a sequence diagram;
  *      --native, with --to figjam: the script(s) for use_figma that draw the whole board at the draw.io coordinates, for every kind)
- *   node cli.mjs bundle --to <drawio|mermaid> --out <file> [--title <text>] [--canvas all|<id,id,...> [--gap <px>]] <run-dir|ir.json>...
+ *   node cli.mjs bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <en|ja|vi>] [--canvas all|<id,id,...> [--gap <px>]] <run-dir|ir.json>...
  *     (one file holding every diagram; a run folder stands for its IRs with the main diagram first;
- *      --canvas adds a first draw.io page with those diagrams side by side)
+ *      --canvas adds a first draw.io page with those diagrams side by side;
+ *      --to doc writes the description tables of every diagram into one Markdown document)
  *   node cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>   (new labels by IR id, layout kept)
  *   node cli.mjs preview <file.drawio|file.mmd|run.md> [--out <file.png>] [--max-px <n>]   (optional; needs draw.io desktop or Playwright)
  *   node cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>   (elements added, removed, changed; a dir is a run's source/ folder)
@@ -23,7 +25,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSy
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { validateIr } from './validate-ir.mjs';
-import { emit, bundle, inspect, TARGETS } from './pipeline.mjs';
+import { emit, bundle, inspect, EMIT_TARGETS, DOC_TARGET, DOC_LANGS } from './pipeline.mjs';
 import { preview } from './preview.mjs';
 import { relabelDrawio } from './relabel.mjs';
 import { diffIr, diffRun } from './ir-diff.mjs';
@@ -36,8 +38,8 @@ import { cover } from './cover.mjs';
 
 const USAGE = `usage:
   cli.mjs validate <ir.json>
-  cli.mjs emit --to <${TARGETS.join('|')}> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--allow-sensitive] [--mermaid-stable]
-  cli.mjs bundle --to <drawio|mermaid> --out <file> [--title <text>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] <run-dir|ir.json>...
+  cli.mjs emit --to <${EMIT_TARGETS.join('|')}> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--lang <${DOC_LANGS.join('|')}>] [--allow-sensitive] [--mermaid-stable]
+  cli.mjs bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <${DOC_LANGS.join('|')}>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] <run-dir|ir.json>...
   cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>
   cli.mjs preview <file.drawio|file.mmd|run.md> [--out <file.png>] [--max-px <n>]
   cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>
@@ -59,6 +61,10 @@ board (block frames, self-messages, notes); no file is written when the board ne
 board at the coordinates of the draw.io layout (<file>.js, then <file>.2.js, ... when one
 script would be too long; run them in order). It works for every kind, class and activity
 included; for those two no Mermaid text is written.
+--to doc writes the description tables of a diagram as Markdown (every element as a row, for
+a specification or a design document); bundle --to doc writes those of a whole run into one
+document, where an element that has a part links to it. --lang goes with --to doc: the language
+of the headings and column headers (${DOC_LANGS.join(', ')}; default en). Labels stay as the IR has them.
 extract reads a diagram made elsewhere into facts (pages, nodes, edges, kind hints) for the
 recook skill; --figjam-script writes the read-only use_figma script whose JSON result extract
 then reads (a large board comes back in parts: run the script again with --from <next> and
@@ -71,12 +77,12 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--lang': 'lang' };
 const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, lang: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -106,6 +112,14 @@ function parseArgs(argv) {
     else opts[VALUE_OPTIONS[name]] = value;
   }
   return opts;
+}
+
+/** `--lang` belongs to the description tables and names a language they are written in. */
+function langError(opts) {
+  if (opts.lang === undefined) return undefined;
+  if (opts.to !== DOC_TARGET) return { path: '/', message: `--lang goes with --to ${DOC_TARGET}, not "${opts.to}"`, hint: 'the labels of a diagram are in the language of its IR; --lang only picks the headings of the description tables' };
+  if (!DOC_LANGS.includes(opts.lang)) return { path: '/', message: `unknown language "${opts.lang}"`, hint: `--lang takes one of: ${DOC_LANGS.join(', ')}` };
+  return undefined;
 }
 
 function readIr(file) {
@@ -174,13 +188,14 @@ export async function main(argv) {
   }
   if (opts.command === 'emit') {
     if (opts.positional.length !== 1 || !opts.to) return fail(1, { ok: false, errors: [{ path: '/', message: 'emit needs --to <target> and exactly one file' }], usage: USAGE });
-    if (!TARGETS.includes(opts.to)) return fail(1, { ok: false, errors: [{ path: '/', message: `unknown target "${opts.to}"`, hint: `--to takes one of: ${TARGETS.join(', ')}` }], usage: USAGE });
+    if (!EMIT_TARGETS.includes(opts.to)) return fail(1, { ok: false, errors: [{ path: '/', message: `unknown target "${opts.to}"`, hint: `--to takes one of: ${EMIT_TARGETS.join(', ')}` }], usage: USAGE });
+    if (langError(opts)) return fail(1, { ok: false, errors: [langError(opts)], usage: USAGE });
     const { ir, error } = readIr(opts.positional[0]);
     if (error) return fail(1, { ok: false, errors: [error] });
     if (opts.overlay && opts.to !== 'figjam') return fail(1, { ok: false, errors: [{ path: '/', message: `--overlay goes with --to figjam, not "${opts.to}"` }], usage: USAGE });
     if (opts.native && opts.to !== 'figjam') return fail(1, { ok: false, errors: [{ path: '/', message: `--native goes with --to figjam, not "${opts.to}"` }], usage: USAGE });
     const diagramId = opts.out ? basename(opts.out, extname(opts.out)).replace(/\.ir$/, '') : undefined;
-    const result = await emit(ir, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, diagramId, native: opts.native !== undefined });
+    const result = await emit(ir, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, diagramId, native: opts.native !== undefined, lang: opts.lang });
     if (!result.ok) return fail(2, { ok: false, errors: result.errors, warnings: result.warnings });
     // The native scripts carry the labels too, so they are written only past the same gates:
     // <file>.js, then <file>.2.js and so on when the drawing needs more than one script.
@@ -236,7 +251,8 @@ export async function main(argv) {
   }
   if (opts.command === 'bundle') {
     if (opts.positional.length === 0 || !opts.to || !opts.out) return fail(1, { ok: false, errors: [{ path: '/', message: 'bundle needs --to <target>, --out <file> and at least one IR file' }], usage: USAGE });
-    if (opts.to !== 'drawio' && opts.to !== 'mermaid') return fail(1, { ok: false, errors: [{ path: '/', message: `bundle supports drawio and mermaid, not "${opts.to}"`, hint: 'FigJam has no combined file: emit each diagram with --to figjam' }], usage: USAGE });
+    if (opts.to !== 'drawio' && opts.to !== 'mermaid' && opts.to !== DOC_TARGET) return fail(1, { ok: false, errors: [{ path: '/', message: `bundle supports drawio and mermaid, and doc for the description tables, not "${opts.to}"`, hint: 'FigJam has no combined file: emit each diagram with --to figjam' }], usage: USAGE });
+    if (langError(opts)) return fail(1, { ok: false, errors: [langError(opts)], usage: USAGE });
     // A folder stands for its IR files in run order; files given one by one keep the order given.
     const files = [];
     for (const arg of opts.positional) {
@@ -267,7 +283,7 @@ export async function main(argv) {
     if (opts.gap !== undefined && (opts.canvas === undefined || !Number.isFinite(gap) || gap < 0)) {
       return fail(1, { ok: false, errors: [{ path: '/', message: '--gap takes a number of pixels (0 or more) and needs --canvas' }], usage: USAGE });
     }
-    const result = await bundle(entries, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, title: opts.title, canvas, gap });
+    const result = await bundle(entries, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, title: opts.title, lang: opts.lang, canvas, gap });
     if (!result.ok) return fail(result.errors.some((e) => e.path === '/' && /canvas|gap/.test(e.message)) ? 1 : 2, { ok: false, errors: result.errors, warnings: result.warnings });
     if (result.warnings.length > 0) process.stderr.write(JSON.stringify({ warnings: result.warnings }) + '\n');
     const outPath = resolve(opts.out);
