@@ -7,8 +7,10 @@
 
 Zukai (図解, "to explain with a diagram") is an Agent Skill for Claude Code and OpenAI Codex.
 It turns requirements, an existing codebase or a raw idea into sequence, flowchart, activity,
-state, ER, class and architecture diagrams, and emits them as editable draw.io files, Mermaid
-text or FigJam boards.
+state, ER, class, architecture and use case diagrams, and emits them as editable draw.io
+files, Mermaid text or FigJam boards. A diagram drawn from code can later be brought up to
+date with the code, and a run can also carry SVG pictures and description tables for a wiki
+or a design document.
 
 The agent never writes diagram syntax. It writes one small JSON model per diagram; a bundled
 CLI validates that model and emits the output deterministically. A diagram is therefore
@@ -42,7 +44,11 @@ always produces the same file.
   automatically, in which every shape and connection can still be moved and restyled.
 - **Four ways in.** Interview the user (`clarify`), read the code (`scout`), start from
   an idea and choose among proposed diagram sets (`brainstorm`), or rebuild a diagram made in
-  draw.io, FigJam or Mermaid (`/zukai:recook`), with a check that no text of it was lost.
+  draw.io, FigJam, Mermaid or PlantUML (`/zukai:recook`), with a check that no text of it
+  was lost.
+- **Diagrams that follow the code.** A diagram read from code records the files it was drawn
+  from. `/zukai:sync` tells which of them changed and changes the diagram by what the code
+  changed, and one CLI command answers the same question in CI.
 - **Nothing approximated silently.** A feature matrix states, per diagram kind, target and
   feature, whether it is supported, degraded with a named warning, or rejected.
 - **Two audiences from one subject.** A technical view keeps component, endpoint and data
@@ -89,9 +95,11 @@ is in [docs/quickstart.md](docs/quickstart.md); every install option is in
 | Option | Values | Effect |
 |---|---|---|
 | `--to` | `drawio` (default), `mermaid`, `figjam` | Output target |
-| `--kind` | `sequence`, `flowchart`, `activity`, `state`, `er`, `class`, `architecture` | Fixes the diagram kind |
+| `--kind` | `sequence`, `flowchart`, `activity`, `state`, `er`, `class`, `architecture`, `usecase` | Fixes the diagram kind |
 | `--scope` | `overview`, `detailed` | One main diagram, or a main diagram linked to one sub-diagram per sub-flow |
 | `--audience` | `technical`, `business`, `both` | Who reads the diagram |
+| `--svg` | no value | Also writes `svg/<diagram>.drawio.svg` for every diagram: a picture that GitHub, a browser or a wiki shows and that draw.io still opens for editing (target `drawio` only; needs a renderer) |
+| `--doc` | no value | Also writes `<run>.doc.md`: every element of every diagram as Markdown tables, for a specification or a design document |
 
 Anything not given as an option is asked once, in a single question, in the user's language.
 
@@ -99,12 +107,13 @@ Anything not given as an option is asked once, in a single question, in the user
 /zukai:draw clarify order approval process
 /zukai:draw scout --kind activity --scope overview the refund flow
 /zukai:draw brainstorm --to mermaid a loyalty points feature
+/zukai:draw clarify --kind usecase --svg --doc what each role does in the library system
 ```
 
 ### Changing a delivered diagram
 
 ```text
-/zukai:revise [<run-folder>] [--preview|--apply] <request>
+/zukai:revise [<run-folder>] [--preview|--apply] [--doc] [--svg] <request>
 ```
 
 `revise` changes a run that `draw` already delivered, in this conversation or an earlier
@@ -122,6 +131,19 @@ label-only change then keeps your layout; any other change asks first and keeps 
 your edited file in the revision. That copy is never deleted for you: when its revision is
 rotated out, it moves to `history/extras/`.
 
+For a draw.io run, every change also comes with a picture of the change: a draw.io file of
+the new version with one page per diagram that changed, where what was added is green, what
+changed or moved is amber and what was removed is drawn again in red with a dashed outline,
+and a legend under each page that gives the old value of everything amber. A what-if writes
+it into each draft as `drafts/<a|b|c>/changes.diff.drawio`; an applied change writes
+`drafts/changes-<rNNN>.diff.drawio`, named after the revision that holds the state before
+the change. The picture is a review aid and never part of the delivery. The CLI writes it
+on its own too:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir> --drawio <out.diff.drawio>
+```
+
 ```text
 /zukai:revise add a validation step after the card is entered
 /zukai:revise what if the approval moved before payment?
@@ -132,16 +154,18 @@ rotated out, it moves to `history/extras/`.
 ### Recooking a diagram made elsewhere
 
 ```text
-/zukai:recook <file|figjam-board-link> [--to drawio|mermaid|figjam] [--kind ...] [--scope ...] [--audience ...]
+/zukai:recook <file|figjam-board-link> [--to drawio|mermaid|figjam] [--kind ...] [--scope ...] [--audience ...] [--doc] [--svg]
 ```
 
-`recook` takes a diagram someone drew in draw.io, FigJam or Mermaid and delivers it again as
-Zukai diagrams: the same content, Zukai's rules and layout. It never reads the source by eye:
+`recook` takes a diagram someone drew in draw.io, FigJam, Mermaid or PlantUML and delivers
+it again as Zukai diagrams: the same content, Zukai's rules and layout. It never reads the
+source by eye:
 
 1. `extract` reads the file (`.drawio` compressed or not, every page, `.drawio.svg`,
-   `.drawio.png`, `.mmd`, Markdown with Mermaid blocks) or the board (through a read-only
-   script for the Figma tool `use_figma`) into facts: nodes, edges and the kind each page
-   looks like, with the evidence.
+   `.drawio.png`, `.mmd`, PlantUML text as `.puml`, `.plantuml`, `.pu` or `.iuml`, Markdown
+   with Mermaid or PlantUML blocks) or the board (through a read-only script for the Figma
+   tool `use_figma`) into facts: nodes, edges and the kind each page looks like, with the
+   evidence.
 2. The opening question suggests the kind from that evidence; scope and view are asked as in
    `draw`.
 3. The IR is written from the facts under Zukai's rules. Labels are copied as written; a page
@@ -154,10 +178,63 @@ The report lists what was kept, split, merged, left out, added and joined by pos
 source stays where it is; the run keeps only the facts, with any password or personal data
 replaced by a placeholder.
 
+From PlantUML, `extract` reads sequence, class, state, activity (the new syntax: `start`,
+`:action;`, `if ... endif`), component, deployment, use case and ER diagrams. Each
+`@startuml ... @enduml` block of a file and each fenced block of a Markdown file is a page.
+A diagram type that is not read (a mind map, a Gantt chart, a wireframe, an activity diagram
+in the legacy `(*) -->` syntax) is reported as such for its page, with the reason, and is
+never guessed from the text. The preprocessor is not run, so an `!include` is not followed
+and is reported in a warning. PlantUML is a source only: the run is delivered as draw.io
+unless `--to` says otherwise.
+
 ```text
 /zukai:recook docs/legacy/order-flow.drawio
 /zukai:recook https://www.figma.com/board/<key>/Checkout?node-id=12-34 --to drawio
 /zukai:recook --scope detailed architecture.md
+/zukai:recook docs/design/checkout.puml
+```
+
+### Syncing a diagram with the code
+
+```text
+/zukai:sync [<run-folder>]
+```
+
+A diagram drawn by `scout` shows the code as it was on that day. Every such diagram names
+the files it was read from in `meta.sources`, and the run ends by recording a SHA-256 of
+each of them in `source/<run>.sources.json`. `sync` starts from that record:
+
+1. `stale` compares the record with the files. When none changed, `sync` says so and writes
+   nothing.
+2. Otherwise it reads the changed files again with the delivered diagram open and changes
+   only what the changed code changes: an element the code still supports keeps its id, its
+   label word for word and its place.
+3. It shows the change list per diagram, each entry with the file that caused it, and a
+   draft of the result under `drafts/`. Nothing delivered changes until you answer "apply".
+4. On "apply" it saves a revision, emits and reviews like every other change, and records
+   the sources again. `/zukai:revise undo` goes back to the earlier diagrams together with
+   their record.
+
+A change in the code that no diagram shows (a refactoring, a comment) only renews the
+record. A run that was not drawn from code is refused with a pointer to `/zukai:revise`,
+and a change the code does not have is a `revise`, not a `sync`. A run scouted before
+version 2.3.0 has no record; `sync` then asks whether to record it as it is or to compare
+it with the code now.
+
+The same check runs without an agent, without git and without the network, so one line in
+CI tells when a committed diagram has fallen behind the code:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs stale diagrams/20261109_login-flow
+```
+
+It prints one JSON object and exits 0 when no recorded file changed, 2 when one changed or
+is gone (listed per diagram), and 1 when the run has no record. Several run folders can be
+given in one call.
+
+```text
+/zukai:sync
+/zukai:sync diagrams/20261109_login-flow
 ```
 
 ## Diagram kinds and targets
@@ -171,16 +248,39 @@ replaced by a placeholder.
 | `er` | Data entities, their key attributes and relations |
 | `class` | Types, interfaces, their members, inheritance and composition |
 | `architecture` | Deployable components, data stores, queues, external systems and their connections |
+| `usecase` | Who uses the system and for what: actors, their goals, the system boundary, shared and optional behaviour |
 
 | Target | Output | Notes |
 |---|---|---|
-| `drawio` | `.drawio` file, uncompressed mxGraph XML | Default. Laid out automatically; every shape and edge stays editable. Architecture diagrams of AWS systems use AWS service icons with VPC, subnet and account frames |
+| `drawio` | `.drawio` file, uncompressed mxGraph XML | Default. Laid out automatically; every shape and edge stays editable. Architecture diagrams of systems on AWS or Google Cloud use the provider's service icons (`icon: "aws:<name>"`, `icon: "gcp:<name>"`) and its frames (VPC, subnet and account on AWS; project, region, zone, VPC network and subnet on Google Cloud); a system on both clouds shows both in one diagram |
 | `mermaid` | Mermaid text | Paste into Markdown or a wiki |
-| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; without it you get the FigJam text to paste into the board yourself. Block frames, notes, self-messages, participant kinds and activation bars of a sequence diagram are drawn on the board by a second, generated script. `emit --native` writes a script that draws the whole board at the coordinates of the draw.io layout instead, which also covers class and activity diagrams |
+| `figjam` | New or existing FigJam board | Needs the Figma MCP server in the session; without it you get the FigJam text to paste into the board yourself. Block frames, notes, self-messages, participant kinds and activation bars of a sequence diagram are drawn on the board by a second, generated script. `emit --native` writes a script that draws the whole board at the coordinates of the draw.io layout instead, which also covers class, activity and use case diagrams and draws the AWS and Google Cloud icons |
 
 draw.io is the target for `activity` diagrams. Mermaid renders them with its beta swimlane
-syntax, and FigJam takes them only as the board drawn by `emit --native`. The complete table of what each target supports is
+syntax, and FigJam takes them only as the board drawn by `emit --native`. draw.io is also the
+target for `usecase` diagrams, which it draws as UML does (stick figures, ellipses, the
+system boundary, `«include»` and `«extend»` arrows). Mermaid has no use case diagram and gets
+a flowchart form with a warning that says what was lost; the FigJam text target refuses the
+kind, and `emit --native` draws the board. The complete table of what each target supports is
 [docs/feature-matrix.md](docs/feature-matrix.md).
+
+### Other outputs
+
+Two outputs stand beside the target of a run, not in its place, and are written only when
+asked for:
+
+- **SVG pictures** (`--svg`, or `cli.mjs export <file.drawio|run-folder> [--out <dir|file.svg>]`).
+  Each page of the draw.io file becomes `svg/<diagram>.drawio.svg`: an SVG picture with the
+  page's diagram embedded, so Markdown shows it as an image and draw.io opens the same file
+  for editing. With Playwright installed, labels are written as SVG text, so viewers other
+  than a browser show them too. `export` needs one of the renderers of the rendered review step and writes nothing
+  without one.
+- **Description tables** (`--doc`, or `cli.mjs bundle --to doc --lang <en|ja|vi> --out <file.md> <run-folder>`).
+  `<run>.doc.md` lists every element of every diagram as Markdown tables: the numbered steps
+  of a sequence, a state by event table, the attributes of each entity, the actors and use
+  cases. Headings and column headers are in English, Japanese or Vietnamese; labels stay as
+  the model has them. The tables are generated from the model and are not a target, so they
+  have no column in the feature matrix: a table leaves nothing out.
 
 ## How it works
 
@@ -227,12 +327,16 @@ Every run writes into one folder of your project:
 ```text
 diagrams/20261109_login-flow/
   login-flow.drawio          the whole run: one page per diagram
+  login-flow.doc.md          the description tables of the whole run (only when asked for)
   drawio/<diagram>.drawio    each diagram on its own
+  svg/<diagram>.drawio.svg   a picture of each diagram that draw.io still opens (only when asked for)
   source/<diagram>.ir.json   the model the diagrams were generated from
   source/<run>.facts.json    what a recook read from its source, secrets replaced by placeholders
-  history/r001/ ... r005/    the five latest revisions of the whole run (written by revise)
+  source/<run>.sources.json  a scouted run: a hash of every source file its diagrams were drawn from
+  history/r001/ ... r005/    the five latest revisions of the whole run (written by revise and sync)
   history/extras/rNNN/       hand-edited files of revisions that were rotated out (kept until you delete them)
-  drafts/a/ b/ c/            drafts of a what-if, until one is confirmed or dropped
+  drafts/a/ b/ c/            drafts of a what-if or of a sync, until one is confirmed or dropped
+  drafts/changes-rNNN.diff.drawio   the picture of an applied change, a review aid
 ```
 
 To change a diagram, ask `/zukai:revise`, or edit the `.ir.json` file and emit again. The XML
@@ -242,19 +346,21 @@ is an output, not a source.
 
 - Node 22.13 or newer. The CLI is a committed single-file bundle, so using Zukai never
   needs `npm install`. Validating and emitting never touch the network.
-- Optional: draw.io desktop or Playwright with Chromium, for the rendered review step.
+- Optional: draw.io desktop or Playwright with Chromium, for the rendered review step and
+  for the SVG pictures of `export`, which uses the same renderers. `preview` and `export`
+  are the two commands that may reach the network, and only to fetch the renderer.
 - Optional: the Figma MCP server, for the FigJam target.
 
 ## Other runtimes
 
 The same skill folders run outside the Claude Code plugin. `install.sh` (and `install.ps1`
-on Windows) copies all three into a project:
+on Windows) copies all four into a project:
 
 | Runtime | Install | Invoke |
 |---|---|---|
-| Claude Code plugin | `claude plugin install zukai@zukai` | `/zukai:draw`, `/zukai:revise`, `/zukai:recook` |
-| OpenAI Codex | `install.sh --target codex --dest <project>` | `$zukai`, `$zukai-revise`, `$zukai-recook` |
-| Claude Code without the plugin | `install.sh --target claude-project --dest <project>` | `/zukai`, `/zukai-revise`, `/zukai-recook` |
+| Claude Code plugin | `claude plugin install zukai@zukai` | `/zukai:draw`, `/zukai:revise`, `/zukai:recook`, `/zukai:sync` |
+| OpenAI Codex | `install.sh --target codex --dest <project>` | `$zukai`, `$zukai-revise`, `$zukai-recook`, `$zukai-sync` |
+| Claude Code without the plugin | `install.sh --target claude-project --dest <project>` | `/zukai`, `/zukai-revise`, `/zukai-recook`, `/zukai-sync` |
 
 Use one channel per machine. Details, uninstall, update and private-fork credentials are in
 [docs/install.md](docs/install.md).
@@ -273,6 +379,7 @@ working; see [Upgrading from it-diagrams](docs/install.md#upgrading-from-it-diag
 | [skills/draw/SKILL.md](skills/draw/SKILL.md) | The draw skill's own contract, as the agent reads it |
 | [skills/revise/SKILL.md](skills/revise/SKILL.md) | The revise skill's own contract, as the agent reads it |
 | [skills/recook/SKILL.md](skills/recook/SKILL.md) | The recook skill's own contract, as the agent reads it |
+| [skills/sync/SKILL.md](skills/sync/SKILL.md) | The sync skill's own contract, as the agent reads it |
 
 ## Development
 
@@ -286,7 +393,11 @@ sources.
 
 ## Status
 
-Version 2.2.2 is the open beta. Version 2.2.0 added `/zukai:recook` and version 2.0.0 added `/zukai:revise`; forks of the skill should read
+Version 2.3.0 is the open beta. It added `/zukai:sync`, the use case kind, the SVG pictures,
+the description tables, the picture of a change, the PlantUML reader and Google Cloud icons
+for architecture diagrams; version 2.2.0 added
+`/zukai:recook` and version 2.0.0 added `/zukai:revise`. Forks of the skill should read
+[Upgrading to 2.3.0](docs/install.md#upgrading-to-230),
 [Upgrading to 2.2.0](docs/install.md#upgrading-to-220),
 [Upgrading to 2.0.0](docs/install.md#upgrading-to-200) and
 [Upgrading to 2.0.1](docs/install.md#upgrading-to-201). Every diagram kind and target listed above works and is
