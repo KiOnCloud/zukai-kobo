@@ -1,5 +1,5 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
-import { awsIcon, awsGroup } from './aws-icons.mjs';
+import { cloudIcon, cloudGroup } from './aws-icons.mjs';
 import { layoutGraph, backEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, widestWord, LABEL_PAD } from './layout-graph.mjs';
 import { measureEllipse } from './layout-graph.mjs';
 import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
@@ -417,6 +417,8 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
     const box = layout.containers.get(c.id);
     const style = c.headerHeight ? c.style.replace(/startSize=\d+;/, `startSize=${c.headerHeight};`) : c.style;
     cells.push(vertex({ id: cid(c.id), value: htmlLabel(c.label), style, ...box, parent: c.parent ? cid(c.parent) : '1', link: c.link }));
+    // The mark of a frame (the Google Cloud mark) is a cell of its own in the frame's corner: part of the frame, never an end of a connection.
+    if (c.mark) cells.push(vertex({ id: `${cid(c.id)}:mark`, value: '', style: `${c.mark.style}part=1;pointerEvents=0;`, x: c.mark.x, y: c.mark.y, width: c.mark.width, height: c.mark.height, parent: cid(c.id), connectable: false }));
   };
   for (const c of containers) emitContainer(c);
   for (const n of nodes) {
@@ -1085,15 +1087,16 @@ const AWS_ICON = { width: 78, height: 78, below: 6 };
 const AWS_ICON_POINTS = 'points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];';
 const awsIconStyle = (icon) => `sketch=0;${AWS_ICON_POINTS}outlineConnect=0;fontColor=#232F3E;${icon.gradient ? `gradientColor=${icon.gradient};gradientDirection=north;` : ''}fillColor=${icon.fill};strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.${icon.name};`;
 /**
- * The style of a figure that is a stencil of its own: a general resource of the AWS library
- * (a server, an application) or a product logo. It is drawn in one colour without a square
- * behind it, which is how a system that is not an AWS service is told from one.
+ * The style of a figure that is a stencil of its own: a GCP service (a hexagon), a general
+ * resource of either library (a server, an application, a bucket) or a product logo. It is
+ * drawn in one colour without a square behind it, which is how a system that is not an AWS
+ * service is told from one.
  */
 const stencilStyle = (icon) => `sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=${icon.fill};strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=${icon.stencil};`;
-/** The corner icon of an AWS group frame and the gap before its title (the palette's `spacingLeft=30`). */
+/** The corner icon of a group frame and the gap before its title (the AWS palette's `spacingLeft=30`). */
 const AWS_GROUP_ICON = 30;
 /**
- * Room between an AWS group frame and its members. AWS diagrams nest four or five frames
+ * Room between a cloud group frame and its members. Cloud diagrams nest four or five frames
  * (account, region, VPC, subnet) where a plain one nests one or two, so the 20 px a plain
  * boundary keeps on each side would add up to a wide empty band around the innermost members.
  */
@@ -1102,28 +1105,54 @@ const AWS_FRAME_INSET = 12;
 const TITLE_GAP = 8;
 /** Room kept between a frame title and a line that crosses the top of its frame. */
 const TITLE_LINE_GAP = 12;
+/** The flags that make a cell a frame its members move with; the AWS stencil frames carry them already. */
+const CONTAINER_FLAGS = 'container=1;pointerEvents=0;collapsible=0;recursiveResize=0;';
 /**
- * An AWS group frame as a container. The palette's style is kept, with two changes. A frame
- * that is a plain rectangle there (an Availability Zone) gains the container flags the
- * stencil frames already carry. The Auto Scaling group, whose palette form has its icon and
- * title in the middle of the top side, is drawn like every other frame, icon in the corner
- * and title beside it: a title in the corner can step aside when a connection enters the
- * frame from above, a fixed icon in the middle cannot. The title of a frame stands on one
- * line, so the frame is at least that wide.
+ * How the palette style of a provider's group frame becomes the style of a container. Every
+ * frame is drawn the same way, whatever its provider: the title on one line at the top left,
+ * at the size of the component names, after the corner icon where the frame has one.
+ *
+ * AWS: the Auto Scaling group, whose palette form has its icon and title in the middle of
+ * the top side, is drawn like every other frame, icon in the corner and title beside it: a
+ * title in the corner can step aside when a connection enters the frame from above, a fixed
+ * icon in the middle cannot. A frame that is a plain rectangle there (an Availability Zone)
+ * keeps its centred title.
+ *
+ * GCP: the palette writes its frames in two forms (a zone with `spacing=10`, a frame of the
+ * project legend with `spacingLeft=10` and a 10 px font). Both get the one left margin
+ * `spacingLeft` gives, so a title that steps aside is moved by that one key. The frame with
+ * the Google Cloud mark keeps the room the palette leaves for the mark before its title.
  */
-function awsGroupContainer(group, label) {
-  const corner = group.style
+const FRAME_STYLE = {
+  aws: (style) => style
     .replace('shape=mxgraph.aws4.groupCenter;', 'shape=mxgraph.aws4.group;')
     .replace('align=center;', `align=left;spacingLeft=${AWS_GROUP_ICON};`)
-    .replace('spacingTop=25;', '');
-  const stencil = corner.includes('shape=mxgraph.aws4.');
+    .replace('spacingTop=25;', ''),
+  gcp: (style) => {
+    const parts = style.split(';').filter(Boolean);
+    const value = (key) => Number(parts.find((part) => part.startsWith(`${key}=`))?.slice(key.length + 1) ?? 0);
+    const kept = parts.filter((part) => !/^(?:spacing|spacingLeft|spacingTop|fontSize)=/.test(part));
+    return [...kept, 'fontSize=12', 'spacing=0', 'spacingTop=6', `spacingLeft=${value('spacing') + value('spacingLeft')}`, ''].join(';');
+  },
+};
+/**
+ * A cloud group frame as a container: the palette's style as `FRAME_STYLE` adapts it, plus
+ * the container flags where the palette form is a plain shape. The title of a frame stands
+ * on one line, so the frame is at least that wide.
+ */
+function groupContainer(group, label) {
+  const adapted = FRAME_STYLE[group.provider](group.style);
   const text = measureLabelBelow(label, { maxWidth: 360 });
-  const start = stencil ? AWS_GROUP_ICON : TITLE_GAP;
+  // Where the title starts: after the corner icon or the mark, else at the frame's left margin.
+  const left = /(?:^|;)align=left;/.test(adapted) ? Number(/(?:^|;)spacingLeft=(\d+);/.exec(adapted)?.[1] ?? 0) : 0;
+  const start = left > 0 ? left : TITLE_GAP;
+  const corner = adapted.includes('grIcon=') || group.mark !== undefined;
   return {
-    style: stencil ? corner : `${corner}container=1;pointerEvents=0;collapsible=0;recursiveResize=0;`,
-    title: { width: text.width, height: text.height + 4, start, centred: !stencil },
+    style: adapted.includes('container=1;') ? adapted : `${adapted}${CONTAINER_FLAGS}`,
+    title: { width: text.width, height: text.height + 4, start, centred: left === 0, corner },
     inset: AWS_FRAME_INSET,
     minWidth: Math.min(400, 2 * Math.ceil((start + text.width + TITLE_GAP) / 2)),
+    ...(group.mark ? { mark: group.mark } : {}),
   };
 }
 
@@ -1246,7 +1275,7 @@ function placeLineLabels(layout, own, { containers, nodes, edges }) {
   const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
   const within = (a, b) => a.x >= b.x && a.y >= b.y && a.x + a.width <= b.x + b.width && a.y + a.height <= b.y + b.height;
   const boxes = nodes.filter((n) => layout.nodes.has(n.id)).map((n) => absoluteBox(n.id, layout, parentOf));
-  const frames = containers.map((c) => ({ box: absoluteBox(c.id, layout, parentOf), icon: c.title && !c.title.centred }));
+  const frames = containers.map((c) => ({ box: absoluteBox(c.id, layout, parentOf), icon: c.title?.corner === true }));
   const corners = frames.filter((f) => f.icon).map((f) => ({ x: f.box.x, y: f.box.y, width: AWS_GROUP_ICON, height: AWS_GROUP_ICON }));
   const pathOf = (e) => { const r = layout.edges.get(e.id); return r?.start && r?.end ? [r.start, ...(r.points ?? []), r.end] : undefined; };
   const lines = [];
@@ -1940,14 +1969,15 @@ async function arrangeArchitecture(ir, refs, how) {
   const warnings = [];
   const parent = parentMap(ir.boundaries ?? []);
   const containers = (ir.boundaries ?? []).map((b) => {
-    const group = awsGroup(b.group);
-    return { id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container, ...(group ? awsGroupContainer(group, b.label) : { title: plainTitle(b.label) }) };
+    const group = cloudGroup(b.group);
+    return { id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container, ...(group ? groupContainer(group, b.label) : { title: plainTitle(b.label) }) };
   });
-  const usesAws = (ir.boundaries ?? []).some((b) => awsGroup(b.group)) || ir.components.some((c) => awsIcon(c.icon));
+  // The placement rules below hold for a diagram with icons or group frames of a cloud provider, whichever it is.
+  const usesCloud = (ir.boundaries ?? []).some((b) => cloudGroup(b.group)) || ir.components.some((c) => cloudIcon(c.icon));
   const kindOf = (c) => c.kind ?? 'service';
-  // A figure with its label below it: the screen of a client, or an AWS service icon.
+  // A figure with its label below it: the screen of a client, or the icon of a cloud service.
   const figureOf = (c) => {
-    const icon = awsIcon(c.icon);
+    const icon = cloudIcon(c.icon);
     if (icon?.stencil) return { ...AWS_ICON, width: icon.width, height: icon.height, style: stencilStyle(icon) };
     if (icon) return { ...AWS_ICON, style: awsIconStyle(icon) };
     return kindOf(c) === 'client' ? { ...CLIENT_FIGURE, style: STYLE.client } : undefined;
@@ -1977,12 +2007,12 @@ async function arrangeArchitecture(ir, refs, how) {
   const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
   // The ports of a figure depend on the sides its connections use, so they are worked out
   // afresh for every arrangement that is tried.
-  // In an AWS diagram each label is placed beside its own line after the layout (placeLineLabels).
-  if (usesAws) for (const e of edges) if (e.label && e.from !== e.to) { e.labelPlacedByCaller = true; e.labelOnDrawnLine = true; }
-  const aside = usesAws ? asideCandidates(nodes, edges) : new Map();
-  const row = usesAws ? rowCandidates(nodes, edges, aside) : new Map();
+  // In a cloud diagram each label is placed beside its own line after the layout (placeLineLabels).
+  if (usesCloud) for (const e of edges) if (e.label && e.from !== e.to) { e.labelPlacedByCaller = true; e.labelOnDrawnLine = true; }
+  const aside = usesCloud ? asideCandidates(nodes, edges) : new Map();
+  const row = usesCloud ? rowCandidates(nodes, edges, aside) : new Map();
   // A system of a row is placed with the row, also when one component alone uses it.
-  const stores = usesAws ? attachStores(nodes, edges, ir.direction, row) : new Map();
+  const stores = usesCloud ? attachStores(nodes, edges, ir.direction, row) : new Map();
   const apart = (id) => aside.has(id) || row.has(id) || stores.has(id);
   const laidOut = () => ({ nodes: nodes.filter((n) => !apart(n.id)), edges: edges.filter((e) => !apart(e.to) && !row.has(e.from)) });
   const arrange = async () => {
@@ -2015,13 +2045,15 @@ async function arrangeArchitecture(ir, refs, how) {
     }
   };
   let layout = await placeAside(await arrange());
-  if (usesAws) {
+  if (usesCloud) {
     const g = laidOut();
     layout = await placeAside(await nearSide(layout, g, arrange));
   }
-  // A wider frame moves the lines, so the titles are placed again after each new layout.
+  // A wider frame moves the lines, so the titles are placed again after each new layout. A
+  // narrow frame that two lines enter side by side (two clouds, one below the other) grows by
+  // a few pixels a round, so the rounds are not cut short.
   let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
-  for (let round = 0; unplaced && round < 6; round++) {
+  for (let round = 0; unplaced && round < 16; round++) {
     layout = await placeAside(await layoutGraph({ ...laidOut(), containers, direction: ir.direction, spacing, ...how }));
     unplaced = placeGroupTitles(layout, { containers, nodes, edges });
   }
@@ -2029,7 +2061,7 @@ async function arrangeArchitecture(ir, refs, how) {
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
   // draw.io writes an edge label on a white patch. Inside a tinted frame (a subnet) the patch
   // takes the colour of the frame, so the label hides its line without showing as a box.
-  if (usesAws) {
+  if (usesCloud) {
     const parentOf = new Map(containers.map((c) => [c.id, c.parent]));
     const depth = (id) => { let d = 0; for (let p = parentOf.get(id); p; p = parentOf.get(p)) d++; return d; };
     const framed = containers.map((c) => ({ c, box: absoluteBox(c.id, layout, parentOf), depth: depth(c.id) })).sort((a, b) => b.depth - a.depth);

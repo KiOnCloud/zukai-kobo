@@ -887,7 +887,7 @@
                 "$ref": "#/$defs/idList"
               },
               "group": {
-                "$ref": "#/$defs/awsName"
+                "$ref": "#/$defs/groupName"
               }
             }
           }
@@ -1194,15 +1194,15 @@
       ],
       "unevaluatedProperties": false
     },
-    "awsName": {
+    "groupName": {
       "type": "string",
-      "pattern": "^aws:[a-z0-9_]{1,64}$",
-      "description": "An AWS group frame of draw.io's AWS library, written aws:<name>; the names are listed in references/aws-icons.md"
+      "pattern": "^(aws|gcp):[a-z0-9_]{1,64}$",
+      "description": "A group frame of draw.io's AWS or GCP library, written aws:<name> or gcp:<name>; the names are listed in references/aws-icons.md and references/gcp-icons.md"
     },
     "iconName": {
       "type": "string",
       "pattern": "^(aws|gcp):[a-z0-9_]{1,64}$",
-      "description": "An icon of draw.io's AWS library, written aws:<name>, or a product logo, written gcp:<name>; the names are listed in references/aws-icons.md"
+      "description": "An icon of draw.io's AWS or GCP library or a product logo, written aws:<name> or gcp:<name>; the names are listed in references/aws-icons.md and references/gcp-icons.md"
     }
   }
 }

@@ -112,6 +112,8 @@ For each diagram kind, target and feature the value is one of:
 | `component.ref` | supported | supported | supported |
 | `component.icon.aws` | degraded (Mermaid has no AWS icons; each component is drawn with the generic icon or shape of its kind) | supported | degraded (FigJam has no AWS icons; each component is drawn with the shape of its kind) |
 | `boundary.group.aws` | degraded (the AWS group frames are drawn as plain groups) | supported | degraded (the AWS group frames are drawn as plain subgraphs) |
+| `component.icon.gcp` | degraded (Mermaid has no GCP icons; each component is drawn with the generic icon or shape of its kind) | supported | degraded (FigJam has no GCP icons; each component is drawn with the shape of its kind) |
+| `boundary.group.gcp` | degraded (the GCP group frames are drawn as plain groups) | supported | degraded (the GCP group frames are drawn as plain subgraphs) |
 
 ## activity
 

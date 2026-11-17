@@ -87,9 +87,12 @@ describe('stencil geometry', () => {
       ['f', 'M 50 0 L 90 0 L 90 40 Z', '000000', '', 0.2],
       ['f', 'M 100 0 L 140 0 L 140 40 Z', 'ffffff', ''],
     ]);
-    // The shadow of the game controller is the one such fill among the stencils the emitters write.
+    // The shadow of the game controller is the one such fill among the AWS stencils and the product logos.
+    const service = new Set(Object.keys(catalog.gcp.icons).map((name) => `mxgraph.gcp2.${name}`));
     const withAlpha = Object.entries(data.stencils).filter(([, g]) => g.paint.some((p) => p.length > 4)).map(([name]) => name);
-    expect(withAlpha).toEqual(['mxgraph.gcp2.google_play_game_service']);
+    expect(withAlpha.filter((name) => !service.has(name))).toEqual(['mxgraph.gcp2.google_play_game_service']);
+    // A GCP service icon lays the long shadow of its pictogram over the hexagon the same way.
+    expect(data.stencils['mxgraph.gcp2.cloud_run'].paint.map((p) => p.slice(2))).toEqual([[], ['000000', '', 0.07], [], ['ffffff', '']]);
     expect(data.stencils['mxgraph.gcp2.google_play_game_service'].paint.map((p) => p.slice(2))).toEqual([['8dc34c', ''], ['000000', '', 0.2], [], ['ffffff', '']]);
   });
 
@@ -154,6 +157,8 @@ describe('stencil data file', () => {
     expect(wanted).toContain('mxgraph.aws4.cloudfront');
     expect(wanted).toContain('mxgraph.aws4.group_vpc2');
     expect(wanted).toContain('mxgraph.gcp2.firebase');
+    expect(wanted).toContain('mxgraph.gcp2.cloud_run');
+    expect(wanted).toContain('mxgraph.gcp2.google_cloud_platform');
     expect(wanted).toContain('mxgraph.networks.monitor');
     expect(Object.keys(data.stencils).sort()).toEqual(wanted);
   });

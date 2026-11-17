@@ -1,0 +1,58 @@
+flowchart LR
+  %% id: browser
+  n1(("Staff browser"))
+  %% id: idp
+  n8>"Identity provider"]
+  %% id: realtime
+  n9>"Firebase Realtime Database"]
+  %% id: client_logs
+  n10>"Client log collector"]
+  %% id: project
+  subgraph n11["Production project"]
+    %% id: cdn
+    n2["Cloud CDN"]
+    %% id: region
+    subgraph n12["asia-northeast1 (Tokyo)"]
+      %% id: site
+      n3[("Cloud Storage web app")]
+      %% id: vpc
+      subgraph n13["VPC network"]
+        %% id: proxy
+        subgraph n14["Proxy-only subnet"]
+          %% id: lb
+          n4["Application Load Balancer"]
+        end
+        %% id: private
+        subgraph n15["GKE subnet"]
+          %% id: api
+          n5["Booking API (GKE)"]
+        end
+      end
+      %% id: tables
+      n6[("Firestore")]
+      %% id: files
+      n7[("Cloud Storage attachments")]
+    end
+  end
+  %% id: c1
+  n1 -->|"HTTPS"| n2
+  %% id: c2
+  n1 -->|"REST"| n4
+  %% id: c3
+  n1 -->|"sign in"| n8
+  %% id: c4
+  n1 -->|"listen for version"| n9
+  %% id: c5
+  n1 -->|"client logs"| n10
+  %% id: c6
+  n2 --> n3
+  %% id: c7
+  n4 -->|"HTTP"| n5
+  %% id: c8
+  n5 -->|"read / write"| n6
+  %% id: c9
+  n5 -->|"store files"| n7
+  %% id: c10
+  n5 -->|"verify token"| n8
+  %% id: c11
+  n5 -->|"publish version"| n9

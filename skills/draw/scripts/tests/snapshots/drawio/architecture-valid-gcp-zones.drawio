@@ -1,0 +1,165 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="web-tier-across-two-zones" name="Web tier across two zones">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="web-tier-across-two-zones:project" value="Production project" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#F6F6F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=63;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry x="12" y="342" width="710" height="1084" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:vpc" value="VPC network" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#E3F2FD;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="web-tier-across-two-zones:project">
+          <mxGeometry x="140" y="52" width="558" height="890" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:mig" value="Managed instance group" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#F9FBE7;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=77;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="web-tier-across-two-zones:vpc">
+          <mxGeometry x="30" y="228" width="490" height="224" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:zone_a" value="Zone asia-northeast1-a" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#FFF3E0;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=65;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="web-tier-across-two-zones:mig">
+          <mxGeometry x="12" y="52" width="208" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:zone_c" value="Zone asia-northeast1-c" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#FFF3E0;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=65;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="web-tier-across-two-zones:mig">
+          <mxGeometry x="270" y="52" width="208" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:data" value="Database firewall rule" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#FBE9E7;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=191;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="web-tier-across-two-zones:vpc">
+          <mxGeometry x="38" y="552" width="326" height="326" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:dc" value="Corporate data center" style="swimlane;whiteSpace=wrap;html=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="532" y="12" width="186" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:users" value="Users" style="shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=40;" vertex="1" parent="1">
+          <mxGeometry x="224" y="176" width="54" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:dns" value="Cloud DNS" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_dns;labelWidth=69;" vertex="1" parent="web-tier-across-two-zones:project">
+          <mxGeometry x="12" y="52" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:lb" value="Application Load Balancer" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_load_balancing;labelWidth=148;" vertex="1" parent="web-tier-across-two-zones:vpc">
+          <mxGeometry x="69" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:web_a" value="Web server A" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.compute_engine;labelWidth=81;" vertex="1" parent="web-tier-across-two-zones:zone_a">
+          <mxGeometry x="14" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:web_c" value="Web server C" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.compute_engine;labelWidth=82;" vertex="1" parent="web-tier-across-two-zones:zone_c">
+          <mxGeometry x="14" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:db_primary" value="Cloud SQL primary" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_sql;labelWidth=111;" vertex="1" parent="web-tier-across-two-zones:data">
+          <mxGeometry x="44" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:db_standby" value="Cloud SQL standby (HA)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_sql;labelWidth=141;" vertex="1" parent="web-tier-across-two-zones:data">
+          <mxGeometry x="57" y="218" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:secrets" value="Secret Manager" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="web-tier-across-two-zones:project">
+          <mxGeometry x="92" y="1032" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:erp" value="On-premise ERP" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="web-tier-across-two-zones:dc">
+          <mxGeometry x="20" y="170" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:batch" value="Nightly export job" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="web-tier-across-two-zones:dc">
+          <mxGeometry x="39.67" y="50" width="121" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.333;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:users" target="web-tier-across-two-zones:dns">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="242" y="277"/>
+              <mxPoint x="63" y="277"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c1:label" value="DNS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="web-tier-across-two-zones:c1">
+          <mxGeometry x="-0.25" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.667;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:users" target="web-tier-across-two-zones:lb">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c2:label" value="HTTPS" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="web-tier-across-two-zones:c2">
+          <mxGeometry x="-0.48" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.333;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:lb" target="web-tier-across-two-zones:web_a">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.667;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:lb" target="web-tier-across-two-zones:web_c">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="273" y="557"/>
+              <mxPoint x="505" y="557"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.667;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.333;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:web_a" target="web-tier-across-two-zones:db_primary">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c5:label" value="SQL" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E3F2FD;" vertex="1" connectable="0" parent="web-tier-across-two-zones:c5">
+          <mxGeometry x="-0.05" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:web_c" target="web-tier-across-two-zones:db_primary">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="505" y="881"/>
+              <mxPoint x="286" y="881"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c6:label" value="SQL" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E3F2FD;" vertex="1" connectable="0" parent="web-tier-across-two-zones:c6">
+          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;startArrow=classic;startFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.333;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:db_primary" target="web-tier-across-two-zones:db_standby">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c7:label" value="replication" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#FBE9E7;" vertex="1" connectable="0" parent="web-tier-across-two-zones:c7">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.333;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:web_a" target="web-tier-across-two-zones:secrets">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="234" y="881"/>
+              <mxPoint x="164" y="881"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c8:label" value="read secret" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#F6F6F6;" vertex="1" connectable="0" parent="web-tier-across-two-zones:c8">
+          <mxGeometry x="0.86" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.667;exitY=1;exitDx=0;exitDy=0;entryX=0.667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:batch" target="web-tier-across-two-zones:db_standby">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="652.33" y="127"/>
+              <mxPoint x="697" y="127"/>
+              <mxPoint x="697" y="901"/>
+              <mxPoint x="369" y="901"/>
+              <mxPoint x="369" y="1109"/>
+              <mxPoint x="299" y="1109"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c9:label" value="read replica" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="web-tier-across-two-zones:c9">
+          <mxGeometry x="-0.69" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.333;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="web-tier-across-two-zones:batch" target="web-tier-across-two-zones:erp">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="web-tier-across-two-zones:c10:label" value="export" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="web-tier-across-two-zones:c10">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

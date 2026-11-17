@@ -1,0 +1,113 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="invoicing-system-on-google-cloud-current" name="Invoicing system on Google Cloud (current state)">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="invoicing-system-on-google-cloud-current:project" value="Project invoicing-prod" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#F6F6F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=150;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry x="321" y="168" width="532" height="1062" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:region" value="asia-northeast1" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#ECEFF1;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="invoicing-system-on-google-cloud-current:project">
+          <mxGeometry x="12" y="244" width="508" height="806" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:vpc" value="VPC network" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#E3F2FD;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="invoicing-system-on-google-cloud-current:region">
+          <mxGeometry x="12" y="228" width="284" height="214" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:private-subnet" value="Private subnet 10.8.0.0/24" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#EDE7F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=101;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="invoicing-system-on-google-cloud-current:vpc">
+          <mxGeometry x="12" y="52" width="260" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:users" value="Users" style="shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=40;" vertex="1" parent="1">
+          <mxGeometry x="432" y="12" width="54" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:lb" value="External Application Load Balancer" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_load_balancing;labelWidth=115;" vertex="1" parent="invoicing-system-on-google-cloud-current:project">
+          <mxGeometry x="99" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:invoice-api" value="Invoice API (Cloud Run)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_run;labelWidth=137;" vertex="1" parent="invoicing-system-on-google-cloud-current:region">
+          <mxGeometry x="87" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:invoice-db" value="Cloud SQL for PostgreSQL" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_sql;labelWidth=153;" vertex="1" parent="invoicing-system-on-google-cloud-current:private-subnet">
+          <mxGeometry x="50" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:tax-rate-api" value="Third-party tax rate API" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="12" y="469" width="154" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:invoice-topic" value="Pub/Sub topic" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_pubsub;labelWidth=83;" vertex="1" parent="invoicing-system-on-google-cloud-current:region">
+          <mxGeometry x="382" y="282" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:pdf-renderer" value="PDF renderer (Cloud Run)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_run;labelWidth=149;" vertex="1" parent="invoicing-system-on-google-cloud-current:region">
+          <mxGeometry x="382" y="522" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:pdf-bucket" value="Cloud Storage bucket" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_storage;labelWidth=124;" vertex="1" parent="invoicing-system-on-google-cloud-current:region">
+          <mxGeometry x="382" y="698" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:users-to-lb" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoicing-system-on-google-cloud-current:users" target="invoicing-system-on-google-cloud-current:lb">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:users-to-lb:label" value="HTTPS" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="invoicing-system-on-google-cloud-current:users-to-lb">
+          <mxGeometry x="-0.32" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:lb-to-api" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=43;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoicing-system-on-google-cloud-current:lb" target="invoicing-system-on-google-cloud-current:invoice-api">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:lb-to-api:label" value="forwards requests" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#F6F6F6;" vertex="1" connectable="0" parent="invoicing-system-on-google-cloud-current:lb-to-api">
+          <mxGeometry x="-0.32" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:api-to-db" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.333;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoicing-system-on-google-cloud-current:invoice-api" target="invoicing-system-on-google-cloud-current:invoice-db">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:api-to-db:label" value="reads and writes" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="invoicing-system-on-google-cloud-current:api-to-db">
+          <mxGeometry x="-0.51" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:api-to-tax" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0;exitY=0.507;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoicing-system-on-google-cloud-current:invoice-api" target="invoicing-system-on-google-cloud-current:tax-rate-api">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:api-to-tax:label" value="gets tax rates (HTTPS)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="invoicing-system-on-google-cloud-current:api-to-tax">
+          <mxGeometry x="0.39" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:api-to-topic" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.667;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoicing-system-on-google-cloud-current:invoice-api" target="invoicing-system-on-google-cloud-current:invoice-topic">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="472" y="575"/>
+              <mxPoint x="754" y="575"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:api-to-topic:label" value="invoice issued" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="invoicing-system-on-google-cloud-current:api-to-topic">
+          <mxGeometry x="-0.22" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:topic-to-renderer" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoicing-system-on-google-cloud-current:invoice-topic" target="invoicing-system-on-google-cloud-current:pdf-renderer">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:topic-to-renderer:label" value="push" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="invoicing-system-on-google-cloud-current:topic-to-renderer">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:renderer-to-bucket" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="invoicing-system-on-google-cloud-current:pdf-renderer" target="invoicing-system-on-google-cloud-current:pdf-bucket">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="invoicing-system-on-google-cloud-current:renderer-to-bucket:label" value="stores rendered PDF" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="invoicing-system-on-google-cloud-current:renderer-to-bucket">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

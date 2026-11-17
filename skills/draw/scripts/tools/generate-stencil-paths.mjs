@@ -1,7 +1,7 @@
 /**
  * Build the geometry of the stencils the emitters name, from draw.io's own stencil bundle, so
- * the native FigJam board can draw the pictogram of an AWS service, the corner icon of an AWS
- * group, a product logo and the client screen instead of a stand-in.
+ * the native FigJam board can draw the pictogram of an AWS or GCP service, the corner icon of
+ * a group, a product logo and the client screen instead of a stand-in.
  *
  * Usage: node tools/generate-stencil-paths.mjs <path to stencils.min.js> [tag]
  *
@@ -14,14 +14,16 @@
  * `w` x `h` and what it paints, each a path in that box (numbers in tenths of a unit) with
  * only M, L, Q, C and Z, because that is all a Figma vector takes. Arcs, rectangles and
  * ellipses are converted here. The table of stencils is 0.7 MB as JSON, which would take the
- * committed bundle past its size budget, so the file holds it packed (`packStencils`); the
- * source it was made from and the number of stencils stay readable beside it.
+ * committed bundle past its size budget, so the file holds it packed (`packStencils`, in the
+ * form src/stencil-pack.mjs describes); the source it was made from and the number of
+ * stencils stay readable beside it.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { inflateRawSync, brotliCompressSync, brotliDecompressSync, constants } from 'node:zlib';
+import { inflateRawSync, brotliCompressSync, constants } from 'node:zlib';
+import { stencilsInSteps, unpackStencils } from '../src/stencil-pack.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TAG = 'v32.6.10';
@@ -272,10 +274,9 @@ export function shapeGeometry(shape) {
   return { w: r2(n(shape.attrs, 'w')), h: r2(n(shape.attrs, 'h')), ...(shape.attrs.aspect === 'fixed' ? { a: 1 } : {}), ...(Number.isFinite(width) && width !== 1 ? { s: width } : {}), paint };
 }
 
-/** The table of stencils as the data file holds it: its JSON, Brotli-compressed, as base64. */
-export const packStencils = (stencils) => brotliCompressSync(Buffer.from(JSON.stringify(stencils)), { params: { [constants.BROTLI_PARAM_QUALITY]: 11, [constants.BROTLI_PARAM_LGWIN]: 24 } }).toString('base64');
-/** The table of stencils back from the data file. */
-export const unpackStencils = (packed) => JSON.parse(brotliDecompressSync(Buffer.from(packed, 'base64')).toString('utf8'));
+/** The table of stencils as the data file holds it: its JSON with every path in steps, Brotli-compressed, as base64. */
+export const packStencils = (stencils) => brotliCompressSync(Buffer.from(JSON.stringify(stencilsInSteps(stencils))), { params: { [constants.BROTLI_PARAM_QUALITY]: 11, [constants.BROTLI_PARAM_LGWIN]: 24 } }).toString('base64');
+export { unpackStencils };
 
 /** The name draw.io registers a shape under: package and shape name, lower case, blanks as underscores. */
 const registryName = (pack, shape) => `${pack}.${shape}`.replace(/ /g, '_').toLowerCase();
@@ -295,7 +296,7 @@ export function libraryStencils(source, file) {
   return out;
 }
 
-/** The stencil names the emitters can write: service and resource icons, group corner icons, product logos, the client screen. */
+/** The stencil names the emitters can write: service and resource icons, group corner icons and marks, product logos, the client screen. */
 export function wantedStencils(catalog) {
   const names = new Set(['mxgraph.networks.monitor']);
   for (const name of Object.keys(catalog.icons)) names.add(`mxgraph.aws4.${name}`);
@@ -303,7 +304,11 @@ export function wantedStencils(catalog) {
     const icon = /grIcon=([\w.]+)/.exec(group.style)?.[1];
     if (icon) names.add(icon);
   }
-  for (const name of Object.keys(catalog.logos ?? {})) names.add(`mxgraph.gcp2.${name}`);
+  for (const name of [...Object.keys(catalog.logos ?? {}), ...Object.keys(catalog.gcp?.icons ?? {})]) names.add(`mxgraph.gcp2.${name}`);
+  for (const group of Object.values(catalog.gcp?.groups ?? {})) {
+    const mark = /shape=(mxgraph\.[\w.]+)/.exec(group.mark?.style ?? '')?.[1];
+    if (mark) names.add(mark);
+  }
   return [...names].sort();
 }
 
@@ -328,7 +333,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     if (shape) stencils[name] = shapeGeometry(shape);
     else missing.push(name);
   }
-  const out = { source: { repo: 'jgraph/drawio', tag, path: SOURCE_PATH, sha256: createHash('sha256').update(bytes).digest('hex') }, unit: PATH_UNIT, count: Object.keys(stencils).length, packed: 'brotli+base64', stencils: packStencils(stencils) };
+  const out = { source: { repo: 'jgraph/drawio', tag, path: SOURCE_PATH, sha256: createHash('sha256').update(bytes).digest('hex') }, unit: PATH_UNIT, count: Object.keys(stencils).length, packed: 'steps+brotli+base64', stencils: packStencils(stencils) };
   const target = join(here, '..', 'src', 'stencil-paths.json');
   writeFileSync(target, `${JSON.stringify(out, null, 1)}\n`, 'utf8');
   console.log(`wrote ${target}: ${out.count} stencils, ${JSON.stringify(stencils).length} characters of JSON packed into ${out.stencils.length}`);

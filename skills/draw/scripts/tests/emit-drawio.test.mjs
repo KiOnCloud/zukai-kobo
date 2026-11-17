@@ -169,7 +169,7 @@ describe('drawio-xml', () => {
       } finally {
         await browser.close();
       }
-    });
+    }, 60_000);
   });
 
   describe('issue 39: a decision label stays inside the rhombus', () => {

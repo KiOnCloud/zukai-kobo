@@ -123,6 +123,34 @@ Choosing) are listed in `meta.omitted` too, in one entry. Label a connection wit
 protocol only when the files state it (a port alone is not a protocol); otherwise with the
 call the code makes, or leave the label out.
 
+When the code deploys to Google Cloud the same holds with the names of `gcp-icons.md`
+(`SKILL.md`, GCP icons). The service of a component is named by a Terraform `google_*`
+resource (`google_cloud_run_v2_service`, `google_sql_database_instance`,
+`google_pubsub_topic`, `google_storage_bucket`, `google_container_cluster`), a Cloud Run
+service or job manifest (`serving.knative.dev`, `run.googleapis.com`), a GKE manifest
+together with the cluster it is applied to, a `gcloud` command of a deploy script or a CI
+workflow (`gcloud run deploy`, `gcloud functions deploy`, `gcloud sql instances create`), a
+Deployment Manager type (`sqladmin.v1beta4.instance`, `pubsub.v1.topic`), `app.yaml` for App
+Engine, or a client library the code imports (`@google-cloud/*`, `google-cloud-*`,
+`Google.Cloud.*`, `cloud.google.com/go/*`). A client library names the service the code
+calls, not where the code runs: it gives a store or a topic its icon, never the caller. The
+frames come from `google_compute_network` (`gcp:vpc_network`), `google_compute_subnetwork`
+(`gcp:subnet`, in the region the resource states), the `project` and `region` of the
+provider block or of the resource (`gcp:project` when the project is named, else
+`gcp:google_cloud`; `gcp:region`), a `zone` argument only where the diagram is about zones
+(`gcp:zone`), and a GKE cluster when its workloads are drawn inside it
+(`gcp:kubernetes_cluster`). A Cloud Run service or a function stands in the region, not in
+a subnet, also when it has a `vpc_access` connector or direct VPC egress: the connector, its
+subnet and the egress setting are supporting resources. A Cloud SQL instance with a private
+network stands in that VPC network. A resource without a region (a Pub/Sub topic, a
+multi-region bucket) stands in the region frame of the components that use it when they are
+all in one region, else in the outer frame (`gcp-icons.md`, Choosing). A `google_pubsub_subscription` is the connection from
+its topic to its subscriber (labelled `push` or `pull` as the resource says), and a
+`google_cloud_scheduler_job` is a component that calls its target. A variable or a local
+that names a project or a region is shown by its value when the files give one
+(`terraform.tfvars`, a default), else by its name. When the files deploy to both clouds,
+each resource takes the icon and the frames of its own provider.
+
 ### usecase
 
 The actors and their goals are in what the system offers to the outside and in who may use

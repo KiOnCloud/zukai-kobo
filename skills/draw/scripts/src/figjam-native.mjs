@@ -1,7 +1,7 @@
-import { brotliDecompressSync } from 'node:zlib';
 import { parseAttrs } from './relabel.mjs';
 import stencilData from './stencil-paths.json' with { type: 'json' };
 import { stencilTag } from './extract-drawio.mjs';
+import { unpackStencils } from './stencil-pack.mjs';
 
 /**
  * A FigJam board drawn at the coordinates of the draw.io file, as scripts for the Figma MCP
@@ -16,7 +16,7 @@ import { stencilTag } from './extract-drawio.mjs';
  *
  * All the knowledge about draw.io shapes is here, where it can be tested without Figma; the
  * part that runs inside Figma only creates what the data block lists. The pictograms of
- * draw.io's stencils (AWS services and groups, product logos, the client screen) come from
+ * draw.io's stencils (AWS and GCP services and groups, product logos, the client screen) come from
  * stencil-paths.json, which tools/generate-stencil-paths.mjs makes from draw.io's own bundle.
  */
 
@@ -28,7 +28,7 @@ let unpacked;
  * @returns {Record<string, { w: number, h: number, a?: 1, s?: number, paint: Array<Array<string>> }>}
  */
 export function stencilTable() {
-  unpacked ??= JSON.parse(brotliDecompressSync(Buffer.from(stencilData.stencils, 'base64')).toString('utf8'));
+  unpacked ??= unpackStencils(stencilData.stencils);
   return unpacked;
 }
 const STENCIL_UNIT = stencilData.unit;
@@ -441,9 +441,11 @@ function drawCells(cells) {
           else labelIn(cell, b);
           return;
         }
-        const radius = s.rounded === '1' ? Math.min(w, h) * (num(s.arcSize, 15) / 100) : 0;
+        const radius = s.rounded === '1' ? (s.absoluteArcSize === '1' ? num(s.arcSize, 15) / 2 : Math.min(w, h) * (num(s.arcSize, 15) / 100)) : 0;
         rect(x, y, w, h, fill, stroke, { ...line, radius });
         if (below) labelBelow(cell, b);
+        // A frame without a header strip (a GCP group, an Availability Zone) has its title at its top, not in its middle.
+        else if (s.container === '1' && s.verticalAlign === 'top') labelIn(cell, { ...b, y: y + num(s.spacing, 2) + num(s.spacingTop), h: 0 }, { v: 't' });
         else labelIn(cell, b);
       }
     }

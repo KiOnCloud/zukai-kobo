@@ -7,6 +7,7 @@ They are the stencil names of draw.io's built-in AWS library (jgraph/drawio v32.
 Write the value exactly as listed; a name that is not in this file fails validation.
 A service with no entry here keeps its generic shape: leave `icon` out.
 A system outside AWS takes a general resource or a product logo, both listed below.
+The icons and group frames of Google Cloud are in `gcp-icons.md`.
 
 ## Choosing
 
