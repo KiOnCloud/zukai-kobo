@@ -13,7 +13,8 @@
  *      --canvas adds a first draw.io page with those diagrams side by side)
  *   node cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>   (new labels by IR id, layout kept)
  *   node cli.mjs preview <file.drawio|file.mmd|run.md> [--out <file.png>] [--max-px <n>]   (optional; needs draw.io desktop or Playwright)
- *   node cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>   (elements added, removed, changed; a dir is a run's source/ folder)
+ *   node cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir> [--drawio <out.drawio>] [--allow-sensitive]   (elements added, removed, changed; a dir is a run's source/ folder;
+ *      --drawio also draws the change: the new version with what was added in green, changed in amber, removed in red)
  *   node cli.mjs drift <file.drawio|run.md> <ir.json|run-dir>...   (cells that differ from a fresh emit: hand edits made in draw.io)
  *   node cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (save every IR of a run as a revision)
  *   node cli.mjs revisions <run-dir>   (the revisions of a run, newest first)
@@ -27,6 +28,7 @@ import { emit, bundle, inspect, TARGETS } from './pipeline.mjs';
 import { preview } from './preview.mjs';
 import { relabelDrawio } from './relabel.mjs';
 import { diffIr, diffRun } from './ir-diff.mjs';
+import { visualDiff, isVisualDiff } from './visual-diff.mjs';
 import { driftDrawio, driftMarkdown } from './drift.mjs';
 import { orderIrFiles, runSlugOf } from './run-order.mjs';
 import { snapshotRun, listRevisions, restoreRun } from './revisions.mjs';
@@ -40,7 +42,7 @@ const USAGE = `usage:
   cli.mjs bundle --to <drawio|mermaid> --out <file> [--title <text>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] <run-dir|ir.json>...
   cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>
   cli.mjs preview <file.drawio|file.mmd|run.md> [--out <file.png>] [--max-px <n>]
-  cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>
+  cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir> [--drawio <out.drawio>] [--allow-sensitive]
   cli.mjs drift <file.drawio|run.md> <ir.json|run-dir>...
   cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
   cli.mjs revisions <run-dir>
@@ -59,6 +61,11 @@ board (block frames, self-messages, notes); no file is written when the board ne
 board at the coordinates of the draw.io layout (<file>.js, then <file>.2.js, ... when one
 script would be too long; run them in order). It works for every kind, class and activity
 included; for those two no Mermaid text is written.
+diff --drawio writes a picture of the change beside the list: a draw.io file of the new version
+with one page per diagram that changed, where what was added is green, what changed or moved
+is amber and what was removed is drawn again in red with a dashed outline, and a legend under
+each. It is a review aid (write it under drafts/), never the output of a run; nothing is
+written when the two versions do not differ.
 extract reads a diagram made elsewhere into facts (pages, nodes, edges, kind hints) for the
 recook skill; --figjam-script writes the read-only use_figma script whose JSON result extract
 then reads (a large board comes back in parts: run the script again with --from <next> and
@@ -71,12 +78,12 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--drawio': 'drawio' };
 const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, drawio: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -334,13 +341,43 @@ export async function main(argv) {
     if (a.error) return fail(a.error.code, a.error.payload);
     const b = readIrSet(opts.positional[1]);
     if (b.error) return fail(b.error.code, b.error.payload);
-    if (!a.directory && !b.directory) {
+    const single = !a.directory && !b.directory;
+    let report;
+    if (single) {
       const d = diffIr(a.entries[0].ir, b.entries[0].ir);
       const differs = d.replaced || d.fields.length + d.added.length + d.removed.length + d.changed.length + d.reordered.length > 0;
-      process.stdout.write(JSON.stringify({ ok: true, differs, ...d }) + '\n');
-      return 0;
+      report = { ok: true, differs, ...d };
+    } else report = { ok: true, ...diffRun(a.entries, b.entries) };
+    if (opts.drawio !== undefined) {
+      const outPath = resolve(opts.drawio);
+      if (extname(outPath).toLowerCase() !== '.drawio') return fail(1, { ok: false, errors: [{ path: opts.drawio, message: '--drawio takes the path of a .drawio file to write' }], usage: USAGE });
+      // The picture is a review aid: it replaces an earlier picture, never another draw.io file.
+      if (existsSync(outPath)) {
+        let existing = '';
+        try {
+          existing = readFileSync(outPath, 'utf8');
+        } catch {
+          // unreadable: treated as a file that is not ours
+        }
+        if (!isVisualDiff(existing)) return fail(1, { ok: false, errors: [{ path: opts.drawio, message: 'this file exists and is not the picture of a diff: it is not overwritten', hint: 'write the picture under the drafts/ folder of the run, for example drafts/<name>.diff.drawio; the delivered <run-slug>.drawio stays as it is' }] });
+      }
+      // Two files are one diagram in two versions, whatever the files are called.
+      const before = single ? [{ id: b.entries[0].id, ir: a.entries[0].ir }] : a.entries;
+      const picture = await visualDiff(before, b.entries, { allowSensitive: opts.allowSensitive });
+      if (!picture.ok) return fail(2, { ok: false, errors: picture.errors, warnings: picture.warnings });
+      if (picture.warnings.length > 0) process.stderr.write(JSON.stringify({ warnings: picture.warnings }) + '\n');
+      if (!picture.differs) report.drawio = { out: null, written: false, reason: 'the two versions do not differ: there is nothing to draw', unchanged: picture.unchanged };
+      else {
+        try {
+          mkdirSync(dirname(outPath), { recursive: true });
+          writeFileSync(outPath, picture.output, 'utf8');
+        } catch (e) {
+          return fail(1, { ok: false, errors: [{ path: opts.drawio, message: `cannot write file: ${e.message}` }] });
+        }
+        report.drawio = { out: outPath, written: true, pages: picture.pages, unchanged: picture.unchanged, notDrawn: picture.notDrawn, warnings: picture.warnings.length };
+      }
     }
-    process.stdout.write(JSON.stringify({ ok: true, ...diffRun(a.entries, b.entries) }) + '\n');
+    process.stdout.write(JSON.stringify(report) + '\n');
     return 0;
   }
   if (opts.command === 'drift') {
@@ -354,6 +391,7 @@ export async function main(argv) {
     }
     const markdown = extname(file).toLowerCase() === '.md';
     if (!markdown && !/<mxfile\b/.test(xml)) return fail(1, { ok: false, errors: [{ path: file, message: 'not a .drawio file (no <mxfile> root)', hint: 'for a Mermaid run pass its combined <run-slug>.md; a single .mmd has no layout to keep, compare the IR with diff instead' }] });
+    if (!markdown && isVisualDiff(xml)) return fail(1, { ok: false, errors: [{ path: file, message: 'this file is the picture of a diff (diff --drawio), not the output of a run', hint: 'pass the delivered <run-slug>.drawio of the run folder' }] });
     const entries = [];
     for (const f of irFiles) {
       const set = readIrSet(f);

@@ -22,11 +22,11 @@ const META_FIELDS = ['source', 'audience', 'lang', 'omitted', 'notes'];
 /** Keys whose values name an element (or, for `ref`, a diagram) by id, from the IR schema. */
 const REF_KEYS = new Set(['from', 'to', 'children', 'participants', 'after', 'ref', 'lane']);
 
-const labelOf = (item) => item.label ?? item.name ?? item.title ?? item.guard ?? item.event ?? '';
+export const labelOf = (item) => item.label ?? item.name ?? item.title ?? item.guard ?? item.event ?? '';
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 /** Arrays of id-carrying objects at the top level of an IR, by collection name. */
-function collections(ir) {
+export function collections(ir) {
   const out = new Map();
   for (const [key, value] of Object.entries(ir ?? {})) {
     if (!Array.isArray(value)) continue;
