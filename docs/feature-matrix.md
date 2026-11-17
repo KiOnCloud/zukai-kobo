@@ -128,6 +128,21 @@ For each diagram kind, target and feature the value is one of:
 | `flow.guard` | supported | supported | supported |
 | `action.ref` | supported | supported | supported |
 
+## usecase
+
+| Feature | mermaid | drawio | figjam |
+|---|---|---|---|
+| kind | degraded (Mermaid has no use case diagram; emitted as a flowchart: an actor is a box marked «actor» or «system», a use case a rounded (stadium) node, a boundary a subgraph) | supported | unsupported (FigJam generate_diagram has no use case diagram; use --to drawio, or emit --native to draw the board with use_figma) |
+| `actor.kind.person` | degraded (no stick figure in a flowchart: a box marked «actor») | supported | supported |
+| `actor.kind.system` | supported | supported | supported |
+| `boundary` | supported | supported | supported |
+| `relation.kind.association` | supported | supported | supported |
+| `relation.kind.include` | supported | supported | supported |
+| `relation.kind.extend` | supported | supported | supported |
+| `relation.kind.generalization` | degraded (no hollow triangle in a flowchart: a solid arrow labelled «generalization») | supported | supported |
+| `relation.condition` | supported | supported | supported |
+| `useCase.ref` | supported | supported | supported |
+
 ## bundle
 
 Options of `bundle`, the combined file of a run (`figjam` has no bundle).

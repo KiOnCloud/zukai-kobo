@@ -257,7 +257,9 @@ function extractPage(id, name, pageXml) {
     const roots = containers.filter((v) => !vertices.has(v.cell.parent));
     const steps = [...vertices.values()].filter((v) => FLOW_SHAPES.has(v.shape) && !owner.has(v.cell.id));
     const within = (v, c) => { for (let at = v.cell.parent; vertices.has(at); at = vertices.get(at).cell.parent) if (at === c.cell.id) return true; return false; };
-    if (roots.length === 1 && steps.length >= 3 && Object.hasOwn(roots[0].cell.style, 'swimlane') && steps.filter((v) => within(v, roots[0])).length >= 0.8 * steps.length) roots[0].shape = 'lane';
+    // Not so the system boundary of a use case diagram: stick figures beside a frame of labelled ovals.
+    const useCases = [...vertices.values()].some((v) => v.shape === 'actor') && steps.filter((v) => v.shape === 'ellipse' && v.label).length >= steps.length / 2;
+    if (!useCases && roots.length === 1 && steps.length >= 3 && Object.hasOwn(roots[0].cell.style, 'swimlane') && steps.filter((v) => within(v, roots[0])).length >= 0.8 * steps.length) roots[0].shape = 'lane';
   }
 
   // Nodes.
@@ -374,6 +376,9 @@ function arrowName(name, fill) {
   return name;
 }
 
+/** The label of an include or extend relation, as UML tools and people write it. */
+export const USECASE_STEREOTYPE = /(?:«|<<|&lt;&lt;)\s*(?:include|extend)s?\s*(?:»|>>|&gt;&gt;)/i;
+
 /**
  * Which kinds a page looks like, best first, each with the evidence that scored it. The
  * agent proposes the best one in its opening question; the user decides.
@@ -425,6 +430,15 @@ export function kindHints(nodes, edges) {
   const eventLabels = edges.filter((e) => /\[[^\]]+\]|\s\/\s/.test(e.label ?? '')).length;
   if (initial > 0 && lanes.length === 0 && lifelines < 2) add('state', 6 * initial + 2 * final + rounded, `${plural(initial, 'initial state')}${final ? `, ${plural(final, 'final state')}` : ''}${rounded ? `, ${plural(rounded, 'rounded box', )}` : ''}`);
   if (eventLabels > 0) add('state', 2 * eventLabels, `${plural(eventLabels, 'edge')} labelled "[guard]" or "event / action"`);
+
+  // A use case diagram: labelled ovals with stick figures beside them, or joined by lines
+  // marked «include» or «extend». An oval alone is a step of a flowchart.
+  const figures = of('actor');
+  const ovals = count((n) => n.shape === 'ellipse' && n.label);
+  const stereotyped = edges.filter((e) => USECASE_STEREOTYPE.test(e.label ?? '')).length;
+  if (lifelines < 2 && ovals > 0 && (figures > 0 || stereotyped > 0)) {
+    add('usecase', 6 * figures + 4 * ovals + 5 * stereotyped, [plural(ovals, 'oval'), figures ? plural(figures, 'actor figure') : '', stereotyped ? `${plural(stereotyped, 'line')} marked «include» or «extend»` : ''].filter(Boolean).join(', '));
+  }
 
   const steps = count((n) => FLOW_SHAPES.has(n.shape) && !laneIds.has(n.parent));
   if (decisions > 0 && lanes.length === 0) add('flowchart', 4 * decisions + steps, `${plural(decisions, 'decision')} among ${plural(steps, 'step')}`);

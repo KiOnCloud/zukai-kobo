@@ -14,6 +14,7 @@ const COLLECTIONS = {
   class: ['classes', 'relations'],
   architecture: ['components', 'boundaries', 'connections'],
   activity: ['lanes', 'actions', 'controls', 'flows'],
+  usecase: ['actors', 'useCases', 'boundaries', 'relations'],
 };
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -45,6 +46,7 @@ export function checkReferences(ir) {
     case 'class': checkClass(ir, err); break;
     case 'architecture': checkArchitecture(ir, err); break;
     case 'activity': checkActivity(ir, err); break;
+    case 'usecase': checkUsecase(ir, err); break;
     default: break;
   }
   return { ok: errors.length === 0, errors };
@@ -276,6 +278,71 @@ function checkActivity(ir, err) {
     if (kindOf.get(f.from) === 'final') err(`/flows/${i}/from`, `flow "${f.id}" leaves a final node`, 'final nodes have no outgoing flows');
     if (kindOf.get(f.to) === 'initial') err(`/flows/${i}/to`, `flow "${f.id}" enters an initial node`, 'initial nodes have no incoming flows');
   });
+}
+
+/** What each relation of a use case diagram may join, and how the error says it. */
+const USECASE_ENDS = {
+  include: { hint: 'from is the use case that always runs the other one, to is the one it includes' },
+  extend: { hint: 'from is the use case that adds optional behaviour, to is the use case it extends' },
+};
+
+function checkUsecase(ir, err) {
+  const actors = idSet(list(ir, 'actors'));
+  const useCases = idSet(list(ir, 'useCases'));
+  // A boundary is the system: it holds use cases, and the actors stand outside it.
+  const parentOf = new Map();
+  list(ir, 'boundaries').forEach((b, i) => {
+    (Array.isArray(b.children) ? b.children : []).forEach((child, j) => {
+      const path = `/boundaries/${i}/children/${j}`;
+      if (typeof child !== 'string') return;
+      if (actors.has(child)) { err(path, `actor "${child}" cannot be inside boundary "${b.id}"`, 'a boundary is the system and holds use cases only; an actor is outside the system by definition'); return; }
+      if (!useCases.has(child)) { err(path, `unknown use case "${child}"`, 'children must be ids of use cases'); return; }
+      if (parentOf.has(child)) { err(path, `use case "${child}" is already in boundary "${parentOf.get(child)}"`, 'a use case belongs to at most one boundary'); return; }
+      parentOf.set(child, b.id);
+    });
+  });
+  checkEndpoints(ir, 'relations', new Set([...actors, ...useCases]), 'actor or use case', err);
+  const generalizes = [];
+  list(ir, 'relations').forEach((r, i) => {
+    const path = `/relations/${i}`;
+    if (r.condition !== undefined && r.kind !== 'extend') err(`${path}/condition`, `relation "${r.id}" is ${/^[aei]/.test(r.kind) ? 'an' : 'a'} ${r.kind} and cannot carry a condition`, 'only an extend relation has a condition; remove the field or change the kind');
+    const known = (id) => actors.has(id) || useCases.has(id);
+    if (typeof r.from !== 'string' || typeof r.to !== 'string' || !known(r.from) || !known(r.to)) return;
+    if (r.from === r.to) { err(path, `relation "${r.id}" joins "${r.from}" to itself`, 'a relation joins two different elements'); return; }
+    const what = (id) => (actors.has(id) ? 'actor' : 'use case');
+    switch (r.kind) {
+      case 'association':
+        if (actors.has(r.from) === actors.has(r.to)) err(path, `association "${r.id}" joins two ${what(r.from)}s ("${r.from}" and "${r.to}")`, actors.has(r.from) ? 'an association joins an actor and a use case; one actor that is a kind of another is a generalization' : 'an association joins an actor and a use case; between two use cases use include, extend or generalization');
+        break;
+      case 'include':
+      case 'extend':
+        for (const field of ['from', 'to']) if (actors.has(r[field])) err(`${path}/${field}`, `${r.kind} "${r.id}" ${field === 'from' ? 'starts at' : 'ends at'} actor "${r[field]}"`, `${r.kind} joins two use cases: ${USECASE_ENDS[r.kind].hint}`);
+        break;
+      case 'generalization':
+        if (actors.has(r.from) !== actors.has(r.to)) err(path, `generalization "${r.id}" joins ${what(r.from)} "${r.from}" and ${what(r.to)} "${r.to}"`, 'a generalization joins two actors or two use cases: from is the special one, to the general one');
+        else generalizes.push({ r, path });
+        break;
+      default: break;
+    }
+  });
+  // Nothing is a kind of itself: the generalizations form no loop.
+  const general = new Map();
+  for (const { r } of generalizes) (general.get(r.from) ?? general.set(r.from, []).get(r.from)).push(r.to);
+  const reaches = (from, target) => {
+    const seen = new Set();
+    const stack = [...(general.get(from) ?? [])];
+    while (stack.length > 0) {
+      const id = stack.pop();
+      if (id === target) return true;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      stack.push(...(general.get(id) ?? []));
+    }
+    return false;
+  };
+  for (const { r, path } of generalizes) {
+    if (reaches(r.to, r.from)) err(path, `generalization cycle through "${r.from}" and "${r.to}"`, 'from is the special element and to the general one; nothing is a kind of itself');
+  }
 }
 
 export { COLLECTIONS };

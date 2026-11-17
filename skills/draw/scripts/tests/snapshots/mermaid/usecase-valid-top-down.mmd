@@ -1,0 +1,49 @@
+---
+title: "Parking garage"
+---
+flowchart TB
+  %% id: driver
+  n1["«actor»<br/>Driver"]
+  %% id: subscriber
+  n2["«actor»<br/>Subscriber"]
+  %% id: visitor
+  n3["«actor»<br/>Visitor"]
+  %% id: attendant
+  n4["«actor»<br/>Attendant"]
+  %% id: bank
+  n5["«system»<br/>Card acquirer"]
+  %% id: plates
+  n6["«system»<br/>Plate recognition"]
+  %% id: garage
+  subgraph n12["Garage system"]
+    %% id: enter
+    n7(["Enter the garage"])
+    %% id: leave
+    n8(["Leave the garage"])
+    %% id: pay
+    n9(["Pay the parking fee"])
+    %% id: read-plate
+    n10(["Read the number plate"])
+    %% id: open
+    n11(["Open the barrier by hand"])
+  end
+  %% id: g1
+  n2 -->|"«generalization»"| n1
+  %% id: g2
+  n3 -->|"«generalization»"| n1
+  %% id: a1
+  n1 --- n7
+  %% id: a2
+  n1 --- n8
+  %% id: a3
+  n4 --- n11
+  %% id: i1
+  n7 -.->|"«include»"| n10
+  %% id: i2
+  n8 -.->|"«include»"| n10
+  %% id: x1
+  n9 -.->|"«extend»<br/>#91;no subscription#93;"| n8
+  %% id: a4
+  n9 --- n5
+  %% id: a5
+  n10 --- n6

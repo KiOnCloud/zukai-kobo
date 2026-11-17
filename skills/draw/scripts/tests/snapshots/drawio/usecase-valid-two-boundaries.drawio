@@ -1,0 +1,109 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="clinic-appointments" name="Clinic appointments">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="clinic-appointments:booking" value="Booking portal" style="rounded=0;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;fontStyle=1;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="229" y="12" width="196" height="300" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:practice" value="Practice management" style="rounded=0;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;fontStyle=1;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="229" y="352" width="600" height="300" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:patient" value="Patient" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=46;" vertex="1" parent="1">
+          <mxGeometry x="65.5" y="229" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:receptionist" value="Receptionist" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=75;" vertex="1" parent="1">
+          <mxGeometry x="65.5" y="397" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:doctor" value="Doctor" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=44;" vertex="1" parent="1">
+          <mxGeometry x="65.5" y="577" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:insurer" value="«system»&lt;br&gt;Health insurer" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="909" y="487" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:reminder-job" value="«system»&lt;br&gt;Nightly reminder run" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="12" y="57" width="137" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:book" value="Book an appointment" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="clinic-appointments:booking">
+          <mxGeometry x="20" y="230" width="142" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:cancel" value="Cancel an appointment" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=11;spacingRight=11;" vertex="1" parent="clinic-appointments:booking">
+          <mxGeometry x="20" y="140" width="156" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:remind" value="Remind the patient" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=9;spacingRight=9;" vertex="1" parent="clinic-appointments:booking">
+          <mxGeometry x="20" y="50" width="128" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:check-in" value="Check a patient in" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=9;spacingRight=9;" vertex="1" parent="clinic-appointments:practice">
+          <mxGeometry x="20" y="50" width="122" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:record" value="Record the consultation" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=11;spacingRight=11;" vertex="1" parent="clinic-appointments:practice">
+          <mxGeometry x="20" y="230" width="158" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:invoice" value="Issue an invoice" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=13;spacingRight=13;" vertex="1" parent="clinic-appointments:practice">
+          <mxGeometry x="39" y="140" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:claim" value="Claim the cost from the insurer" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=22;spacingRight=22;" vertex="1" parent="clinic-appointments:practice">
+          <mxGeometry x="444" y="138" width="136" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="clinic-appointments:a1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.029;entryY=0.333;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:patient" target="clinic-appointments:book">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="219" y="258.67"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="clinic-appointments:a2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:patient" target="clinic-appointments:cancel">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="174" y="259"/>
+              <mxPoint x="174" y="177"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="clinic-appointments:a3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:reminder-job" target="clinic-appointments:remind">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="clinic-appointments:a4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.029;entryY=0.667;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:receptionist" target="clinic-appointments:book">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="174" y="427"/>
+              <mxPoint x="174" y="275"/>
+              <mxPoint x="219" y="275.33"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="clinic-appointments:a5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:receptionist" target="clinic-appointments:check-in">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="clinic-appointments:a6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:doctor" target="clinic-appointments:record">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="clinic-appointments:a7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:receptionist" target="clinic-appointments:invoice">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="174" y="427"/>
+              <mxPoint x="174" y="517"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="clinic-appointments:x1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;dashed=1;endArrow=open;endSize=10;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:claim" target="clinic-appointments:invoice">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="clinic-appointments:x1:label" value="«extend»&lt;br&gt;[the patient is insured]" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="clinic-appointments:x1">
+          <mxGeometry x="-0.07" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="20" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="clinic-appointments:a8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="clinic-appointments:claim" target="clinic-appointments:insurer">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

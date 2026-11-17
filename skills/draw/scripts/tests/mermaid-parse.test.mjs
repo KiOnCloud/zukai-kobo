@@ -10,6 +10,7 @@ const EXPECTED_TYPE = {
   class: 'classDiagram',
   architecture: 'architecture',
   activity: 'swimlane',
+  usecase: 'flowchart-v2',
 };
 
 describe('mermaid.parse on every emitted diagram', () => {

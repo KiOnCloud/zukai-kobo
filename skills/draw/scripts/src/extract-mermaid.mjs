@@ -84,6 +84,15 @@ function extractPage(block, index) {
   const body = [...(rest.length ? [{ text: rest.join(';'), line: lines[0].line }] : []), ...lines.slice(1)];
   const parse = { flowchart: parseFlowchart, activity: parseFlowchart, architecture: parseArchitecture, state: parseState, er: parseEr, class: parseClass, sequence: parseSequence }[kind];
   parse(body, g, kind);
+  // Mermaid has no use case diagram, so one is written as a flowchart (Zukai's own form among
+  // them): boxes marked «actor» beside rounded nodes, or lines marked «include» or «extend».
+  if (kind === 'flowchart') {
+    const marked = page.nodes.filter((n) => /^\s*(?:«|<<)\s*(?:actor|system)\s*(?:»|>>)/i.test(n.label ?? '')).length;
+    const stereotyped = page.edges.filter((e) => /(?:«|<<)\s*(?:include|extend)s?\s*(?:»|>>)/i.test(e.label ?? '')).length;
+    if (marked > 0 || stereotyped > 0) {
+      page.kindHints[0] = { kind: 'usecase', score: 100, evidence: [`line ${lines[0].line}: header "${header}"`, [marked ? `${marked} node${marked === 1 ? '' : 's'} marked «actor» or «system»` : '', stereotyped ? `${stereotyped} link${stereotyped === 1 ? '' : 's'} marked «include» or «extend»` : ''].filter(Boolean).join(', ')] };
+    }
+  }
   return page;
 }
 

@@ -79,6 +79,7 @@ describe('extractMermaid on every emitted fixture', () => {
       expect(page.warnings).toEqual([]);
 
       // An architecture the grid planner cannot place is emitted as a flowchart on purpose.
+      // A use case diagram is a flowchart too, and is read back by its «actor» boxes and stereotypes.
       const expected = ir.kind === 'architecture' && /^flowchart /m.test(r.output) ? 'flowchart' : ir.kind;
       expect(page.kindHints).toHaveLength(1);
       expect(page.kindHints[0]).toMatchObject({ kind: expected, score: 100 });

@@ -1,0 +1,86 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="library-lending" name="Library lending">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="library-lending:library" value="Library system" style="rounded=0;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;fontStyle=1;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="148" y="12" width="608" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:member" value="Member" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=53;" vertex="1" parent="1">
+          <mxGeometry x="25" y="157" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:librarian" value="Librarian" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=55;" vertex="1" parent="1">
+          <mxGeometry x="25" y="337" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:payment" value="«system»&lt;br&gt;Payment provider" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="836" y="67" width="122" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:search" value="Search the catalogue" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="library-lending:library">
+          <mxGeometry x="20" y="240" width="142" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:borrow" value="Borrow a book" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=17;spacingRight=17;" vertex="1" parent="library-lending:library">
+          <mxGeometry x="40" y="150" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:return" value="Return a book" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=18;spacingRight=18;" vertex="1" parent="library-lending:library">
+          <mxGeometry x="40" y="60" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:check-card" value="Check the library card" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=11;spacingRight=11;" vertex="1" parent="library-lending:library">
+          <mxGeometry x="440" y="150" width="148" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:pay-fine" value="Pay a late fee" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=19;spacingRight=19;" vertex="1" parent="library-lending:library">
+          <mxGeometry x="454" y="60" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:register" value="Register a new member" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=11;spacingRight=11;" vertex="1" parent="library-lending:library">
+          <mxGeometry x="20" y="330" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="library-lending:r1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="library-lending:member" target="library-lending:search">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="93" y="187"/>
+              <mxPoint x="93" y="277"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="library-lending:r2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="library-lending:member" target="library-lending:borrow">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="library-lending:r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="library-lending:member" target="library-lending:return">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="93" y="187"/>
+              <mxPoint x="93" y="97"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="library-lending:r4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="library-lending:librarian" target="library-lending:register">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="library-lending:r5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;dashed=1;endArrow=open;endSize=10;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="library-lending:borrow" target="library-lending:check-card">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="library-lending:r5:label" value="«include»" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="library-lending:r5">
+          <mxGeometry x="0.07" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="library-lending:r6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;dashed=1;endArrow=open;endSize=10;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="library-lending:pay-fine" target="library-lending:return">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="library-lending:r6:label" value="«extend»&lt;br&gt;[the book is overdue]" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="library-lending:r6">
+          <mxGeometry x="-0.02" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-20" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="library-lending:r7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="library-lending:payment" target="library-lending:pay-fine">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

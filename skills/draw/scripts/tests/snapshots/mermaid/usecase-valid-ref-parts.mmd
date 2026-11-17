@@ -1,0 +1,27 @@
+---
+title: "Order sync (main)"
+---
+flowchart LR
+  %% id: merchant
+  n1["«actor»<br/>Merchant"]
+  %% id: scheduler
+  n2["«system»<br/>Scheduler"]
+  %% id: shop-api
+  n3["«system»<br/>Shop API"]
+  %% id: svc
+  subgraph n7["Order sync service"]
+    %% id: sync
+    n4(["Sync the orders<br/>↳ order-sync-01-load"])
+    %% id: store
+    n5(["Store the orders<br/>↳ order-sync-02-store"])
+    %% id: review
+    n6(["Review failed orders"])
+  end
+  %% id: r1
+  n2 --- n4
+  %% id: r2
+  n4 -.->|"«include»"| n5
+  %% id: r3
+  n1 --- n6
+  %% id: r4
+  n4 --- n3

@@ -120,7 +120,8 @@ export function relabelDrawio(xml, map) {
       const link = c.attrs.link ? /^data:page\/id,(.+)$/.exec(c.attrs.link) : null;
       if (link && pageTitles.has(link[1])) { c.newRef = `↳ ${pageTitles.get(link[1])}`; matched.add(`${link[1]}:title`); }
       const text = c.parts.main;
-      if (c.newText === undefined && c.newRef === undefined && text !== '' && /\p{L}/u.test(text) && !keep.has(text)) {
+      // A stereotype alone («include», «extend») is UML's own word, the same in every language.
+      if (c.newText === undefined && c.newRef === undefined && text !== '' && /\p{L}/u.test(text) && !keep.has(text) && !/^«[^»]+»$/.test(text)) {
         if (!untouchedByText.has(text)) untouchedByText.set(text, []);
         untouchedByText.get(text).push(`${p.pageId}/${c.attrs.id}`);
       }

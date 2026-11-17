@@ -1,0 +1,35 @@
+---
+title: "経費精算"
+---
+flowchart LR
+  %% id: employee
+  n1["«actor»<br/>従業員"]
+  %% id: approver
+  n2["«actor»<br/>Phê duyệt viên cấp phòng ban và cấp công ty"]
+  %% id: erp
+  n3["«system»<br/>AccountsPayableReconciliationService"]
+  %% id: system
+  subgraph n9["経費精算システム (Expense reimbursement system of the whole group)"]
+    %% id: submit
+    n4(["出張旅費および交際費の経費精算申請を提出する"])
+    %% id: attach
+    n5(["Attach the receipts and the supporting documents that the finance policy asks for"])
+    %% id: approve
+    n6(["Duyệt yêu cầu hoàn ứng"])
+    %% id: export
+    n7(["ExportApprovedExpenseClaimsToAccountsPayable(batch)"])
+    %% id: ok
+    n8(["OK"])
+  end
+  %% id: a1
+  n1 --- n4
+  %% id: i1
+  n4 -.->|"«include»"| n5
+  %% id: a2
+  n2 --- n6
+  %% id: x1
+  n7 -.->|"«extend»<br/>#91;承認済みの申請がある#93;"| n6
+  %% id: a3
+  n7 --- n3
+  %% id: a4
+  n1 --- n8

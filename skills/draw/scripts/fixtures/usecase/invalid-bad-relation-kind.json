@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "usecase",
+  "title": "A relation kind and fields the schema does not have",
+  "actors": [{ "id": "member", "label": "Member", "kind": "robot", "side": "left" }],
+  "useCases": [{ "id": "borrow", "label": "Borrow a book", "steps": ["scan the card"] }],
+  "relations": [
+    { "id": "r1", "from": "member", "to": "borrow", "kind": "uses" },
+    { "id": "r2", "from": "member", "to": "borrow" }
+  ]
+}

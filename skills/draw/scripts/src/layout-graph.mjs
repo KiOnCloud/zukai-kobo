@@ -213,6 +213,35 @@ export function measureLabelBelow(label, { maxWidth = 160 } = {}) {
   return { width: wrap, height: block.lines * TEXT_LINE + 6, wrap };
 }
 
+const ELLIPSE_MIN_WIDTH = 120;
+const ELLIPSE_MIN_HEIGHT = 50;
+/** Text of an ellipse wraps at this width, in px, before the ellipse grows further. */
+const ELLIPSE_WRAP = 150;
+/** Room between the text block and the outline at the block's corners, in px. */
+const ELLIPSE_PAD = 4;
+
+/**
+ * Size of an ellipse and the label spacing that keeps its text inside the outline. draw.io
+ * wraps a label at the width of the box, but an ellipse is narrower than its box everywhere
+ * but the centre line, so the text is wrapped as a balanced block (as for a decision) and the
+ * ellipse is the smallest one that holds that block: a block of `a` by `b` px fits when
+ * (a/w)^2 + (b/h)^2 <= 1. The height is the block's times the square root of two, at least
+ * the minimum, and the width follows from it. A word that cannot break is one line of the
+ * block however long it is, so the ellipse grows with it and the word never leaves the shape.
+ * @returns {{width:number, height:number, spacing:number}} spacing in px per side
+ */
+export function measureEllipse(label) {
+  const even = (n) => Math.ceil(n / 2) * 2;
+  const block = balancedBlock(label, wrapText(label, ELLIPSE_WRAP).lines, Math.max(ELLIPSE_WRAP, Math.ceil(widestWord(label))));
+  const a = roomFor(block.widest) + 2 * ELLIPSE_PAD;
+  const b = block.lines * TEXT_LINE + 2 * ELLIPSE_PAD;
+  const height = Math.max(ELLIPSE_MIN_HEIGHT, even(b * Math.SQRT2));
+  const width = Math.max(ELLIPSE_MIN_WIDTH, even(a / Math.sqrt(1 - (b / height) ** 2)));
+  // draw.io keeps 2 px of its own on each side; the rest makes it wrap at the block's width.
+  const spacing = Math.max(0, Math.floor((width - roomFor(block.widest)) / 2) - 2);
+  return { width, height, spacing };
+}
+
 function measureLabel(text) {
   const lines = String(text).split(/\r\n?|\n/);
   return { width: Math.ceil(widestLine(text)) + 8, height: 16 * lines.length };
@@ -357,13 +386,13 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     if (!el.isContainer) {
       // Fixed ports pin where edges meet the node (ER rows); ELK routes from those points.
       if (el.ports?.length) {
-        return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_POS' }, ports: el.ports.map((p) => ({ id: p.id, x: p.x, y: p.y, width: 1, height: 1 })) };
+        return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_POS', ...el.layoutOptions }, ports: el.ports.map((p) => ({ id: p.id, x: p.x, y: p.y, width: 1, height: 1 })) };
       }
       // A loop head: the edges that lead back to it arrive on a side across the flow, so the
       // side along the flow stays with the edge that goes on and the main line runs straight.
       const back = backPorts.get(el.id);
       if (back) return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_SIDE' }, ports: back.map((id) => ({ id, width: 1, height: 1, layoutOptions: { 'elk.port.side': BACK_SIDE[direction] ?? 'EAST' } })) };
-      return { id: el.id, width: el.width, height: el.height };
+      return { id: el.id, width: el.width, height: el.height, ...(el.layoutOptions ? { layoutOptions: el.layoutOptions } : {}) };
     }
     const header = el.headerHeight ?? 30;
     return {

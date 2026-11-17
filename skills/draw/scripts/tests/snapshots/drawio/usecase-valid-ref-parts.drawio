@@ -1,0 +1,60 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="order-sync-main" name="Order sync (main)">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="order-sync-main:svc" value="Order sync service" style="rounded=0;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;fontStyle=1;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="212" y="12" width="610" height="223" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-sync-main:merchant" value="Merchant" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=59;" vertex="1" parent="1">
+          <mxGeometry x="57" y="57" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-sync-main:scheduler" value="«system»&lt;br&gt;Scheduler" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="12" y="179" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-sync-main:shop-api" value="«system»&lt;br&gt;Shop API" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="902" y="105" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-sync-main:sync" value="Sync the orders&lt;br&gt;↳ order-sync-01-load" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=28;spacingRight=28;" vertex="1" parent="order-sync-main:svc">
+          <mxGeometry x="20" y="140" width="182" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-sync-main:store" value="Store the orders&lt;br&gt;↳ order-sync-02-store" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=29;spacingRight=29;" vertex="1" parent="order-sync-main:svc">
+          <mxGeometry x="402" y="149" width="188" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-sync-main:review" value="Review failed orders" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="order-sync-main:svc">
+          <mxGeometry x="20" y="50" width="138" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-sync-main:r1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="order-sync-main:scheduler" target="order-sync-main:sync">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="157" y="209"/>
+              <mxPoint x="157" y="179"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-sync-main:r2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;dashed=1;endArrow=open;endSize=10;endFill=0;exitX=0.971;exitY=0.667;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="order-sync-main:sync" target="order-sync-main:store">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-sync-main:r2:label" value="«include»" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-sync-main:r2">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-sync-main:r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="order-sync-main:merchant" target="order-sync-main:review">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-sync-main:r4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=0.971;exitY=0.333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-sync-main:sync" target="order-sync-main:shop-api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="439" y="170"/>
+              <mxPoint x="439" y="135"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
