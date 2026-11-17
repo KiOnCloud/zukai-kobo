@@ -38,7 +38,7 @@ of detail), `<draw-dir>/references/ir-reference.md`, `variants.md`, `closing-con
 Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them from the request.
 
 ```text
-<source> [--to drawio|mermaid|figjam] [--kind <kind>] [--scope overview|detailed] [--audience technical|business|both] [<request>]
+<source> [--to drawio|mermaid|figjam] [--kind <kind>] [--scope overview|detailed] [--audience technical|business|both] [--svg] [<request>]
 ```
 
 - `<source>` is a file path (`.drawio`, `.xml`, `.drawio.svg`, `.drawio.png`, `.mmd`, `.md`)
@@ -52,6 +52,11 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
   picture by eye into an IR here.
 - The flags mean what they mean in the draw skill and are checked the same way: a value it
   does not have fixes nothing and is asked.
+- `--svg` also writes a picture of every recooked diagram, `svg/<slug>.drawio.svg` in the
+  run folder (target `drawio` only), as in the draw skill: an SVG that a wiki or a README
+  shows and draw.io still opens. Without the flag the pictures are written when the user
+  asks for an image, and offered at the end otherwise. When no renderer is installed, the
+  report quotes the hint of `export` and says that no picture was written.
 - `--to` defaults to the source's own tool: `drawio` for a draw.io file, `mermaid` for
   Mermaid text, `figjam` for a board. The report offers the other targets.
 

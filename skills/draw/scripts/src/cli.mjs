@@ -13,6 +13,7 @@
  *      --canvas adds a first draw.io page with those diagrams side by side)
  *   node cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>   (new labels by IR id, layout kept)
  *   node cli.mjs preview <file.drawio|file.mmd|run.md> [--out <file.png>] [--max-px <n>]   (optional; needs draw.io desktop or Playwright)
+ *   node cli.mjs export <file.drawio|run-dir> [--out <dir|file.svg>]   (one editable <name>.drawio.svg per page; needs draw.io desktop or Playwright)
  *   node cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>   (elements added, removed, changed; a dir is a run's source/ folder)
  *   node cli.mjs drift <file.drawio|run.md> <ir.json|run-dir>...   (cells that differ from a fresh emit: hand edits made in draw.io)
  *   node cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (save every IR of a run as a revision)
@@ -25,6 +26,7 @@ import { createHash } from 'node:crypto';
 import { validateIr } from './validate-ir.mjs';
 import { emit, bundle, inspect, TARGETS } from './pipeline.mjs';
 import { preview } from './preview.mjs';
+import { exportSvg } from './export-svg.mjs';
 import { relabelDrawio } from './relabel.mjs';
 import { diffIr, diffRun } from './ir-diff.mjs';
 import { driftDrawio, driftMarkdown } from './drift.mjs';
@@ -40,6 +42,7 @@ const USAGE = `usage:
   cli.mjs bundle --to <drawio|mermaid> --out <file> [--title <text>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] <run-dir|ir.json>...
   cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>
   cli.mjs preview <file.drawio|file.mmd|run.md> [--out <file.png>] [--max-px <n>]
+  cli.mjs export <file.drawio|run-dir> [--out <dir|file.svg>]
   cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir>
   cli.mjs drift <file.drawio|run.md> <ir.json|run-dir>...
   cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
@@ -59,6 +62,10 @@ board (block frames, self-messages, notes); no file is written when the board ne
 board at the coordinates of the draw.io layout (<file>.js, then <file>.2.js, ... when one
 script would be too long; run them in order). It works for every kind, class and activity
 included; for those two no Mermaid text is written.
+export writes each page of a draw.io file as a picture that still opens in draw.io
+(<name>.drawio.svg, with the page's diagram inside): next to the file, or for a run folder
+in its svg/ folder, one per diagram. It needs the renderer preview uses (draw.io desktop or
+Playwright) and writes nothing without one.
 extract reads a diagram made elsewhere into facts (pages, nodes, edges, kind hints) for the
 recook skill; --figjam-script writes the read-only use_figma script whose JSON result extract
 then reads (a large board comes back in parts: run the script again with --from <next> and
@@ -326,6 +333,14 @@ export async function main(argv) {
     const result = await preview(opts.positional[0], { out: opts.out, maxPx });
     if (!result.ok) return fail(1, { ok: false, errors: result.errors });
     process.stdout.write(JSON.stringify({ ok: true, preview: result.out, files: result.files, tiled: result.tiled === true, ...(result.tiled ? { overlap: result.overlap } : {}), scale: result.scale, renderer: result.renderer, ...(result.blocks ? { blocks: result.blocks } : {}) }) + '\n');
+    return 0;
+  }
+  if (opts.command === 'export') {
+    if (opts.positional.length !== 1) return fail(1, { ok: false, errors: [{ path: '/', message: 'export takes exactly one .drawio file or run folder' }], usage: USAGE });
+    const result = await exportSvg(opts.positional[0], { out: opts.out });
+    if (result.warnings.length > 0) process.stderr.write(JSON.stringify({ warnings: result.warnings }) + '\n');
+    if (!result.ok) return fail(1, { ok: false, errors: result.errors, ...(result.usage ? { usage: USAGE } : {}) });
+    process.stdout.write(JSON.stringify({ ok: true, files: result.files, renderer: result.renderer, text: result.text, warnings: result.warnings.length }) + '\n');
     return 0;
   }
   if (opts.command === 'diff') {

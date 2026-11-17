@@ -61,6 +61,8 @@ function trimTile(file, margin, vertical) {
 const MARGIN = 20;
 /** The viewer fits the drawing to the window minus `border`, so a window of extent + 2 * MARGIN shows it at scale 1. */
 const DRAWIO_VIEWER = `https://viewer.diagrams.net/?lightbox=1&nav=0&layers=0&highlight=none&edit=_blank&border=${MARGIN}`;
+/** draw.io's viewer as a script for a page of our own: the same code, with the drawing handed back instead of shown. */
+export const DRAWIO_VIEWER_SCRIPT = 'https://viewer.diagrams.net/js/viewer-static.min.js';
 
 let globalRoot;
 /** The global node_modules folder (`npm root -g`), looked up once; null when npm is missing. */
@@ -88,6 +90,21 @@ export function loadPlaywright(cwd = process.cwd()) {
   }
   return null;
 }
+
+/**
+ * What to say when Playwright is not installed: where it was looked for, and how to get it.
+ * `preview` and `export` share the renderers, so they share these words.
+ */
+export function playwrightMissing(cwd = process.cwd()) {
+  const root = npmGlobalRoot();
+  return {
+    attempt: `Playwright not found (looked in ${cwd}, next to the CLI${root ? `, and in ${root}` : ''})`,
+    install: `run \`npm install -g playwright && npx playwright install chromium\`; if it is already installed under another npm prefix, run the CLI with \`NODE_PATH="$(npm root -g)"\``,
+  };
+}
+
+/** Arguments draw.io desktop needs after its own on Linux, where it runs without a display server's sandbox. */
+export const drawioDesktopFlags = () => (process.platform === 'linux' ? ['--no-sandbox', '--disable-gpu'] : []);
 
 /**
  * Where the draw.io desktop app installs its executable when it adds nothing to PATH: the
@@ -159,8 +176,7 @@ export function tileFrames(width, height, maxLen, overlap = 0) {
  */
 function renderDrawioDesktop(bin, file, xml, out, maxPx) {
   const run = (scale) => {
-    const args = ['-x', '-f', 'png', '-s', String(scale), '-b', String(BORDER), '-o', out, file];
-    if (process.platform === 'linux') args.push('--no-sandbox', '--disable-gpu');
+    const args = ['-x', '-f', 'png', '-s', String(scale), '-b', String(BORDER), '-o', out, file, ...drawioDesktopFlags()];
     const r = spawnSync(bin, args, { encoding: 'utf8', timeout: 120_000 });
     if (r.error || r.status !== 0) return { ok: false, message: (r.stderr || r.error?.message || 'draw.io export failed').trim().slice(0, 300) };
     return { ok: true, scale, files: [out] };
@@ -515,9 +531,9 @@ export async function preview(file, options = {}) {
   }
   const pw = loadPlaywright(cwd);
   if (!pw) {
-    const root = npmGlobalRoot();
-    attempts.push(`Playwright not found (looked in ${cwd}, next to the CLI${root ? `, and in ${root}` : ''})`);
-    const playwright = `run \`npm install -g playwright && npx playwright install chromium\`; if it is already installed under another npm prefix, run the CLI with \`NODE_PATH="$(npm root -g)"\``;
+    const missing = playwrightMissing(cwd);
+    attempts.push(missing.attempt);
+    const playwright = missing.install;
     const hint = ext === '.drawio'
       ? `install draw.io desktop in one of the places above or put its executable on PATH, or ${playwright}; the preview step is optional, and a review without an image must say so`
       : `Mermaid previews need Playwright: ${playwright}; the preview step is optional, and a review without an image must say so`;
