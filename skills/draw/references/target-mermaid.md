@@ -27,7 +27,8 @@ into the IR and a `message` that names the element and what changed. Print every
 the user verbatim, as a bulleted list, before showing the diagram. Never drop one, never
 summarise several into "some features were degraded".
 
-Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
+Expected degradations on Mermaid (full list in `scripts/src/feature-matrix.json` of the
+draw skill, as a table at https://github.com/KiOnCloud/zukai-kobo/blob/main/docs/feature-matrix.md):
 
 - architecture connection labels are dropped (`architecture-beta` has no edge labels), and
   `queue` and `cache` components use the server icon. Sides are placement constraints in

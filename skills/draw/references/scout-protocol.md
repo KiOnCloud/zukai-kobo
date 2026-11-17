@@ -1,9 +1,11 @@
 # Scout protocol
 
 Derive a diagram from the source code in the working directory. Read-only: this protocol
-never edits the project. It may run in a subagent (Claude Code: the `source-scout` agent);
-the subagent returns the IR JSON inline, with the file paths it used, and the main session
-writes the file and runs the closing contract in `references/closing-contract.md`.
+never edits the project. It may run in a subagent (the `source-scout` agent, where it is
+available); the subagent returns the IR JSON inline, with the file paths it used, and the
+main session writes the file and runs the closing contract in
+`references/closing-contract.md`. Where the agent is not available, which includes every
+copied install, the main session follows this protocol itself (`closing-contract.md`, "Agents that may not be there").
 
 ## Rules
 
@@ -81,8 +83,21 @@ module that owns the steps.
 Look for the thing with a status: an enum of statuses, a `state` column, a state-machine
 library configuration, or a set of methods guarded by status checks. Each enum member is a
 state; each method or handler that assigns a new status is a transition with the method name
-or event as `event` and the guard condition as `guard`. The default or constructor value is
-the `initial` state; statuses with no outgoing assignment are `final`.
+or event as `event` and the guard condition as `guard`.
+
+Every status is an ordinary state with its name as the label, the terminal ones included:
+a status with no way out (`CANCELLED`, `REFUNDED`) is a state of its own, and it gets a
+transition to one `final` state, which carries no label and is drawn as the end circle. A
+`final` or `initial` state never takes the name of a status: no target draws a label on
+those circles, so the status would be missing from the picture, and the CLI reports such a
+label as a `model:` warning. Several terminal statuses share one `final` state.
+
+The `initial` state is the same kind of marker: one state of kind `initial` without a
+label, with a transition to the status the default or the constructor sets. When the code
+never creates the thing (it only moves statuses that something else created), leave the
+`initial` state out and record that in `meta.omitted` ("no initial state: the code creates
+no order"); the `model:` warning about the missing initial state then stays, and the report
+quotes it beside that entry, as the closing contract says for a gap that is on purpose.
 
 ### er
 

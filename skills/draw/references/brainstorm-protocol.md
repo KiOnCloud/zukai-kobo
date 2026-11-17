@@ -1,7 +1,8 @@
 # Brainstorm protocol
 
 Turn a raw idea into a choice of diagrams, let the user pick, then route into the clarify
-protocol. Read-only; may run in a subagent (Claude Code: the `diagram-brainstorm` agent),
+protocol. Read-only; may run in a subagent (the `diagram-brainstorm` agent, where it is
+available; otherwise the main session follows this file itself, as `closing-contract.md`, "Agents that may not be there" says),
 which returns the candidate list inline. The user's choice and everything after it happen
 in the main session.
 

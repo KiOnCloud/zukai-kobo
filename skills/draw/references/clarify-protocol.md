@@ -82,7 +82,7 @@ when the request hints at them.
 |---|---|---|
 | subject | What is the thing that has states (an order, a ticket, a session)? | from request |
 | states | List every state it can be in. | none; required |
-| initial and final | Which state does it start in, and which states are terminal? | first listed, last listed |
+| initial and final | Which state does it start in, and which states are terminal? A terminal state keeps its name: it is drawn as an ordinary state with a transition to the unlabelled end circle (`ir-reference.md`, state) | first listed, last listed |
 | transitions | For each transition: from, to, the event that triggers it, and any condition. | none; required |
 | actions (optional) | Does any transition perform a side effect worth naming? | none |
 | composites (optional) | Does any state contain sub-states with their own flow? | none |
@@ -110,10 +110,10 @@ when the request hints at them.
 | Slot | Question | Default |
 |---|---|---|
 | components | Which deployable units, data stores, queues, caches, clients and external systems exist? One component per deployed resource: do not ask for, or draw, the tables of a database or the endpoints of a service (`ir-reference.md`, Level of detail) | none; required |
-| boundaries | How are they grouped (cloud account, VPC, region, team, on-premise)? | no boundaries |
+| boundaries | How are they grouped (cloud account, VPC, region, team, on-premise)? | no boundaries; a system said to run on AWS or Google Cloud still gets that cloud's outermost frame (see "Cloud icons") |
 | connections | Which component talks to which, over what (HTTPS, SQL, queue, gRPC)? Write each the way the request or message moves (`ir-reference.md`, architecture): producer to queue, queue to consumer. The label is the protocol, the port or the infrastructure purpose, not an endpoint, a job or a field | none; required |
 | direction | Is any connection two-way? | all one-way |
-| Cloud icons (optional) | Does it run on AWS or on Google Cloud (or both)? Which service is each component (AWS: Lambda, ECS, RDS, SQS; Google Cloud: Cloud Run, GKE, Cloud SQL, Pub/Sub)? Which boundaries are an account or project, region, VPC or VPC network, Availability Zone or zone, subnet? | asked only when AWS or Google Cloud is mentioned or the stack is unknown and the target is drawio; services named in the request get their icon without asking, and each system outside the cloud gets a general resource, a resource figure or its product logo (`SKILL.md`, AWS icons and GCP icons) |
+| Cloud icons (optional) | Does it run on AWS or on Google Cloud (or both)? Which service is each component (AWS: Lambda, ECS, RDS, SQS; Google Cloud: Cloud Run, GKE, Cloud SQL, Pub/Sub)? Which boundaries are an account or project, region, VPC or VPC network, Availability Zone or zone, subnet? | asked only when AWS or Google Cloud is mentioned or the stack is unknown and the target is drawio; services named in the request get their icon without asking, and each system outside the cloud gets a general resource, a resource figure or its product logo (`SKILL.md`, AWS icons and GCP icons). When the user names the cloud and does not know the region or the network ("somewhere in Europe", "whatever is normal"), do not ask again and do not invent one: draw the provider's outermost frame (`aws:aws_cloud`, `gcp:google_cloud`, or the account or project when one is named) and nothing inside it, add a region or network frame only for what the user stated, and record what was left open as one `assumed:` entry in `meta.notes` ("assumed: region and network not decided, no region or VPC frame drawn") |
 | scope (optional) | Current state or target state? | current state; recorded in `meta.notes` |
 
 ### activity

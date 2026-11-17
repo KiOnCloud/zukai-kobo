@@ -151,6 +151,21 @@ Collections: `states` (at least one), `transitions`.
 Put an `initial` and a `final` state inside a composite when its inner flow has a start and
 an end. Nothing leaves a `final` state and nothing enters an `initial` one.
 
+`initial` and `final` are markers, the filled circle and the end circle, and no target
+draws a label on them. A status the thing can end in is therefore a state of its own, with
+its name, and a transition from it to an unlabelled `final` state:
+
+```json
+{
+  "states": [{ "id": "cancelled", "label": "Cancelled" }, { "id": "end", "kind": "final" }],
+  "transitions": [{ "id": "t7", "from": "paid", "to": "cancelled", "event": "cancel" }, { "id": "t8", "from": "cancelled", "to": "end" }]
+}
+```
+
+Never write the status as `{ "id": "cancelled", "label": "Cancelled", "kind": "final" }`:
+it validates, the picture shows an anonymous end circle, and the CLI says so with a
+`model:` warning that names the state. The same holds for a label on an `initial` state.
+
 ```json
 {
   "schemaVersion": 1, "kind": "state", "title": "Order lifecycle",
@@ -404,8 +419,7 @@ VPC network is `gcp:vpc_network`:
   "boundaries": [
     { "id": "project", "label": "Project shop-prod", "group": "gcp:project", "children": ["lb", "region"] },
     { "id": "region", "label": "asia-northeast1", "group": "gcp:region", "children": ["api", "topic", "vpc"] },
-    { "id": "vpc", "label": "VPC network", "group": "gcp:vpc_network", "children": ["subnet"] },
-    { "id": "subnet", "label": "Private subnet", "group": "gcp:subnet", "children": ["db"] }
+    { "id": "vpc", "label": "VPC network", "group": "gcp:vpc_network", "children": ["db"] }
   ],
   "connections": [
     { "id": "c1", "from": "browser", "to": "lb", "label": "HTTPS" },
@@ -503,7 +517,11 @@ author's to keep and the reviewer's to check.
 
 draw.io draws the diagram left to right by default: primary actors left of the boundaries,
 supporting actors and outside systems right of them; `"direction": "TB"` puts them above
-and below. Mermaid has no use case diagram and gets a flowchart with warnings; FigJam gets
+and below. The actors of a side stand in the order `actors` lists them, and the use cases
+are placed from the order of the model as well, never by a search for the fewest crossings:
+the same model always gives the same picture, and one added element moves its neighbours
+and nothing else. List an actor next to the actors whose use cases it shares; a line that
+crosses another is then fixed by reordering `actors`, not by the layout. Mermaid has no use case diagram and gets a flowchart with warnings; FigJam gets
 the board drawn by `emit --native` (`target-mermaid.md`, `target-figjam.md`).
 
 ```json
@@ -539,6 +557,7 @@ the board drawn by `emit --native` (`target-mermaid.md`, `target-figjam.md`).
 
 ## What each target cannot show
 
-The feature matrix (`docs/feature-matrix.md` in the repository) lists, per kind and target,
+The feature matrix (`scripts/src/feature-matrix.json` of the draw skill; as a table at
+https://github.com/KiOnCloud/zukai-kobo/blob/main/docs/feature-matrix.md) lists, per kind and target,
 what is `supported`, `degraded` (emitted with a warning that names the element and what was
 lost) or `unsupported` (the emit fails for that target). Print every warning to the user.

@@ -1,6 +1,6 @@
 ---
 name: recook
-description: Rebuild a diagram made elsewhere (a draw.io file, a FigJam board, Mermaid or PlantUML text) as Zukai diagrams. Reads the source with a deterministic extractor, maps what it shows to the validated JSON model under Zukai's rules (one kind per diagram, architecture at resource level, sub-flows as linked parts, business or technical view), checks that no text of the source was lost, then emits and reviews through the draw skill's closing contract. Use for "recook this drawio", "redo our old architecture diagram the Zukai way", "convert this FigJam board", "clean up this Mermaid chart", "turn our PlantUML into draw.io". Not for a diagram Zukai delivered, which the revise skill changes, nor for a picture or screenshot.
+description: Rebuild a diagram made elsewhere (a draw.io file, a FigJam board, Mermaid or PlantUML text) as Zukai diagrams. Reads the source with a deterministic extractor, maps what it shows to the validated JSON model under Zukai's rules (one kind per diagram, architecture at resource level, sub-flows as linked parts, business or technical view), checks that no text of the source was lost, then emits and reviews through the draw skill's closing contract. Use for "recook this drawio", "redo our old architecture diagram the Zukai way", "convert this FigJam board", "clean up this Mermaid chart", "turn our PlantUML into draw.io". Not for changing a run Zukai delivered whose run folder is at hand, which the revise skill does (a Zukai file or board without its run folder, or one edited by hand, is a source like any other), nor for a picture or screenshot.
 ---
 
 # Zukai recook
@@ -97,7 +97,10 @@ The facts are what the run keeps of it, with such values already replaced by pla
 3. PlantUML text is read like any file, with these differences. One file may hold several
    `@startuml ... @enduml` diagrams and a Markdown file several fences: each is a page
    (`plantuml-1`, `plantuml-2` ...), named by its `title`, else by the name after
-   `@startuml`, else by the Markdown heading above its fence. A page with an `unsupported`
+   `@startuml`, else by the Markdown heading above its fence. The pages of a Markdown file
+   come in the order of the file, Mermaid and PlantUML fences alike, and two that the same
+   heading would name alike are numbered in that order, `<heading> (1)`, `<heading> (2)`,
+   so each can be picked with `--page`. A page with an `unsupported`
    field is a diagram type that is not read (a mind map, a Gantt chart, a wireframe, JSON,
    an activity diagram in the legacy `(*) -->` syntax ...): it has no nodes, it is never
    recooked and never guessed from the text; name it to the user with its type and reason,
@@ -179,6 +182,18 @@ facts alone:
   drew is kept. When a page details an element of another (a page link, or a title that
   names the element), it is that element's part: name its file `<main-slug>-NN-<part>` and
   give the element its `ref`.
+- **Pages that have nothing to do with each other have no main diagram.** A source of
+  several pages where none details an element of another (two fences of a notes file, the
+  tabs of a draw.io file) is the one case of a run without a main diagram: no file is
+  named after the run alone and no element gets a `ref`. Name the files
+  `<run-slug>-NN-<name>` with `NN` counting from `01` in the order of the source and
+  `<name>` a short English name of what the page shows (`booking-notes-01-ticket-states`,
+  `booking-notes-02-payment-calls`). Run order is then source order, in the combined file
+  and in the description tables. Each diagram needs a title of its own: the name of its
+  page, and, where the extractor had to number pages of one name, a title from what the
+  page shows, recorded as an `added:` note. `bundle` numbers the page of a second diagram
+  with a title it already has and warns; fix the title instead of delivering that. The
+  report says that the run has no main diagram and lists the diagrams in source order.
 - **Zukai's rules decide the structure,** and a source that breaks them is split, not
   drawn as it was:
   - one kind per diagram, whatever the scope: the parts of a page that belong to another
@@ -264,7 +279,16 @@ with the offer of a `revise`, never `wrong` (the checklist says so for `meta.sou
 - the coverage result (`covered` of `units` texts);
 - with `--audience both` given as a flag, when the business view came out a near copy of the
   technical one (a source with no technical names), say so in one line;
-- the kind of each diagram and, when it differs from the source's best hint, why.
+- the kind of each diagram and, when it differs from the source's best hint, why;
+- what the source shows that the model has no field for, and that is therefore not in the
+  diagrams and not a text `cover` could ask for, one line each as `mapping.md` names them:
+  the attributes an ER source marks as mandatory (`*`), the connections it draws dashed,
+  a line end without a relation kind;
+- where the source was kept against a rule of the draw skill (`mapping.md`, architecture):
+  the connections that run against the request-flow convention, the frames and placements
+  the icon rules would not draw, the boxes that name no service and so have no icon;
+- an `extend` whose condition came from a note of the source, and a note that may state a
+  condition and was not taken as one.
 
 ## Rules
 

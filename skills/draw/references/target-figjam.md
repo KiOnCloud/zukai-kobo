@@ -174,7 +174,15 @@ leave the machine, and the secret scan gates this emit like the other.
    `<file>.3.js`, ... when the drawing is longer than one `use_figma` call takes (50 000
    characters). The script is made from the same layout as `emit --to drawio`, so emit the
    draw.io file from the same IR when the user wants both. For a class, activity or use case diagram
-   `out` is `null` and `text` says that no Mermaid text was written.
+   `out` is `null` and `text` says that no Mermaid text was written. Keep the script in the
+   run folder as `figjam/<slug>.native.js` (further parts as `figjam/<slug>.native.2.js`),
+   so a later revision finds it and writes it again.
+   The warnings of this call are those of the board the script draws, which is the draw.io
+   drawing: with `--native` alone the CLI does not print what is lost in the text for
+   `generate_diagram` (icons, group frames, the flowchart form of an architecture diagram),
+   because none of that is lost on the native board. With `--native` and `--out` both
+   files are written, and each warning about the text says in brackets that it is about
+   the FigJam text; show those for the text, not as something the board lacks.
 2. Load the Figma skills `figma-use` and `figma-use-figjam` (fallback resources:
    `skill://figma/figma-use/SKILL.md`, `skill://figma/figma-use-figjam/SKILL.md`).
 3. Call `use_figma` with the file key of the board and, as `code`, the content of the file,

@@ -155,15 +155,37 @@ matched nothing are listed in `unmatched`; they usually mean a typo in the id.
 { "$keep": ["API", "get"], "login:title": "ログイン", "login:a-submit": "送信する" }
 ```
 
+Translated IRs. Two outputs of a variant are written from IRs whose labels are translated,
+not from a label map: the Mermaid text, which has no layout to keep, and description tables
+with translated labels. Those IRs live in one place, a folder of `source/` named after the
+language: copy each IR of the run to `source/<lang>/<slug>.ir.json` (the same file name,
+so every `ref` still resolves among them), translate the labels and the title, set
+`meta.lang`, and validate each. Ids, structure and `meta.sources` stay as they are. The
+place matters: every command that takes the run folder reads the IRs directly in `source/`
+and nothing below it, so the translated IRs are never bundled as further diagrams of the
+run, `snapshot` does not copy them, and `sources` and `stale` never see them. A file
+`source/<slug>.<lang>.ir.json` beside the originals would be all of that: do not write one.
+The translated IRs are derived files: after a revision changes a label, change the same
+label in them and write their outputs again.
+
 The description tables of a run (`<run-slug>.doc.md`, closing contract) take their labels
-from the IRs, so a relabelled draw.io file does not change them. `--lang` there picks only
-the language of the headings and column headers (`en`, `ja`, `vi`). For tables whose labels
-are translated too, write them from translated IRs, listed one by one in run order:
-`bundle --to doc --lang <lang> --out <run-folder>/<run-slug>.doc.<lang>.md <translated IRs>`.
+from the IRs, so a relabelled draw.io file does not change them. Two different things are
+asked for as "the tables in Japanese":
+
+- Headings in that language, labels as they are: `<run-slug>.doc.<lang>.md`, written from
+  the run folder with `--lang <lang>` (`en`, `ja`, `vi`). It needs no variant; the closing
+  contract has the rule, and the document then holds two languages.
+- Labels translated as well: write the tables from the translated IRs, giving the folder,
+  `bundle --to doc --lang <lang> --out <run-folder>/<run-slug>.doc.<lang>.md --title "<title in that language>" <run-folder>/source/<lang>`.
+  The CLI takes them in run order and names each as `source/<lang>/<slug>.ir.json` in the
+  document. One file per language: the translated tables replace the heading-only file of
+  that language.
+
 A business view needs nothing of its own: its IR is in the run folder, so its tables are in
 the document, after those of the technical view.
 
-For Mermaid: copy each IR to `source/<slug>.<lang>.ir.json`, translate the labels, set
-`meta.lang`, validate, emit and bundle as in the closing contract (`references/closing-contract.md`). The relabel map and the
+For Mermaid: write the translated IRs as above, then emit each into
+`mermaid/<slug>.<lang>.mmd` and bundle the folder into `<run-folder>/<run-slug>.<lang>.md`
+(`bundle --to mermaid --out ... <run-folder>/source/<lang>`), as in the closing contract (`references/closing-contract.md`). The relabel map and the
 translated IR go through the same review as any diagram: wording items apply, layout items
 apply to the draw.io result after `relabel`.

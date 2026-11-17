@@ -1,11 +1,13 @@
 # Review checklist and verdict
 
-Every diagram passes a review before it is delivered. In Claude Code the `diagram-reviewer`
-agent runs it in a separate context; in other runtimes the main session runs it as an explicit
-step, reading this file first and judging the diagram as a reviewer, not as its author. The
+Every diagram passes a review before it is delivered. Where the `diagram-reviewer` agent is
+available it runs the review in a separate context; anywhere else, which includes every
+copied install, the main session runs it as an explicit step, reading this file first and
+judging the diagram as a reviewer, not as its author (`closing-contract.md`, "Agents that may not be there"). The
 reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI warnings. For
-a revision it also gets the request and, when there is one, the PNG of the picture of the
-change (`diff --drawio`).
+a revision it also gets the request and, when there is one, the PNGs of the picture of the
+change (`diff --drawio`), one per page of it: a page per diagram that changed, each
+rendered with `preview <file> --page <diagram id>`.
 
 ## Layout (look at the PNG)
 
@@ -91,8 +93,10 @@ change (`diff --drawio`).
     order of the steps of one goal; an actor inside a boundary, or the system itself drawn
     as an actor of its own use cases; an `include` or `extend` whose arrow points the wrong
     way (the arrow of an include ends at the included use case, the arrow of an extend at
-    the use case that is extended); an `extend` without a condition where the request or
-    the code states one; an actor named after a person instead of a role. The fix is one
+    the use case that is extended); an `extend` without a condition where the request, the
+    code or, in a recook, a note of the source beside the extending use case or on its
+    line states one (`mapping.md` of the recook skill says when such a note is the
+    condition); an actor named after a person instead of a role. The fix is one
     use case per goal, with its steps in a part linked with `ref` (scope `detailed`) or in
     `meta.notes`. In a recooked diagram (`meta.source: "recook"`) a use case keeps the
     wording of its source: one that reads as a step or a screen is a `polish` finding
@@ -126,16 +130,19 @@ change (`diff --drawio`).
 
 The picture shows the new version with what was added in green, what changed or moved in
 amber and what was removed in red with a dashed outline; the legend under it lists the old
-value of everything amber and names a removed element it could not draw.
+value of everything amber and names a removed element it could not draw. It has one page
+per diagram that changed, so there may be several PNGs: judge each. A frame around a new
+or removed message of a sequence diagram is not coloured, because the frame itself did not
+change.
 
-16. Everything coloured follows from the request: an element the request did not ask to
+17. Everything coloured follows from the request: an element the request did not ask to
     add, change, move or remove, and that is no cascade of it into a part or a business
     view, is a `wrong` finding. So is something the request asked for that the picture
     does not show as changed.
-17. A red element is one the request meant to drop, and nothing that still refers to it
+18. A red element is one the request meant to drop, and nothing that still refers to it
     stays behind: a rule, a condition or an outcome that went with it and that the request
     did not name is a `missing-rule` finding.
-18. The picture is judged for what it says about the change only. Its own layout (a removed
+19. The picture is judged for what it says about the change only. Its own layout (a removed
     step standing beside a new one, a thicker line, the legend) is never a finding; the
     layout items are checked on the PNG of the delivered file.
 

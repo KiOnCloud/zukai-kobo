@@ -35,9 +35,11 @@ node "<draw-dir>/scripts/bin/cli.mjs" restore <run-dir> <rNNN|undo|redo> [--extr
 diagram that changed, in which what was added is green, what changed or moved is amber and
 what was removed is drawn again in red with a dashed outline, and a legend under each page
 that lists the old value of everything amber. A diagram that is in one version only is a
-page marked as a whole; the diagrams that did not change are left out and named under
-`drawio.unchanged`; `drawio.notDrawn` names a removed element the picture could not hold.
-Nothing is written when the two versions do not differ. The picture is a review aid, never
+page marked as a whole; the diagrams that did not change, or that differ in `meta` fields
+alone, are left out and named under `drawio.unchanged`; `drawio.notDrawn` names a removed
+element the picture could not hold. Nothing is written when the two versions do not differ
+in anything a diagram shows, and `drawio.reason` says which of the two it was. The file has
+one page per diagram: `preview <file> --page <diagram id>` renders any of them. The picture is a review aid, never
 a delivered file: write it under `drafts/` with a name that ends in `.diff.drawio`. The CLI
 refuses to write it over any other draw.io file, and `drift` refuses to read it.
 
@@ -106,15 +108,24 @@ A run is a folder `diagrams/<yyyymmdd>_<run-slug>/` with a `source/` folder of I
 
 Once the run is found, a `drafts/` folder with a `consult.json` left in it by an earlier
 session is reported first: offer to resume that consult (go to the consult protocol, step 4, with the request and
-the draft names from `drafts/consult.json`) or drop it (delete `drafts/`). On "resume" the
-new request waits until that consult is confirmed or dropped; on "drop" it goes on from
-step 2. A `drafts/` folder that holds only `changes-<rNNN>.diff.drawio` files is no open
-consult: those are the pictures of earlier changes, and they are left where they are.
+the draft names from `drafts/consult.json`) or drop it (the consult protocol, step 7). On
+"resume" the new request waits until that consult is confirmed or dropped; on "drop" it
+goes on from step 2. A `drafts/` folder without `consult.json` is no open consult: it holds
+the pictures of earlier changes, which stay where they are. The one rule set for that
+folder is the section "The drafts folder" of `<draw-dir>/references/closing-contract.md`;
+this skill, the consult protocol and the sync skill all follow it.
 
 ## 2. Read the state
 
-Read every `source/*.ir.json`, `<draw-dir>/references/ir-reference.md`, and note the targets
-the run has: `drawio/` and a `<run-slug>.drawio`, or `mermaid/` and a `<run-slug>.md`.
+Read every `source/*.ir.json`, `<draw-dir>/references/ir-reference.md`, and note every
+target the run has, since a change rebuilds all of them: `drawio/` and a
+`<run-slug>.drawio`, `mermaid/` and a `<run-slug>.md`, `figjam/` with the text, overlay and
+native scripts of each diagram, and `svg/` with the pictures. A run often has more than
+one, because the draw skill offers the other targets at the end of every run. The closing
+contract's revise section says how each is written again, and what is said about a FigJam
+board that was already drawn. A folder `source/<lang>/` holds the translated IRs of a
+language variant (`variants.md`): a change to a label is carried into them, and the files
+written from them are written again.
 Note also whether it has description tables, `<run-slug>.doc.md` or
 `<run-slug>.doc.<lang>.md`: they are text generated from the IRs, so every change to an IR
 writes them again (the closing contract's revise section says with which options).
@@ -123,7 +134,10 @@ writes them again (the closing contract's revise section says with which options
 
 Run `drift` on the combined file with the run folder (`drift <run>/<run-slug>.drawio <run>`)
 and on each `drawio/<slug>.drawio` with its IR. Keep the `bundle` object of the combined
-file's result: it holds the `--title`, `--canvas` and `--gap` the file was built with.
+file's result: it holds the `--title`, `--canvas` and `--gap` the file was built with. The
+title of a draw.io file is the name of its canvas page, so a file without a canvas (a run
+of one diagram) gives an empty object, `{}`: that is no finding, and the closing contract
+says which title to pass then.
 
 When nothing drifted, continue. When something did, tell the user in plain words what
 differs ("the box 'Approve' was moved", "the label 'Pay' reads 'Pay now'"). The CLI compares
@@ -172,7 +186,7 @@ hand edit in draw.io: ask before redrawing, and keep the file with `--extra`.
 | Undo | "undo", "revert", "go back", "quay lại", "hoàn tác", or a revision named (`r003`) | step 7 |
 | New diagram | the request asks for a diagram the run does not have: another kind, another view, a part that details one element, a second version of a delivered diagram at another level of detail ("add an architecture diagram", "also draw the sequence", "a detailed version of it", "thêm sơ đồ kiến trúc", "vẽ thêm", "bổ sung diagram") | step 8 |
 | Consult | what-if or question phrasing ("what if", "should we", "try", "nếu … thì sao", "có nên", "thử"); or a change that removes elements; or a change of structure (a step, branch, participant or connection added, moved or reconnected) that has to be carried into a `ref` part or a `-business` view; or `--preview` | step 6 |
-| Direct | everything else, or `--apply`. A change of wording only (a label, a title, a guard) is always direct, in however many parts and views the same wording appears: it is carried into each of them in step 5 | step 5 |
+| Direct | everything else, or `--apply`. A change of wording only (a label, a title, a guard) is always direct, in however many parts and views the same wording appears: it is carried into each of them in step 5. The title of a part is the label of the element it details, so renaming that element renames the part's title too | step 5 |
 
 The table is read top to bottom and the first row that fits wins, so a request for a new
 diagram never reaches the direct route, whatever its wording. Say which route was taken and
@@ -191,18 +205,32 @@ why, in one line, in the user's language.
 3. Edit the IRs. Old ids never change; new ids come from names (`validate-card`), never from
    counters alone. A change to a technical diagram that has a `-business` view is carried
    into that view by `variants.md`. A step that gains or loses a `ref` part changes the part
-   too. A run whose IR says `meta.source: "scout"` and receives a change the code does not
-   have: set `meta.source` to `"manual"` and add a `meta.notes` entry saying from which
-   revision on it no longer reflects the code. `meta.sources` stays as it is: the diagram
-   is still about those files, and the sync skill uses the list when the user later wants
-   it compared with the code again.
+   too, and an element that is renamed renames the title of the part that details it (the
+   part's page of the change picture then shows the title as changed). A run whose IR says
+   `meta.source: "scout"` is changed in one of two ways:
+   - The change is something the code does not have (a step the user wants to plan, a
+     wording): set `meta.source` to `"manual"` and add a `meta.notes` entry saying from
+     which revision on it no longer reflects the code. `meta.sources` stays as it is: the
+     diagram is still about those files, and the sync skill uses the list when the user
+     later wants it compared with the code again.
+   - The change draws what the code already has, read from a file of the project for this
+     request ("add the AWS resources the worker writes to", read from `infra-aws/main.tf`):
+     `meta.source` stays `scout`, the file read joins `meta.sources` and is cited in
+     `meta.notes` by the scout protocol's rule, and after the review that one diagram is
+     recorded alone with `sources <run> --only <diagram-id>`, as the closing contract's
+     section "Sources of a scouted run" says, so `stale` stays current. A change that
+     needs the whole diagram compared with the code again is the sync skill's: say so.
 4. `diff <run>/history/<rNNN>/source <run>/source` and read every hint it prints. A hint
    about a part or a business view is either applied now or answered in the report. The
    list has four parts: `added`, `removed`, `changed` (with the fields that differ) and
    `reordered` (the elements that moved and what each now follows), since the order of
-   messages, participants and lanes is part of what the reader sees. With a draw.io
-   target, add `--drawio <run>/drafts/changes-<rNNN>.diff.drawio` to the same call: it
-   draws that list on the diagrams, for the review and for the report.
+   messages, participants and lanes is part of what the reader sees. Each `changed`
+   entry also carries `values`: per field, what it was (`from`) and what it is (`to`),
+   one of the two left out when the field was not set. A block of a sequence diagram is
+   not listed as changed because a message was put into it or taken out of it: the
+   message is the entry. With a draw.io target, add
+   `--drawio <run>/drafts/changes-<rNNN>.diff.drawio` to the same call: it draws that
+   list on the diagrams, for the review and for the report.
 5. Run `<draw-dir>/references/closing-contract.md` in full (its section "When revise calls
    this contract" says what changes for a revision).
 
@@ -243,6 +271,11 @@ run. Nothing in `source/` or in the delivered files changes before that confirma
    went back with the IRs, `removed` when the restored revision was made before the run had
    one. Pass it on in one line, because after undoing a sync the run is behind the code
    again and `stale` says so.
+5. The pictures of the changes that were undone are stale now. Delete
+   `drafts/changes-<rNNN>.diff.drawio` of the revision that was restored and of every later
+   one, and say so in the report; after a redo write the picture of the change that came
+   back. An undo writes no picture of its own. The closing contract's section "The drafts
+   folder" has the rule.
 
 ## 8. New diagram route
 

@@ -29,7 +29,7 @@ neither does, stop and name both paths. Every CLI call comes from `<draw-dir>`:
 ```bash
 node "<draw-dir>/scripts/bin/cli.mjs" stale <run-dir>... [--root <project>]
 node "<draw-dir>/scripts/bin/cli.mjs" sources <run-dir> [--root <project>]
-node "<draw-dir>/scripts/bin/cli.mjs" diff <old-dir> <new-dir>
+node "<draw-dir>/scripts/bin/cli.mjs" diff <old-dir> <new-dir> [--drawio <out.diff.drawio>]
 node "<draw-dir>/scripts/bin/cli.mjs" drift <file.drawio|run-slug.md> <ir.json|run-dir>...
 node "<draw-dir>/scripts/bin/cli.mjs" snapshot <run-dir> --request "<text>" [--extra <file>]... [--bundle @<file>]
 ```
@@ -71,16 +71,20 @@ A run is a folder `diagrams/<yyyymmdd>_<run-slug>/` with a `source/` folder of I
    the runs under `diagrams/`, and stop. Never fall back to another run in its place.
 2. Otherwise a run drawn from code earlier in this conversation, when there is exactly one.
 3. Otherwise list the runs under `diagrams/` in the working directory and keep those drawn
-   from code (step 2 says which are). None: stop with the line of step 2. One: use it and
+   from code (section 2 says which are). None: stop with the refusal of section 2. One: use it and
    say which. Several: run `stale` once with all of them that have a
    `source/<run-slug>.sources.json`, then ask once which run to sync, up to four options:
    the runs that are out of date first (each with its changed files as the description),
    then the runs without a record. A run that `stale` reports as unchanged is not offered;
    when every run is unchanged, say so and stop.
 
-A `drafts/` folder left in the run by an earlier session is reported first. Offer to drop
-it (delete `drafts/`) or to stop; a sync never starts on top of drafts, because they were
-made from an older state of the code or for another request.
+An open consult left in the run by an earlier session is reported first: a `drafts/` folder
+that holds `consult.json`. Offer to drop it (delete `consult.json` and the draft folders it
+names) or to stop; a sync never starts on top of drafts, because they were made from an
+older state of the code or for another request. A `drafts/` folder without `consult.json`
+holds only the pictures of earlier changes (`changes-<rNNN>.diff.drawio`): it is no open
+consult, nothing is asked about it and nothing in it is deleted. The rules for that folder
+are in one place, the section "The drafts folder" of `<draw-dir>/references/closing-contract.md`.
 
 ## 2. Check that the run was drawn from code
 
@@ -176,7 +180,9 @@ that changed for no reason is a false entry in that list.
   and never apply a review finding of an earlier round on the way.
 - An element is added where the code now does the thing: in the place in the array that
   matches the order of execution, with an id made from its name (`check-lockout`), never a
-  counter alone, and never an id the diagram used before for something else.
+  counter alone, and never an id the diagram used before for something else. An element
+  that has no place in an order of execution (a participant, a lane, a class, an entity, a
+  component, an actor) is appended to its array, so nothing that was there moves.
 - An element is removed when the code no longer does it. Its edges, messages, block
   entries and `ref` go with it.
 - An element is changed when the code changed what its label says (a threshold, a status
@@ -208,12 +214,13 @@ When done with a diagram, go through every difference between the delivered IR a
 one and name the file and the change in it that caused it. Put back any difference you
 cannot name a cause for.
 
-In Claude Code the reading may be handed to the `source-scout` agent, one diagram per task:
-give it the kind, the entry point, the delivered IR in full, the list of changed and
-deleted files, and the rule above in its own words ("keep every id, label and order the
+Where the `source-scout` agent is available, the reading may be handed to it, one diagram
+per task: give it the kind, the entry point, the delivered IR in full, the list of changed
+and deleted files, and the rule above in its own words ("keep every id, label and order the
 code still supports; change only what the changed code changes; return the whole IR"). The
-main session still does the last check of the paragraph above on what comes back. Other
-runtimes do the reading inline.
+main session still does the last check of the paragraph above on what comes back. Where
+the agent is not there, the main session does the reading inline
+(`<draw-dir>/references/closing-contract.md`, "Agents that may not be there").
 
 ## 6. Write the draft and compare
 
@@ -243,9 +250,10 @@ One block per changed diagram, main diagram first:
 - the diagram's title and id;
 - the files that changed or were deleted for it;
 - what changed, in plain words by label, in the order `diff` gives: added, removed,
-  changed (with what the label or field was and is), reordered; after each entry the file
-  that caused it (`src/auth/login-handler.ts: the lockout check was added before the
-  password check`);
+  changed (with what the label or field was and is: each `changed` entry carries `values`,
+  per field its `from` and its `to`), reordered; after each entry the file that caused it
+  (`src/auth/login-handler.ts: the lockout check was added before the password check`). A
+  block is not in the list because a message was put into it: the message is;
 - every hint `diff` printed, with what was done about it.
 
 Then: the files that changed without any effect on a diagram, in one line; the diagrams
@@ -260,37 +268,45 @@ A correction that brings the draft closer to the code is made in the draft, then
 to 7 run again. A change the code does not have is not made here: offer the revise skill
 for it after the sync.
 
-**Apply.** Follow step 6 of the consult protocol, "Confirm", with these values:
+**Apply.** These are the steps of the consult protocol's "Confirm" (its step 6), written
+out with the values of a sync; nothing of that step is left to be looked up:
 
 1. `snapshot <run> --request "sync with the code" --bundle @<file>`, plus `--extra <file>`
    for every file that drifted. The snapshot also keeps the sources record of the state it
-   saves, so an undo brings the old record back.
+   saves, so an undo brings the old record back. Note the revision it prints.
 2. Copy `drafts/a/source/*.ir.json` over `source/`; delete from `source/` the IRs the draft
-   does not have, with their `drawio/<slug>.drawio` or `mermaid/<slug>.mmd`.
-3. Delete `drafts/`.
-4. Run `<draw-dir>/references/closing-contract.md` in full, as its section "When revise
-   calls this contract" describes: the same run folder, the recovered `bundle` options, the
-   review gate. A review finding that asks for a change the code does not support is not
-   applied: list it.
-5. Record the sources again, as the contract's section "Sources of a scouted run" says
+   does not have, with their files in every target folder the run has (`drawio/`,
+   `mermaid/`, `figjam/`, `svg/`).
+3. Delete the draft: `drafts/consult.json` and `drafts/a/`. The pictures of earlier changes
+   in `drafts/` stay.
+4. With a draw.io target, write the picture of the change, as revise does:
+   `diff <run>/history/<rNNN>/source <run>/source --drawio <run>/drafts/changes-<rNNN>.diff.drawio`.
+   The review of the next step looks at it, and the report names it.
+5. Run `<draw-dir>/references/closing-contract.md` in full, as its section "When revise
+   calls this contract" describes: the same run folder, the recovered `bundle` options,
+   every target the run folder holds rebuilt (draw.io, Mermaid, the FigJam files, the
+   pictures, the description tables), the review gate with the picture of the change. A
+   review finding that asks for a change the code does not support is not applied: list it.
+6. Record the sources again, as the contract's section "Sources of a scouted run" says
    (once, after the review gate): `sources <run>`, with `--root .` when step 3 needed it.
    Fix every `missing` entry in the IR and record again until there is none. Then
    `stale <run>` must exit 0; show its result if it does not.
 
-**Drop.** Delete `drafts/` and say that the run is unchanged and still behind the code:
-`stale` keeps reporting it, because the record is not touched.
+**Drop.** Delete `drafts/consult.json` and `drafts/a/`, and say that the run is unchanged
+and still behind the code: `stale` keeps reporting it, because the record is not touched.
 
 ## 8. When the diagram does not change
 
 The code changed, but nothing the diagrams show: a change inside a step, a refactoring, a
 comment. Say so, with the files and one line each on why the diagram stays.
 
-- No IR changed (step 5 changed nothing, or `diff` says `differs: false`): delete
-  `drafts/` if it was written, then `sources <run>`. Nothing else is written, no revision
+- No IR changed (step 5 changed nothing, or `diff` says `differs: false`): delete the draft
+  (`drafts/consult.json` and `drafts/a/`) if it was written, then `sources <run>`. Nothing else is written, no revision
   is made, no file is emitted.
 - only `meta.sources` or `meta.notes` differ (a file moved, a new file now belongs to an
   element): `snapshot <run> --request "sync with the code (sources only)" --bundle @<file>`,
-  copy the draft's IRs over `source/`, delete `drafts/`, `validate` them, then
+  copy the draft's IRs over `source/`, delete the draft (`drafts/consult.json` and
+  `drafts/a/`), `validate` them, then
   `sources <run>`. The delivered files are not emitted again: nothing they show changed.
 
 Either way `stale <run>` exits 0 afterwards; say that the run is recorded as current.
@@ -300,7 +316,10 @@ Either way `stale <run>` exits 0 afterwards; say that the run is recorded as cur
 After an applied sync, the closing contract's report, plus:
 
 - the files that changed and the diagrams each one touched;
-- the change list of step 7 as applied;
+- the change list of step 7 as applied, and the path of the picture of the change
+  (`drafts/changes-<rNNN>.diff.drawio`) as a review aid that is not part of the delivery;
+- every target that was rebuilt, and a FigJam board that still shows the run before the
+  sync, when the run has one;
 - the revision that holds the state before the sync (`history/rNNN`), and that "undo" in
   the revise skill goes back to it together with its sources record;
 - the diagrams left alone (not from code, or changed by hand and left at the user's word);

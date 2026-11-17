@@ -20,9 +20,16 @@ name, you are in another runtime: use the path where you read this file (for Cod
 
 ```bash
 node "<skill-dir>/scripts/bin/cli.mjs" validate <ir.json>
-node "<skill-dir>/scripts/bin/cli.mjs" emit --to <mermaid|drawio|figjam> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>]
-node "<skill-dir>/scripts/bin/cli.mjs" bundle --to doc --lang <en|ja|vi> --out <file.md> <run-folder>
+node "<skill-dir>/scripts/bin/cli.mjs" emit --to <mermaid|drawio|figjam|doc> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--lang <en|ja|vi>] [--mermaid-stable]
+node "<skill-dir>/scripts/bin/cli.mjs" bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <en|ja|vi>] [--canvas all|<id,id,...>] [--mermaid-stable] <run-folder>
+node "<skill-dir>/scripts/bin/cli.mjs" preview <file.drawio|file.drawio.svg|file.mmd|run.md> [--page <id|name>] [--max-px <n>]
+node "<skill-dir>/scripts/bin/cli.mjs" export <run-folder|file.drawio> [--page <id|name>[,...]]
 ```
+
+`--lang` goes with `--to doc` only, `--overlay` and `--native` with `--to figjam` only, and
+`--mermaid-stable` with the Mermaid text of `emit` and `bundle`. A command refuses an option
+it does not take (exit 1, with the options it does take), so an option is never read and
+dropped.
 
 Node 22.13 or newer is required; the CLI has no other dependency. Two commands reach the
 network: `preview`, the optional review image, and `export`, the optional SVG pictures, fetch
@@ -61,8 +68,9 @@ The invocation arguments select the mode and target. Claude Code appends them as
   otherwise. They need the renderer `preview` uses; when none is installed the report
   quotes the hint of `export`, which names where it looked, and says that no picture was
   written. `references/closing-contract.md`, step 5, has the command.
-- `--kind <kind>` fixes the diagram kind (see the next section); without it the kind is
-  always asked, never guessed.
+- `--kind <kind>` fixes the diagram kind (see the next section). Without it the kind is
+  taken from the request when the request names one in words, and asked otherwise; it is
+  never guessed from what the request is about.
 - `--scope overview|detailed` fixes the level of detail (see the next section); without it
   the scope is asked together with the kind.
 - `--audience technical|business|both` sets who reads the diagram (`meta.audience`). Without
@@ -77,7 +85,10 @@ The invocation arguments select the mode and target. Claude Code appends them as
   same without the flag. The tables come with the diagram, not instead of it, and the
   closing contract says how they are written (its section "Description tables"). The flag
   takes no value: the language of the headings follows the user's (English, Japanese or
-  Vietnamese, else English).
+  Vietnamese, else English). Tables asked for in another language than the run's are a
+  second file, `<run-slug>.doc.<lang>.md`, with the headings in that language and the
+  labels as the IR has them; translated labels need a language variant of the run. The
+  closing contract's section "Description tables" has both rules.
 - No mode given: ask "Which input do you have: requirements to clarify, code to scout, or a
   raw idea to brainstorm?" as one more part of the opening call described in the next
   section (mode, kind, scope and view, at most four questions in one `AskUserQuestion`
@@ -91,8 +102,12 @@ The invocation arguments select the mode and target. Claude Code appends them as
 
 Read the protocol file for the chosen mode before doing anything else. `clarify` runs in the
 main session because it asks the user questions. `scout` and `brainstorm` are read-only and
-may run in a subagent when the runtime offers one; the subagent returns the IR JSON inline and
-the main session writes the file and runs the CLI. Whatever the mode, the closing contract
+may run in a subagent when the runtime offers one (the `source-scout` and
+`diagram-brainstorm` agents of the plugin); the subagent returns the IR JSON inline and
+the main session writes the file and runs the CLI. Where no such agent is listed, which
+includes every copied install, the main session follows the protocol itself: the closing
+contract's section "Agents that may not be there" is the one rule for this, for these two
+agents and for the `diagram-reviewer` of the review gate. Whatever the mode, the closing contract
 below runs in full: write, validate, emit, bundle, review until it passes, then report.
 A `scout` run also records which files it was drawn from (`meta.sources` and the `sources`
 command of the closing contract), so that `stale` and the sync skill can tell later which
@@ -100,10 +115,26 @@ diagrams the code has left behind.
 
 ## Diagram kinds: always ask first
 
-Before reading a protocol or any code, ask the user which kind they want, unless `--kind`
-was given or the request names a kind verbatim ("sequence diagram", "ER diagram", "use cases of",
-"swimlane"). In `brainstorm` mode skip this question: the brainstorm protocol proposes kinds
-as candidates instead.
+Before reading a protocol or any code, settle the kind. There is one rule, and every other
+paragraph of this file follows it:
+
+- `--kind` fixes the kind.
+- A request that names a kind in words fixes it too: the name of a kind of the table below
+  or the usual words for one ("sequence diagram", "sequence of the login", "ER diagram",
+  "use cases of the clinic system", "swimlane", "state machine of an order", "class
+  diagram"). The kind question is then left out. Say in one line which kind you read and
+  from which words ("kind: use case, from 'use cases of' in the request"), so the user can
+  correct it before anything is drawn, and repeat that line in the report, as the closing
+  contract does for an audience that was not asked.
+- Anything else is asked: a request that only describes a subject ("the login", "how
+  orders are processed", "who can do what in the system") names no kind, however well one
+  kind would fit. The fit decides which kinds the question suggests first, never the
+  answer. The question always lets the user reach all eight kinds, as described below.
+- One request names a kind and is asked all the same: the architecture of the modules of
+  one program ("Modules are not resources" below).
+
+In `brainstorm` mode there is no kind question: the brainstorm protocol proposes kinds as
+candidates instead.
 
 Every question, option label and option description of the opening call is written in the
 user's language; the English keyword that maps to the flag stays in parentheses after the
@@ -131,7 +162,8 @@ feature, and they differ in how sub-flows are handled:
 
 Never produce parts without a main diagram, and never split under `overview` (a recook keeps
 the pages its source already has and splits a page that mixes kinds, as the recook skill
-says).
+says; its source of unrelated pages is the one run without a main diagram, named
+`<run-slug>-NN-<name>` in the order of the source).
 
 Ask the view in the same call too, unless `--audience` was given or the request names the
 reader. What is chosen is the view of the diagram (whether technical names stay), so the
@@ -159,7 +191,8 @@ question in the same call; that is at most four questions, the tool's limit. The
 allows four options per question, so the kind question offers the three kinds that fit the
 request best, best fit first and labelled "(suggested)", each with its one-line description
 below; its question text names the other kinds and says to pick "Other" and type one of
-them. When fewer than three kinds fit the request, offer only those that do. In `brainstorm`
+them, so all eight kinds of the table are within reach in every case. When fewer than
+three kinds fit the request, offer only those that do. In `brainstorm`
 mode the kind question is skipped and the audience answer fills the audience slot of the
 brainstorm protocol, which then does not ask again; when the mode itself is being asked in
 this call, the kind question stays, and its answer is dropped if the user picks
@@ -167,8 +200,8 @@ this call, the kind question stays, and its answer is dropped if the user picks
 that is still open (mode, kind, scope, view, and the target when `--to` named an unknown one), each with its own lettered options (`1a`,
 `2b`), the suggestion marked; the kind question lists all eight kinds of the table below
 (for a request about the modules of one program, the three kinds of "Modules are not
-resources" first and in that order, then the rest) and is left out when `--kind` was given
-or the mode is `brainstorm`. Accept an option, a
+resources" first and in that order, then the rest) and is left out when `--kind` was given,
+when the request named the kind in words, or when the mode is `brainstorm`. Accept an option, a
 name or "default".
 
 | # | Kind | One-line description for the user | Best target |
@@ -240,10 +273,12 @@ diagram with the tables, handlers and numbered steps drawn into it. The CLI repo
 breaches it can see as `detail:` warnings: fix the IR and emit again before the review. Only
 the user can keep one, as the closing contract says.
 
-Use cases are goals, not steps. Suggest `usecase` first when the request asks who uses a
-system and what for ("use cases of", "what can each role do", "scope of the system",
-"actors and features"), and not when it asks how one of those things happens: the steps of
-one goal are a `flowchart`, `activity` or `sequence` diagram. A use case names something an
+Use cases are goals, not steps. A request that says "use cases" ("use cases of the clinic
+system", "the use case diagram") names the kind, by the rule of "Diagram kinds: always ask
+first", and is not asked. When the kind is asked, suggest `usecase` first for a request that
+asks who uses a system and what for without naming the kind ("what can each role do",
+"scope of the system", "actors and features"), and not when it asks how one of those
+things happens: the steps of one goal are a `flowchart`, `activity` or `sequence` diagram. A use case names something an
 actor comes to the system to get done ("Borrow a book"), never a step, a screen or a
 function (`references/ir-reference.md`, usecase, Level of detail); under the scope
 `detailed` each use case worth it carries `ref` to the part that shows its steps. Draw.io is
@@ -255,7 +290,8 @@ Modules are not resources. A request for "the architecture of the modules" of on
 (a CLI, a library, one service) asks for the parts of a single deployed resource, which an
 `architecture` diagram draws as one box, and the CLI cannot see that ten components are
 modules. So the kind question of the opening call is still asked, even when the request
-says "architecture": offer `class` first (one class per module with the stereotype
+says "architecture" (the one exception to the rule that a kind named in words is not
+asked): offer `class` first (one class per module with the stereotype
 `module`, `dependency` relations for the imports: who depends on whom), `flowchart` second
 (the path one call takes through the modules) and `architecture` third (what is deployed and
 what it talks to), each with that consequence in its description.
@@ -268,8 +304,9 @@ what it talks to), each with that consequence in its description.
 | `mermaid` | Mermaid text to paste into Markdown | always available | `references/target-mermaid.md` |
 | `figjam` | New or existing FigJam board | a Figma MCP tool named `generate_diagram` is available in the session; otherwise hand the user the `figjam` text to paste, as section 6 of the reference says (never the `mermaid` text), and say so. A sequence diagram also needs the overlay script of section 5, run with `use_figma`. When the user wants the draw.io layout on the board, or the diagram is a class, activity or use case diagram, draw the board with `emit --native` and `use_figma` instead (section 7) | `references/target-figjam.md` |
 
-The feature matrix (`docs/feature-matrix.md` in the repository, data in
-`scripts/src/feature-matrix.json`) decides per kind, target and feature whether something is
+The feature matrix (data in `scripts/src/feature-matrix.json` of this skill; as a table at
+https://github.com/KiOnCloud/zukai-kobo/blob/main/docs/feature-matrix.md, which a copied install does
+not hold) decides per kind, target and feature whether something is
 `supported`, `degraded` (emitted with a warning naming the element and what was lost) or
 `unsupported` (the emit fails for that target). Never approximate silently: print every
 warning the CLI returns to the user, verbatim.

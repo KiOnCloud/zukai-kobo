@@ -22,6 +22,7 @@ element.
 | `edges[].fromPart`, `toPart` | the row of a table the end is attached to (an ER foreign key) |
 | `edges[].startArrow`, `endArrow`, `dashed` | line ends in the source tool's words: `classic`, `block`, `open`, `block-open` (hollow triangle), `diamond`, `diamond-open`, `ERmandOne`, `ERzeroToMany` ..., `none` |
 | `edges[].startLabel`, `endLabel` | texts at the ends of a line (multiplicities, roles) |
+| `edges[].condition` | PlantUML only, on an «extend» line: the text of a note written on that line or beside the use case that extends, offered as the condition of the extend (the usecase section says when to take it). The note is a node of the page as well |
 | `edges[].y` | vertical position, or the order of a Mermaid message: the order of messages |
 
 Facts read from Mermaid or PlantUML text have no `box`: the order of the text is the order, and a frame's or
@@ -87,7 +88,7 @@ is the only one; otherwise list it in `meta.omitted`.
 |---|---|
 | `rounded`, `box`, `ellipse` with a name | `states[]` `simple` |
 | `container` holding states | `composite` with its `children` |
-| `initial`, `final` | `initial`, `final` |
+| `initial`, `final` | `initial`, `final`, without a label. One that carries a name in the source (an end circle labelled "Cancelled") is a status: an ordinary state with that label, with a transition to an unlabelled `final` state (or from an unlabelled `initial` one), recorded as `added: final state after "Cancelled" (the source wrote the name on its end circle)` |
 | edge label `event [guard] / action` | `event`, `guard`, `action` of the transition |
 | `decision` | a state machine has no choice node in Zukai: one transition per way out, each with the guard written on its line |
 
@@ -118,12 +119,40 @@ is the only one; otherwise list it in `meta.omitted`.
 | `icon` with `aws:` / `gcp:` | a component with that `icon` (copy it; never rename it from memory) and the `kind` its service is (`database` for a database or storage icon, `queue`, `cache`, else `service`) |
 | `icon` with `aws:` / `gcp:` read from a board | the same: a board Zukai drew from version 2.2.0 on names each picture's stencil in its group (`Order API [aws:lambda]`) |
 | `icon` with `drawio:` | a component of the kind its label says (`client` for a browser or an app, else `service`); `drawio:unknown` is a picture on a board whose stencil is not named; `drawio:image` on a source that is a GCP diagram is one of draw.io's newer GCP icons, which are pictures without a stencil name. When the diagram is a GCP one (the draw skill's "GCP icons" applies) and the label names the service ("Cloud Run", "Pub/Sub orders"), take its icon from `gcp-icons.md` by that name and record it the same way as for AWS below. When the diagram is an AWS one (the draw skill's "AWS icons" applies) and the label names the service ("SQS orders", "Aurora PostgreSQL"), take its icon from `aws-icons.md` by that name and record `added: icon aws:<name> from the label`; a label that names no service ("Fulfilment worker") keeps no icon, and the report lists it |
+| `box`, `rounded`, `process` with a label and no icon | a component of `kind` `service` (the default), without an icon unless the next row gives it one |
 | `store` | `database`; `queue`, `detail: hexagon` → `queue` |
 | `client`, `actor` | `client` |
 | `cloud`, a component outside every boundary that the system calls | `external` |
 | `group` | a boundary with that `group` (`aws:vpc`, `gcp:vpc_network` ...) and its members. A GCP frame has no stencil: the extractor names it by the fill colour draw.io's GCP library gives that kind of frame, so check the name against the title (a frame titled "Region" that reads `gcp:zone` was recoloured by hand: take the group the title names from `gcp-icons.md` and record `changed:`) |
 | `container` | a boundary |
-| edge | `connections[]`; arrows at both ends set `bidirectional` |
+| edge | `connections[]`, `from` and `to` as the source draws the arrow; arrows at both ends set `bidirectional`. An edge text read as `startLabel` or `endLabel` of a connection that has no `label` is its label: a connection has one text, and a file Zukai wrote may place it near an end of a long line |
+
+Three cases where the source and the rules of the draw skill pull apart, and what wins:
+
+- **The direction of an edge is the source's.** `ir-reference.md` asks an author to write a
+  connection the way the request or the message moves (producer to queue, queue to
+  consumer). A recook does not apply that: an edge the source draws from the worker to the
+  queue, labelled `poll`, stays worker to queue with that label, because turning it round
+  or rewording it would change what the source says ("Content stays"). The report lists
+  each connection that runs against that convention, with the offer of a `revise`.
+- **An icon needs a name.** The draw skill wants a figure on every component of a cloud
+  diagram; a recook sets one only on evidence. A plain box of the source (PlantUML's
+  `component`, `node` or `database`, a rectangle of a hand-drawn file) gets a cloud icon
+  when its label or its stereotype names the service ("SQS orders", `«Lambda»`,
+  "Cloud Run"), recorded as `added: icon <value> from the label`. A box that names no
+  service ("Fulfilment worker") keeps the generic shape of its kind, and the report lists
+  it; a diagram where no box names a service is drawn without icons and without group
+  frames. The same holds for a general resource or a product logo on a system outside the
+  cloud: only when the label names the product.
+- **A frame of the source stays.** The icon rules of `aws-icons.md` and `gcp-icons.md`
+  call some things supporting resources and put some services outside the network (an ECS
+  cluster is not a component, a queue stands outside a subnet). They say what a new
+  diagram draws; they never delete what a source drew. A frame the source has is kept as
+  a boundary with its label and its members as the source has them: with its `group` when
+  the facts or its label name the construct, as a plain boundary otherwise ("ECS cluster"),
+  and a component the source draws inside a subnet stays inside it. The report lists each
+  such frame and each such placement as "kept from the source, not what the icon rules
+  would draw".
 
 The level of detail of the draw skill holds: several tables of one database are one
 component, and an edge label that is an endpoint path, a job or a field moves into a part
@@ -140,10 +169,10 @@ protocol or purpose.
 | `container`, `lane` or `group` around the ovals | `boundaries[]` with the ovals inside as `children`. A frame that also holds a figure keeps the use cases only: actors stand outside the system, and the report says the figure was moved out |
 | plain line between a figure (or system box) and an oval, whatever its arrowhead | `association`; an arrowhead on it says who starts the exchange and is not kept |
 | `dashed` line marked `«include»`, `<<include>>`, `<<includes>>`, `<<uses>>` | `include`, `from` the oval the line starts at |
-| `dashed` line marked `«extend»`, `<<extend>>`, `<<extends>>` | `extend`, `from` the oval the line starts at; a further line of the label, a `[condition]` or an "extension point" text is the `condition` |
+| `dashed` line marked `«extend»`, `<<extend>>`, `<<extends>>` | `extend`, `from` the oval the line starts at; a further line of the label, a `[condition]` or an "extension point" text is the `condition`. So is the edge's `condition` in the facts, when it has one: the text of a note the source wrote on that line or beside the use case that extends (see below) |
 | `block-open` end between two figures or two ovals | `generalization`, `from` the end without the triangle |
 | `dashed` line between ovals with no stereotype | ask nothing: an `include` when the source's legend or its other lines say so, else list it in `meta.omitted` with the reason "dashed line without a stereotype" |
-| a `note` or free `text` | a use case diagram has no note element: the title when it is one, else `meta.omitted` |
+| a `note` or free `text` | a use case diagram has no note element: the title when it is one, the `condition` of an extend when the row above says so, else `meta.omitted` |
 
 Which actors are `primary` and which `supporting` follows from the side they stand on in the
 source: figures and systems on the side the reader starts from (left, or top) are primary,
@@ -216,8 +245,10 @@ Class and ER (`table` nodes):
   the title of a section (`-- private --`) goes to `meta.omitted`.
 - A `table` whose `detail` starts with `entity` is an ER entity: `key: a, b` names the rows
   above the first rule of its body, which are its primary key (`pk`); a row with `«FK»` is
-  `fk`; `mandatory:` lists the rows marked `*` (not null), which the IR does not record. A
-  remark such as `«generated»` is the attribute's `comment`.
+  `fk`; `mandatory:` lists the rows marked `*` (not null), which the IR does not record: the
+  mark is no text, so `cover` does not ask for it. Say in the report, in one line per
+  entity, which attributes the source marked as mandatory and that the diagram does not
+  show it. A remark such as `«generated»` is the attribute's `comment`.
 - Line ends: `block-open` is inheritance (dashed: realization) and the class at the other end
   is the subclass, so that end is `from`; `diamond` is composition and `diamond-open`
   aggregation, with the whole at the diamond; a dashed line with an `open` end is a
@@ -275,8 +306,21 @@ case, `actor` an actor (`detail` `business` for `actor/` is still a person), a `
 with `detail` `rectangle` or `package` the system boundary with the use cases inside it. An
 edge between an actor and a use case is an association; a dashed edge whose label is
 `«include»` or `«extend»` is that relation, from the edge's `from` to its `to` as drawn; a
-`block-open` end is a generalization, the element at the other end being the special one. A
-`note` goes to `meta.omitted`, since the kind has no note element.
+`block-open` end is a generalization, the element at the other end being the special one.
+
+A note becomes the `condition` of an `extend` in exactly one case: the extractor offers it,
+as `condition` on the edge in the facts. It does that for a note written on the line
+(`note on link`) of an «extend», and for a note attached to the use case that extends
+(`note right of UC7`) when that use case has one «extend» line. PlantUML has no other
+place for the condition, so this is where authors put it ("Only for first-time patients").
+Take it as the condition when it reads as one: a circumstance under which the extension
+happens. When it is a remark about something else ("added in release 4"), leave the
+condition out and say so in the report. Either way the note's text is still a text of the
+facts: used as the condition it is found there by `cover`; otherwise it goes to
+`meta.omitted` like any note. A note beside the extended use case, beside an actor, or
+beside a use case with several «extend» lines is never offered and never guessed: it goes
+to `meta.omitted`, and when the delivered extend has no condition although such a note
+may state one, name the note in the report so the user can say.
 
 ## A sequence part made from another kind
 

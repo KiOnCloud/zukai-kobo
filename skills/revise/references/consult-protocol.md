@@ -17,7 +17,11 @@ drafts/consult.json            { "request", "axis", "drafts": [{ "id": "a", "nam
 ```
 
 `consult.json` is written with the first draft and kept up to date: it is what a later
-session reads to resume this consult without guessing what the drafts were for.
+session reads to resume this consult without guessing what the drafts were for, and it is
+what makes the folder an open consult. Beside the drafts, `drafts/` may hold
+`changes-<rNNN>.diff.drawio` files, the pictures of changes applied earlier: they belong to
+no consult and are never deleted here (`<draw-dir>/references/closing-contract.md`, "The
+drafts folder").
 
 ## 1. Find the axis of choice
 
@@ -53,7 +57,9 @@ For each draft:
    of the change, one page per diagram the draft touches, with what the draft adds in
    green, what it changes or moves in amber and what it removes in red, dashed, where it
    stood. Read `drawio.notDrawn` in the output: a removed element named there is in the
-   list only, and the presentation says so.
+   list only, and the presentation says so. The picture has one page per diagram, listed
+   under `drawio.pages`; to look at the page of a part or of a business view, run
+   `preview <run>/drafts/<x>/changes.diff.drawio --page <diagram id> --max-px 1600`.
 
 Print every CLI warning verbatim. No review gate runs on drafts: the review runs once, on the
 confirmed result.
@@ -90,7 +96,9 @@ works. Repeat until the user confirms.
    on"): write the number into that entry now, since the draft was made before it existed.
 2. Copy `drafts/<x>/source/*.ir.json` over `source/`; delete IRs from `source/` that the
    draft does not have, with their `drawio/<slug>.drawio` or `mermaid/<slug>.mmd`.
-3. Delete `drafts/`.
+3. Delete the consult: `drafts/consult.json` and the draft folders it names (`drafts/a/`,
+   `drafts/b/`, `drafts/c/`). Nothing else in `drafts/` is touched: the pictures of earlier
+   changes stay.
 4. With a draw.io target, `diff <run>/history/<rNNN>/source <run>/source --drawio
    <run>/drafts/changes-<rNNN>.diff.drawio` writes the picture of the confirmed change
    again, now against the revision, for the review and the report (step 3 removed the
@@ -100,5 +108,6 @@ works. Repeat until the user confirms.
 
 ## 7. Drop
 
-Delete `drafts/` and say that the run is unchanged. `source/`, the delivered files and
-`history/` were never touched, so nothing else needs undoing.
+Delete `drafts/consult.json` and the draft folders it names, and say that the run is
+unchanged. `source/`, the delivered files and `history/` were never touched, so nothing
+else needs undoing, and the pictures of earlier changes in `drafts/` stay.
