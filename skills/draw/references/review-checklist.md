@@ -3,7 +3,9 @@
 Every diagram passes a review before it is delivered. In Claude Code the `diagram-reviewer`
 agent runs it in a separate context; in other runtimes the main session runs it as an explicit
 step, reading this file first and judging the diagram as a reviewer, not as its author. The
-reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI warnings.
+reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI warnings. For
+a revision it also gets the request and, when there is one, the PNG of the picture of the
+change (`diff --drawio`).
 
 ## Layout (look at the PNG)
 
@@ -100,6 +102,23 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
     audience. The author's or the user's decision to omit wins over items 8, 9 and 13; the
     closing report lists the omissions so the reader knows what the picture does not cover.
 
+## Revision (when the task gives a request and the picture of the change)
+
+The picture shows the new version with what was added in green, what changed or moved in
+amber and what was removed in red with a dashed outline; the legend under it lists the old
+value of everything amber and names a removed element it could not draw.
+
+16. Everything coloured follows from the request: an element the request did not ask to
+    add, change, move or remove, and that is no cascade of it into a part or a business
+    view, is a `wrong` finding. So is something the request asked for that the picture
+    does not show as changed.
+17. A red element is one the request meant to drop, and nothing that still refers to it
+    stays behind: a rule, a condition or an outcome that went with it and that the request
+    did not name is a `missing-rule` finding.
+18. The picture is judged for what it says about the change only. Its own layout (a removed
+    step standing beside a new one, a thicker line, the legend) is never a finding; the
+    layout items are checked on the PNG of the delivered file.
+
 ## Verdict format
 
 ```text
@@ -110,7 +129,8 @@ Findings:
 ```
 
 The `Images:` line says, for every diagram, whether the reviewer actually opened its PNG
-(every tile when there are several). A diagram whose image was not opened was reviewed on
+(every tile when there are several), and for a revision whether it opened the picture of
+the change (`changes: opened | not opened (<reason>)`). A diagram whose image was not opened was reviewed on
 the IR and warnings only, and the layout items could not be checked; the closing report
 repeats this line as it is.
 
