@@ -14,19 +14,20 @@ const run = (target, dest) => execFileSync('sh', [installer, '--target', target,
 const frontmatterName = (file) => readFileSync(file, 'utf8').match(/^name: (.+)$/m)?.[1];
 
 describe.skipIf(!runnable)('install.sh', () => {
-  it('keeps the plugin skills named draw, revise and recook in the source', () => {
+  it('keeps the plugin skills named draw, revise, recook and sync in the source', () => {
     expect(frontmatterName(join(repoRoot, 'skills', 'draw', 'SKILL.md'))).toBe('draw');
     expect(frontmatterName(join(repoRoot, 'skills', 'revise', 'SKILL.md'))).toBe('revise');
     expect(frontmatterName(join(repoRoot, 'skills', 'recook', 'SKILL.md'))).toBe('recook');
+    expect(frontmatterName(join(repoRoot, 'skills', 'sync', 'SKILL.md'))).toBe('sync');
   });
 
   for (const [target, subdir] of [['codex', '.agents/skills'], ['claude-project', '.claude/skills']]) {
-    it(`installs the ${target} copies as zukai, zukai-revise and zukai-recook, in folder and in name`, () => {
+    it(`installs the ${target} copies as zukai, zukai-revise, zukai-recook and zukai-sync, in folder and in name`, () => {
       const dest = mkdtempSync(join(tmpdir(), 'zukai-install-'));
       run(target, dest);
       const skill = join(dest, subdir, 'zukai');
       const revise = join(dest, subdir, 'zukai-revise');
-      expect(readdirSync(join(dest, subdir)).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise']);
+      expect(readdirSync(join(dest, subdir)).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise', 'zukai-sync']);
       expect(frontmatterName(join(skill, 'SKILL.md'))).toBe('zukai');
       expect(frontmatterName(join(revise, 'SKILL.md'))).toBe('zukai-revise');
       expect(existsSync(join(skill, 'scripts', 'bin', 'cli.mjs'))).toBe(true);
@@ -40,6 +41,18 @@ describe.skipIf(!runnable)('install.sh', () => {
       expect(frontmatterName(join(recook, 'SKILL.md'))).toBe('zukai-recook');
       expect(existsSync(join(recook, '.zukai-recook-version'))).toBe(true);
       expect(readFileSync(join(recook, 'SKILL.md'), 'utf8')).toContain('<recook-dir>/../zukai');
+      const sync = join(dest, subdir, 'zukai-sync');
+      expect(frontmatterName(join(sync, 'SKILL.md'))).toBe('zukai-sync');
+      expect(existsSync(join(sync, '.zukai-sync-version'))).toBe(true);
+      // sync reaches the draw skill's CLI and the revise skill's draft rules through its siblings.
+      const syncText = readFileSync(join(sync, 'SKILL.md'), 'utf8');
+      expect(syncText).toContain('<sync-dir>/../zukai');
+      expect(syncText).toContain('<sync-dir>/../zukai-revise');
+      expect(existsSync(join(sync, '..', 'zukai-revise', 'references', 'consult-protocol.md'))).toBe(true);
+      // The installed CLI has the two commands the skill starts and ends with.
+      const help = execFileSync(process.execPath, [join(skill, 'scripts', 'bin', 'cli.mjs'), 'help'], { cwd: dest, encoding: 'utf8' });
+      expect(help).toContain('cli.mjs stale <run-dir>...');
+      expect(help).toContain('cli.mjs sources <run-dir>');
     });
   }
 
@@ -47,7 +60,7 @@ describe.skipIf(!runnable)('install.sh', () => {
     const dest = mkdtempSync(join(tmpdir(), 'zukai-install-'));
     run('codex', dest);
     expect(run('codex', dest)).toMatch(/already up to date/);
-    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise']);
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise', 'zukai-sync']);
   });
 
   it('adds zukai-revise next to an older zukai install and backs the old one up', () => {
@@ -58,7 +71,7 @@ describe.skipIf(!runnable)('install.sh', () => {
     writeFileSync(join(old, 'SKILL.md'), '---\nname: zukai\n---\n');
     expect(run('codex', dest)).toMatch(/Upgrading zukai -> /);
     // The backup leaves the skills folder: there it would still be a skill named zukai.
-    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise']);
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise', 'zukai-sync']);
     const backups = readdirSync(join(dest, '.agents/zukai-backups'));
     expect(backups).toHaveLength(1);
     expect(backups[0]).toMatch(/^zukai-\d{14}$/);
@@ -72,7 +85,7 @@ describe.skipIf(!runnable)('install.sh', () => {
     mkdirSync(old, { recursive: true });
     writeFileSync(join(old, 'SKILL.md'), '---\nname: zukai\n---\n');
     expect(run('codex', dest)).toMatch(/already up to date/);
-    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise']);
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise', 'zukai-sync']);
     expect(readdirSync(join(dest, '.agents/zukai-backups'))).toEqual(['zukai-20260101000000']);
   });
 
@@ -103,7 +116,7 @@ describe.skipIf(!runnable)('install.sh', () => {
     writeFileSync(join(legacy, '.it-diagrams-version'), '1.0.0\n');
     writeFileSync(join(legacy, 'SKILL.md'), '---\nname: it-diagrams\n---\n');
     run('codex', dest);
-    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise']);
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise', 'zukai-sync']);
     const backups = readdirSync(join(dest, '.agents/zukai-backups'));
     expect(backups).toHaveLength(1);
     expect(backups[0]).toMatch(/^it-diagrams-\d{14}$/);
@@ -115,7 +128,18 @@ describe.skipIf(!runnable)('install.sh', () => {
     mkdirSync(other, { recursive: true });
     writeFileSync(join(other, 'SKILL.md'), '---\nname: it-diagrams\n---\n');
     run('codex', dest);
-    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['it-diagrams', 'zukai', 'zukai-recook', 'zukai-revise']);
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['it-diagrams', 'zukai', 'zukai-recook', 'zukai-revise', 'zukai-sync']);
+  });
+
+  it('adds zukai-sync next to an install of the same version that does not have it yet', () => {
+    const dest = mkdtempSync(join(tmpdir(), 'zukai-install-'));
+    run('codex', dest);
+    rmSync(join(dest, '.agents/skills/zukai-sync'), { recursive: true });
+    const out = run('codex', dest);
+    expect(out).toMatch(/Installing zukai-sync/);
+    expect(out).not.toMatch(/Previous install of/);
+    expect(existsSync(join(dest, '.agents/skills/zukai-sync/SKILL.md'))).toBe(true);
+    expect(existsSync(join(dest, '.agents/zukai-backups'))).toBe(false);
   });
 
   it('installs only the missing skill and leaves a same-version copy alone', () => {
@@ -125,6 +149,6 @@ describe.skipIf(!runnable)('install.sh', () => {
     const out = run('codex', dest);
     expect(out).toMatch(/Installing zukai-revise/);
     expect(out).not.toMatch(/Previous install of zukai moved/);
-    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise']);
+    expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['zukai', 'zukai-recook', 'zukai-revise', 'zukai-sync']);
   });
 });

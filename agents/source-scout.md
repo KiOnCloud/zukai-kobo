@@ -16,7 +16,11 @@ kind is missing instead of guessing.
 
 Rules:
 
-- Cite every element: list the files you derived it from in `meta.notes`.
+- Cite every element: list the files you derived it from in `meta.notes`, and the same files
+  in `meta.sources`, one project-relative path per entry with forward slashes and nothing
+  else in it.
+- When your task hands you a delivered IR to bring up to date, keep every id, label and
+  order in it that the code still supports and change only what the changed code changes.
 - Redact anything that looks like a credential, connection string, token or personal data;
   use a placeholder such as `<db>`. Never copy secrets into labels or notes.
 - Keep the diagram readable (about 15 elements); say what you left out.

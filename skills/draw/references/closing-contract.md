@@ -18,6 +18,7 @@ where the date is today and `<run-slug>` is a short English kebab-case name of t
 | `figjam/<slug>.overlay.js` | for a sequence diagram: the script that draws on the board what `generate_diagram` leaves out (target `figjam`, `target-figjam.md` section 5) |
 | `<run-slug>.<lang>.drawio`, `source/labels.<lang>.json` | a language variant of the combined file and its label map (`variants.md`) |
 | `source/<run-slug>.facts.json` | a recooked run only: what `extract` read from the source, with credentials and personal data replaced by placeholders (the source itself is never copied here) |
+| `source/<run-slug>.sources.json` | a scouted run only: a hash of every file in the `meta.sources` of its diagrams, written by `sources` and read by `stale` and the sync skill |
 | `history/` | revisions written by the revise skill; only the CLI writes here |
 
 Only the folders of the targets actually emitted exist; `source/` always does.
@@ -85,6 +86,8 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    with `both`, list the technical and the business IR of each subject together as two
    views of it. For Mermaid also print each text in a fenced `mermaid` block. In `scout` mode the report describes what the code does and where; it never adds
    open questions, spec doubts, bug suspicions or suggestions about the business logic.
+   A scouted run records its sources before this report, as "Sources of a scouted run"
+   below says, and the report has one line about the record.
 6. Offer the other targets in one line. Do not emit them unless asked.
 
 Rules that hold in every mode:
@@ -137,6 +140,35 @@ Rules that hold in every mode:
 - One diagram per IR file; the run folder holds all of them and the combined file shows them
   together, so the user never has to open the parts to see the whole.
 
+## Sources of a scouted run
+
+A run with a diagram whose `meta.source` is `scout` ends with one more command, after the
+review gate and before the report, run from the project root:
+
+```bash
+node "<skill-dir>/scripts/bin/cli.mjs" sources <run-folder>
+```
+
+It writes `source/<run-slug>.sources.json`: for every diagram, each file of its
+`meta.sources` with a SHA-256 of its content (CRLF is hashed as LF). `stale <run-folder>`
+compares that record with the files later, and the sync skill starts from its answer. The
+paths are read from the project root: the nearest folder at or above the run folder that
+holds `.git`, else the working directory; pass `--root <project>` when the paths of
+`meta.sources` start from another folder.
+
+- Record only when the diagrams were just read from the code as it is now: at the end of a
+  scout run and at the end of a sync (the sync skill says when). The record is a statement
+  that the diagrams match these files, so it is never refreshed for any other reason.
+- `missing` in the output lists the entries that are not files under the root. Fix the path
+  in the IR (validate, then `sources` again) until the list is empty; an entry that stays
+  missing is never checked.
+- `fallback` lists the diagrams that had no `meta.sources` and were recorded from the paths
+  in their `meta.notes`. That only happens to a run drawn by an older version; a diagram
+  written now always has the field.
+- The report says in one line that the sources were recorded, how many files, and that
+  `stale <run-folder>` (or the sync skill) tells when the code has moved on. The run folder
+  is committed with the record in it.
+
 ## When revise calls this contract
 
 The revise skill runs this contract after it changed the IRs of a delivered run. It reuses
@@ -160,3 +192,10 @@ the run folder and its run slug, never a new folder, and changes these steps:
   (`history/rNNN`), the change list from `diff` in plain words and the outcome of the drift
   check.
 - Step 6 is skipped unless the user asks for another target.
+- A revision made by the revise skill does not read the code, so it does not record
+  sources again: the record keeps saying which state of the code the run was last compared
+  with. One case adds to it: a new
+  diagram that was scouted (the new diagram route in `scout` mode) is recorded alone, with
+  `sources <run-folder> --only <diagram-id>`, which leaves every other entry as it was. An
+  undo needs nothing: `restore` puts back the record of the revision it restores, or
+  removes the record when that revision had none, and says so as `sourcesRecord`.

@@ -18,6 +18,8 @@
  *   node cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (save every IR of a run as a revision)
  *   node cli.mjs revisions <run-dir>   (the revisions of a run, newest first)
  *   node cli.mjs restore <run-dir> <rNNN|undo|redo> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (snapshot the current state, then put a revision back)
+ *   node cli.mjs sources <run-dir> [--root <project>] [--only <id,id,...>]   (record a hash of every source file the diagrams of a run were drawn from)
+ *   node cli.mjs stale <run-dir>... [--root <project>]   (the recorded source files that changed or are gone; exit 2 when there are any)
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
@@ -33,6 +35,7 @@ import { snapshotRun, listRevisions, restoreRun } from './revisions.mjs';
 import { extractFacts, extractBoards } from './extract.mjs';
 import { figjamReaderScript } from './extract-figjam.mjs';
 import { cover } from './cover.mjs';
+import { recordSources, staleRun } from './sources.mjs';
 
 const USAGE = `usage:
   cli.mjs validate <ir.json>
@@ -48,6 +51,8 @@ const USAGE = `usage:
   cli.mjs extract <file.drawio|file.drawio.svg|file.drawio.png|file.mmd|file.md|board.json...> [--page <id|name>[,...]] [--out <facts.json>]
   cli.mjs extract --figjam-script <file.js> [--section <name|node-id>] [--from <n>]
   cli.mjs cover <facts.json> <ir.json|run-dir>...
+  cli.mjs sources <run-dir> [--root <project>] [--only <id,id,...>]
+  cli.mjs stale <run-dir>... [--root <project>]
   cli.mjs help
 
 A run folder (diagrams/<yyyymmdd>_<run-slug>) stands for the IR files in its source/ folder,
@@ -63,6 +68,18 @@ extract reads a diagram made elsewhere into facts (pages, nodes, edges, kind hin
 recook skill; --figjam-script writes the read-only use_figma script whose JSON result extract
 then reads (a large board comes back in parts: run the script again with --from <next> and
 pass every part to extract). --page keeps only the pages named, by id or name. cover exits 2 when a text of the facts is in none of the IRs.
+sources writes source/<run-slug>.sources.json: for every diagram of the run, the files its
+meta.sources names (paths from the project root) with a SHA-256 of each. CRLF is hashed as
+LF, so a checkout that converts line endings changes nothing. --root is the project root;
+without it, the nearest folder at or above the run folder that holds .git, or else the
+working directory. A scouted diagram without meta.sources is recorded from the paths in its
+meta.notes that exist under the root, and the output says so. --only records the diagrams
+named and leaves the rest of the record as it is.
+stale reads the record and the files, and writes nothing. The result is one JSON object on
+stdout; exit 0 when no recorded file changed, exit 2 when one changed or is gone (listed per
+run and per diagram) or a diagram names sources the record does not hold, exit 1 when a run
+has no record. Without --root it uses the root the record was taken with, which is stored
+relative to the run folder. It needs no network and no git, so it can run in CI.
 Exit codes: 0 success, 1 usage or I/O error, 2 validation errors.`;
 
 function fail(code, payload) {
@@ -71,12 +88,12 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only' };
 const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -470,6 +487,35 @@ export async function main(argv) {
     }
     process.stdout.write(JSON.stringify(result) + '\n');
     return 0;
+  }
+  if (opts.command === 'sources') {
+    if (opts.positional.length !== 1) return fail(1, { ok: false, errors: [{ path: '/', message: 'sources takes exactly one run folder' }], usage: USAGE });
+    const only = opts.only === undefined ? undefined : opts.only.split(',').map((x) => x.trim()).filter(Boolean);
+    const result = recordSources(opts.positional[0], { root: opts.root, only });
+    if (!result.ok) return fail(result.code, { ok: false, errors: result.errors });
+    const { warnings, ...rest } = result;
+    if (warnings.length > 0) process.stderr.write(JSON.stringify({ warnings }) + '\n');
+    process.stdout.write(JSON.stringify({ ...rest, warnings: warnings.length }) + '\n');
+    return 0;
+  }
+  if (opts.command === 'stale') {
+    if (opts.positional.length === 0) return fail(1, { ok: false, errors: [{ path: '/', message: 'stale takes at least one run folder' }], usage: USAGE });
+    if (opts.only !== undefined) return fail(1, { ok: false, errors: [{ path: '/', message: '--only goes with sources' }], usage: USAGE });
+    const runs = [];
+    const errors = [];
+    for (const dir of opts.positional) {
+      const result = staleRun(dir, { root: opts.root });
+      if (result.ok) {
+        const { ok, ...run } = result;
+        runs.push(run);
+      } else errors.push(...result.errors);
+    }
+    const stale = runs.some((r) => r.stale);
+    // What could be compared is printed even when another run could not be: one run without
+    // a record must not hide a changed file in the next.
+    if (runs.length > 0) process.stdout.write(JSON.stringify({ ok: errors.length === 0, stale, runs }) + '\n');
+    if (errors.length > 0) return fail(1, { ok: false, errors });
+    return stale ? 2 : 0;
   }
   return fail(1, { ok: false, errors: [{ path: '/', message: `unknown command "${opts.command ?? ''}"` }], usage: USAGE });
 }

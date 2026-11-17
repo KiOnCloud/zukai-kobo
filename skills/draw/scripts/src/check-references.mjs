@@ -1,4 +1,5 @@
 import { awsIcon, awsGroup, nearestAwsNames } from './aws-icons.mjs';
+import { sourcePathProblem } from './sources.mjs';
 /**
  * Referential-integrity checks that JSON Schema cannot express: unique ids across the
  * document, every endpoint and child exists, containment has no cycles, and the
@@ -25,6 +26,15 @@ export function checkReferences(ir) {
   const err = (path, message, hint) => errors.push(hint ? { path, message, hint } : { path, message });
   const names = COLLECTIONS[ir.kind];
   if (!names) return { ok: true, errors };
+
+  // Source paths are followed from the project root on any machine, so each one has to be
+  // relative to it and stay inside it.
+  (Array.isArray(ir.meta?.sources) ? ir.meta.sources : []).forEach((p, i) => {
+    const problem = sourcePathProblem(p);
+    if (problem === 'absolute') err(`/meta/sources/${i}`, `absolute path "${p}"`, 'write the path from the project root, such as "src/auth/login.ts"');
+    else if (problem === 'backslash') err(`/meta/sources/${i}`, `backslash in path "${p}"`, 'write the path with forward slashes, such as "src/auth/login.ts"');
+    else if (problem === 'outside') err(`/meta/sources/${i}`, `path "${p}" leaves the project`, 'a source lies inside the project: remove the ".." segment and write the path from the project root');
+  });
 
   // Unique ids across every collection of the document.
   const seen = new Map();

@@ -1,6 +1,6 @@
 ---
 name: draw
-description: Produce IT diagrams (sequence, flowchart, activity with swimlanes, state, ER, class, architecture) from clarified requirements, an existing codebase or a raw idea. Writes a validated JSON diagram model (IR) first, then emits Mermaid, draw.io (.drawio, editable shapes) or FigJam (via the Figma MCP server) with deterministic scripts; never hand-writes diagram syntax. Use for "draw the login sequence", "diagram this service", "architecture of the order flow", "ER diagram from these entities", or any request to visualise a system, process or data model. To change a diagram that was already delivered, use the revise skill.
+description: Produce IT diagrams (sequence, flowchart, activity with swimlanes, state, ER, class, architecture) from clarified requirements, an existing codebase or a raw idea. Writes a validated JSON diagram model (IR) first, then emits Mermaid, draw.io (.drawio, editable shapes) or FigJam (via the Figma MCP server) with deterministic scripts; never hand-writes diagram syntax. Use for "draw the login sequence", "diagram this service", "architecture of the order flow", "ER diagram from these entities", or any request to visualise a system, process or data model. To change a diagram that was already delivered, use the revise skill; to bring a diagram drawn from code up to date with the code, use the sync skill.
 ---
 
 # Zukai
@@ -78,6 +78,9 @@ main session because it asks the user questions. `scout` and `brainstorm` are re
 may run in a subagent when the runtime offers one; the subagent returns the IR JSON inline and
 the main session writes the file and runs the CLI. Whatever the mode, the closing contract
 below runs in full: write, validate, emit, bundle, review until it passes, then report.
+A `scout` run also records which files it was drawn from (`meta.sources` and the `sources`
+command of the closing contract), so that `stale` and the sync skill can tell later which
+diagrams the code has left behind.
 
 ## Diagram kinds: always ask first
 

@@ -132,4 +132,24 @@ describe('restoreRun', () => {
     expect(readFileSync(join(run, 'history', 'r002', 'extras', 'drawio', 'main.drawio'), 'utf8')).toBe('<mxfile edited/>');
     expect(listRevisions(run).revisions[0]).toMatchObject({ rev: 'r002', undoOf: 'r001' });
   });
+
+  it('copies the sources record into the snapshot and restores or removes it with the IRs', () => {
+    const record = join(run, 'source', 'run.sources.json');
+    snapshotRun(run, { request: 'before any record' });
+    expect(JSON.parse(readFileSync(join(run, 'history', 'r001', 'revision.json'), 'utf8')).sources).toBeUndefined();
+    writeFileSync(record, '{"sources":1,"diagrams":[],"state":"first"}\n');
+    const snap = snapshotRun(run, { request: 'with a record' });
+    expect(snap.files).toEqual(['login.ir.json', 'main.ir.json']);
+    expect(JSON.parse(readFileSync(join(run, 'history', 'r002', 'revision.json'), 'utf8')).sources).toEqual(['run.sources.json']);
+    writeFileSync(record, '{"sources":1,"diagrams":[],"state":"second"}\n');
+
+    expect(restoreRun(run, 'r002')).toMatchObject({ ok: true, sourcesRecord: 'restored' });
+    expect(readFileSync(record, 'utf8')).toContain('"first"');
+    // The state left behind was snapshotted with its own record.
+    expect(readFileSync(join(run, 'history', 'r003', 'source', 'run.sources.json'), 'utf8')).toContain('"second"');
+    expect(restoreRun(run, 'r001')).toMatchObject({ ok: true, sourcesRecord: 'removed' });
+    expect(existsSync(record)).toBe(false);
+    // A run that never had a record says nothing about one.
+    expect(restoreRun(run, 'r001').sourcesRecord).toBeUndefined();
+  });
 });

@@ -10,6 +10,16 @@ writes the file and runs the closing contract in `references/closing-contract.md
 - Cite evidence. Every element comes from a file; list the paths in `meta.notes`
   (`src/orders/order-service.ts`, `src/Orders/OrderStatus.cs`). A reader must be able to
   check the diagram against the code.
+- List the same files in `meta.sources`, for the machine: one entry per file an element of
+  this diagram came from, as a path from the project root (the working directory) with
+  forward slashes, and nothing else in the entry (no line number, no remark, no folder, no
+  pattern). A file read and not used is left out; a file that decides what the diagram shows
+  is in, also when it is configuration (`docker-compose.yml`, a Terraform file, a
+  migration). Each diagram lists its own files: a part lists the files of its sub-flow, not
+  those of the whole run, and the business view of a diagram carries the list of its
+  technical one unchanged. The closing contract records a hash of every listed file, and
+  the sync skill later uses that record to tell which diagrams the code has left behind, so
+  a file missing from the list is a change nobody will be told about.
 - The kind comes from the user: `SKILL.md` asks for it before this protocol starts. Never
   switch kinds on your own; if the code suggests another kind would fit better, say so in one
   line and keep the one chosen. One case is settled before this protocol starts: a request
@@ -115,8 +125,9 @@ call the code makes, or leave the label out.
 
 ## Output
 
-Produce the IR with `meta.source` set to `scout` and the cited paths in `meta.notes`, then
-hand it to the closing contract in `references/closing-contract.md`. When running as a subagent, reply with:
+Produce the IR with `meta.source` set to `scout`, the cited paths in `meta.notes` and the
+list of source files in `meta.sources`, then hand it to the closing contract in
+`references/closing-contract.md`, which records the sources at its end. When running as a subagent, reply with:
 
 1. The IR in a fenced `json` block.
 2. One paragraph of rationale: entry point chosen and what was left out. No questions, no
