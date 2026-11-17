@@ -1,6 +1,6 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
 import { awsIcon, awsGroup } from './aws-icons.mjs';
-import { layoutGraph, backEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, LABEL_PAD } from './layout-graph.mjs';
+import { layoutGraph, backEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, widestWord, LABEL_PAD } from './layout-graph.mjs';
 import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
 import { widestLine, roomFor, safeWidth, sameText } from './text-metrics.mjs';
@@ -817,6 +817,7 @@ const HEADER_LINE = 20;
 
 /** A table-like node (ER entity, class) with one child row per line; rows stack from the header. */
 const ROW_LINE = 14;
+/** Where the text of a table wraps; a word that cannot break makes the table wider than this (see `tableNode`). */
 const TABLE_MAX_WIDTH = 300;
 
 /**
@@ -833,8 +834,9 @@ export function rowHeight(text, width) {
 const headerLines = (text, width) => wrapText(text, Math.max(safeWidth(width - 8), 1), { bold: true }).lines;
 
 function tableNode(id, header, rows, { headerHeight: minHeaderHeight = ROW, rowHeights, link } = {}) {
-  const widest = Math.max(widestLine(header, { bold: true }), ...rows.map((r) => widestLine(r.text ?? '')));
-  const width = Math.min(TABLE_MAX_WIDTH, Math.max(160, roomFor(widest) + 24));
+  const widestOf = (measure) => Math.max(measure(header, { bold: true }), ...rows.map((r) => measure(r.text ?? '')));
+  // A row clips what does not fit and a header spills, so a word that cannot break sets the least width.
+  const width = Math.max(Math.min(TABLE_MAX_WIDTH, Math.max(160, roomFor(widestOf(widestLine)) + 24)), roomFor(widestOf(widestWord)) + 24);
   // The header grows with its lines as a row does: a stereotype, the title of a ref, and
   // any of them that is wider than the table and wraps.
   const headerHeight = Math.max(minHeaderHeight, ROW + HEADER_LINE * (headerLines(header, width) - 1));

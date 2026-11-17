@@ -27,15 +27,19 @@ export function wrappedLines(label, width, pad = LABEL_PAD) {
  * Size of a node from its label and the number of extra rows (attributes, members). The
  * width grows with the widest line up to `maxWidth`; past that the text wraps, and the
  * height grows by one line height per wrapped line, so a long label never spills over the
- * box onto its arrows. The lines are counted as draw.io breaks them, at the words, so a
- * line the author broke by hand counts once when it fits and the box is as tall as its
- * text needs. `pad` is the room kept on each side of the text: more than the default for a
- * shape whose outline is narrower than its box. `share` is the part of the width a shape
- * takes from the text on each side on top of that, such as the side bars of a subroutine.
+ * box onto its arrows. `maxWidth` is where text that can wrap does wrap, not a limit on the
+ * box: a word that cannot break (a call, a qualified name, a URL) stands alone on its line
+ * however long it is, so the box is as wide as the widest such word needs. The lines are
+ * counted as draw.io breaks them, at the words, so a line the author broke by hand counts
+ * once when it fits and the box is as tall as its text needs. `pad` is the room kept on each
+ * side of the text: more than the default for a shape whose outline is narrower than its
+ * box. `share` is the part of the width a shape takes from the text on each side on top of
+ * that, such as the side bars of a subroutine.
  */
 export function measureNode(label, { extraRows = 0, minWidth = 120, maxWidth = 260, baseHeight = 40, pad = LABEL_PAD, share = 0 } = {}) {
   const across = 1 - 2 * share;
-  const width = Math.min(maxWidth, Math.max(minWidth, Math.ceil((roomFor(widestLine(label)) + 2 * pad) / across)));
+  const boxFor = (text) => Math.ceil((roomFor(text) + 2 * pad) / across);
+  const width = Math.max(Math.min(maxWidth, Math.max(minWidth, boxFor(widestLine(label)))), boxFor(widestWord(label)));
   const lines = wrapText(label, Math.max(width * across - 2 * pad, 1)).lines;
   const height = baseHeight + LINE_HEIGHT * (lines - 1) + ROW_HEIGHT * extraRows;
   return { width, height };
@@ -108,6 +112,13 @@ export function wrapText(label, width, { bold = false } = {}) {
   }
   return { lines, widest };
 }
+
+/**
+ * Width in px of the widest part of a text that cannot break: the least a box that wraps the
+ * text must hold on one line. A browser breaks between East Asian characters, so a run of
+ * them counts as one character wide.
+ */
+export const widestWord = (label, options) => wrapText(label, 1, options).widest;
 
 const DECISION_MIN_WIDTH = 140;
 const DECISION_MIN_HEIGHT = 80;

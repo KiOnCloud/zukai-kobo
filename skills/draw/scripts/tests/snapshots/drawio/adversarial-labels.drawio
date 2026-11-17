@@ -26,16 +26,16 @@
           <mxGeometry x="310" y="50" width="150" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="adversarial-labels-init-theme-forest:leak" value="postgres://app:Sup3rS3cret@db.internal:5432/orders" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="1746" y="62" width="260" height="40" as="geometry"/>
+          <mxGeometry x="1746" y="62" width="317" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="adversarial-labels-init-theme-forest:token" value="api key ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="2066" y="52" width="260" height="60" as="geometry"/>
+          <mxGeometry x="2123" y="52" width="355" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="adversarial-labels-init-theme-forest:jp" value="注文を確定する [確認済み] {JSON}" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="2386" y="62" width="220" height="40" as="geometry"/>
+          <mxGeometry x="2538" y="62" width="220" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="adversarial-labels-init-theme-forest:bars" value="a | b | c #1 &amp;amp; co" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
-          <mxGeometry x="2666" y="62" width="120" height="40" as="geometry"/>
+          <mxGeometry x="2818" y="62" width="120" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="adversarial-labels-init-theme-forest:end-edge" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adversarial-labels-init-theme-forest:end" target="adversarial-labels-init-theme-forest:graph">
           <mxGeometry relative="1" as="geometry">

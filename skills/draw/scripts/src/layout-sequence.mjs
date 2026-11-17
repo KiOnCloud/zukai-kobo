@@ -3,7 +3,7 @@
  *
  * Columns: participants left to right. A header is as wide as the widest word of its label
  * needs, and the gap between two neighbours grows so that every message label fits between
- * the lifelines it spans. Rows: every message, note, block header,
+ * the lifelines it spans, and every note has room for the widest word of its text. Rows: every message, note, block header,
  * section separator and block end gets a row of its own, so frame labels never sit on top of
  * message labels, and a block that opens right after another has closed starts below a gap,
  * so each frame keeps its own border. Notes take the gap next to their lifeline instead of
@@ -12,8 +12,8 @@
  * can tell the user.
  */
 
-import { widestLine } from './text-metrics.mjs';
-import { wrapText, LABEL_PAD } from './layout-graph.mjs';
+import { widestLine, roomFor } from './text-metrics.mjs';
+import { wrapText, widestWord, LABEL_PAD } from './layout-graph.mjs';
 
 export const SEQUENCE_METRICS = {
   participantWidth: 120,
@@ -54,7 +54,13 @@ const lineCount = (text) => String(text).split(/\r\n?|\n/).length;
  * method name is one word however long), so the box grows until that word fits with the
  * usual room on each side. Even, so the lifeline stands on a whole pixel.
  */
-const headerWidth = (label, m) => Math.max(m.participantWidth, 2 * Math.ceil((wrapText(label, 1).widest + 2 * LABEL_PAD) / 2));
+/**
+ * The least width of a note: its text wraps at the words, but a word cannot break, so the
+ * note holds the widest one, with the room a renderer may need, inside its padding.
+ */
+const noteNeed = (label) => roomFor(widestWord(label)) + NOTE_PAD.left + NOTE_PAD.right;
+
+const headerWidth = (label, m) => Math.max(m.participantWidth, 2 * Math.ceil((widestWord(label) + 2 * LABEL_PAD) / 2));
 
 /**
  * @param {object} ir validated sequence IR
@@ -78,9 +84,24 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
   // two headers, widened until every label fits its span.
   const widths = ir.participants.map((p) => headerWidth(p.label, m));
   const gaps = Array.from({ length: Math.max(n - 1, 0) }, (_, i) => (widths[i] + widths[i + 1]) / 2 + m.minGap);
+  // A note beside its lifeline stands in the gap to the next one, 12 px off each lifeline, and
+  // a note over its lifeline takes half its width from the gap on each side. The gap grows
+  // until the note is as wide as `noteNeed` says; a note at the edge of the diagram has no
+  // neighbour to make room for. A note over two lifelines is 40 px wider than their distance.
+  const widen = (k, least) => { if (k >= 0 && k < gaps.length) gaps[k] = Math.max(gaps[k], least); };
+  const across = [];
+  for (const note of ir.notes ?? []) {
+    const need = noteNeed(note.label);
+    const [i, j] = note.participants.map((id) => index.get(id));
+    if (j !== undefined) { if (i !== j) across.push({ lo: Math.min(i, j), hi: Math.max(i, j), need: need - 40 }); }
+    else if ((note.position ?? 'right') === 'left') widen(i - 1, need + 24);
+    else if (note.position === 'over') { widen(i - 1, need / 2 + 12); widen(i, need / 2 + 12); }
+    else widen(i, need + 24);
+  }
   const spanning = ir.messages
     .filter((msg) => msg.from !== msg.to)
     .map((msg) => ({ lo: Math.min(index.get(msg.from), index.get(msg.to)), hi: Math.max(index.get(msg.from), index.get(msg.to)), need: textWidth(msg.label) + 24 }))
+    .concat(across)
     .sort((a, b) => (a.hi - a.lo) - (b.hi - b.lo));
   for (const s of spanning) {
     const span = gaps.slice(s.lo, s.hi).reduce((sum, g) => sum + g, 0);
@@ -116,26 +137,28 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
 
   // Notes sit in the gap beside their lifeline; a two-participant note spans both. A note is
   // `noteHeight` tall for one line and grows by a line height for every line its text wraps
-  // to at the padded width, so the text stays inside the top and bottom borders. Its y
+  // to at the padded width, so the text stays inside the top and bottom borders. It is never
+  // narrower than its widest word needs (the gaps above were widened for that). Its y
   // follows from its row.
   const notes = ir.notes ?? [];
   const noteBoxes = new Map();
   for (const note of notes) {
     const first = participants.get(note.participants[0]);
+    const need = noteNeed(note.label);
     let left;
     let width;
     if (note.participants.length === 2) {
       const second = participants.get(note.participants[1]);
       left = Math.min(first.centerX, second.centerX) - 20;
-      width = Math.abs(second.centerX - first.centerX) + 40;
+      width = Math.max(Math.abs(second.centerX - first.centerX) + 40, need);
     } else if ((note.position ?? 'right') === 'left') {
-      width = Math.min(gapLeft(first.index) - 24, 220);
+      width = Math.max(Math.min(gapLeft(first.index) - 24, 220), need);
       left = first.centerX - 12 - width;
     } else if (note.position === 'over') {
-      width = Math.min(gapRight(first.index) - 24, 220);
+      width = Math.max(Math.min(gapRight(first.index) - 24, 220), need);
       left = first.centerX - width / 2;
     } else {
-      width = Math.min(gapRight(first.index) - 24, 220);
+      width = Math.max(Math.min(gapRight(first.index) - 24, 220), need);
       left = first.centerX + 12;
     }
     const lines = wrapText(note.label, width - NOTE_PAD.left - NOTE_PAD.right).lines;

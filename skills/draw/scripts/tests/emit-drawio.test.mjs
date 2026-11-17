@@ -2,12 +2,19 @@ import { describe, it, expect } from 'vitest';
 import { emit } from '../src/pipeline.mjs';
 import { emitDrawio, slugify, rowHeight } from '../src/emit-drawio.mjs';
 import { xmlAttr, htmlLabel, vertex } from '../src/drawio-xml.mjs';
-import { measureNode, measureDecision, wrapText, wrappedLines, LABEL_PAD } from '../src/layout-graph.mjs';
+import { measureNode, measureDecision, wrapText, widestWord, wrappedLines, LABEL_PAD } from '../src/layout-graph.mjs';
+import { textWidth, roomFor } from '../src/text-metrics.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
 import { loadFixture, validFixtures, scriptsDir } from './helpers.mjs';
 import { loadPlaywright } from '../src/preview.mjs';
 
 const pw = loadPlaywright(scriptsDir);
+
+/** A call without a space up to its first comma: one word of 287.5 px, wider than the 236 px a 260 px box leaves its text. */
+const CALL_WORD = 'ngComponentOutlet(ComponentMap[cell.component],';
+const CALL = `${CALL_WORD} inputs: data, config)`;
+const CALL_FLOW = { schemaVersion: 1, kind: 'flowchart', title: 'Cell', nodes: [{ id: 'a', label: CALL }, { id: 'b', label: CALL, shape: 'subroutine' }, { id: 'c', label: CALL, shape: 'io' }], edges: [{ id: 'e1', from: 'a', to: 'b' }, { id: 'e2', from: 'b', to: 'c' }] };
+const CALL_CLASS = { schemaVersion: 1, kind: 'class', title: 'Host', classes: [{ id: 'host', label: 'DynamicCellHostComponentWithAVeryLongGeneratedName', attributes: [{ name: 'outlet', type: CALL_WORD.repeat(2) }] }], relations: [] };
 
 describe('drawio-xml', () => {
   it('escapes attribute values and HTML labels', () => {
@@ -83,8 +90,8 @@ describe('drawio-xml', () => {
     it('breaks a long line at its words, as draw.io does, and never inside one', () => {
       const para = 'Collect orders created from 00:00 to 23:59 of the previous day, excluding test accounts and cancelled orders';
       expect(wrappedLines(para, 260)).toBe(3);
-      // One unbreakable word overflows on its line instead of wrapping, so it adds no height.
-      expect(measureNode('x'.repeat(100))).toEqual({ width: 260, height: 40 });
+      // One unbreakable word stays on its line and adds no height: the box grows to hold it (600 px, its room and the padding).
+      expect(measureNode('x'.repeat(100))).toEqual({ width: 648, height: 40 });
       // A name joined by hyphens is spread over the lines its parts fill: draw.io breaks after each hyphen.
       expect(measureNode(HYPHENATED)).toEqual({ width: 260, height: 80 });
     });
@@ -121,7 +128,7 @@ describe('drawio-xml', () => {
       const plain = /^(rounded=1;)?whiteSpace=wrap;html=1;(arcSize=30;)?(dashed=1;)?spacingLeft=10;spacingRight=10;$/;
       const subroutine = /^shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;spacingLeft=4;spacingRight=4;$/;
       const boxes = [];
-      const hard = [{ kind: 'er', name: 'long-url', ir: URL_ER }, { kind: 'flowchart', name: 'hyphens', ir: HYPHEN_FLOW }];
+      const hard = [{ kind: 'er', name: 'long-url', ir: URL_ER }, { kind: 'flowchart', name: 'hyphens', ir: HYPHEN_FLOW }, { kind: 'flowchart', name: 'long-call', ir: CALL_FLOW }, { kind: 'class', name: 'long-call', ir: CALL_CLASS }];
       for (const f of [...validFixtures(), ...hard]) {
         const r = await emit(f.ir, 'drawio', { diagramId: 'g', allowSensitive: true });
         for (const c of checkDrawioStructure(r.output).cells) {
@@ -140,8 +147,14 @@ describe('drawio-xml', () => {
         const page = await browser.newPage();
         // draw.io wraps a label at the box less its spacing (10 + 2 px a side), plus 2 px.
         await page.setContent(`<body style="font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.2">${boxes.map((b, i) => `<div id="b${i}" style="width:${b.wrap}px;white-space:normal;overflow-wrap:normal">${b.html}</div>`).join('')}</body>`);
-        const rendered = await page.evaluate((count) => Array.from({ length: count }, (_, i) => Math.round(document.getElementById(`b${i}`).getBoundingClientRect().height / 14.4)), boxes.length);
+        const drawn = await page.evaluate((count) => Array.from({ length: count }, (_, i) => {
+          const el = document.getElementById(`b${i}`);
+          return { lines: Math.round(el.getBoundingClientRect().height / 14.4), overflow: el.scrollWidth - el.clientWidth };
+        }), boxes.length);
+        const rendered = drawn.map((d) => d.lines);
         boxes.forEach((b, i) => {
+          // No word is wider than the text area: a box would let it run over its borders, a row would clip it.
+          expect(drawn[i].overflow, b.at).toBeLessThanOrEqual(0);
           const counted = (b.height - b.base) / b.line + 1;
           expect(Number.isInteger(counted), b.at).toBe(true);
           // Never fewer lines than drawn: a row would clip its last line, a box would run short of room.
@@ -316,6 +329,69 @@ describe('drawio-xml', () => {
       } finally {
         await browser.close();
       }
+    });
+  });
+
+  describe('issue 65: a word that cannot break is never wider than its box', () => {
+    const word = textWidth(CALL_WORD);
+    /** The width draw.io leaves the text of a cell: the box less 2 px and the label spacing on each side, between the side bars of a subroutine. */
+    const textArea = (cell) => {
+      const spacing = (side) => Number(cell.style.match(new RegExp(`spacing${side}=(\\d+)`))?.[1] ?? 0);
+      const across = cell.style.startsWith('shape=process') ? 0.8 : 1;
+      return cellBounds(cell).width * across - 4 - spacing('Left') - spacing('Right');
+    };
+    const withCall = (ir, list) => ({ ...ir, [list]: ir[list].map((el) => ({ ...el, label: `${CALL_WORD} ${el.label}` })) });
+
+    it('grows the box to its widest word and still wraps the rest at the words', () => {
+      expect(word).toBeCloseTo(287.5, 1);
+      expect(widestWord(CALL)).toBe(word);
+      // The word, the 4 % of room and the padding; the rest of the call takes the second line.
+      expect(measureNode(CALL)).toEqual({ width: roomFor(word) + 2 * LABEL_PAD, height: 60 });
+      // A shape that takes more of the width from its text grows by that much more.
+      const sub = measureNode(CALL, { pad: 6, share: 0.1 });
+      expect(0.8 * sub.width - 12).toBeGreaterThanOrEqual(roomFor(word));
+      expect(measureNode(CALL, { pad: 22 }).width).toBe(roomFor(word) + 44);
+      // The cap is where text that can wrap does wrap: a long sentence keeps the 260 px box.
+      expect(measureNode('Collect orders created from 00:00 to 23:59 of the previous day, excluding test accounts and cancelled orders')).toEqual({ width: 260, height: 80 });
+      // A browser breaks between East Asian characters, so a long run of them is no long word.
+      expect(measureNode('請求書ドキュメントビルダーサービスの設定を確認する').width).toBe(260);
+    });
+
+    it('holds the word in every node shape of every graph kind, without a warning', async () => {
+      const shapes = { schemaVersion: 1, kind: 'flowchart', title: 'Shapes', nodes: ['process', 'terminal', 'io', 'subroutine', 'note'].map((shape) => ({ id: shape, label: 'step', shape })), edges: [] };
+      const cases = [
+        ['flowchart', withCall(shapes, 'nodes'), 5],
+        ['state', withCall(loadFixture('state', 'valid'), 'states'), 1],
+        ['architecture', withCall(loadFixture('architecture', 'valid'), 'components'), 1],
+        ['activity', withCall(loadFixture('activity', 'valid-two-lanes'), 'actions'), 1],
+      ];
+      for (const [kind, ir, least] of cases) {
+        const r = await emit(ir, 'drawio', { diagramId: 'g' });
+        expect(r.ok, kind).toBe(true);
+        expect(r.warnings.filter((w) => w.message.startsWith('layout:')), kind).toEqual([]);
+        const boxes = checkDrawioStructure(r.output).cells.filter((c) => c.vertex === '1' && String(c.value ?? '').includes('ngComponentOutlet') && /whiteSpace=wrap/.test(c.style) && !/^(rhombus|swimlane)/.test(c.style) && !/verticalLabelPosition=bottom/.test(c.style));
+        expect(boxes.length, kind).toBeGreaterThanOrEqual(least);
+        for (const c of boxes) expect(textArea(c), `${kind} ${c.id}`).toBeGreaterThanOrEqual(roomFor(word));
+      }
+    });
+
+    it('widens a table for a word in its header or in a row, so the header does not spill and the row does not clip', async () => {
+      const r = await emit(CALL_CLASS, 'drawio', { diagramId: 'g' });
+      const { cells } = checkDrawioStructure(r.output);
+      const table = cellBounds(cells.find((c) => c.id === 'g:host'));
+      const row = cells.find((c) => c.id === 'g:host:row-0');
+      // The type is the call twice over without a space: far wider than the 300 px a table wraps at.
+      const type = textWidth(CALL_WORD.repeat(2));
+      expect(type).toBeGreaterThan(500);
+      expect(table.width).toBe(roomFor(type) + 24);
+      // A row keeps 6 px on each side of its text; "+ outlet:" stands on a line of its own above the type.
+      expect(cellBounds(row).width - 12).toBeGreaterThanOrEqual(roomFor(type));
+      expect(cellBounds(row).height).toBe(26 + 14);
+      // The bold class name alone, 310 px, sets the width when no row is wider.
+      const named = await emit({ ...CALL_CLASS, classes: [{ id: 'host', label: CALL_CLASS.classes[0].label }] }, 'drawio', { diagramId: 'g' });
+      const name = textWidth(CALL_CLASS.classes[0].label, { bold: true });
+      expect(name).toBeGreaterThan(300);
+      expect(cellBounds(checkDrawioStructure(named.output).cells.find((c) => c.id === 'g:host')).width).toBe(roomFor(name) + 24);
     });
   });
 
