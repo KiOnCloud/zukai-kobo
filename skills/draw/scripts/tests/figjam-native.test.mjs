@@ -129,7 +129,7 @@ describe('figjam native script', () => {
         expect(p.trimEnd().split('\n').at(-1)).toMatch(/^return /);
       }
     }
-  });
+  }, 30_000);
 
   it('draws every label of the draw.io file as text', async () => {
     for (const f of fixtures) {
@@ -143,7 +143,7 @@ describe('figjam native script', () => {
         if (label !== '') expect(texts, `${f.kind}/${f.name} ${c.id}`).toContain(label);
       }
     }
-  });
+  }, 30_000);
 
   it('draws every edge from its exit point to its entry point, along its waypoints', async () => {
     const pointsOf = (d) => d.replace(/C( -?[\d.]+){4}/g, 'L').split(/ ?[ML] /).filter(Boolean).map((t) => t.split(' ').map(Number));
@@ -184,7 +184,7 @@ describe('figjam native script', () => {
         }
       }
     }
-  });
+  }, 30_000);
 
   it('draws the line of an edge through the points the draw.io viewer draws it through', async () => {
     // Lines as the draw.io viewer (v32.6.10) draws them, read from the `d` of its SVG paths, in the
@@ -251,7 +251,7 @@ describe('figjam native script', () => {
     // A message runs to the axis of the lifeline, half a pixel left of its middle, also where an
     // activation bar stands on the axis.
     await expectLines('sequence', 'valid-invoice-export', ['M 139.5 180 L 249 180 L 349.38 180', 'M 357.5 254 L 249 254 L 141.74 254']);
-  });
+  }, 30_000);
 
   it('puts a cell where the draw.io file has it, moved by the offset of the section', async () => {
     const check = async (kind, name, id, type) => {

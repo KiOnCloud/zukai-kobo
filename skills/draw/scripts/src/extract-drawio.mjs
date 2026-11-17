@@ -83,11 +83,30 @@ const awsGroupOf = (style) => {
   return (list.find((g) => g.stroke === String(style.strokeColor ?? '').toLowerCase()) ?? list[0])?.name;
 };
 const AWS_GROUP_BY_TITLE = new Map(Object.entries(catalog.groups).map(([name, g]) => [g.title.toLowerCase(), name]));
+/**
+ * A GCP group frame has no stencil: it is a rectangle without an outline, its title at the
+ * top, in the fill colour the palette gives that kind of frame. Two pairs of frames share a
+ * colour: the frame with the Google Cloud mark keeps room for the mark before its title, and
+ * a VPC network is the logical grouping whose title says so.
+ */
+const GCP_GROUPS_BY_FILL = Map.groupBy(Object.entries(catalog.gcp?.groups ?? {}).flatMap(([name, g]) => {
+  const fill = /(?:^|;)fillColor=(#[0-9A-Fa-f]{6});/.exec(g.style)?.[1]?.toLowerCase();
+  return fill ? [{ name, fill, marked: g.mark !== undefined }] : [];
+}), (g) => g.fill);
+const gcpGroupOf = (style, value) => {
+  if (String(style.strokeColor ?? '') !== 'none' || style.verticalAlign !== 'top' || style.shape?.startsWith('mxgraph.')) return undefined;
+  const list = GCP_GROUPS_BY_FILL.get(String(style.fillColor ?? '').toLowerCase());
+  if (!list) return undefined;
+  const marked = Number(style.spacingLeft ?? 0) >= 40;
+  const network = /\b(vpc|network)\b/i.test(plainLabel(value));
+  return (list.find((g) => g.marked === marked && (g.name === 'vpc_network') === network) ?? list.find((g) => g.marked === marked) ?? list[0]).name;
+};
+const GCP_ICONS = { ...(catalog.gcp?.icons ?? {}), ...(catalog.logos ?? {}) };
 const CLIENT_SHAPES = /^mxgraph\.(networks\.(monitor|pc|laptop|mobile|tablet)|ios|android|mockup)/;
 
 /**
  * What a vertex is, from its style alone. The words are those of the facts schema; `icon`
- * and `group` also say which (`aws:lambda`, `aws:vpc`) when the name is in Zukai's catalog.
+ * and `group` also say which (`aws:lambda`, `aws:vpc`, `gcp:cloud_run`, `gcp:region`) when the name is in Zukai's catalog.
  */
 function classify(style, value) {
   const shape = style.shape ?? '';
@@ -106,8 +125,11 @@ function classify(style, value) {
   }
   const aws = /^mxgraph\.aws4\.(.+)$/.exec(style.resIcon ?? '') ?? /^mxgraph\.aws4\.(.+)$/.exec(shape);
   if (aws) return { shape: 'icon', icon: Object.hasOwn(catalog.icons, aws[1]) ? `aws:${aws[1]}` : `drawio:mxgraph.aws4.${aws[1]}` };
-  const gcp = /^mxgraph\.gcp2\.(.+)$/.exec(shape);
-  if (gcp) return { shape: 'icon', icon: Object.hasOwn(catalog.logos ?? {}, gcp[1]) ? `gcp:${gcp[1]}` : `drawio:${shape}` };
+  // A GCP service is its own stencil, or the palette's hexagon shape that names the stencil in `prIcon`.
+  const gcp = shape === 'mxgraph.gcp2.hexIcon' && style.prIcon ? [shape, style.prIcon] : /^mxgraph\.gcp2\.(.+)$/.exec(shape);
+  if (gcp) return { shape: 'icon', icon: Object.hasOwn(GCP_ICONS, gcp[1]) ? `gcp:${gcp[1]}` : `drawio:mxgraph.gcp2.${gcp[1]}` };
+  const gcpGroup = gcpGroupOf(style, value);
+  if (gcpGroup) return { shape: 'group', group: `gcp:${gcpGroup}` };
   if (CLIENT_SHAPES.test(shape)) return { shape: 'client' };
   if (/^mxgraph\.(azure|mscae|gcp|kubernetes|cisco|veeam|citrix|office)/.test(shape) || has('image')) return { shape: 'icon', icon: `drawio:${shape || 'image'}` };
   if (has('swimlane') && style.childLayout === 'stackLayout') return { shape: 'table' };
@@ -196,6 +218,8 @@ function extractPage(id, name, pageXml) {
       continue;
     }
     if (!cell.vertex) continue;
+    // A part of a frame without a text of its own (the Google Cloud mark in a frame's corner) is no element.
+    if (cell.style.part === '1' && parent?.vertex && !textOf(cell) && /^mxgraph\./.test(cell.style.shape ?? '')) continue;
     const kind = classify(cell.style, cell.value);
     if (kind.shape === 'edgeLabel') continue;
     vertices.set(cell.id, { cell, ...kind, label: textOf(cell), box: boxOf(cell) });

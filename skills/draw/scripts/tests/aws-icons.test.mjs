@@ -266,16 +266,16 @@ describe('AWS names in an architecture IR', () => {
     const components = Object.keys(catalog.logos).map((name, i) => ({ id: `c${i}`, label: name, kind: 'external', icon: `gcp:${name}` }));
     expect(validateIr(base(components))).toEqual({ ok: true, errors: [] });
     const r = validateIr(base([{ id: 'a', label: 'A', icon: 'gcp:firebas' }]));
-    expect(r.errors.map((e) => `${e.path} ${e.message}`)).toEqual(['/components/0/icon unknown product logo "gcp:firebas"']);
+    expect(r.errors.map((e) => `${e.path} ${e.message}`)).toEqual(['/components/0/icon unknown GCP icon "gcp:firebas"']);
     expect(r.errors[0].hint).toContain('did you mean gcp:firebase');
-    // A group frame is always one of the AWS library.
+    // A product logo is no group frame.
     expect(validateIr(base([{ id: 'a', label: 'A' }], [{ id: 'b', label: 'B', group: 'gcp:firebase', children: ['a'] }])).ok).toBe(false);
   });
 
   it('rejects another provider or a malformed value with one error that says how to write it', () => {
     for (const icon of ['azure:vm', 'lambda', 'aws:Lambda', 'aws:', 'gcp:Firebase']) {
       const r = validateIr(base([{ id: 'a', label: 'A', icon }]));
-      expect(r.errors, icon).toEqual([{ path: '/components/0/icon', message: expect.any(String), hint: 'write "aws:<name>" with a name listed in references/aws-icons.md' }]);
+      expect(r.errors, icon).toEqual([{ path: '/components/0/icon', message: expect.any(String), hint: 'write "aws:<name>" or "gcp:<name>" with a name listed in references/aws-icons.md or references/gcp-icons.md' }]);
     }
   });
 

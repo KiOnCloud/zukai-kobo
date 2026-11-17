@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Order platform on Google Cloud",
+  "direction": "LR",
+  "components": [
+    { "id": "browser", "label": "Customer browser", "kind": "client" },
+    { "id": "cdn", "label": "Cloud CDN", "icon": "gcp:cloud_cdn" },
+    { "id": "assets", "label": "Static assets (Cloud Storage)", "kind": "database", "icon": "gcp:cloud_storage" },
+    { "id": "lb", "label": "Internal Application Load Balancer", "icon": "gcp:cloud_load_balancing" },
+    { "id": "api", "label": "Order API (GKE)", "icon": "gcp:container_engine" },
+    { "id": "db", "label": "Cloud SQL for PostgreSQL", "kind": "database", "icon": "gcp:cloud_sql" },
+    { "id": "cache", "label": "Memorystore for Redis", "kind": "cache", "icon": "gcp:cloud_memorystore" },
+    { "id": "queue", "label": "Pub/Sub orders", "kind": "queue", "icon": "gcp:cloud_pubsub" },
+    { "id": "worker", "label": "Fulfilment worker", "icon": "gcp:cloud_functions" },
+    { "id": "psp", "label": "Payment provider", "kind": "external" }
+  ],
+  "boundaries": [
+    { "id": "cloud", "label": "Google Cloud", "group": "gcp:google_cloud", "children": ["cdn", "assets", "region"] },
+    { "id": "region", "label": "asia-northeast1", "group": "gcp:region", "children": ["vpc", "queue", "worker"] },
+    { "id": "vpc", "label": "VPC network 10.0.0.0/16", "group": "gcp:vpc_network", "children": ["proxy", "private"] },
+    { "id": "proxy", "label": "Proxy-only subnet", "group": "gcp:subnet", "children": ["lb"] },
+    { "id": "private", "label": "Private subnet", "group": "gcp:subnet", "children": ["api", "db", "cache"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "cdn", "label": "HTTPS" },
+    { "id": "c2", "from": "cdn", "to": "assets", "label": "static files" },
+    { "id": "c3", "from": "cdn", "to": "lb", "label": "/api" },
+    { "id": "c4", "from": "lb", "to": "api", "label": "HTTP" },
+    { "id": "c5", "from": "api", "to": "db", "label": "SQL" },
+    { "id": "c6", "from": "api", "to": "cache", "label": "cache" },
+    { "id": "c7", "from": "api", "to": "queue", "label": "order placed" },
+    { "id": "c8", "from": "queue", "to": "worker", "label": "trigger" },
+    { "id": "c9", "from": "api", "to": "psp", "label": "capture payment" }
+  ]
+}

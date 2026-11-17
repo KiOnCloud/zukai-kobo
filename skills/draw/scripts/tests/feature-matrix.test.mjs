@@ -39,7 +39,7 @@ function expectedFeatures() {
     architecture: [
       ...enumOf(def('architecture').components.items.properties.kind).map((k) => `component.kind.${k}`),
       'boundary', 'boundary.nested', 'connection.label', 'connection.bidirectional', 'component.ref',
-      'component.icon.aws', 'boundary.group.aws',
+      'component.icon.aws', 'boundary.group.aws', 'component.icon.gcp', 'boundary.group.gcp',
     ],
     activity: [
       'lane', 'action.ref',

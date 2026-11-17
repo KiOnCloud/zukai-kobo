@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Scheduled sync on Google Cloud with a partner that calls back",
+  "direction": "LR",
+  "components": [
+    { "id": "rule", "label": "Cloud Scheduler job", "icon": "gcp:scheduled_tasks" },
+    { "id": "fn", "label": "Sync function", "icon": "gcp:cloud_functions" },
+    { "id": "lb", "label": "Application Load Balancer", "icon": "gcp:cloud_load_balancing" },
+    { "id": "api", "label": "API (Cloud Run)", "icon": "gcp:cloud_run" },
+    { "id": "db", "label": "Firestore (6 collections)", "kind": "database", "icon": "gcp:cloud_firestore" },
+    { "id": "partner", "label": "Partner API", "kind": "external", "icon": "gcp:application_system" }
+  ],
+  "boundaries": [
+    { "id": "cloud", "label": "Google Cloud", "group": "gcp:google_cloud", "children": ["region"] },
+    { "id": "region", "label": "Region", "group": "gcp:region", "children": ["rule", "fn", "lb", "api", "db"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "rule", "to": "fn", "label": "invoke" },
+    { "id": "c2", "from": "fn", "to": "lb", "label": "HTTPS" },
+    { "id": "c3", "from": "lb", "to": "api", "label": "HTTP" },
+    { "id": "c4", "from": "api", "to": "db", "label": "read / write" },
+    { "id": "c5", "from": "api", "to": "partner", "label": "HTTPS" },
+    { "id": "c6", "from": "partner", "to": "api", "label": "webhook" }
+  ]
+}

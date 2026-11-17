@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Names that are not in the GCP catalog",
+  "components": [
+    { "id": "roles", "label": "IAM roles", "icon": "gcp:iam" },
+    { "id": "svc", "label": "Service", "icon": "gcp:cloudrun" },
+    { "id": "ok", "label": "Bucket", "icon": "gcp:cloud_storage" }
+  ],
+  "boundaries": [
+    { "id": "net", "label": "Network", "group": "gcp:vpc", "children": ["roles", "svc", "ok"] }
+  ],
+  "connections": []
+}

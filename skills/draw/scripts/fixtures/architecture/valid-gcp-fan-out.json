@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Booking API on GKE",
+  "direction": "LR",
+  "components": [
+    { "id": "browser", "label": "Staff browser", "kind": "client" },
+    { "id": "lb", "label": "Application Load Balancer (HTTPS)", "icon": "gcp:cloud_load_balancing" },
+    { "id": "api", "label": "Booking API (GKE Autopilot, 2 pods)", "icon": "gcp:container_engine" },
+    { "id": "registry", "label": "Artifact Registry (API image)", "icon": "gcp:container_registry" },
+    { "id": "lb_logs", "label": "Cloud Storage load balancer logs", "kind": "database", "icon": "gcp:cloud_storage" },
+    { "id": "keys", "label": "Cloud KMS", "icon": "gcp:key_management_service" },
+    { "id": "tables", "label": "Firestore (9 collections)", "kind": "database", "icon": "gcp:cloud_firestore" },
+    { "id": "files", "label": "Cloud Storage attachments", "kind": "database", "icon": "gcp:cloud_storage" },
+    { "id": "jobs", "label": "Cloud Tasks reminders", "kind": "queue", "icon": "gcp:cloud_tasks" },
+    { "id": "events", "label": "Pub/Sub booking events", "kind": "queue", "icon": "gcp:cloud_pubsub" },
+    { "id": "logs", "label": "Cloud Logging (30 days)", "icon": "gcp:logging" },
+    { "id": "idp", "label": "Identity provider", "kind": "external", "icon": "gcp:application" },
+    { "id": "realtime", "label": "Firebase Realtime Database", "kind": "external", "icon": "gcp:firebase" },
+    { "id": "records", "label": "Hospital records system", "kind": "external", "icon": "gcp:application_system" }
+  ],
+  "boundaries": [
+    { "id": "region", "label": "asia-northeast1 (Tokyo)", "group": "gcp:region", "children": ["registry", "vpc", "lb_logs", "keys", "tables", "files", "jobs", "events", "logs"] },
+    { "id": "vpc", "label": "VPC network", "group": "gcp:vpc_network", "children": ["proxy", "private"] },
+    { "id": "proxy", "label": "Proxy-only subnet", "group": "gcp:subnet", "children": ["lb"] },
+    { "id": "private", "label": "GKE subnet", "group": "gcp:subnet", "children": ["api"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "lb", "label": "HTTPS" },
+    { "id": "c2", "from": "lb", "to": "api", "label": "HTTP :8080" },
+    { "id": "c3", "from": "registry", "to": "api", "label": "pull image" },
+    { "id": "c4", "from": "lb", "to": "lb_logs", "label": "access logs" },
+    { "id": "c5", "from": "api", "to": "keys", "label": "decrypt at start" },
+    { "id": "c6", "from": "api", "to": "tables", "label": "read / write" },
+    { "id": "c7", "from": "api", "to": "files", "label": "store files" },
+    { "id": "c8", "from": "api", "to": "jobs", "label": "reminder due" },
+    { "id": "c9", "from": "api", "to": "events", "label": "publish" },
+    { "id": "c10", "from": "api", "to": "logs", "label": "JSON logs" },
+    { "id": "c11", "from": "api", "to": "idp", "label": "verify token" },
+    { "id": "c12", "from": "api", "to": "realtime", "label": "publish version" },
+    { "id": "c13", "from": "api", "to": "records", "label": "fetch records" }
+  ]
+}

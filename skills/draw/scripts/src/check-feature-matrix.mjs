@@ -1,4 +1,5 @@
 import matrix from './feature-matrix.json' with { type: 'json' };
+import { providerOf, isProductLogo } from './aws-icons.mjs';
 
 export const TARGETS = matrix.targets;
 export { matrix };
@@ -94,9 +95,16 @@ export function enumerateFeatures(ir) {
         if (c.label) use('connection.label', `/connections/${i}`, c.id);
         if (c.bidirectional) use('connection.bidirectional', `/connections/${i}`, c.id);
       });
-      // One entry for the diagram, not one per element: a target without AWS icons loses all of them alike.
-      if (list(ir, 'components').some((c) => c.icon)) use('component.icon.aws', '/components');
-      if (boundaries.some((b) => b.group)) use('boundary.group.aws', '/boundaries');
+      // One entry per provider for the diagram, not one per element: a target without the icons of a
+      // provider loses all of them alike. A product logo counts with the provider of the other
+      // icons; in a diagram with no GCP service icon that is AWS, as it was before GCP had any.
+      const icons = list(ir, 'components').map((c) => c.icon).filter((icon) => typeof icon === 'string');
+      const gcpIcons = icons.some((icon) => providerOf(icon) === 'gcp' && !isProductLogo(icon));
+      if (icons.some((icon) => providerOf(icon) !== 'gcp') || (icons.length > 0 && !gcpIcons)) use('component.icon.aws', '/components');
+      if (gcpIcons) use('component.icon.gcp', '/components');
+      const groups = boundaries.map((b) => b.group).filter((group) => typeof group === 'string');
+      if (groups.some((group) => providerOf(group) !== 'gcp')) use('boundary.group.aws', '/boundaries');
+      if (groups.some((group) => providerOf(group) === 'gcp')) use('boundary.group.gcp', '/boundaries');
       break;
     }
     case 'activity': {
