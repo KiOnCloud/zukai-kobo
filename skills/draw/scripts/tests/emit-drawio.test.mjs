@@ -395,6 +395,63 @@ describe('drawio-xml', () => {
     });
   });
 
+  describe('issue 67: a lane and a composite state are as wide as the widest word of their title', () => {
+    // One word of 422.7 px in the bold face of a title: wider than a 220 px lane and than a composite of two short states.
+    const NAME = 'DynamicCellHostComponentWithAVeryLongGeneratedNameForTheOutlet';
+    // The word, its 4 % of room and the label padding on both sides, at an even width.
+    const need = 2 * Math.ceil((roomFor(textWidth(NAME, { bold: true })) + 2 * LABEL_PAD) / 2);
+    const boxOf = async (ir, id) => {
+      const r = await emit(ir, 'drawio', { diagramId: 'g' });
+      expect(r.ok).toBe(true);
+      expect(r.warnings.filter((w) => w.message.startsWith('layout:'))).toEqual([]);
+      const { cells } = checkDrawioStructure(r.output);
+      return { cell: cells.find((c) => c.id === `g:${id}`), box: cellBounds(cells.find((c) => c.id === `g:${id}`)), cells };
+    };
+    const titled = (ir, list, id, label) => ({ ...ir, [list]: ir[list].map((el) => (el.id === id ? { ...el, label } : el)) });
+
+    it('widens the lane of a top-to-bottom activity diagram and keeps its nodes in the middle', async () => {
+      const ir = loadFixture('activity', 'valid-two-lanes');
+      expect(textWidth(NAME, { bold: true })).toBeGreaterThan(400);
+      const plain = await boxOf(ir, 'customer');
+      expect(plain.box.width).toBe(220);
+      const { box, cells } = await boxOf(titled(ir, 'lanes', 'customer', NAME), 'customer');
+      expect(box.width).toBe(need);
+      // The lane's nodes are children of the lane. Its column of actions stands in the middle of the
+      // room between the lane's gutters, as far from the lane's centre line as in the narrow lane.
+      const offCentre = (lane, lanes) => { const request = cellBounds(lanes.find((c) => c.id === 'g:request')); return request.x + request.width / 2 - lane.width / 2; };
+      expect(offCentre(box, cells)).toBe(offCentre(plain.box, plain.cells));
+      // A title of several words wraps in the header and leaves the lane as it was.
+      expect((await boxOf(titled(ir, 'lanes', 'customer', 'Customer of the returns desk and the after-sales service'), 'customer')).box.width).toBe(220);
+    });
+
+    it('makes the lane of a left-to-right activity diagram as high as its turned title is long', async () => {
+      const ir = loadFixture('activity', 'valid-guard-collision-lr');
+      const plain = await boxOf(ir, 'web');
+      expect(plain.cell.style).toContain('horizontal=0');
+      expect(plain.box.height).toBe(220);
+      const { box } = await boxOf(titled(ir, 'lanes', 'web', NAME), 'web');
+      expect(box.height).toBe(need);
+      // The other lanes keep their height, and the lanes still lie one below the other without a gap.
+      const all = titled(ir, 'lanes', 'web', NAME);
+      const user = (await boxOf(all, 'user')).box;
+      expect(user.height).toBe(220);
+      expect(box.y).toBe(user.y + user.height);
+    });
+
+    it('widens a composite state for its title, whatever the direction, and only for a word that cannot wrap', async () => {
+      const ir = loadFixture('state', 'valid');
+      const plain = (await boxOf(ir, 'processing')).box;
+      expect(plain.width).toBeLessThan(need);
+      for (const direction of ['TB', 'LR']) {
+        const { box } = await boxOf({ ...titled(ir, 'states', 'processing', NAME), direction }, 'processing');
+        expect(box.width, direction).toBeGreaterThanOrEqual(need);
+      }
+      expect((await boxOf(titled(ir, 'states', 'processing', NAME), 'processing')).box.width).toBe(need);
+      // A title of several short words asks for no more than its widest word, which the composite already holds.
+      expect((await boxOf(titled(ir, 'states', 'processing', 'Order is being processed'), 'processing')).box.width).toBe(plain.width);
+    });
+  });
+
   it('measures nodes with the clamp rule', () => {
     expect(measureNode('ab')).toEqual({ width: 120, height: 40 });
     // Twenty words of 30 px a word with its space wrap to three lines at the 260 px cap, so the box grows by two line heights.

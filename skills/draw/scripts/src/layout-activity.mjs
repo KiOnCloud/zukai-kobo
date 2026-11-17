@@ -12,7 +12,8 @@
  * transpose gives each back the width and height it is drawn at.
  */
 
-import { widestLine } from './text-metrics.mjs';
+import { widestLine, roomFor } from './text-metrics.mjs';
+import { widestWord, LABEL_PAD } from './layout-graph.mjs';
 
 /** How far along its flow, in px, a guard still reads as next to its decision. */
 const GUARD_NEAR = 240;
@@ -35,6 +36,9 @@ export const ACTIVITY_METRICS = {
   // Room between a join that was moved below the guard room and the node it leads into.
   joinClear: 12,
 };
+
+/** The least width that holds the widest word of a lane's bold title, with the padding a label keeps on each side; even, so the lane's centre is a whole pixel. */
+const titleRoom = (label) => 2 * Math.ceil((roomFor(widestWord(label ?? '', { bold: true })) + 2 * LABEL_PAD) / 2);
 
 /** Soft draw.io colours per lane index: header fill, body fill, stroke. */
 export const LANE_PALETTE = [
@@ -285,9 +289,12 @@ export function layoutActivity(ir, sizes, m = ACTIVITY_METRICS) {
       }
       laneExtent.set(l.id, Number.isFinite(min) ? { min, max } : { min: 0, max: 0 });
     }
+    // A lane is as wide as its nodes and gutters need, and never narrower than its title: the
+    // title wraps at the lane's width, but a word of it cannot break. In a left-to-right
+    // diagram this width becomes the lane's height, along which the turned title runs.
     const laneWidth = ir.lanes.map((l) => {
       const { min, max } = laneExtent.get(l.id);
-      return Math.max(m.minLaneWidth, max - min + 2 * m.lanePadding + gutterWidth(l.id, 'R') + gutterWidth(l.id, 'L'));
+      return Math.max(m.minLaneWidth, titleRoom(l.label), max - min + 2 * m.lanePadding + gutterWidth(l.id, 'R') + gutterWidth(l.id, 'L'));
     });
 
     const lanes = [];
