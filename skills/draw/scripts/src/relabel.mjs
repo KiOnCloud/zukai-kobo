@@ -1,7 +1,7 @@
 import { inflateRawSync } from 'node:zlib';
 import { htmlLabel } from './drawio-xml.mjs';
 import { widestLine, safeWidth } from './text-metrics.mjs';
-import { wrapText } from './layout-graph.mjs';
+import { wrapText, widestWord } from './layout-graph.mjs';
 
 /**
  * Replace labels in an emitted .drawio file while keeping every id and every geometry, so a
@@ -273,9 +273,6 @@ function joinLabel({ bold, stereotype, main, ref }) {
 }
 
 const wrappedLines = (text, usable) => wrapText(text, usable).lines;
-// The widest unbreakable run: browsers break between CJK characters, so a word with wide
-// characters only counts its longest run of narrow ones (or one wide character).
-const widestWord = (text) => wrapText(text, 1).widest;
 const widest = (text) => Math.ceil(widestLine(text));
 
 /**

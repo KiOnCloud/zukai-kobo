@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emit } from '../src/pipeline.mjs';
 import { layoutSequence, SEQUENCE_METRICS, NOTE_FOLD, NOTE_PAD } from '../src/layout-sequence.mjs';
 import { LABEL_PAD, wrapText } from '../src/layout-graph.mjs';
-import { textWidth } from '../src/text-metrics.mjs';
+import { textWidth, roomFor } from '../src/text-metrics.mjs';
 import { checkDrawioStructure, cellBounds } from './drawio-structure.mjs';
 import { loadFixture, scriptsDir } from './helpers.mjs';
 import { loadPlaywright } from '../src/preview.mjs';
@@ -243,11 +243,55 @@ describe('notes of a sequence diagram in draw.io', () => {
     expect(L.warnings).toEqual([]);
   });
 
+  it('issue 65: is as wide as its widest word needs, and moves the lifelines apart to make the room', () => {
+    // A call without a space up to its first comma: one word of 287.5 px, far wider than the 126 px a note in a plain gap leaves its text.
+    const word = 'ngComponentOutlet(ComponentMap[cell.component],';
+    const label = `${word} inputs: data, config)`;
+    const need = roomFor(textWidth(word)) + NOTE_PAD.left + NOTE_PAD.right;
+    const laid = (note) => {
+      const L = layoutSequence(noteIr(label, note));
+      const centre = (id) => L.participants.get(id).centerX;
+      return { L, note: L.notes.get('n1'), a: centre('a'), b: centre('b'), c: centre('c') };
+    };
+    // Beside its lifeline: 12 px off it, and as far off the next one.
+    const right = laid({ position: 'right' });
+    expect(right.note.width).toBe(need);
+    expect(right.note.x).toBe(right.b + 12);
+    expect(right.note.x + right.note.width).toBeLessThanOrEqual(right.c - 12);
+    const left = laid({ position: 'left' });
+    expect(left.note.width).toBe(need);
+    expect(left.note.x).toBeGreaterThanOrEqual(left.a + 12);
+    expect(left.note.x + left.note.width).toBe(left.b - 12);
+    // Over its lifeline: half on each side, clear of both neighbours.
+    const over = laid({ position: 'over' });
+    expect(over.note.width).toBe(need);
+    expect(over.note.x).toBeGreaterThanOrEqual(over.a + 12);
+    expect(over.note.x + over.note.width).toBeLessThanOrEqual(over.c - 12);
+    // Over two lifelines: they move apart until the note between them is wide enough.
+    const two = laid({ participants: ['a', 'b'] });
+    expect(two.note.width).toBeGreaterThanOrEqual(need);
+    expect(two.note.width).toBe(two.b - two.a + 40);
+    // At the edge of the diagram no neighbour has to move.
+    const edge = laid({ participants: ['c'] });
+    expect(edge.note.width).toBe(need);
+    expect(edge.c - edge.b).toBe(M.participantWidth + M.minGap);
+    for (const { L, note } of [right, left, over, two, edge]) {
+      expect(L.warnings).toEqual([]);
+      // The rest of the call wraps onto a second line.
+      expect(note.height).toBe(M.noteHeight + M.labelHeight);
+    }
+    // A note whose words all fit leaves the lifelines where they were.
+    const plain = layoutSequence(noteIr('Timeout 10 s'));
+    expect(plain.participants.get('c').centerX - plain.participants.get('b').centerX).toBe(M.participantWidth + M.minGap);
+  });
+
   it.skipIf(!pw)('renders each note in Chromium inside the box it was sized for', async () => {
     const fixture = loadFixture('sequence', 'valid-wrapped-notes');
     // Capitals and digits are the widest text a note is likely to hold.
     const wide = noteIr('RETRY POLICY: MAX 3 ATTEMPTS, THEN MOVE THE MESSAGE TO THE DEAD LETTER QUEUE AND RAISE ALERT 4021');
-    const notes = [fixture, wide].flatMap((ir) => {
+    // A word that cannot break: the note is as wide as it needs.
+    const call = noteIr('ngComponentOutlet(ComponentMap[cell.component], inputs: data, config)');
+    const notes = [fixture, wide, call].flatMap((ir) => {
       const L = layoutSequence(ir);
       return ir.notes.map((n) => ({ label: n.label, ...L.notes.get(n.id) }));
     });

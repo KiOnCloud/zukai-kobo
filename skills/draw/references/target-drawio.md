@@ -160,7 +160,10 @@ at 40 characters; `drift` and `relabel` read them as they are.
   lives in one function (`measureNode` in `scripts/src/layout-graph.mjs`). Labels wrap
   inside the shape (`whiteSpace=wrap`), and the height grows by one line height per wrapped
   line at the clamped width, so a long label gets a taller box instead of spilling onto its
-  arrows.
+  arrows. The 260 px is where text that can wrap does wrap, not a limit on the box: a word
+  that cannot break (a call, a qualified name, a URL) makes the box as wide as that word
+  needs. A class or ER table (wraps at 300 px) and a sequence note (220 px, or the gap
+  beside its lifeline) grow the same way; the note moves the lifelines apart for the room.
 - Text width: a line is measured by its glyphs in draw.io's default font, Helvetica at
   12 px (`scripts/src/text-metrics.mjs`): `i` is 2.7 px, `n` 6.7 px, `W` 11.3 px, a CJK or
   full-width character 12.3 px, a letter with diacritics as wide as its base letter, bold
