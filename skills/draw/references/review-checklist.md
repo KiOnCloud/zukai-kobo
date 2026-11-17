@@ -10,11 +10,11 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 1. Every arrow starts and ends at the intended elements and points the right way; branch
    arrows leave a decision at its tip and share one trunk when they head the same way.
 2. No label overlaps another label, a frame, a note or a shape; nothing is cut off or
-   outside the page. No connection runs through a component name or a frame title. An AWS icon shows its picture: an empty coloured or white square means
+   outside the page. No connection runs through a component name or a frame title. An AWS or GCP icon shows its picture: an empty coloured or white square, or an empty place above a name, means
    the viewer lacks that stencil, which is reported, not passed.
 3. Frames, groups and lanes enclose exactly their members; each action sits in the lane of
    the actor that performs it; the reading order (top to bottom or left to right) matches
-   the order in the IR. One exception is intended and is not a finding: in an AWS
+   the order in the IR. One exception is intended and is not a finding: in an AWS or GCP
    architecture diagram a system outside the frames that a component inside them calls
    stands beside the frames, level with its caller, or at the nearer end of the frames when
    it has several callers, and a store stands beside the one component that uses it, so
@@ -35,7 +35,7 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
    business rule with its values may take up to four lines, because splitting the rule into
    several elements would make the simpler view larger than the technical one.
 6. Names are consistent: the same system, actor or entity has the same label everywhere;
-   stereotypes and lane names match the vocabulary of the project. An AWS `icon` is the
+   stereotypes and lane names match the vocabulary of the project. An AWS or GCP `icon` is the
    service its label names, and a `group` is the construct its label names (a subnet is not
    drawn as a VPC).
 7. The title says what the diagram shows; ids and file names are English kebab-case; no
@@ -78,7 +78,8 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
     breach written as plain prose ("writes the sync date of each office") is for the
     reviewer to find, so read the labels as well. A system outside
     AWS in an AWS diagram that has no icon is a `polish` finding: give it a general resource
-    or its product logo (`aws-icons.md`).
+    or its product logo (`aws-icons.md`); in a GCP diagram, a resource figure or its product
+    logo (`gcp-icons.md`).
 
 ## Audience (read `meta.audience`; see `variants.md`)
 

@@ -123,7 +123,7 @@ wider than the box, or exceeds a non-wrapping box, measured by the glyph widths 
 draw.io's 12 px font and wrapped where draw.io wraps; a cell and its canvas
 copy give one warning naming both pages. The fix is a shorter label, or a re-emit from a
 translated IR when the user prefers resized shapes over a preserved layout. A name
-below a figure (an AWS icon, a client) is the one label `relabel` gives more room: the figure
+below a figure (an AWS or GCP icon, a client) is the one label `relabel` gives more room: the figure
 does not hold it, so its wrap width grows until the new name takes no more lines than the old one,
 as far as the frame around the figure and the figures beside it leave room (never across a
 frame line, at most 200 px). A name that is still reported after that is longer than that

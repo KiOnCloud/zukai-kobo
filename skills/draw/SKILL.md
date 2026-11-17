@@ -159,7 +159,7 @@ name or "default".
 | 4 | `state` | The statuses one thing can be in and the events that move it between them | mermaid, drawio |
 | 5 | `er` | Data entities, their key attributes and one-to-many relations | mermaid, drawio |
 | 6 | `class` | Types, interfaces, their members and inheritance or composition | mermaid, drawio |
-| 7 | `architecture` | Deployable components, data stores, queues, external systems and the connections between them; with AWS service icons and VPC or subnet frames in draw.io when the system runs on AWS | mermaid, drawio |
+| 7 | `architecture` | Deployable components, data stores, queues, external systems and the connections between them; with the service icons and the VPC, network or subnet frames of AWS or Google Cloud in draw.io when the system runs there | mermaid, drawio |
 
 Example for a login feature with `AskUserQuestion`, no mode given, user writing
 Vietnamese: question "Bạn có đầu vào nào?", options "Làm rõ yêu cầu (clarify)", "Đọc code
@@ -190,6 +190,21 @@ that file fits keeps its generic shape. `kind` keeps its meaning beside `icon` (
 it is what Mermaid and FigJam draw, with a warning that the icons were lost. Either
 direction works: a frame title steps aside when a connection enters its frame from above.
 Skip the icons when the user asks for a vendor-neutral picture.
+
+GCP icons. A system that runs on Google Cloud is drawn the same way, with the names of
+`references/gcp-icons.md`: `icon` on each component that is a GCP service
+(`"icon": "gcp:cloud_run"`) and `group` on each boundary that is a GCP construct
+(`"group": "gcp:project"`, `gcp:region`, `gcp:vpc_network`, `gcp:subnet`, `gcp:zone`). Every
+rule of the paragraph above holds: copy the value from the file (the names are draw.io's and
+some are older than the product, `gcp:container_engine` for GKE, `gcp:container_builder` for
+Cloud Build), an unknown name fails validation with the nearest names, a system outside
+Google Cloud takes a grey resource figure or a product logo from that file
+(`gcp:application`, `gcp:database`, `gcp:firebase`), `kind` is what the other targets draw.
+A GCP service is a blue hexagon and a GCP frame is a tinted area without an outline, as
+draw.io's GCP library draws them. A system on both clouds uses both files in one diagram:
+each component takes the icon of the cloud it runs on and each cloud its own outer frame
+(`aws:aws_cloud`, `gcp:google_cloud`). There are no icons of other providers: a system on
+Azure or elsewhere keeps the generic shapes, and `icon` takes no other prefix.
 
 Level of detail. An `architecture` diagram shows deployed resources and how they reach each
 other, not what they do: one component per resource (a database with eleven tables is one

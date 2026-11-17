@@ -108,8 +108,8 @@ offers a bespoke architecture layout (`useArchitectureLayoutCode`, see the Figma
 `datastore`, `external`, `async`) instead of the user's boundaries. The CLI does not emit
 that form; if the user asks for it, say that it drops their boundaries and would have to be
 written by hand, which this skill does not do.
-AWS icons and group frames (`icon`, `group`) are not drawn: components keep the shape of
-their `kind`, frames are plain subgraphs, and one warning per field says so.
+AWS and GCP icons and group frames (`icon`, `group`) are not drawn: components keep the shape
+of their `kind`, frames are plain subgraphs, and one warning per field and provider says so.
 
 ## 5. Complete a sequence diagram with the overlay script
 
@@ -182,10 +182,10 @@ leave the machine, and the secret scan gates this emit like the other.
 4. The script makes a section named like the IR `title`, to the right of everything on the
    page, as large as the drawing, and draws every cell of the draw.io file into it as plain
    shapes, vector lines and text. Each cell is one group, named like its label (cut at 40
-   characters; like its id when it has no label; an AWS icon or frame, or a product logo, adds
-   its stencil in brackets, `Order API [aws:lambda]`, so a recook of the board keeps it): a node with its text, bars and pictogram;
+   characters; like its id when it has no label; an AWS or GCP icon or frame, or a product logo, adds
+   its stencil in brackets, `Order API [aws:lambda]`, `Order API [gcp:cloud_run]`, so a recook of the board keeps it): a node with its text, bars and pictogram;
    an edge with its line, its line ends and its labels. A cell that lies in a container of
-   the draw.io file (a frame, a lane, a composite state, an AWS group, a lifeline, a class or
+   the draw.io file (a frame, a lane, a composite state, an AWS or GCP group, a lifeline, a class or
    entity box) lies in the group of the container, so moving the container moves what is in
    it. Each shape, line and text the script creates is named `zukai-native`. Running part 1
    again removes those from that section, wherever they lie, and draws anew where the
@@ -215,7 +215,7 @@ italic part of a label (the `«kind»` line of a participant) is bold or italic 
 The `↳` of a reference line, which Arimo lacks, is set in Inter, the face the draw.io
 preview falls back to for it. The script loads Arimo (and Inter, when a label has a `↳`)
 from the board; if the call fails because a font is missing, relay the error and deliver the
-draw.io file instead. AWS services, group frames, product logos and the client screen are
+draw.io file instead. AWS and GCP services, group frames, product logos and the client screen are
 drawn with the pictograms of draw.io's own stencils, in the colours and the opacity the
 draw.io file gives them. Only the pictograms a diagram shows are in its script: an AWS
 diagram of about ten services is some 31 000 characters, a diagram without icons 10 000 to

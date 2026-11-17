@@ -117,11 +117,11 @@ is the only one; otherwise list it in `meta.omitted`.
 |---|---|
 | `icon` with `aws:` / `gcp:` | a component with that `icon` (copy it; never rename it from memory) and the `kind` its service is (`database` for a database or storage icon, `queue`, `cache`, else `service`) |
 | `icon` with `aws:` / `gcp:` read from a board | the same: a board Zukai drew from version 2.2.0 on names each picture's stencil in its group (`Order API [aws:lambda]`) |
-| `icon` with `drawio:` | a component of the kind its label says (`client` for a browser or an app, else `service`); `drawio:unknown` is a picture on a board whose stencil is not named. When the diagram is an AWS one (the draw skill's "AWS icons" applies) and the label names the service ("SQS orders", "Aurora PostgreSQL"), take its icon from `aws-icons.md` by that name and record `added: icon aws:<name> from the label`; a label that names no service ("Fulfilment worker") keeps no icon, and the report lists it |
+| `icon` with `drawio:` | a component of the kind its label says (`client` for a browser or an app, else `service`); `drawio:unknown` is a picture on a board whose stencil is not named; `drawio:image` on a source that is a GCP diagram is one of draw.io's newer GCP icons, which are pictures without a stencil name. When the diagram is a GCP one (the draw skill's "GCP icons" applies) and the label names the service ("Cloud Run", "Pub/Sub orders"), take its icon from `gcp-icons.md` by that name and record it the same way as for AWS below. When the diagram is an AWS one (the draw skill's "AWS icons" applies) and the label names the service ("SQS orders", "Aurora PostgreSQL"), take its icon from `aws-icons.md` by that name and record `added: icon aws:<name> from the label`; a label that names no service ("Fulfilment worker") keeps no icon, and the report lists it |
 | `store` | `database`; `queue`, `detail: hexagon` → `queue` |
 | `client`, `actor` | `client` |
 | `cloud`, a component outside every boundary that the system calls | `external` |
-| `group` | a boundary with that `group` (`aws:vpc` ...) and its members |
+| `group` | a boundary with that `group` (`aws:vpc`, `gcp:vpc_network` ...) and its members. A GCP frame has no stencil: the extractor names it by the fill colour draw.io's GCP library gives that kind of frame, so check the name against the title (a frame titled "Region" that reads `gcp:zone` was recoloured by hand: take the group the title names from `gcp-icons.md` and record `changed:`) |
 | `container` | a boundary |
 | edge | `connections[]`; arrows at both ends set `bidirectional` |
 

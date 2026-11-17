@@ -28,8 +28,8 @@ node "<draw-dir>/scripts/bin/cli.mjs" extract --figjam-script <file.js> [--secti
 node "<draw-dir>/scripts/bin/cli.mjs" cover <facts.json> <run-folder>
 ```
 
-Shared references: `<draw-dir>/SKILL.md` (opening questions, kinds, targets, AWS icons, level
-of detail), `<draw-dir>/references/ir-reference.md`, `variants.md`, `closing-contract.md`,
+Shared references: `<draw-dir>/SKILL.md` (opening questions, kinds, targets, AWS and GCP icons,
+level of detail), `<draw-dir>/references/ir-reference.md`, `variants.md`, `closing-contract.md`,
 `review-checklist.md`, the `target-*.md` files. This skill's own reference is
 `<recook-dir>/references/mapping.md`: how each shape of the facts becomes an IR element.
 
@@ -130,8 +130,8 @@ describes, with these differences:
 ## 3. Write the IR
 
 Read `<recook-dir>/references/mapping.md` and `<draw-dir>/references/ir-reference.md` for
-each kind you write; for an `architecture` diagram also the draw skill's "AWS icons" and
-"Level of detail" paragraphs. Then write one IR per diagram into `<run>/source/`, from the
+each kind you write; for an `architecture` diagram also the draw skill's "AWS icons",
+"GCP icons" and "Level of detail" paragraphs. Then write one IR per diagram into `<run>/source/`, from the
 facts alone:
 
 - **Content stays.** Every label is copied as the source writes it: no rewording, no

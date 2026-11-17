@@ -112,7 +112,7 @@ when the request hints at them.
 | boundaries | How are they grouped (cloud account, VPC, region, team, on-premise)? | no boundaries |
 | connections | Which component talks to which, over what (HTTPS, SQL, queue, gRPC)? Write each the way the request or message moves (`ir-reference.md`, architecture): producer to queue, queue to consumer. The label is the protocol, the port or the infrastructure purpose, not an endpoint, a job or a field | none; required |
 | direction | Is any connection two-way? | all one-way |
-| AWS icons (optional) | Does it run on AWS, and which AWS service is each component (Lambda, ECS, RDS, SQS)? Which boundaries are an account, region, VPC, Availability Zone or subnet? | asked only when AWS is mentioned or the stack is unknown and the target is drawio; AWS services named in the request get their icon without asking, and each system outside AWS gets a general resource or its product logo (`SKILL.md`, AWS icons) |
+| Cloud icons (optional) | Does it run on AWS or on Google Cloud (or both)? Which service is each component (AWS: Lambda, ECS, RDS, SQS; Google Cloud: Cloud Run, GKE, Cloud SQL, Pub/Sub)? Which boundaries are an account or project, region, VPC or VPC network, Availability Zone or zone, subnet? | asked only when AWS or Google Cloud is mentioned or the stack is unknown and the target is drawio; services named in the request get their icon without asking, and each system outside the cloud gets a general resource, a resource figure or its product logo (`SKILL.md`, AWS icons and GCP icons) |
 | scope (optional) | Current state or target state? | current state; recorded in `meta.notes` |
 
 ### activity

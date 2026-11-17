@@ -244,8 +244,8 @@ Collections: `components` (at least one), `boundaries` (optional), `connections`
 
 | Element | Fields |
 |---|---|
-| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external`; `ref`: diagram id of the sub-diagram that details this component (its IR file name without `.ir.json`), shown as a second label line; `icon` (optional): an AWS service icon or general resource, `aws:<name>`, or a product logo, `gcp:<name>` |
-| boundary | `id`, `label`, `children`: component or boundary ids (a deployment unit, network or team boundary); `group` (optional): an AWS group frame, `aws:<name>` |
+| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external`; `ref`: diagram id of the sub-diagram that details this component (its IR file name without `.ir.json`), shown as a second label line; `icon` (optional): a service icon or resource figure of AWS or GCP, `aws:<name>` or `gcp:<name>` (a product logo is a `gcp:<name>` too) |
+| boundary | `id`, `label`, `children`: component or boundary ids (a deployment unit, network or team boundary); `group` (optional): a group frame of AWS or GCP, `aws:<name>` or `gcp:<name>` |
 | connection | `id`, `from`, `to`, `label` (protocol or purpose), `bidirectional` (default `false`) |
 
 A connection runs the way the request or the data moves, and the layout follows it: `from`
@@ -333,12 +333,14 @@ give it its own diagram of the kind that shows it and link it with `ref`, instea
 loading the architecture diagram with it. That holds for a "detailed architecture diagram"
 too: the architecture diagram stays as it is and the detail becomes its parts.
 
-### AWS icons
+### AWS and GCP icons
 
-`icon` and `group` turn the diagram into an AWS architecture diagram on the draw.io target.
+`icon` and `group` turn the diagram into a cloud architecture diagram on the draw.io target.
 The values are listed in `aws-icons.md` (every service icon and group frame of draw.io's AWS
-library, its general resources, and the product logos); copy them from there. A name that is not listed fails validation, and the error
-names the nearest ones. `kind` keeps its meaning beside `icon`: draw.io draws the icon in
+library, its general resources, and the product logos) and in `gcp-icons.md` (the service
+icons, resource figures and group frames of draw.io's GCP library); copy them from there. A
+name that is not listed fails validation, and the error names the nearest ones of the same
+provider. Both providers follow the same rules and may stand in one diagram. `kind` keeps its meaning beside `icon`: draw.io draws the icon in
 place of the shape of the kind, Mermaid and FigJam draw the shape of the kind and warn once
 that the icons and frames were lost. Components and boundaries without the fields keep their
 generic look in the same diagram.
@@ -348,6 +350,8 @@ not as a note: its product logo when `aws-icons.md` lists one (`gcp:firebase`), 
 general resource of the AWS library, `aws:generic_application` for another party's API or a
 SaaS product and `aws:traditional_server` for a system on its own machines. These are drawn
 dark and without the coloured square of a service, so nobody takes them for an AWS service.
+In a GCP diagram the grey resource figures of `gcp-icons.md` do the same (`gcp:application`,
+`gcp:database`, `gcp:users`), beside the blue hexagons of the services.
 draw.io places such a system where its callers are: beside the frames and level with the
 one component that calls it, or in a row along the frames between the components it talks
 to: when a client outside the frames calls it too, and when it both calls into the frames
@@ -376,6 +380,37 @@ and is called from them.
     { "id": "c3", "from": "api", "to": "db", "label": "SQL" },
     { "id": "c4", "from": "api", "to": "queue", "label": "order placed" },
     { "id": "c5", "from": "api", "to": "psp", "label": "capture payment" }
+  ]
+}
+```
+
+The same system on Google Cloud. A GCP frame is a tinted area, a service a blue hexagon; the
+outermost frame is `gcp:google_cloud` (with the Google Cloud mark) or `gcp:project`, and a
+VPC network is `gcp:vpc_network`:
+
+```json
+{
+  "schemaVersion": 1, "kind": "architecture", "title": "Order platform on Google Cloud", "direction": "LR",
+  "components": [
+    { "id": "browser", "label": "Customer browser", "kind": "client" },
+    { "id": "lb", "label": "Application Load Balancer", "icon": "gcp:cloud_load_balancing" },
+    { "id": "api", "label": "Order API (Cloud Run)", "icon": "gcp:cloud_run" },
+    { "id": "db", "label": "Cloud SQL for PostgreSQL", "kind": "database", "icon": "gcp:cloud_sql" },
+    { "id": "topic", "label": "Pub/Sub orders", "kind": "queue", "icon": "gcp:cloud_pubsub" },
+    { "id": "psp", "label": "Payment provider", "kind": "external", "icon": "gcp:application" }
+  ],
+  "boundaries": [
+    { "id": "project", "label": "Project shop-prod", "group": "gcp:project", "children": ["lb", "region"] },
+    { "id": "region", "label": "asia-northeast1", "group": "gcp:region", "children": ["api", "topic", "vpc"] },
+    { "id": "vpc", "label": "VPC network", "group": "gcp:vpc_network", "children": ["subnet"] },
+    { "id": "subnet", "label": "Private subnet", "group": "gcp:subnet", "children": ["db"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "lb", "label": "HTTPS" },
+    { "id": "c2", "from": "lb", "to": "api", "label": "HTTP" },
+    { "id": "c3", "from": "api", "to": "db", "label": "SQL" },
+    { "id": "c4", "from": "api", "to": "topic", "label": "order placed" },
+    { "id": "c5", "from": "api", "to": "psp", "label": "HTTPS" }
   ]
 }
 ```
