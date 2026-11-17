@@ -370,7 +370,8 @@ Version 2.3.0 adds a fourth skill, an eighth diagram kind, two outputs beside th
 a picture of every change, a fourth source for recook and Google Cloud icons for
 architecture diagrams. Existing `.ir.json` files, run
 folders and CLI commands keep working unchanged, and a diagram emitted again to draw.io or
-Mermaid comes out as 2.2.2 drew it.
+Mermaid comes out as 2.2.2 drew it, with one exception: a sequence diagram with a
+self-message whose label is too wide to stand centred over its loop (see below).
 
 - **`/zukai:sync`** (`$zukai-sync` and `/zukai-sync` in a copied install) brings a run that
   `scout` drew up to date with the code. The IR has a new optional field, `meta.sources`:
@@ -382,12 +383,21 @@ Mermaid comes out as 2.2.2 drew it.
   names sources the record does not hold, 1 when a run has no record. A `scout` run now ends
   by recording its sources; `snapshot` keeps the record with the revision and `restore`
   puts it back.
-- **`export <file.drawio|run-dir> [--out <dir|file.svg>]`** writes each page of a draw.io
+- **`export <file.drawio|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]`** writes each page of a draw.io
   file as `<name>.drawio.svg`, an SVG picture with the page's diagram embedded, so a wiki
   shows it and draw.io still opens it. For a run folder the pictures go to
   `svg/<slug>.drawio.svg`, with `svg/canvas.drawio.svg` for the page that shows the
-  diagrams side by side. The skills take `--svg`. The command needs a renderer (see the
-  optional renderer section above).
+  diagrams side by side. `--page` writes the pictures of the pages named only. The skills
+  take `--svg`. The command needs a renderer (see the optional renderer section above).
+- **`preview` takes `--page <id|name>`** for a draw.io file of several pages (a combined
+  file, the picture of a change); without it the first page is rendered, as before, and a
+  name the file does not have exits 1 with the list of its pages. It also renders an
+  editable picture (`.drawio.svg`) from the diagram it carries. Its output gained `page`
+  and `pages`.
+- **A command refuses an option it does not take** (exit 1, with the options it does
+  take). Up to 2.2.2 such an option was read and dropped: `preview --page`, for one, did
+  nothing and said nothing. A script that passes a stray option to a command now fails
+  there.
 - **`emit --to doc <ir.json>` and `bundle --to doc --lang <en|ja|vi> --out <file.md> <run-dir>`**
   write the description tables: every element of a diagram as Markdown tables, for a
   specification or a design document. A run has them as `<run-slug>.doc.md`; the skills
@@ -398,15 +408,29 @@ Mermaid comes out as 2.2.2 drew it.
   the list: one page per diagram that changed, added elements green, changed or moved ones
   amber, removed ones red with a dashed outline, and a legend. Revise writes it for every
   change of a draw.io run, as `drafts/<a|b|c>/changes.diff.drawio` for each draft of a
-  what-if and as `drafts/changes-<rNNN>.diff.drawio` for an applied change. It is a review
-  aid: the CLI does not write it over another draw.io file, and `drift` refuses to read it.
+  what-if and as `drafts/changes-<rNNN>.diff.drawio` for an applied change; sync writes the
+  same file for an applied sync. It is a review aid: the CLI does not write it over another
+  draw.io file, and `drift` refuses to read it. A diagram that differs in `meta` fields
+  alone gets no page and is listed under `unchanged`.
+- **The list of `diff` says what a field was.** Each entry of `changed` gained `values`:
+  per changed field, `from` and `to` (one of them left out when the field was not set).
+  Every key the list had is still there. A block of a sequence diagram is no longer
+  listed as changed because a message was put into it or taken out of it: the message is
+  listed, and the frames around it are not coloured in the picture.
 - **The kind `usecase`**: actors (a person or an outside system, primary or supporting),
   use cases, system boundaries, and the relations `association`, `include`, `extend` (with
   an optional `condition`) and `generalization`. draw.io draws it as UML does. Mermaid has
   no use case diagram and gets a flowchart form with `degraded` warnings; the FigJam text
   target refuses the kind, and `emit --to figjam --native` draws the board. A use case takes
   `ref`, so the scope `detailed` links it to the part that shows its steps. `validate` and
-  every emit warn about a use case no actor reaches and an actor without a use case.
+  every emit warn about a use case no actor reaches and an actor without a use case. The
+  actors of a side stand in the order of the IR and the use cases are placed from that
+  order too, so one added element does not rearrange the picture.
+- **Two more `model:` warnings** on `validate` and on every emit: an `initial` or `final`
+  state that carries a label (no target draws it: a terminal status is an ordinary state
+  with a transition to an unlabelled `final` state), and a boundary or group without a
+  member (it is drawn as an empty frame). Both are warnings; nothing that validated before
+  is refused.
 - **`/zukai:recook` reads PlantUML**: `.puml`, `.plantuml`, `.pu` and `.iuml` files and
   Markdown with `plantuml` fences. Sequence, class, state, activity (the new syntax),
   component, deployment, use case and ER diagrams are read; any other type (a mind map, a
@@ -419,7 +443,9 @@ Mermaid comes out as 2.2.2 drew it.
   `gcp:vpc_network`, `gcp:subnet`, `gcp:google_cloud`, `gcp:kubernetes_cluster` and
   others), by the same rule as `aws:`. The names are listed in
   `skills/draw/references/gcp-icons.md`; an unknown one fails validation with the nearest
-  names. A system on both clouds shows both in one diagram. draw.io draws the icons and
+  names, or, for a name people write for a service draw.io names otherwise
+  (`gcp:cloud_scheduler`, `gcp:gke`, `gcp:secret_manager`), with the catalog name or the
+  statement that draw.io has no stencil for it (the table at the end of that file). A system on both clouds shows both in one diagram. draw.io draws the icons and
   frames; Mermaid and the FigJam text draw the generic shapes, with one `degraded` warning
   per provider; `emit --to figjam --native` draws the GCP stencils on the board. `scout`
   reads Terraform `google_*` resources, Cloud Run and GKE manifests, `gcloud` deploy
@@ -437,9 +463,28 @@ What changes for a run you already have:
 - A run that was not drawn from code (`clarify`, `brainstorm`, `recook`) has no record and
   needs none: `sources` refuses it and `/zukai:sync` points to `/zukai:revise`. Leave such
   runs out of a CI check.
-- A `drafts/` folder counts as an open consult only when it holds `consult.json`. One that
-  holds only `changes-<rNNN>.diff.drawio` files is the pictures of earlier changes; revise
-  leaves them where they are, and they can be deleted at any time.
+- A `drafts/` folder counts as an open consult only when it holds `consult.json`, for
+  revise and for sync alike. One that holds only `changes-<rNNN>.diff.drawio` files is the
+  pictures of earlier changes: the skills leave them where they are when a consult is
+  confirmed or dropped, remove the picture of a change that an undo took back, and you can
+  delete them at any time. The rules are in one place, the section "The drafts folder" of
+  the closing contract.
+- A sequence diagram with a self-message whose label is too wide to stand centred over its
+  loop is drawn differently: the label starts right of the activation bar instead of
+  running under it, and the frames around the message and the gap to the next lifeline are
+  as wide as the label needs. `drift` reports a file of such a diagram delivered by an
+  older version as moved; emit it again when you want the new drawing. The description
+  tables of an architecture diagram list queues under a heading of their own and call a
+  bucket storage; they are written again on the next change.
+- An architecture diagram whose connections form a circle (a topic that pushes back to the
+  service that publishes to it) is laid out with the connection that closes the circle,
+  the later one in `connections`, drawn against the flow. A diagram without such a circle
+  is drawn as before.
+- Revise and sync rebuild every target a run folder holds (draw.io, Mermaid, the FigJam
+  files, the pictures, the description tables), not only the one the request named.
+- The translated IRs of a language variant live in `source/<lang>/<slug>.ir.json`. A run
+  that keeps them as `source/<slug>.<lang>.ir.json` beside the originals has them counted
+  as further diagrams by every command that takes the run folder: move them.
 - A run that has an `svg/` folder gets its pictures written again on every change by
   revise, asked for or not, so a picture in a wiki never shows the diagram as it was. The
   description tables of a run are written again the same way, in the language their first
@@ -448,7 +493,9 @@ What changes for a run you already have:
   has a new step 5, the pictures. The report moved from step 5 to step 6 and the offer of
   other targets from step 6 to step 7, and the file gained the sections "Sources of a
   scouted run" and "Description tables". The review checklist gained an item for the use case
-  kind (item 12) and a section "Revision" for the picture of a change. A fork that refers to those steps by number has to follow.
+  kind (item 12) and a section "Revision" for the picture of a change (items 17 to 19). The
+  closing contract also gained the sections "Agents that may not be there" and "The drafts
+  folder", which the other texts refer to instead of repeating the rule. A fork that refers to those steps by number has to follow.
 - The copied install has a fourth folder, `zukai-sync`, with the marker
   `.zukai-sync-version`; run the installer again to get it. A fork that installs the skills
   by hand has to copy `skills/sync/` beside the others, next to both `zukai/` and

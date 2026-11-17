@@ -37,11 +37,16 @@ brainstorm (idea) ─> clarify ┘                                              
   write themselves is in `doc-strings.mjs`, once per language (`en`, `ja`, `vi`); labels are
   never translated. The first line of a document records its language, so a later change
   writes it again the same way, and in a bundle an element with `ref` links to the section
-  of its part.
+  of its part. Tables with translated labels are written from translated IRs, which live in
+  `source/<lang>/`: the commands that take a run folder read `source/` and nothing below
+  it, so those IRs are no further diagrams of the run and the sources record never sees
+  them.
 - **The model check** (`check-model.mjs`) reports what a valid IR can still get wrong, on
   `validate` and on every emit: a decision with fewer than two ways out, a step connected to
   nothing, a repeated edge, a state diagram without an initial state or with a state it never
-  reaches, a reply before its call, an entity with a foreign key and no relation, a use case
+  reaches, an initial or final state with a label (those are markers, and no target draws a
+  name on them: the warning names the state and says how to keep the name), a boundary or
+  group without a member, a reply before its call, an entity with a foreign key and no relation, a use case
   that no actor reaches (directly or through include, extend or generalization), an actor
   without a use case, and (as `size:`) more than 40 elements in one diagram. They are warnings: each has an honest
   exception, which the author records in `meta.omitted`.
@@ -65,7 +70,9 @@ brainstorm (idea) ─> clarify ┘                                              
 - **Emitters** are deterministic functions from IR to text: `emit-mermaid.mjs` (safe ids,
   entity-encoded labels, own-line id comments) and `emit-drawio.mjs` (uncompressed mxGraph
   XML; ELK layout through `layout-graph.mjs` for graph-shaped kinds, the fixed grid in
-  `layout-sequence.mjs` for sequence diagrams). FigJam reuses the Mermaid emitter with a
+  `layout-sequence.mjs` for sequence diagrams, where the label of a self-message that is
+  too wide to stand centred over its loop starts beside the activation bar, and the gap to
+  the next lifeline and the frames around the message are sized for it). FigJam reuses the Mermaid emitter with a
   stricter profile and the agent makes the MCP call. What Figma's `generate_diagram` leaves
   out of a sequence diagram (block frames, notes, self-messages, participant kinds,
   activation bars) is drawn afterwards by a
@@ -93,8 +100,9 @@ brainstorm (idea) ─> clarify ┘                                              
   `export`, plus `diff` (with `--drawio` for the picture of a change), `drift`, `snapshot`,
   `revisions` and `restore` for the revise skill, `extract` and `cover` for the recook
   skill, `sources` and `stale` for the sync skill, and `help`; it exits 2 on validation errors
-  and 1 on a usage error (an unknown target, an option without its value) with the errors as
-  JSON on stderr, and is invoked with the absolute skill directory because the working
+  and 1 on a usage error (an unknown target, an option without its value, an option the
+  command does not take: `COMMAND_OPTIONS` lists them per command, so none is read and
+  dropped) with the errors as JSON on stderr, and is invoked with the absolute skill directory because the working
   directory is always the user's project. A run folder given to `bundle`, `diff` or `drift`
   stands for the IRs of its `source/` in run order (`run-order.mjs`): the diagram named
   after the run, its business view, then each part with its business view. A file-name sort
@@ -108,7 +116,10 @@ brainstorm (idea) ─> clarify ┘                                              
 A tiled preview has the white beside the drawing cut off each tile, across the direction
 the tiles follow each other in, so a canvas of diagrams of different heights does not come
 back as mostly empty images. `cli.mjs preview` renders a `.drawio` or `.mmd` file, or every block of the combined `.md` of
-a Mermaid run, to a PNG in the system temp directory (one path per input file, made from its
+a Mermaid run, to a PNG. A draw.io file of several pages shows its first page, or the one
+`--page <id|name>` names (cut out as a file of its own by the code `export` uses for its
+pages, so both mean the same page by the same name); an editable picture (`.drawio.svg`) is
+rendered from the diagram in its `content` attribute. The image goes into the system temp directory (one path per input file and per page asked for, made from its
 name, type and a hash of its full path, so two files or two projects never share one) so
 the agent can look at the result and fix layout problems from the IR (label length, element
 order, direction, note placement). The image is the agent's working copy, not a deliverable. It is the one command that may touch the network, and only to fetch the renderer
@@ -127,7 +138,7 @@ lines and adding label spacing so draw.io wraps inside the diamond (see the draw
 reference).
 
 `cli.mjs export` (`export-svg.mjs`) is the same rendering kept as a deliverable: each page of
-a draw.io file becomes `<name>.drawio.svg`, a picture that GitHub, a browser or a wiki shows
+a draw.io file, or each page `--page` names, becomes `<name>.drawio.svg`, a picture that GitHub, a browser or a wiki shows
 and that draw.io opens for editing. A run folder stands for its combined file, since only
 there a step with `ref` shows the title of its part, and its pictures go to `svg/`. The
 page is drawn by one of the two renderers of `preview`, draw.io desktop first, and what
@@ -288,7 +299,11 @@ stands off the middle of them and off the middle of the finished picture (the sy
 beside the frames and in the row included, since they move its middle), and above a
 threshold the whole layout is repeated with the containers on the page's own node placement
 (`balanceContainers` in `layoutGraph`; ELK does not hand the strategy down to a container),
-without the model order, and with both. The one that brings the hubs nearest the middle is
+without the model order, and with both. A connection that closes a circle is laid out
+against the flow before any of this (`closingEdges` in `layout-graph.mjs`): in the order of
+the connections, the one whose target already leads to its source. Left to the engine, a
+circle was broken at an edge of its choosing, which could turn the main flow against the
+direction of the diagram and send a system outside the frames to the caller's side. The one that brings the hubs nearest the middle is
 kept when it is clearly better. `placeLineLabels` writes each connection label beside a free stretch of its own line, so
 the layout engine reserves no layer for labels; a label with no free place is handed back
 to the engine and the layout runs again. After the layout, the title of each cloud group frame is placed on a
@@ -317,7 +332,10 @@ placement code above (`attachStores`, `placeBeside`, `placeRow`, the frame title
 shared, which is why both clouds can stand in one diagram, each in its own outer frame.
 The validator looks every `aws:<name>` and `gcp:<name>` up in the catalog and answers an
 unknown one with the nearest names of that provider and the page that lists them, because
-draw.io draws an unknown stencil as an empty box without an error. Mermaid and the FigJam
+draw.io draws an unknown stencil as an empty box without an error. A name people write
+for a service that draw.io names otherwise, or has no stencil for, is answered from a small
+table kept by hand (`src/cloud-aliases.json`, printed at the end of each reference page)
+before the nearest names are, since a near name can be valid and wrong. Mermaid and the FigJam
 text have no such icons: the matrix marks them `degraded`, and the warning comes once per
 provider, not once per element. To follow a newer draw.io release, download the files for
 its tag, run the generator and review the diff.
@@ -325,7 +343,15 @@ its tag, run the generator and review the diff.
 A use case diagram (`emitUsecase`) reads from the actors to the system and on to what the
 system calls, left to right unless the IR gives another direction. The primary actors are
 pinned to the first layer and the supporting actors and outside systems to the last one
-(ELK's layer constraints), with the boundaries and their use cases between them. The
+(ELK's layer constraints), with the boundaries and their use cases between them. Within a
+layer the nodes are ordered from the model (`forceNodeModelOrder`: the actors of a side
+stand as `actors` lists them, the use cases as the engine derives their order from the
+model and its edges), as the other kinds follow model order: left to the crossing minimisation, one added association turned a
+whole column of actors round, and the picture of a change could not be compared with the
+diagram before it. The price is that a crossing the engine would have avoided is now the
+author's to avoid, by the order of the IR. A use case with more line ends on one side than
+its outline has room for (15 px each) is drawn taller and the layout runs again
+(`growCrowdedUseCases`), so two ends never lie on each other. The
 layers follow the reading order, not the direction of the arrows: an included use case
 follows its base, an extending one follows the use case it extends and a special use case
 follows the general one (those two are handed to the engine reversed), which leaves the
@@ -398,7 +424,10 @@ choices.
   bound; it holds a few files per hand-edited redraw).
 - **Drafts never touch `source/`.** A what-if is built as complete copies of the run under
   `drafts/<a|b|c>/` and compared with `diff` (`ir-diff.mjs`: elements added, removed, changed
-  and reordered per top-level collection, plus hints for a `ref` part or a business view that did
+  and reordered per top-level collection, each changed element with the old and the new
+  value of every field under `values`. A block of a sequence diagram lists every message it
+  spans, those of the blocks inside it included, so its lists are compared without the
+  messages that came or went: the message is the change, not every frame around it, plus hints for a `ref` part or a business view that did
   not follow, for references left on a removed element, and for an added diagram that no
   element links to or that is a second architecture diagram of the run). The run is written
   only after the user confirms one draft, so dropping all drafts needs no undo.
@@ -423,7 +452,11 @@ choices.
   output of a run. Revise writes the picture under `drafts/`
   (`drafts/<x>/changes.diff.drawio` for a draft, `drafts/changes-<rNNN>.diff.drawio` for an
   applied change), which is why a `drafts/` folder counts as an open consult only when it
-  holds `consult.json`.
+  holds `consult.json`. The closing contract holds that rule once, for revise and sync:
+  confirming or dropping a consult deletes its own draft folders and `consult.json` only,
+  the pictures of applied changes stay until the user deletes them, an undo removes the
+  picture of the change it took back, and a sync writes the picture of its change as
+  revise does. A diagram that differs in `meta` alone gets no page.
 - **A new diagram is drawn by the draw skill's rules.** A request to add a diagram to a run
   has its own route: revise reads `skills/draw/SKILL.md` and runs its opening call, mode
   protocol and IR rules before it writes anything, then places the diagram as a `ref` part,
@@ -462,7 +495,10 @@ of its own; it adds two commands to the draw skill's.
   `autonumber`, which says that message numbers are not content. A statement the reader
   cannot read is a warning that names its line, and the preprocessor is not run: an
   `!include` is reported as not followed, since what another file declares cannot be
-  claimed as read. All four write the same
+  claimed as read. A note on the line of an «extend», or beside the use case that extends,
+  is offered as the `condition` of that edge, since PlantUML has no other place for it. The
+  pages of a Markdown file come in the order of the file, and pages one heading would name
+  alike are numbered. All four write the same
   facts, with kind hints scored from the shapes so the skill can suggest a kind with its
   evidence; the model maps facts to IR by `skills/recook/references/mapping.md`.
 - **Coverage instead of trust.** `cover.mjs` lists every text of the facts that is in no
