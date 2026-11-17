@@ -38,7 +38,7 @@ of detail), `<draw-dir>/references/ir-reference.md`, `variants.md`, `closing-con
 Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them from the request.
 
 ```text
-<source> [--to drawio|mermaid|figjam] [--kind <kind>] [--scope overview|detailed] [--audience technical|business|both] [<request>]
+<source> [--to drawio|mermaid|figjam] [--kind <kind>] [--scope overview|detailed] [--audience technical|business|both] [--doc] [<request>]
 ```
 
 - `<source>` is a file path (`.drawio`, `.xml`, `.drawio.svg`, `.drawio.png`, `.mmd`, `.md`)
@@ -52,6 +52,8 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
   picture by eye into an IR here.
 - The flags mean what they mean in the draw skill and are checked the same way: a value it
   does not have fixes nothing and is asked.
+- `--doc` adds the description tables of the rebuilt run (`<run-slug>.doc.md`), as in the
+  draw skill; the closing contract writes them.
 - `--to` defaults to the source's own tool: `drawio` for a draw.io file, `mermaid` for
   Mermaid text, `figjam` for a board. The report offers the other targets.
 

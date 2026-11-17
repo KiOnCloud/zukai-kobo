@@ -21,6 +21,7 @@ name, you are in another runtime: use the path where you read this file (for Cod
 ```bash
 node "<skill-dir>/scripts/bin/cli.mjs" validate <ir.json>
 node "<skill-dir>/scripts/bin/cli.mjs" emit --to <mermaid|drawio|figjam> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>]
+node "<skill-dir>/scripts/bin/cli.mjs" bundle --to doc --lang <en|ja|vi> --out <file.md> <run-folder>
 ```
 
 Node 22.13 or newer is required; the CLI has no other dependency. One command reaches the
@@ -62,6 +63,13 @@ The invocation arguments select the mode and target. Claude Code appends them as
   ("for the PM", "for the client", "for developers"), and in that case the report says which
   audience was used and why. `references/variants.md` says what a business view removes and
   keeps, and how to produce a language variant (`relabel` for draw.io) of an existing run.
+- `--doc` adds the description tables to the run: `<run-slug>.doc.md`, every element of
+  every diagram as Markdown tables for a specification or a design document. A request that
+  asks for a description, a specification table or text for a design document means the
+  same without the flag. The tables come with the diagram, not instead of it, and the
+  closing contract says how they are written (its section "Description tables"). The flag
+  takes no value: the language of the headings follows the user's (English, Japanese or
+  Vietnamese, else English).
 - No mode given: ask "Which input do you have: requirements to clarify, code to scout, or a
   raw idea to brainstorm?" as one more part of the opening call described in the next
   section (mode, kind, scope and view, at most four questions in one `AskUserQuestion`
@@ -230,10 +238,14 @@ The feature matrix (`docs/feature-matrix.md` in the repository, data in
 `unsupported` (the emit fails for that target). Never approximate silently: print every
 warning the CLI returns to the user, verbatim.
 
+The description tables (`--doc`, `bundle --to doc`) are no fourth target and have no column
+in the matrix: they list every element of the IR in words, so nothing is degraded or
+refused. They are written beside the files of the target the user chose.
+
 ## Closing contract (every mode ends here, with no shortcut)
 
 Read `references/closing-contract.md` and run it in full before reporting anything: write
 every IR into the run folder, validate, emit, bundle, review until it passes, then report.
-It also holds the rules that hold in every mode (no hand-written diagram syntax, no secrets
+It also says when and how the description tables of a run are written, and it holds the rules that hold in every mode (no hand-written diagram syntax, no secrets
 in labels, stable ids, labels in the user's language). The revise skill ends with the same
 file, so it is the only copy.

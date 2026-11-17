@@ -17,6 +17,7 @@ where the date is today and `<run-slug>` is a short English kebab-case name of t
 | `figjam/<slug>.mmd` | the text sent to FigJam, kept so it can be previewed and reviewed before the board is made (target `figjam`) |
 | `figjam/<slug>.overlay.js` | for a sequence diagram: the script that draws on the board what `generate_diagram` leaves out (target `figjam`, `target-figjam.md` section 5) |
 | `<run-slug>.<lang>.drawio`, `source/labels.<lang>.json` | a language variant of the combined file and its label map (`variants.md`) |
+| `<run-slug>.doc.md` | the description tables of the whole run as one Markdown document, one section per diagram; only when the user asked for them (section "Description tables" below) |
 | `source/<run-slug>.facts.json` | a recooked run only: what `extract` read from the source, with credentials and personal data replaced by placeholders (the source itself is never copied here) |
 | `source/<run-slug>.sources.json` | a scouted run only: a hash of every file in the `meta.sources` of its diagrams, written by `sources` and read by `stale` and the sync skill |
 | `history/` | revisions written by the revise skill; only the CLI writes here |
@@ -45,7 +46,8 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    list files one by one only to bundle a subset, in the order you want. For draw.io with
    more than one diagram add `--canvas all`, so the file opens on a page that shows every
    diagram side by side before the one-per-page copies. For `figjam` follow the target
-   reference; it has no bundle.
+   reference; it has no bundle. A run with description tables gets them written here too,
+   after the combined file (section "Description tables").
 4. Review gate. Run `node "<skill-dir>/scripts/bin/cli.mjs" preview <file> --max-px 1600`
    on each individual output file and on the combined file, which is what the user opens
    first: `<run-slug>.drawio` renders its first page (the canvas, or the main diagram), and
@@ -88,7 +90,8 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    open questions, spec doubts, bug suspicions or suggestions about the business logic.
    A scouted run records its sources before this report, as "Sources of a scouted run"
    below says, and the report has one line about the record.
-6. Offer the other targets in one line. Do not emit them unless asked.
+6. Offer the other targets in one line, and in the same line the description tables when
+   the run has none. Do not emit them unless asked.
 
 Rules that hold in every mode:
 
@@ -169,6 +172,48 @@ holds `.git`, else the working directory; pass `--root <project>` when the paths
   `stale <run-folder>` (or the sync skill) tells when the code has moved on. The run folder
   is committed with the record in it.
 
+## Description tables
+
+A run can carry its diagrams as text beside the picture: `<run-slug>.doc.md`, Markdown
+tables that list every element of every diagram, for a specification or a design document.
+A sequence diagram becomes its numbered steps (from, to, message, kind, the condition of the
+block it stands in), a state diagram a list of states and a state by event table, an ER
+diagram one table of attributes per entity and the relations, an activity diagram the steps
+with their lane, their hand-offs and guards, a flowchart the steps and each decision with
+its outcomes, a class diagram the members of each type and the relations, an architecture
+diagram the components, the data stores, the boundaries and the connections.
+
+Write them when the user asks for a description, a specification table or text for a design
+document ("a table of the steps", "bảng mô tả", "設計書に貼る表"), or passed `--doc`. Without
+that, step 6 offers them and nothing is written. They are no target: a run has them beside
+its draw.io or Mermaid files, never in their place.
+
+```bash
+node "<skill-dir>/scripts/bin/cli.mjs" bundle --to doc --lang <en|ja|vi> --out <run-folder>/<run-slug>.doc.md --title "<feature>" <run-folder>
+```
+
+- Run it in step 3, after the combined file, and again whenever step 4 changed an IR, so the
+  tables always say what the delivered diagrams show. Give the run folder, as for every
+  bundle.
+- `--lang` is the language of the headings, the column headers and the fixed words (a
+  message kind, "Yes"): the user's language when it is English, Japanese or Vietnamese,
+  `en` otherwise. Labels are never translated: they are the labels of the IR. A second
+  language the user asks for is a second file, `<run-slug>.doc.<lang>.md`.
+- An element with `ref` links to the section of its part, so the document is read like the
+  combined file: the main diagram first, each part below it. `emit --to doc <ir.json> --out
+  <file>` writes the tables of one diagram alone when the user wants only that one; there a
+  `ref` shows the id of the part.
+- The file is generated. Never edit it by hand and never write such a table yourself: a
+  change goes into the IR and the file is written again. Its first line records the
+  language it was written in.
+- The secret scan runs as for every local file: a credential by its form stops the command
+  with exit code 2, a guess is a warning. The feature matrix is not asked, since a table
+  leaves nothing out; the `model:` and `detail:` warnings are the ones the emit already
+  printed and are not shown twice.
+- The tables are not previewed and not reviewed on their own: they hold what the reviewed
+  IRs hold. Step 5 names the file and says in one line what it is for; do not print its
+  content in the report.
+
 ## When revise calls this contract
 
 The revise skill runs this contract after it changed the IRs of a delivered run. It reuses
@@ -183,6 +228,11 @@ the run folder and its run slug, never a new folder, and changes these steps:
   Without recorded options, use the run's feature name as the title and, for more than one
   diagram, `--canvas all`. Delete `drawio/<slug>.drawio` or `mermaid/<slug>.mmd` of a
   diagram the change removed.
+- Step 3 also writes the description tables again when the run has them: every
+  `<run-slug>.doc.md` and `<run-slug>.doc.<lang>.md` in the run folder, each with the
+  `--lang` its first line records (`<!-- zukai doc, lang=ja: ...`) and the title of its
+  first heading as `--title`. A run without them gets none, unless the request or `--doc`
+  asks for them.
 - Files that revise relabelled in place to keep hand edits are never emitted or bundled
   again, in step 3 or in the review loop. Review findings on them that are label wording are
   applied with `relabel` (the IR gets the same wording); any other finding is listed in the
