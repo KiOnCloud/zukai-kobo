@@ -219,12 +219,13 @@ about the diagram itself from the draw skill, which it never copies.
    hands over to the closing contract, as if the request had been given to the draw skill:
    its opening call (mode, kind, scope, view; a question is skipped only where that file
    allows it), the protocol of the mode, `ir-reference.md` for the kind, and for an
-   `architecture` diagram its "AWS icons" and "Level of detail" paragraphs. The delivered
+   `architecture` diagram its "AWS icons" and "Level of detail" paragraphs, for a `usecase`
+   diagram its "Use cases are goals, not steps" paragraph. The delivered
    run answers none of these questions in the user's place, except the target, which is the
    run's.
 2. Place the diagram in the run before writing it, and say in one line which of these it is:
-   - a part: it details one step, message, state, component, class or entity of a delivered
-     diagram. Its slug is `<main-slug>-NN-<part>`, its title names the element, and that
+   - a part: it details one step, message, state, component, class, entity or use case of
+     a delivered diagram. Its slug is `<main-slug>-NN-<part>`, its title names the element, and that
      element gets `ref`. Detail asked of an `architecture` diagram is always a part of the
      kind that shows it (the order of calls as `sequence` or `activity`, the tables as
      `er`), because the architecture diagram itself stays at the level of deployed

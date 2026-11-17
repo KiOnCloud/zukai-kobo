@@ -45,7 +45,7 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 
 8. One main diagram covers the whole feature at the chosen scope; parts exist only under
    `detailed` and are referenced with `ref` on the element they detail (a step, a message,
-   a state, a component, a class or an entity), never by an id written into a label;
+   a state, a component, a class, an entity or a use case), never by an id written into a label;
    no second diagram repeats the kind and subject of another one at a different level of
    detail; nothing in the request is missing and nothing outside it was added. A recooked
    run (`meta.source: "recook"`) also keeps each page of its source as a diagram of its own
@@ -80,12 +80,31 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
     AWS in an AWS diagram that has no icon is a `polish` finding: give it a general resource
     or its product logo (`aws-icons.md`).
 
+12. A `usecase` diagram shows who uses the system and for what (`ir-reference.md`, usecase,
+    Level of detail). Each of these is a `wrong` finding: a use case that names a step, a
+    screen, a button or a function instead of a goal of an actor ("Click Confirm", "Loan
+    page", "validateLoan"); a chain of use cases joined by `include` that reads as the
+    order of the steps of one goal; an actor inside a boundary, or the system itself drawn
+    as an actor of its own use cases; an `include` or `extend` whose arrow points the wrong
+    way (the arrow of an include ends at the included use case, the arrow of an extend at
+    the use case that is extended); an `extend` without a condition where the request or
+    the code states one; an actor named after a person instead of a role. The fix is one
+    use case per goal, with its steps in a part linked with `ref` (scope `detailed`) or in
+    `meta.notes`. In a recooked diagram (`meta.source: "recook"`) a use case keeps the
+    wording of its source: one that reads as a step or a screen is a `polish` finding
+    there, with the offer of a `revise`. On the image: every primary actor stands before the boundary and every
+    supporting actor or outside system after it, each line ends on the outline of its
+    ellipse, no line runs through an ellipse it does not end on, and no «include» or
+    «extend» label lies on a line. `polish`: more than about twelve use cases in one
+    boundary (split by subsystem, one boundary each), an actor whose only association
+    another actor already has (a generalization may say it better).
+
 ## Audience (read `meta.audience`; see `variants.md`)
 
-12. `business`: no class, method, table, column, queue, endpoint or configuration name
+13. `business`: no class, method, table, column, queue, endpoint or configuration name
     remains; no implementation-only step (queueing, logging, caching, sanitising, retries)
     remains; no label hides a rule behind a word such as "safe" or "valid".
-13. `business`: every business rule of the technical diagram is still present with its
+14. `business`: every business rule of the technical diagram is still present with its
     value. A business rule is a condition whose value the reader would check: a time
     window, a lookback period, a threshold, a limit, a cut-off, a role that may act, and
     the outcomes the reader can observe (an approval, a rejection, a notification, a wait).
@@ -93,10 +112,10 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
     a retry, a validation of the request shape; these may be dropped or merged without a
     finding. When the technical IR is given, compare the two and list each dropped business
     rule as a `missing-rule` finding.
-14. `technical` (or unset): names match the code or the specification exactly; nothing was
+15. `technical` (or unset): names match the code or the specification exactly; nothing was
     reworded for a non-technical reader.
-15. Anything listed in `meta.omitted` was left out on purpose: never ask for it back, in any
-    audience. The author's or the user's decision to omit wins over items 8, 9 and 13; the
+16. Anything listed in `meta.omitted` was left out on purpose: never ask for it back, in any
+    audience. The author's or the user's decision to omit wins over items 8, 9 and 14; the
     closing report lists the omissions so the reader knows what the picture does not cover.
 
 ## Verdict format

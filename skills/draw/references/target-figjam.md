@@ -11,9 +11,10 @@ diagram that has any of these (nearly every one) the CLI also writes an overlay 
 which the agent runs on the board with the Figma tool `use_figma` (section 5). Flowchart,
 state, ER and architecture boards are complete after `generate_diagram`.
 
-`generate_diagram` also lays the diagram out itself and rejects class and activity diagrams.
-When the user wants the board to look like the draw.io file, or the diagram is a class or
-activity diagram, skip sections 2, 4 and 5 and draw the board with `use_figma` from the
+`generate_diagram` also lays the diagram out itself and rejects class and activity diagrams;
+it has no use case diagram, and the CLI writes no text for one.
+When the user wants the board to look like the draw.io file, or the diagram is a class,
+activity or use case diagram, skip sections 2, 4 and 5 and draw the board with `use_figma` from the
 draw.io layout instead (section 7).
 
 ## 1. Check availability
@@ -39,10 +40,11 @@ node "<skill-dir>/scripts/bin/cli.mjs" emit --to figjam <run-folder>/source/<slu
   so replace the value in the IR with a placeholder. Only if the user confirms it is not a
   secret, run again with `--allow-sensitive`. The scan reads `meta` too, so a secret in a
   note stops the emit although notes are not sent: fix it there as well.
-- Exit 2 with `kind "class" is unsupported on target "figjam"` (or `"activity"`):
-  `generate_diagram` cannot draw this kind. Draw the board as section 7 says when `use_figma`
+- Exit 2 with `kind "class" is unsupported on target "figjam"` (or `"activity"`, or
+  `"usecase"`): `generate_diagram` cannot draw this kind. Draw the board as section 7 says when `use_figma`
   is available; otherwise offer `--to mermaid` or `--to drawio`. Do not try to disguise a
-  class diagram as a flowchart.
+  class diagram as a flowchart, and do not send the flowchart that `--to mermaid` writes for
+  a use case diagram: it was not checked on a board.
 
 The `figjam` profile differs from plain Mermaid: no front matter (the title goes in the tool
 call), labels lose quotes, brackets and line breaks (a comparison keeps
@@ -155,23 +157,23 @@ use Insert (or the `/` quick-insert) > Mermaid (or the "Diagram from code" optio
 text, and insert. List the warnings of that same emit, so they know what the pasted version
 lacks. For a sequence diagram with notes or self-messages also say that each of those rows
 comes out empty in the pasted board, with a stray arrow beside the diagram that can be
-deleted (how FigJam's own paste dialog treats them was not verified). When `emit --to figjam` itself refuses (a class or activity diagram, or a finding of
+deleted (how FigJam's own paste dialog treats them was not verified). When `emit --to figjam` itself refuses (a class, activity or use case diagram, or a finding of
 the secret scan), there is nothing to paste: say why, and offer `--to drawio` or
 `--to mermaid` as a file of its own.
 
 ## 7. Draw the board at the draw.io coordinates
 
 Use this instead of sections 2, 4 and 5 when the user wants the layout of the draw.io file on
-the board (same positions, same routes, the shapes of draw.io), and always for a class or an
-activity diagram, which `generate_diagram` rejects. It needs a Figma tool named `use_figma`
-in the session; `generate_diagram` is not called. Sections 1 and 3 still apply: the labels
+the board (same positions, same routes, the shapes of draw.io), and always for a class, an
+activity or a use case diagram, which `generate_diagram` does not draw. It needs a Figma
+tool named `use_figma` in the session; `generate_diagram` is not called. Sections 1 and 3 still apply: the labels
 leave the machine, and the secret scan gates this emit like the other.
 
 1. Emit the script: `node "<skill-dir>/scripts/bin/cli.mjs" emit --to figjam <ir.json> --native <file.js>`.
    The stdout JSON lists the files under `native`: `<file>.js`, and `<file>.2.js`,
    `<file>.3.js`, ... when the drawing is longer than one `use_figma` call takes (50 000
    characters). The script is made from the same layout as `emit --to drawio`, so emit the
-   draw.io file from the same IR when the user wants both. For a class or activity diagram
+   draw.io file from the same IR when the user wants both. For a class, activity or use case diagram
    `out` is `null` and `text` says that no Mermaid text was written.
 2. Load the Figma skills `figma-use` and `figma-use-figjam` (fallback resources:
    `skill://figma/figma-use/SKILL.md`, `skill://figma/figma-use-figjam/SKILL.md`).

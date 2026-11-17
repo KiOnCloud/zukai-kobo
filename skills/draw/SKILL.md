@@ -1,6 +1,6 @@
 ---
 name: draw
-description: Produce IT diagrams (sequence, flowchart, activity with swimlanes, state, ER, class, architecture) from clarified requirements, an existing codebase or a raw idea. Writes a validated JSON diagram model (IR) first, then emits Mermaid, draw.io (.drawio, editable shapes) or FigJam (via the Figma MCP server) with deterministic scripts; never hand-writes diagram syntax. Use for "draw the login sequence", "diagram this service", "architecture of the order flow", "ER diagram from these entities", or any request to visualise a system, process or data model. To change a diagram that was already delivered, use the revise skill.
+description: Produce IT diagrams (sequence, flowchart, activity with swimlanes, state, ER, class, architecture, use case) from clarified requirements, an existing codebase or a raw idea. Writes a validated JSON diagram model (IR) first, then emits Mermaid, draw.io (.drawio, editable shapes) or FigJam (via the Figma MCP server) with deterministic scripts; never hand-writes diagram syntax. Use for "draw the login sequence", "diagram this service", "architecture of the order flow", "ER diagram from these entities", "use cases of the booking system", or any request to visualise a system, process or data model. To change a diagram that was already delivered, use the revise skill.
 ---
 
 # Zukai
@@ -82,7 +82,7 @@ below runs in full: write, validate, emit, bundle, review until it passes, then 
 ## Diagram kinds: always ask first
 
 Before reading a protocol or any code, ask the user which kind they want, unless `--kind`
-was given or the request names a kind verbatim ("sequence diagram", "ER diagram",
+was given or the request names a kind verbatim ("sequence diagram", "ER diagram", "use cases of",
 "swimlane"). In `brainstorm` mode skip this question: the brainstorm protocol proposes kinds
 as candidates instead.
 
@@ -103,7 +103,8 @@ feature, and they differ in how sub-flows are handled:
   worth its own picture. The main diagram stays readable (about 15 to 20 elements); each
   collapsed element carries `ref: "<slug>-NN-<part>"`. Every kind has one element for it: a
   flowchart node or an activity action (drawn as a subroutine), a sequence message (the call
-  whose inside the part shows), a state, an architecture component, a class, an ER entity.
+  whose inside the part shows), a state, an architecture component, a class, an ER entity,
+  a use case (the part shows its steps).
   In the combined file that element shows the sub-diagram's title as a second label line
   and, in draw.io, links to its page. Never tie a part to the main diagram any other way: no
   part id in a label, no note. Each sub-diagram's title names the element it details. Report
@@ -145,7 +146,7 @@ brainstorm protocol, which then does not ask again; when the mode itself is bein
 this call, the kind question stays, and its answer is dropped if the user picks
 `brainstorm`. Without that tool, send one text message with one numbered question per item
 that is still open (mode, kind, scope, view, and the target when `--to` named an unknown one), each with its own lettered options (`1a`,
-`2b`), the suggestion marked; the kind question lists all seven kinds of the table below
+`2b`), the suggestion marked; the kind question lists all eight kinds of the table below
 (for a request about the modules of one program, the three kinds of "Modules are not
 resources" first and in that order, then the rest) and is left out when `--kind` was given
 or the mode is `brainstorm`. Accept an option, a
@@ -160,11 +161,12 @@ name or "default".
 | 5 | `er` | Data entities, their key attributes and one-to-many relations | mermaid, drawio |
 | 6 | `class` | Types, interfaces, their members and inheritance or composition | mermaid, drawio |
 | 7 | `architecture` | Deployable components, data stores, queues, external systems and the connections between them; with AWS service icons and VPC or subnet frames in draw.io when the system runs on AWS | mermaid, drawio |
+| 8 | `usecase` | Who uses the system and for what: actors, the goals each has with the system, the system boundary, shared and optional behaviour | drawio |
 
 Example for a login feature with `AskUserQuestion`, no mode given, user writing
 Vietnamese: question "Bạn có đầu vào nào?", options "Làm rõ yêu cầu (clarify)", "Đọc code
 (scout)", "Ý tưởng thô (brainstorm)", each with the mode table's description translated;
-question "Loại diagram? Loại khác: state, er, class, architecture (chọn Other và gõ tên)",
+question "Loại diagram? Loại khác: state, er, class, architecture, usecase (chọn Other và gõ tên)",
 options "Trình tự (sequence) – gợi ý", "Lưu đồ (flowchart)", "Swimlane (activity)", each
 with its description translated; question "Mức chi tiết?", options "Tổng quan (overview) –
 gợi ý" and "Chi tiết (detailed)"; question "Góc nhìn của diagram?", options "Kỹ thuật
@@ -204,6 +206,17 @@ diagram with the tables, handlers and numbered steps drawn into it. The CLI repo
 breaches it can see as `detail:` warnings: fix the IR and emit again before the review. Only
 the user can keep one, as the closing contract says.
 
+Use cases are goals, not steps. Suggest `usecase` first when the request asks who uses a
+system and what for ("use cases of", "what can each role do", "scope of the system",
+"actors and features"), and not when it asks how one of those things happens: the steps of
+one goal are a `flowchart`, `activity` or `sequence` diagram. A use case names something an
+actor comes to the system to get done ("Borrow a book"), never a step, a screen or a
+function (`references/ir-reference.md`, usecase, Level of detail); under the scope
+`detailed` each use case worth it carries `ref` to the part that shows its steps. Draw.io is
+the target that draws it as UML does; the opening call says so when `--to mermaid` or
+`--to figjam` was given (Mermaid gets a flowchart with warnings, FigJam the board drawn by
+`emit --native`).
+
 Modules are not resources. A request for "the architecture of the modules" of one program
 (a CLI, a library, one service) asks for the parts of a single deployed resource, which an
 `architecture` diagram draws as one box, and the CLI cannot see that ten components are
@@ -219,7 +232,7 @@ what it talks to), each with that consequence in its description.
 |---|---|---|---|
 | `drawio` | `.drawio` file with editable shapes, laid out automatically (default) | always available | `references/target-drawio.md` |
 | `mermaid` | Mermaid text to paste into Markdown | always available | `references/target-mermaid.md` |
-| `figjam` | New or existing FigJam board | a Figma MCP tool named `generate_diagram` is available in the session; otherwise hand the user the `figjam` text to paste, as section 6 of the reference says (never the `mermaid` text), and say so. A sequence diagram also needs the overlay script of section 5, run with `use_figma`. When the user wants the draw.io layout on the board, or the diagram is a class or activity diagram, draw the board with `emit --native` and `use_figma` instead (section 7) | `references/target-figjam.md` |
+| `figjam` | New or existing FigJam board | a Figma MCP tool named `generate_diagram` is available in the session; otherwise hand the user the `figjam` text to paste, as section 6 of the reference says (never the `mermaid` text), and say so. A sequence diagram also needs the overlay script of section 5, run with `use_figma`. When the user wants the draw.io layout on the board, or the diagram is a class, activity or use case diagram, draw the board with `emit --native` and `use_figma` instead (section 7) | `references/target-figjam.md` |
 
 The feature matrix (`docs/feature-matrix.md` in the repository, data in
 `scripts/src/feature-matrix.json`) decides per kind, target and feature whether something is

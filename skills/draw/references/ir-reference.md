@@ -29,9 +29,9 @@ Errors come back as JSON on stderr with a JSON-pointer `path`, a `message` and u
 | Field | Required | Values |
 |---|---|---|
 | `schemaVersion` | yes | `1` |
-| `kind` | yes | `flowchart`, `sequence`, `state`, `er`, `class`, `architecture`, `activity` |
+| `kind` | yes | `flowchart`, `sequence`, `state`, `er`, `class`, `architecture`, `activity`, `usecase` |
 | `title` | yes | 1 to 500 characters; becomes the diagram name |
-| `direction` | no | `TB` (default), `BT`, `LR`, `RL`; ignored by sequence and by Mermaid's `architecture-beta`; draw.io lays an architecture out in the given direction |
+| `direction` | no | `TB` (default), `BT`, `LR`, `RL`; ignored by sequence and by Mermaid's `architecture-beta`; draw.io lays an architecture out in the given direction; a `usecase` diagram defaults to `LR` (actors left and right of the system) |
 | `meta.source` | no | `clarify`, `scout`, `brainstorm`, `recook`, `manual` |
 | `meta.notes` | no | free text, for example the file paths a scout derived the diagram from |
 | `meta.audience` | no | `technical` (default) or `business`; the review applies the audience items of the checklist (see `variants.md`) |
@@ -49,7 +49,8 @@ Rules that apply everywhere:
 - Every `from`, `to`, child and block reference must name an existing element.
 - `ref` ties an element of a main diagram to the sub-diagram that details it (scope
   `detailed`). Every kind has one element that carries it: a flowchart node, an activity
-  action, a sequence message, a state, an architecture component, a class, an ER entity. The
+  action, a sequence message, a state, an architecture component, a class, an ER entity, a
+  use case. The
   value is the diagram id of the part: its IR file name without `.ir.json`. The element
   shows `↳ <title of the part>` as a second label line in a bundle (the id alone in a single
   emit), and in draw.io it links to the part's page. No other element takes `ref`; never
@@ -420,6 +421,82 @@ leaves a `final` node and nothing enters an `initial` one.
     { "id": "f5", "from": "eligible", "to": "done", "guard": "no" },
     { "id": "f6", "from": "approve", "to": "ship" },
     { "id": "f7", "from": "ship", "to": "done" }
+  ]
+}
+```
+
+## usecase
+
+Collections: `actors` (at least one), `useCases` (at least one), `boundaries` (optional),
+`relations`.
+
+| Element | Fields |
+|---|---|
+| actor | `id`, `label` (the role, not a person's name); `kind`: `person` (default, a stick figure) or `system` (an outside system that takes part, a box marked «system»); `role`: `primary` (starts use cases to reach a goal; drawn before the boundary) or `supporting` (the system calls on it; drawn after the boundary). Without `role` a person is primary and a system is supporting |
+| use case | `id`, `label` (a goal of an actor, as a verb phrase); `ref`: diagram id of the sub-diagram that details this use case (its IR file name without `.ir.json`), shown as a second label line |
+| boundary | `id`, `label` (the system or subsystem), `children`: use case ids. Actors are never children, and a use case is in at most one boundary |
+| relation | `id`, `from`, `to`, `kind`: `association`, `include`, `extend`, `generalization`; `condition` (only on `extend`): the condition or the extension point under which the extension takes part |
+
+What each relation joins, and which way it points:
+
+- `association`: an actor and a use case it starts or takes part in. Either end may be
+  `from`; the line has no arrowhead.
+- `include`: `from` is the use case that always runs the other one as a part of itself, `to`
+  the included one (dashed arrow to the included use case, «include»). Use it for behaviour
+  two or more use cases share, or that the reader must see is always there.
+- `extend`: `from` is the use case that adds optional behaviour, `to` the use case it
+  extends (dashed arrow to the extended use case, «extend», the condition in brackets).
+- `generalization`: `from` is the special one, `to` the general one, both actors or both
+  use cases (hollow triangle at the general one). A special actor takes part in everything
+  the general one does, so it needs associations only for what it alone does.
+
+The reference check refuses a relation that joins the wrong things, a relation of an element
+to itself and a loop of generalizations. `validate` and every emit warn about a use case
+that no actor reaches (directly, or through a use case that includes it, that it extends or
+that it is a kind of) and about an actor with no use case.
+
+Level of detail. A use case is a goal an actor has with the system and reaches in one
+sitting: "Borrow a book", "Pay a late fee". It is not a step ("Scan the card"), a screen
+("Loan page"), a button or a function of the code ("validateLoan"); several steps towards one
+goal are one use case. The test: the actor would say they came to do this, and would be
+done when it ends. The steps of a use case belong to a part of another kind (an `activity`
+or `sequence` diagram, a `flowchart`) linked with `ref` on the use case under the scope
+`detailed`. Keep `include` and `extend` rare: a diagram where most use cases include others
+has turned into a flowchart. The CLI cannot tell a goal from a step, so this rule is the
+author's to keep and the reviewer's to check.
+
+draw.io draws the diagram left to right by default: primary actors left of the boundaries,
+supporting actors and outside systems right of them; `"direction": "TB"` puts them above
+and below. Mermaid has no use case diagram and gets a flowchart with warnings; FigJam gets
+the board drawn by `emit --native` (`target-mermaid.md`, `target-figjam.md`).
+
+```json
+{
+  "schemaVersion": 1, "kind": "usecase", "title": "Library lending",
+  "actors": [
+    { "id": "member", "label": "Member" },
+    { "id": "librarian", "label": "Librarian" },
+    { "id": "payment", "label": "Payment provider", "kind": "system" }
+  ],
+  "useCases": [
+    { "id": "search", "label": "Search the catalogue" },
+    { "id": "borrow", "label": "Borrow a book", "ref": "library-lending-01-borrow" },
+    { "id": "return", "label": "Return a book" },
+    { "id": "check-card", "label": "Check the library card" },
+    { "id": "pay-fine", "label": "Pay a late fee" },
+    { "id": "register", "label": "Register a new member" }
+  ],
+  "boundaries": [
+    { "id": "library", "label": "Library system", "children": ["search", "borrow", "return", "check-card", "pay-fine", "register"] }
+  ],
+  "relations": [
+    { "id": "r1", "from": "member", "to": "search", "kind": "association" },
+    { "id": "r2", "from": "member", "to": "borrow", "kind": "association" },
+    { "id": "r3", "from": "member", "to": "return", "kind": "association" },
+    { "id": "r4", "from": "librarian", "to": "register", "kind": "association" },
+    { "id": "r5", "from": "borrow", "to": "check-card", "kind": "include" },
+    { "id": "r6", "from": "pay-fine", "to": "return", "kind": "extend", "condition": "the book is overdue" },
+    { "id": "r7", "from": "payment", "to": "pay-fine", "kind": "association" }
   ]
 }
 ```

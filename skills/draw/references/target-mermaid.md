@@ -57,6 +57,14 @@ Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
   from its label, so a bar is as thick as a line of text, not thin, and Mermaid 12 draws the
   upright bar of a left-to-right diagram as a block, because it gives every box a minimum
   width. Offer `--to drawio` for a real swimlane diagram with thin bars.
+- use case diagrams have no Mermaid equivalent either. The output is a `flowchart` (left to
+  right unless the IR says otherwise): an actor is a box whose first line is «actor» (a
+  person) or «system», a use case a stadium node, a boundary a subgraph, an association a
+  line without an arrowhead, `include` and `extend` dotted arrows labelled «include» and
+  «extend» (the condition in brackets on a second line), a generalization a solid arrow
+  labelled «generalization». The emit warns once for the kind, once for each person (no
+  stick figure) and once for each generalization (no hollow triangle). Offer `--to drawio`
+  for the UML picture.
 - the `swimlane-beta` text carries no title. Mermaid draws a front-matter title where
   `swimlane-beta` puts its lane header row, so the title would sit on top of the lane names
   (and, with lanes as rows, inside the first lane). A single emit warns at `/title`; the
