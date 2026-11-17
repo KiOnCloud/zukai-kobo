@@ -1,0 +1,58 @@
+@startuml
+' Deployment of the web shop, drawn by the platform team
+!define AWSPUML https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v18.0/dist
+!includeurl AWSPUML/AWSCommon.puml
+left to right direction
+skinparam componentStyle rectangle
+title Web shop deployment
+
+actor "Customer" as customer
+cloud "Payment provider" as psp
+
+node "Kubernetes cluster" as k8s {
+  component "Storefront" as web <<Next.js>>
+  component [Order API] as api
+  [Catalog API] as catalog
+  queue "order-events" as events
+  component "Fulfilment worker" as worker
+}
+
+frame "Data tier" {
+  database "Orders DB" as ordersdb {
+    entity orders {
+      * id : uuid <<PK>>
+      --
+      * customer_id : uuid <<FK>>
+      total : decimal(10,2)
+    }
+    entity order_lines {
+      * id : uuid <<PK>>
+      --
+      * order_id : uuid <<FK>>
+      sku : text
+    }
+  }
+  database "Catalog DB" as catalogdb
+  storage "Invoice bucket" as bucket
+}
+
+interface "REST" as rest
+api - rest
+
+customer --> web : HTTPS
+web --> rest : 1. POST /api/orders
+web --> catalog : GET /api/products
+api --> ordersdb : 2. INSERT INTO orders
+api ..> events : 3. publish OrderPlaced
+events ..> worker : OrderPlaced
+worker --> bucket : store invoice PDF
+api --> psp : 4. capture payment
+catalog --> catalogdb : SQL
+orders ||--o{ order_lines : has
+
+note bottom of ordersdb : jdbc:postgresql://shop:S3cr3tPass99@db.internal:5432/orders
+legend right
+  Solid: synchronous call
+  Dotted: asynchronous
+end legend
+@enduml

@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "kind": "class",
+  "title": "Billing domain",
+  "classes": [
+    {
+      "id": "document",
+      "label": "Document",
+      "stereotype": "abstract",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "visibility": "protected"
+        },
+        {
+          "name": "issuedAt",
+          "type": "Instant",
+          "visibility": "protected"
+        }
+      ],
+      "methods": [
+        {
+          "name": "total",
+          "returns": "Money",
+          "visibility": "public"
+        }
+      ]
+    },
+    {
+      "id": "invoice",
+      "label": "Invoice",
+      "attributes": [
+        {
+          "name": "lines",
+          "type": "List<InvoiceLine>",
+          "visibility": "private"
+        }
+      ],
+      "methods": [
+        {
+          "name": "addLine",
+          "params": "product : Product, qty : int",
+          "returns": "void",
+          "visibility": "public"
+        },
+        {
+          "name": "total",
+          "returns": "Money",
+          "visibility": "public"
+        },
+        {
+          "name": "draft",
+          "params": "customer : Customer",
+          "returns": "Invoice",
+          "visibility": "public"
+        }
+      ]
+    },
+    {
+      "id": "invoice-line",
+      "label": "InvoiceLine",
+      "attributes": [
+        {
+          "name": "quantity",
+          "type": "int",
+          "visibility": "public"
+        },
+        {
+          "name": "unitPrice",
+          "type": "Money",
+          "visibility": "public"
+        }
+      ]
+    },
+    {
+      "id": "invoice-status",
+      "label": "InvoiceStatus",
+      "stereotype": "enum",
+      "attributes": [
+        {
+          "name": "DRAFT"
+        },
+        {
+          "name": "ISSUED"
+        },
+        {
+          "name": "PAID"
+        }
+      ]
+    },
+    {
+      "id": "taxable",
+      "label": "Taxable",
+      "stereotype": "interface",
+      "methods": [
+        {
+          "name": "taxRate",
+          "returns": "Decimal",
+          "visibility": "public"
+        }
+      ]
+    },
+    {
+      "id": "invoice-repository",
+      "label": "InvoiceRepository",
+      "stereotype": "interface",
+      "methods": [
+        {
+          "name": "save",
+          "params": "invoice : Invoice",
+          "visibility": "public"
+        },
+        {
+          "name": "findById",
+          "params": "id : UUID",
+          "returns": "Invoice",
+          "visibility": "public"
+        }
+      ]
+    },
+    {
+      "id": "jpa-repo",
+      "label": "JPA invoice repository"
+    },
+    {
+      "id": "customer",
+      "label": "Customer",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "String",
+          "visibility": "public"
+        },
+        {
+          "name": "vatId",
+          "type": "String",
+          "visibility": "public"
+        }
+      ]
+    },
+    {
+      "id": "credit-note",
+      "label": "CreditNote"
+    },
+    {
+      "id": "product",
+      "label": "Product"
+    }
+  ],
+  "relations": [
+    {
+      "id": "e1",
+      "from": "invoice",
+      "to": "document",
+      "kind": "inheritance"
+    },
+    {
+      "id": "e2",
+      "from": "invoice",
+      "to": "invoice-line",
+      "kind": "composition",
+      "label": "contains",
+      "fromCardinality": "1",
+      "toCardinality": "1..*"
+    },
+    {
+      "id": "e3",
+      "from": "invoice",
+      "to": "invoice-status",
+      "kind": "association"
+    },
+    {
+      "id": "e4",
+      "from": "invoice",
+      "to": "taxable",
+      "kind": "realization"
+    },
+    {
+      "id": "e5",
+      "from": "customer",
+      "to": "invoice",
+      "kind": "aggregation",
+      "label": "is billed by",
+      "fromCardinality": "1",
+      "toCardinality": "0..*"
+    },
+    {
+      "id": "e6",
+      "from": "jpa-repo",
+      "to": "invoice-repository",
+      "kind": "realization"
+    },
+    {
+      "id": "e7",
+      "from": "jpa-repo",
+      "to": "invoice",
+      "kind": "dependency",
+      "label": "persists"
+    },
+    {
+      "id": "e8",
+      "from": "credit-note",
+      "to": "document",
+      "kind": "inheritance"
+    },
+    {
+      "id": "e9",
+      "from": "invoice-line",
+      "to": "product",
+      "kind": "association"
+    }
+  ],
+  "meta": {
+    "source": "recook",
+    "notes": [
+      "recooked from billing-classes.puml, page \"Billing domain\""
+    ],
+    "omitted": [
+      "\"billing.domain\": package; a class diagram draws no packages",
+      "\"billing.infra\": namespace; a class diagram draws no packages",
+      "\"«domain»\": second stereotype of Taxable; a class carries one, the interface",
+      "\"Immutable once ISSUED\": note beside Invoice; a class diagram has no notes",
+      "\"Money is always in minor units\": note beside InvoiceLine; a class diagram has no notes"
+    ]
+  }
+}

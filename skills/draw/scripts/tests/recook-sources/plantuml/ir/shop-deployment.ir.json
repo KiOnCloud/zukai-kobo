@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Web shop deployment",
+  "direction": "LR",
+  "components": [
+    {
+      "id": "customer",
+      "label": "Customer",
+      "kind": "client"
+    },
+    {
+      "id": "psp",
+      "label": "Payment provider",
+      "kind": "external"
+    },
+    {
+      "id": "web",
+      "label": "Storefront (Next.js)"
+    },
+    {
+      "id": "api",
+      "label": "Order API",
+      "ref": "shop-deployment-02-order-calls"
+    },
+    {
+      "id": "catalog",
+      "label": "Catalog API"
+    },
+    {
+      "id": "events",
+      "label": "order-events",
+      "kind": "queue"
+    },
+    {
+      "id": "worker",
+      "label": "Fulfilment worker"
+    },
+    {
+      "id": "ordersdb",
+      "label": "Orders DB",
+      "kind": "database",
+      "ref": "shop-deployment-01-orders-db"
+    },
+    {
+      "id": "catalogdb",
+      "label": "Catalog DB",
+      "kind": "database"
+    },
+    {
+      "id": "bucket",
+      "label": "Invoice bucket",
+      "kind": "database"
+    }
+  ],
+  "boundaries": [
+    {
+      "id": "k8s",
+      "label": "Kubernetes cluster",
+      "children": [
+        "web",
+        "api",
+        "catalog",
+        "events",
+        "worker"
+      ]
+    },
+    {
+      "id": "data-tier",
+      "label": "Data tier",
+      "children": [
+        "ordersdb",
+        "catalogdb",
+        "bucket"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "e2",
+      "from": "customer",
+      "to": "web",
+      "label": "HTTPS"
+    },
+    {
+      "id": "e3",
+      "from": "web",
+      "to": "api",
+      "label": "HTTP"
+    },
+    {
+      "id": "e4",
+      "from": "web",
+      "to": "catalog",
+      "label": "HTTP"
+    },
+    {
+      "id": "e5",
+      "from": "api",
+      "to": "ordersdb",
+      "label": "SQL"
+    },
+    {
+      "id": "e6",
+      "from": "api",
+      "to": "events",
+      "label": "publish"
+    },
+    {
+      "id": "e7",
+      "from": "events",
+      "to": "worker",
+      "label": "OrderPlaced"
+    },
+    {
+      "id": "e8",
+      "from": "worker",
+      "to": "bucket",
+      "label": "store invoice PDF"
+    },
+    {
+      "id": "e9",
+      "from": "api",
+      "to": "psp",
+      "label": "capture payment"
+    },
+    {
+      "id": "e10",
+      "from": "catalog",
+      "to": "catalogdb",
+      "label": "SQL"
+    }
+  ],
+  "meta": {
+    "source": "recook",
+    "notes": [
+      "recooked from shop-deployment.puml, page \"Web shop deployment\"",
+      "the tables drawn inside Orders DB moved to the part shop-deployment-01-orders-db",
+      "the numbered calls moved to the part shop-deployment-02-order-calls"
+    ],
+    "omitted": [
+      "\"REST\": interface of Order API, merged into the connection from Storefront to Order API",
+      "\"Solid: synchronous call / Dotted: asynchronous\": legend of the source's line styles",
+      "\"jdbc:postgresql://<db credentials>@db.internal:5432/orders\": connection string in a note, not part of the system"
+    ]
+  }
+}

@@ -172,7 +172,7 @@ function eachStatement(lines, fn, raw = () => false) {
  * its label until a definition gives it another. Generated ids (notes, frames, [*]) never
  * collide with an id written in the source.
  */
-function createGraph(page) {
+export function createGraph(page) {
   const byId = new Map();
   const counters = new Map();
   const node = (id, shape, parent) => {
@@ -214,7 +214,7 @@ function createGraph(page) {
 // ---------------------------------------------------------------------------------------------
 // Text decoding
 
-const NAMED_ENTITIES = {
+export const NAMED_ENTITIES = {
   quot: '"', amp: '&', lt: '<', gt: '>', apos: "'", nbsp: ' ', ensp: ' ', emsp: ' ', thinsp: ' ',
   ndash: '–', mdash: '—', hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
   laquo: '«', raquo: '»', middot: '·', bull: '•', deg: '°', times: '×', divide: '÷',

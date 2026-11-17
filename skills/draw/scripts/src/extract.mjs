@@ -1,18 +1,22 @@
 import { extname } from 'node:path';
 import { drawioXmlOf, extractDrawio } from './extract-drawio.mjs';
 import { extractMermaid } from './extract-mermaid.mjs';
+import { extractPlantuml, hasPlantumlFence } from './extract-plantuml.mjs';
 import { extractFigjamBoard, joinBoardParts } from './extract-figjam.mjs';
 import { redactText } from './scan-secrets.mjs';
 
 /**
  * Facts of a source diagram, whatever made it: a draw.io file (`.drawio`, `.xml`,
- * `.drawio.svg`, `.drawio.png`), Mermaid text (`.mmd`, or Markdown with fenced blocks), or the
+ * `.drawio.svg`, `.drawio.png`), Mermaid text (`.mmd`, or Markdown with fenced blocks),
+ * PlantUML text (`.puml`, `.plantuml`, `.pu`, `.iuml`, or Markdown with fenced blocks), or the
  * JSON a FigJam board returned through the reader script. The content decides, the name only
- * breaks a tie, so a draw.io file saved as `.xml` or a board saved as `.txt` still reads.
+ * breaks a tie, so a draw.io file saved as `.xml`, a board saved as `.txt` or a PlantUML
+ * diagram saved as `.txt` still reads. A Markdown file with fences of both languages gives the
+ * pages of both, the Mermaid ones first, under the format `markdown`.
  *
  * Facts, the same shape for every source:
- *   { facts: 1, format: 'drawio'|'mermaid'|'figjam', pages: [{
- *       id, name,
+ *   { facts: 1, format: 'drawio'|'mermaid'|'plantuml'|'markdown'|'figjam', pages: [{
+ *       id, name, direction?, autonumber?, unsupported?: { type, reason },
  *       kindHints: [{ kind, score, evidence: string[] }],          best first; empty when nothing fits
  *       nodes: [{ id, label, shape, texts?, parent?, detail?, icon?, group?, link?, dashed?, box? }],
  *       edges: [{ id, label, from, to, startLabel?, endLabel?, fromPart?, toPart?,
@@ -29,10 +33,30 @@ export function extractFacts(buf, file = '') {
   const ext = extname(file).toLowerCase();
   const xmlLike = /<(mxfile|mxGraphModel|svg)\b/.test(head) || buf.subarray(1, 4).toString('latin1') === 'PNG';
   const mermaidLike = ext === '.mmd' || ext === '.mermaid' || ext === '.md' || /^(```\s*mermaid|---\n|%%|(flowchart|graph|sequenceDiagram|stateDiagram|erDiagram|classDiagram|architecture-beta|swimlane)\b)/m.test(head);
-  if (!xmlLike && mermaidLike) return { ok: true, facts: redactFacts(extractMermaid(buf.toString('utf8'))) };
+  if (!xmlLike) {
+    const text = buf.toString('utf8');
+    const plantuml = extractPlantumlLike(text, ext);
+    if (plantuml) return { ok: true, facts: redactFacts(plantuml) };
+    if (mermaidLike) return { ok: true, facts: redactFacts(extractMermaid(text)) };
+  }
   const xml = drawioXmlOf(buf);
   if (xml.error) return { ok: false, error: xml.error };
   return { ok: true, facts: redactFacts(extractDrawio(xml.xml)) };
+}
+
+const PLANTUML_EXTENSIONS = new Set(['.puml', '.plantuml', '.pu', '.iuml']);
+
+/**
+ * PlantUML facts when the text is PlantUML: by its extension, by an `@start...` line, or by a
+ * ```plantuml fence in Markdown. A Mermaid file never is, whatever a label of it says.
+ */
+function extractPlantumlLike(text, ext) {
+  if (ext === '.mmd' || ext === '.mermaid') return undefined;
+  const fenced = hasPlantumlFence(text);
+  if (!PLANTUML_EXTENSIONS.has(ext) && !fenced && !/^\s*@start[a-z]+\b/im.test(text)) return undefined;
+  const facts = extractPlantuml(text);
+  if (!fenced || !/^\s{0,3}(`{3,}|~{3,})\s*mermaid\b/im.test(text)) return facts;
+  return { facts: 1, format: 'markdown', pages: [...extractMermaid(text).pages, ...facts.pages] };
 }
 
 /**

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "sequence",
+  "title": "Order calls",
+  "participants": [
+    {
+      "id": "web",
+      "label": "Storefront (Next.js)"
+    },
+    {
+      "id": "catalog",
+      "label": "Catalog API"
+    },
+    {
+      "id": "api",
+      "label": "Order API"
+    },
+    {
+      "id": "ordersdb",
+      "label": "Orders DB",
+      "kind": "database"
+    },
+    {
+      "id": "events",
+      "label": "order-events"
+    },
+    {
+      "id": "psp",
+      "label": "Payment provider"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m0",
+      "from": "web",
+      "to": "catalog",
+      "label": "GET /api/products"
+    },
+    {
+      "id": "m1",
+      "from": "web",
+      "to": "api",
+      "label": "1. POST /api/orders"
+    },
+    {
+      "id": "m2",
+      "from": "api",
+      "to": "ordersdb",
+      "label": "2. INSERT INTO orders"
+    },
+    {
+      "id": "m3",
+      "from": "api",
+      "to": "events",
+      "label": "3. publish OrderPlaced",
+      "kind": "async"
+    },
+    {
+      "id": "m4",
+      "from": "api",
+      "to": "psp",
+      "label": "4. capture payment"
+    }
+  ],
+  "meta": {
+    "source": "recook",
+    "notes": [
+      "recooked from shop-deployment.puml, page \"Web shop deployment\"",
+      "added: title (the numbered calls of the source)"
+    ]
+  }
+}
