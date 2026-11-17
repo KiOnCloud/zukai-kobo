@@ -22,9 +22,14 @@ Diagram kind: Architecture diagram
 | No. | Data store | Kind | Boundary | Icon |
 | --- | --- | --- | --- | --- |
 | 1 | Aurora PostgreSQL | Database | AWS Cloud › ap-northeast-1 › VPC › Private subnet | `aws:aurora` |
-| 2 | Kinesis order events | Queue | AWS Cloud › ap-northeast-1 | `aws:kinesis_data_streams` |
-| 3 | Pub/Sub order events | Queue | Google Cloud › asia-northeast1 | `gcp:cloud_pubsub` |
-| 4 | BigQuery | Database | Google Cloud › asia-northeast1 | `gcp:bigquery` |
+| 2 | BigQuery | Database | Google Cloud › asia-northeast1 | `gcp:bigquery` |
+
+## Queues
+
+| No. | Queue | Kind | Boundary | Icon |
+| --- | --- | --- | --- | --- |
+| 1 | Kinesis order events | Queue | AWS Cloud › ap-northeast-1 | `aws:kinesis_data_streams` |
+| 2 | Pub/Sub order events | Queue | Google Cloud › asia-northeast1 | `gcp:cloud_pubsub` |
 
 ## Boundaries
 

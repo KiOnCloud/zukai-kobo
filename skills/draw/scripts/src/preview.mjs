@@ -1,6 +1,8 @@
 /**
  * Render a .drawio or .mmd file to a temporary PNG that the agent looks at to judge the layout
- * and fix the IR. The image is not a deliverable for the user. Optional step:
+ * and fix the IR. A draw.io file of several pages shows its first page, or the page `--page`
+ * names; an editable picture (`.drawio.svg`) is rendered from the diagram it carries, so the
+ * image shows what draw.io would open. The image is not a deliverable for the user. Optional step:
  * it needs a renderer that is not bundled. In order of preference:
  *   1. the draw.io desktop CLI (`drawio` on PATH) for .drawio files, fully offline;
  *   2. Playwright with Chromium (project-local, global, or NODE_PATH), which loads the
@@ -10,11 +12,13 @@
  */
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, rmSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { pngSize, decodePng, cropPng, encodePng } from './png.mjs';
+import { drawioPages, selectPages } from './export-svg.mjs';
+import { drawioXmlOf } from './extract-drawio.mjs';
 
 export { pngSize };
 
@@ -254,7 +258,7 @@ export function drawioExtent(xml) {
   const extend = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
   for (const v of drawioVertices(xml)) { extend(v.x, v.y); extend(v.x + v.width, v.y + v.height); }
   for (const c of pageCells(xml)) {
-    if (/\sedge="1"/.test(c.attrs)) for (const p of c.body.matchAll(/<mxPoint x="(-?[\d.]+)" y="(-?[\d.]+)"/g)) extend(+p[1], +p[2]);
+    if (/\sedge="1"/.test(c.attrs)) for (const p of c.body.matchAll(/<mxPoint x="(-?[\d.]+)" y="(-?[\d.]+)"(?![^>]*\sas="offset")/g)) extend(+p[1], +p[2]);
   }
   if (!Number.isFinite(minX)) return { width: 800, height: 600 };
   return { width: Math.ceil(maxX - minX), height: Math.ceil(maxY - minY) };
@@ -448,10 +452,12 @@ async function renderMermaidWeb(pw, text, out, maxPx) {
  * renders to the same path, so a second run replaces the first image, while `x.drawio` and
  * `x.mmd`, or two projects with a diagram of the same name, never share one.
  */
-export function defaultPreviewPath(input) {
+export function defaultPreviewPath(input, page) {
   const ext = extname(input).toLowerCase();
-  const hash = createHash('sha256').update(input).digest('hex').slice(0, 8);
-  return join(tmpdir(), 'zukai-preview', `${basename(input, ext)}-${ext.slice(1) || 'file'}-${hash}.png`);
+  // A page asked for by name is an image of its own, beside the one of the file's first page.
+  const hash = createHash('sha256').update(page === undefined ? input : `${input}#${page}`).digest('hex').slice(0, 8);
+  const pagePart = page === undefined ? '' : `-${String(page).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'page'}`;
+  return join(tmpdir(), 'zukai-preview', `${basename(input, ext)}${pagePart}-${ext.slice(1) || 'file'}-${hash}.png`);
 }
 
 /** The fenced `mermaid` blocks of a Markdown document, in order. */
@@ -492,8 +498,9 @@ async function previewMarkdown(file, text, out, cwd, maxPx) {
 }
 
 /**
- * @param {string} file path to a .drawio or .mmd file, or to the combined .md of a Mermaid run
- * @param {{ out?: string, cwd?: string, maxPx?: number, renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
+ * @param {string} file path to a .drawio, .drawio.svg or .mmd file, or to the combined .md of a Mermaid run
+ * @param {{ out?: string, cwd?: string, maxPx?: number, page?: string, renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
+ *   `page` is the id or the name of the page of a draw.io file to draw (default: its first page).
  *   `maxPx` caps the longest side of every PNG, border included; a very tall or wide diagram
  *   that would fall below scale 0.6 is instead cut into tiles at scale 1 that overlap by the
  *   largest node (`overlap`, px), with both renderers. `renderer` forces one of the two
@@ -505,9 +512,14 @@ export async function preview(file, options = {}) {
   const input = resolve(cwd, file);
   const ext = extname(input).toLowerCase();
   // The PNG is for the agent's own inspection, not a deliverable: keep it out of the project.
-  const out = options.out ? resolve(cwd, options.out) : defaultPreviewPath(input);
-  if (ext !== '.drawio' && ext !== '.mmd' && ext !== '.md') {
-    return { ok: false, errors: [{ path: file, message: 'preview takes a .drawio or .mmd file, or the combined .md file of a Mermaid run' }] };
+  // An editable picture holds its diagram: it is previewed as the draw.io file it carries.
+  const picture = ext === '.svg' && /\.drawio\.svg$/i.test(input);
+  if (ext !== '.drawio' && ext !== '.mmd' && ext !== '.md' && !picture) {
+    return { ok: false, errors: [{ path: file, message: 'preview takes a .drawio or .mmd file, an editable picture (.drawio.svg), or the combined .md file of a Mermaid run' }] };
+  }
+  const drawio = ext === '.drawio' || picture;
+  if (options.page !== undefined && !drawio) {
+    return { ok: false, errors: [{ path: '--page', message: '--page names a page of a draw.io file', hint: ext === '.md' ? 'the combined .md of a Mermaid run renders every block to an image of its own, listed under "files"' : 'a .mmd file holds one diagram' }] };
   }
   let text;
   try {
@@ -515,15 +527,50 @@ export async function preview(file, options = {}) {
   } catch (e) {
     return { ok: false, errors: [{ path: file, message: `cannot read file: ${e.message}` }] };
   }
+  // The file given, or a file of the one page to draw: the page asked for, or the diagram of a picture.
+  let source = input;
+  let shown;
+  let pageCount;
+  let work;
+  if (drawio && (picture || options.page !== undefined)) {
+    let xml = text;
+    if (picture) {
+      const inside = drawioXmlOf(Buffer.from(text, 'utf8'));
+      if (inside.error) return { ok: false, errors: [{ path: file, message: inside.error, hint: 'preview draws the diagram a .drawio.svg carries; a plain SVG is already a picture' }] };
+      xml = inside.xml;
+    }
+    const split = drawioPages(xml);
+    if (split.error) return { ok: false, errors: [{ path: file, message: split.error }] };
+    const picked = selectPages(split.pages, options.page === undefined ? undefined : [options.page]);
+    if (picked.error) return { ok: false, errors: [{ path: '--page', ...picked.error }] };
+    pageCount = split.pages.length;
+    shown = picked.pages[0];
+    text = shown.xml;
+  } else if (drawio) {
+    const split = drawioPages(text);
+    if (!split.error) { pageCount = split.pages.length; shown = split.pages[0]; }
+  }
+  const pageInfo = shown ? { page: { id: shown.id, name: shown.name }, pages: pageCount } : {};
+  const out = options.out ? resolve(cwd, options.out) : defaultPreviewPath(input, options.page === undefined ? undefined : shown?.id);
   mkdirSync(dirname(out), { recursive: true });
   if (ext === '.md') return previewMarkdown(file, text, out, cwd, options.maxPx);
   const attempts = [];
-  if (ext === '.drawio' && options.renderer !== 'drawio-web') {
+  if (drawio && options.renderer !== 'drawio-web') {
     const { bin, tried } = findDrawioBinary();
     if (bin) {
-      const r = renderDrawioDesktop(bin, input, text, out, options.maxPx);
-      if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: 'drawio-desktop', errors: [] };
-      attempts.push(`draw.io desktop (${bin}): ${r.message}`);
+      try {
+        if (picture || options.page !== undefined) {
+          // draw.io desktop takes a file: the one page goes into a file of its own.
+          work = mkdtempSync(join(tmpdir(), 'zukai-preview-page-'));
+          source = join(work, 'page.drawio');
+          writeFileSync(source, text, 'utf8');
+        }
+        const r = renderDrawioDesktop(bin, source, text, out, options.maxPx);
+        if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: 'drawio-desktop', ...pageInfo, errors: [] };
+        attempts.push(`draw.io desktop (${bin}): ${r.message}`);
+      } finally {
+        if (work) rmSync(work, { recursive: true, force: true });
+      }
     } else {
       attempts.push(`draw.io desktop not found; looked for ${tried.join(', ')}`);
     }
@@ -534,14 +581,14 @@ export async function preview(file, options = {}) {
     const missing = playwrightMissing(cwd);
     attempts.push(missing.attempt);
     const playwright = missing.install;
-    const hint = ext === '.drawio'
+    const hint = drawio
       ? `install draw.io desktop in one of the places above or put its executable on PATH, or ${playwright}; the preview step is optional, and a review without an image must say so`
       : `Mermaid previews need Playwright: ${playwright}; the preview step is optional, and a review without an image must say so`;
     return { ok: false, errors: [{ path: file, message: `no renderer available (${attempts.join('; ')})`, hint }] };
   }
   try {
-    const r = ext === '.drawio' ? await renderDrawioWeb(pw, text, out, options.maxPx) : await renderMermaidWeb(pw, text, out, options.maxPx);
-    if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: ext === '.drawio' ? 'drawio-web' : 'mermaid-web', errors: [] };
+    const r = drawio ? await renderDrawioWeb(pw, text, out, options.maxPx) : await renderMermaidWeb(pw, text, out, options.maxPx);
+    if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: drawio ? 'drawio-web' : 'mermaid-web', ...pageInfo, errors: [] };
     return { ok: false, errors: [{ path: file, message: r.message }] };
   } catch (e) {
     attempts.push(`browser render: ${String(e.message).slice(0, 200)}`);

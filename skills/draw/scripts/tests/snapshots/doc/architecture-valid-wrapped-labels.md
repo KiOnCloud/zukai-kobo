@@ -17,7 +17,12 @@ Diagram kind: Architecture diagram
 | --- | --- | --- |
 | 1 | Main DB (orders, invoices, customers, payments) | Database |
 | 2 | Archive DB of closed customer accounts (read only) | Database |
-| 3 | Export requests waiting for the nightly run (FIFO) | Queue |
+
+## Queues
+
+| No. | Queue | Kind |
+| --- | --- | --- |
+| 1 | Export requests waiting for the nightly run (FIFO) | Queue |
 
 ## Connections
 

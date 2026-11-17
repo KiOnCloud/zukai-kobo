@@ -61,6 +61,22 @@ export function drawioPages(xml) {
   return { pages, zukai: /\bhost="zukai"/.test(open[0]) };
 }
 
+/**
+ * The pages of a file that `--page` names, by id or by name; without a name, every page.
+ * A name that no page has is an error that lists the pages there are.
+ * @param {Array<{ id: string, name: string }>} pages
+ * @param {string[] | undefined} wanted
+ * @returns {{ pages: object[] } | { error: { message: string, hint: string } }}
+ */
+export function selectPages(pages, wanted) {
+  if (wanted === undefined || wanted.length === 0) return { pages };
+  const unknown = wanted.filter((w) => !pages.some((p) => p.id === w || p.name === w));
+  if (unknown.length > 0) {
+    return { error: { message: `no page ${unknown.map((u) => `"${u}"`).join(', ')} in this file`, hint: `pages: ${pages.map((p) => `${p.id} ("${p.name}")`).join(', ')}` } };
+  }
+  return { pages: pages.filter((p) => wanted.includes(p.id) || wanted.includes(p.name)) };
+}
+
 /** The page as the renderer gets it: links to other pages and draw.io actions taken off. */
 const withoutDataLinks = (xml) => xml.replace(/(<UserObject\b[^>]*?)\s+link="data:[^"]*"/g, '$1');
 
@@ -402,8 +418,9 @@ function sourcesOf(target, cwd) {
 
 /**
  * @param {string} target a .drawio file, or a run folder
- * @param {{ out?: string, cwd?: string, renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
- *   `out` is a folder, or a file name ending in `.svg` when the target has one page;
+ * @param {{ out?: string, cwd?: string, page?: string[], renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
+ *   `out` is a folder, or a file name ending in `.svg` when one page is written;
+ *   `page` keeps only the pages named, by id or name, and is an error when one is not there;
  *   `renderer` forces one of the two renderers instead of preferring draw.io desktop (tests).
  * @returns {Promise<{ ok: boolean, usage?: boolean, files?: Array<{ page: string, title: string, out: string, width: number, height: number }>, renderer?: string, text?: 'svg' | 'html', warnings: Array<{ stage: string, path: string, message: string, hint?: string }>, errors: Array<{ path: string, message: string, hint?: string }> }>}
  */
@@ -425,7 +442,11 @@ export async function exportSvg(target, options = {}) {
     const split = drawioPages(xml);
     if (split.error) return fail({ path: file, message: split.error, hint: 'export takes a .drawio file or a run folder; a Mermaid or FigJam run has no draw.io file to export' });
     const names = pageFileNames(split.pages, basename(file).replace(/\.(drawio|xml)$/i, ''), split.zukai);
+    // A picture keeps the name it has in the whole file, so one page exported alone replaces its own picture.
+    const picked = selectPages(split.pages, sources.files.length === 1 ? options.page : undefined);
+    if (picked.error) return fail({ path: '--page', ...picked.error });
     for (const [i, page] of split.pages.entries()) {
+      if (!picked.pages.includes(page)) continue;
       if (page.cells === 0) {
         warnings.push({ stage: 'export', path: file, message: `page "${page.name}" has nothing on it: no picture is written for it` });
         continue;
@@ -433,7 +454,10 @@ export async function exportSvg(target, options = {}) {
       jobs.push({ id: page.id, title: page.name, xml: page.xml, file, name: names[i] });
     }
   }
-  if (jobs.length === 0) return fail({ path: target, message: 'nothing to export: every page is empty' });
+  if (options.page !== undefined && options.page.length > 0 && sources.files.length > 1) {
+    return fail({ path: '--page', message: '--page names a page of one draw.io file, and this run has no combined file', hint: `export the file of the diagram itself: ${sources.files.map((f) => basename(f)).join(', ')} (in drawio/)` });
+  }
+  if (jobs.length === 0) return fail({ path: target, message: options.page?.length ? 'nothing to export: the page named is empty' : 'nothing to export: every page is empty' });
 
   const single = options.out !== undefined && /\.svg$/i.test(options.out);
   if (single && jobs.length > 1) {

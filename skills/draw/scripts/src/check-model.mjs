@@ -83,6 +83,16 @@ function checkActivity(ir, warn) {
 function checkState(ir, warn) {
   const states = list(ir, 'states');
   const transitions = list(ir, 'transitions');
+  // An initial or final state is a marker: a circle that no target writes a name on. A label
+  // on one is a status the picture loses, so it is said here, where the author can still act.
+  states.forEach((s, i) => {
+    if ((s.kind !== 'initial' && s.kind !== 'final') || typeof s.label !== 'string' || s.label.trim() === '') return;
+    const marker = s.kind === 'initial' ? 'an initial' : 'a final';
+    const keep = s.kind === 'initial'
+      ? `to keep the name, make ${q(s.id)} an ordinary state (kind "simple") and add an initial state without a label with a transition to it; or remove the label`
+      : `to keep the name, make ${q(s.id)} an ordinary state (kind "simple") and add a transition from it to a final state without a label; or remove the label`;
+    warn(`/states/${i}`, `model: ${s.kind} state ${q(s.id)} has the label "${s.label}", which no target draws; ${marker} state is a circle without a name`, keep);
+  });
   const initial = states.filter((s) => s.kind === 'initial');
   if (states.length > 1 && initial.length === 0) {
     warn('/states', 'model: no initial state; the reader cannot tell where the thing starts', 'add a state with kind "initial" and a transition from it to the first status');
@@ -192,6 +202,16 @@ function checkUsecase(ir, warn) {
   });
 }
 
+/** A frame exists for what stands in it: one without a member is drawn as an empty strip under its title. */
+function checkEmptyContainers(ir, warn) {
+  for (const [collection, word] of [['boundaries', 'boundary'], ['groups', 'group']]) {
+    list(ir, collection).forEach((b, i) => {
+      if (Array.isArray(b.children) && b.children.length > 0) return;
+      warn(`/${collection}/${i}`, `model: ${word} ${q(b.id)} has no member; it is drawn as an empty frame`, `put the elements that stand in it into its children, or remove it; a frame that is empty on purpose (a subnet nothing of this diagram stands in) is recorded in meta.omitted`);
+    });
+  }
+}
+
 const CHECKS = { flowchart: checkFlowchart, activity: checkActivity, state: checkState, sequence: checkSequence, er: checkEr, usecase: checkUsecase };
 
 /**
@@ -203,6 +223,7 @@ export function checkModel(ir) {
   if (!isObj(ir)) return { warnings };
   const warn = (path, message, hint) => warnings.push({ path, message, hint });
   CHECKS[ir.kind]?.(ir, warn);
+  checkEmptyContainers(ir, warn);
   const size = SIZE_OF[ir.kind]?.(ir);
   if (size && size.n > SIZE_LIMIT) {
     warn('/', `size: ${size.n} ${size.what} in one diagram; a reader follows about 15 to 20, and the layout slows down with every element`, 'keep the main flow here and move each sub-flow into a part of its own, linked with `ref` on the step that stands for it (scope "detailed")');

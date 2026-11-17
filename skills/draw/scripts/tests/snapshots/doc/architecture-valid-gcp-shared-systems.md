@@ -19,9 +19,9 @@ Diagram kind: Architecture diagram
 
 | No. | Data store | Kind | Boundary | Icon |
 | --- | --- | --- | --- | --- |
-| 1 | Cloud Storage web app | Database | Production project › asia-northeast1 (Tokyo) | `gcp:cloud_storage` |
+| 1 | Cloud Storage web app | Storage | Production project › asia-northeast1 (Tokyo) | `gcp:cloud_storage` |
 | 2 | Firestore | Database | Production project › asia-northeast1 (Tokyo) | `gcp:cloud_firestore` |
-| 3 | Cloud Storage attachments | Database | Production project › asia-northeast1 (Tokyo) | `gcp:cloud_storage` |
+| 3 | Cloud Storage attachments | Storage | Production project › asia-northeast1 (Tokyo) | `gcp:cloud_storage` |
 
 ## Boundaries
 

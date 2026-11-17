@@ -60,6 +60,22 @@ const lineCount = (text) => String(text).split(/\r\n?|\n/).length;
  */
 const noteNeed = (label) => roomFor(widestWord(label)) + NOTE_PAD.left + NOTE_PAD.right;
 
+/** How far the loop of a self-message stands off its lifeline, and the clear space its label keeps to the activation bar. */
+export const SELF_LOOP = { out: 50, clear: 6 };
+
+/**
+ * Where the label of a self-message stands. A short one is centred over the far side of the
+ * loop, as draw.io places an edge label. One too wide for that would reach back over the
+ * lifeline and be cut by the activation bar, so it starts right of the bar instead and runs
+ * away from the lifeline. `left` and `right` are offsets from the lifeline's centre.
+ */
+export function selfLabelBox(label, m = SEQUENCE_METRICS) {
+  const width = Math.ceil(widestLine(label));
+  const start = m.activationWidth / 2 + SELF_LOOP.clear;
+  if (SELF_LOOP.out - width / 2 >= start) return { aligned: false, left: SELF_LOOP.out - width / 2, right: SELF_LOOP.out + width / 2, width };
+  return { aligned: true, left: start, right: start + width, width };
+}
+
 const headerWidth = (label, m) => Math.max(m.participantWidth, 2 * Math.ceil((widestWord(label) + 2 * LABEL_PAD) / 2));
 
 /**
@@ -97,6 +113,13 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     else if ((note.position ?? 'right') === 'left') widen(i - 1, need + 24);
     else if (note.position === 'over') { widen(i - 1, need / 2 + 12); widen(i, need / 2 + 12); }
     else widen(i, need + 24);
+  }
+  // The label of a self-message that starts beside the activation bar runs into the gap to the
+  // next lifeline: the gap holds it, with room before that lifeline's own activation bar.
+  for (const msg of ir.messages) {
+    if (msg.from !== msg.to) continue;
+    const box = selfLabelBox(msg.label, m);
+    if (box.aligned) widen(index.get(msg.from), box.right + m.activationWidth / 2 + 12);
   }
   const spanning = ir.messages
     .filter((msg) => msg.from !== msg.to)
@@ -269,6 +292,12 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     const inset = m.frameInset * (maxDepth - b.depth + 1);
     let left = Math.min(...xs) - m.participantWidth / 2 - inset;
     let right = Math.max(...xs) + m.participantWidth / 2 + inset;
+    // The label of a self-message reaches further right than its loop: the frame holds it.
+    for (const id of b.all) {
+      const msg = byId.get(id);
+      if (msg.from !== msg.to) continue;
+      right = Math.max(right, participants.get(msg.from).centerX + selfLabelBox(msg.label, m).right + inset);
+    }
     for (const note of notes) {
       // A note belongs to the frame of its message, and to every frame around the block it follows.
       const followed = blocks.find((x) => x.id === note.after);
@@ -299,9 +328,15 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
   for (const msg of ir.messages) {
     const from = participants.get(msg.from);
     const to = participants.get(msg.to);
-    const w = textWidth(msg.label);
-    const mid = msg.from === msg.to ? from.centerX + 60 + w / 2 : (from.centerX + to.centerX) / 2;
     const h = m.labelHeight * lineCount(msg.label);
+    if (msg.from === msg.to) {
+      // Where the label is drawn: on the upper side of the loop, centred over its far side or beside the bar.
+      const box = selfLabelBox(msg.label, m);
+      boxes.push({ what: `label of message "${msg.id}"`, x: from.centerX + box.left, y: messageY(msg.id) - 10 - h / 2, width: box.width, height: h });
+      continue;
+    }
+    const w = textWidth(msg.label);
+    const mid = (from.centerX + to.centerX) / 2;
     boxes.push({ what: `label of message "${msg.id}"`, x: mid - w / 2, y: messageY(msg.id) - h - 2, width: w, height: h });
   }
   const warnings = [];

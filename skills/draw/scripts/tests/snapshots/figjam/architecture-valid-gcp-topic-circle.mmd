@@ -1,0 +1,40 @@
+flowchart LR
+  %% id: payment-api
+  n7>"Payment API"]
+  %% id: project
+  subgraph n8["Project invoicing-prod"]
+    %% id: region
+    subgraph n9["europe-west1"]
+      %% id: scheduler
+      n1["Cloud Scheduler nightly-reminders"]
+      %% id: invoice-api
+      n2["invoice-api (Cloud Run)"]
+      %% id: invoice-events
+      n3[["Pub/Sub invoice-events"]]
+      %% id: invoice-worker
+      n4["invoice-worker (Cloud Run)"]
+      %% id: invoice-pdfs
+      n6[("Cloud Storage invoice-pdfs")]
+      %% id: vpc
+      subgraph n10["VPC network invoicing-vpc"]
+        %% id: invoices-pg
+        n5[("Cloud SQL invoices-pg")]
+      end
+    end
+  end
+  %% id: c-scheduler-api
+  n1 -->|"HTTP POST (OIDC)"| n2
+  %% id: c-api-db
+  n2 -->|"SQL"| n5
+  %% id: c-api-topic
+  n2 -->|"publish"| n3
+  %% id: c-topic-worker
+  n3 -->|"push"| n4
+  %% id: c-worker-db
+  n4 -->|"SQL"| n5
+  %% id: c-worker-pdfs
+  n4 -->|"write objects"| n6
+  %% id: c-worker-payment
+  n4 -->|"HTTPS"| n7
+  %% id: c-topic-api
+  n3 -->|"push"| n2

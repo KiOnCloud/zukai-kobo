@@ -1,0 +1,67 @@
+{
+  "gcp": {
+    "icons": {
+      "cloud_scheduler": "scheduled_tasks",
+      "scheduler": "scheduled_tasks",
+      "gke": "container_engine",
+      "kubernetes_engine": "container_engine",
+      "google_kubernetes_engine": "container_engine",
+      "cloud_build": "container_builder",
+      "artifact_registry": "container_registry",
+      "cloud_monitoring": "stackdriver",
+      "monitoring": "stackdriver",
+      "cloud_logging": "logging",
+      "memorystore": "cloud_memorystore",
+      "redis": "cloud_memorystore",
+      "pubsub": "cloud_pubsub",
+      "pub_sub": "cloud_pubsub",
+      "pubsub_topic": "cloud_pubsub",
+      "cloud_sql_instance": "cloud_sql",
+      "sql": "cloud_sql",
+      "gcs": "cloud_storage",
+      "cloud_storage_bucket": "cloud_storage",
+      "storage_bucket": "cloud_storage",
+      "cloud_tasks_queue": "cloud_tasks",
+      "cloud_function": "cloud_functions",
+      "cloud_run_service": "cloud_run",
+      "cloud_run_job": "cloud_run",
+      "firestore": "cloud_firestore",
+      "spanner": "cloud_spanner",
+      "bigtable": "cloud_bigtable",
+      "load_balancer": "cloud_load_balancing",
+      "cloud_load_balancer": "cloud_load_balancing",
+      "kms": "key_management_service",
+      "cloud_kms": "key_management_service",
+      "iam": "cloud_iam",
+      "iap": "identity_aware_proxy",
+      "secret_manager": null,
+      "eventarc": null,
+      "workflows": null,
+      "alloydb": null,
+      "cloud_composer": null
+    },
+    "groups": {
+      "vpc": "vpc_network",
+      "network": "vpc_network",
+      "subnetwork": "subnet",
+      "gke_cluster": "kubernetes_cluster",
+      "cluster": "kubernetes_cluster",
+      "availability_zone": "zone"
+    }
+  },
+  "aws": {
+    "icons": {
+      "alb": "elastic_load_balancing",
+      "application_load_balancer": "elastic_load_balancing",
+      "network_load_balancer": "elastic_load_balancing",
+      "load_balancer": "elastic_load_balancing",
+      "s3_bucket": "s3",
+      "sqs_queue": "sqs",
+      "sns_topic": "sns",
+      "lambda_function": "lambda",
+      "dynamodb_table": "dynamodb",
+      "msk": "managed_streaming_for_kafka"
+    },
+    "groups": {}
+  }
+}

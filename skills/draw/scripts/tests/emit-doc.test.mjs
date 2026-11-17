@@ -116,7 +116,7 @@ describe('description tables: what they hold', () => {
           expect(rows(h.relations)).toBe(n('relations'));
           break;
         case 'architecture':
-          expect([rows(h.components) + rows(h.stores), rows(h.boundaries), rows(h.connections)]).toEqual([n('components'), n('boundaries'), n('connections')]);
+          expect([rows(h.components) + rows(h.stores) + rows(h.queues), rows(h.boundaries), rows(h.connections)]).toEqual([n('components'), n('boundaries'), n('connections')]);
           break;
         case 'activity':
           expect([rows(h.lanes), rows(h.steps), arrows(h.steps)]).toEqual([n('lanes'), n('actions') + n('controls'), n('flows')]);
@@ -369,5 +369,48 @@ describe('description tables: the checks before them', () => {
     const all = await bundle([{ id: 'a', ir: loadFixture('flowchart', 'valid') }, { id: 'b', ir: loadFixture('adversarial', 'labels') }], 'doc');
     expect(all.ok).toBe(false);
     expect(all.errors.every((e) => e.diagram === 'b')).toBe(true);
+  });
+});
+
+describe('description tables: stores, queues and storage of an architecture diagram', () => {
+  const ir = {
+    schemaVersion: 1, kind: 'architecture', title: 'Invoicing',
+    components: [
+      { id: 'api', label: 'invoice-api', icon: 'gcp:cloud_run' },
+      { id: 'topic', label: 'Pub/Sub invoice-events', kind: 'queue', icon: 'gcp:cloud_pubsub' },
+      { id: 'audit', label: 'SQS invoice-audit', kind: 'queue', icon: 'aws:sqs' },
+      { id: 'pg', label: 'Cloud SQL invoices-pg', kind: 'database', icon: 'gcp:cloud_sql' },
+      { id: 'pdfs', label: 'Cloud Storage invoice-pdfs', kind: 'database', icon: 'gcp:cloud_storage' },
+      { id: 'archive', label: 'S3 archive', kind: 'database', icon: 'aws:s3' },
+      { id: 'cache', label: 'Sessions', kind: 'cache' },
+      { id: 'files', label: 'File share', kind: 'database' },
+    ],
+    connections: [{ id: 'c1', from: 'api', to: 'topic', label: 'publish' }],
+  };
+
+  it('lists a queue under a heading of its own, never among the data stores', () => {
+    const doc = emitDoc(ir).output;
+    expect(rowsUnder(doc, 'Queues').map((r) => [r[1], r[2]])).toEqual([['Pub/Sub invoice-events', 'Queue'], ['SQS invoice-audit', 'Queue']]);
+    expect(rowsUnder(doc, 'Data stores').map((r) => r[1])).toEqual(['Cloud SQL invoices-pg', 'Cloud Storage invoice-pdfs', 'S3 archive', 'Sessions', 'File share']);
+    expect(rowsUnder(doc, 'Components').map((r) => r[1])).toEqual(['invoice-api']);
+    // Every component is in exactly one of the three tables.
+    expect(rowsUnder(doc, 'Components').length + rowsUnder(doc, 'Data stores').length + rowsUnder(doc, 'Queues').length).toBe(ir.components.length);
+  });
+
+  it('calls a bucket storage, by its icon, and a database a database', () => {
+    const kinds = Object.fromEntries(rowsUnder(emitDoc(ir).output, 'Data stores').map((r) => [r[1], r[2]]));
+    expect(kinds).toEqual({ 'Cloud SQL invoices-pg': 'Database', 'Cloud Storage invoice-pdfs': 'Storage', 'S3 archive': 'Storage', Sessions: 'Cache', 'File share': 'Database' });
+  });
+
+  it('has the heading and the word in every language', () => {
+    expect(rowsUnder(emitDoc(ir, { lang: 'ja' }).output, 'キュー')).toHaveLength(2);
+    expect(rowsUnder(emitDoc(ir, { lang: 'vi' }).output, 'Hàng đợi')).toHaveLength(2);
+    expect(rowsUnder(emitDoc(ir, { lang: 'ja' }).output, 'データストア')[1][2]).toBe('ストレージ');
+    expect(rowsUnder(emitDoc(ir, { lang: 'vi' }).output, 'Kho dữ liệu')[1][2]).toBe('Lưu trữ');
+  });
+
+  it('writes no queue heading for a diagram without one', () => {
+    const doc = emitDoc({ ...ir, components: ir.components.filter((c) => c.kind !== 'queue'), connections: [] }).output;
+    expect(doc).not.toContain('## Queues');
   });
 });

@@ -214,7 +214,7 @@ function extractPage(id, name, pageXml) {
     const parent = byId.get(cell.parent);
     if (parent?.edge) {
       const text = textOf(cell);
-      if (text) (edgeTexts.get(parent.id) ?? edgeTexts.set(parent.id, []).get(parent.id)).push({ text, at: cell.geo.x });
+      if (text) (edgeTexts.get(parent.id) ?? edgeTexts.set(parent.id, []).get(parent.id)).push({ text, at: cell.geo.x, main: cell.id === `${parent.id}:label` });
       continue;
     }
     if (!cell.vertex) continue;
@@ -331,7 +331,10 @@ function extractPage(id, name, pageXml) {
     const edge = { id: cell.id, label: textOf(cell) };
     const extra = (edgeTexts.get(cell.id) ?? []).sort((a, b) => a.at - b.at);
     for (const t of extra) {
-      if (t.at <= -0.5) edge.startLabel = edge.startLabel ? `${edge.startLabel}\n${t.text}` : t.text;
+      // In a file Zukai wrote, the label of a line is the cell `<edge id>:label`, wherever
+      // along the line the layout found room for it; only an end text has another id.
+      if (t.main) edge.label = edge.label ? `${edge.label}\n${t.text}` : t.text;
+      else if (t.at <= -0.5) edge.startLabel = edge.startLabel ? `${edge.startLabel}\n${t.text}` : t.text;
       else if (t.at >= 0.5) edge.endLabel = edge.endLabel ? `${edge.endLabel}\n${t.text}` : t.text;
       else edge.label = edge.label ? `${edge.label}\n${t.text}` : t.text;
     }

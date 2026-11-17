@@ -1,4 +1,5 @@
 import { DOC_STRINGS, DOC_LANGS } from './doc-strings.mjs';
+import { cloudIcon } from './aws-icons.mjs';
 
 export { DOC_LANGS };
 
@@ -217,7 +218,12 @@ function classTables(ir, c) {
   return out;
 }
 
-const STORE_KINDS = new Set(['database', 'queue', 'cache']);
+const STORE_KINDS = new Set(['database', 'cache']);
+/**
+ * The word for what a component is. A bucket carries the kind `database`, which is what the
+ * targets without icons draw it as; its icon says it is object storage, and the table says that.
+ */
+const kindWord = (x) => (x.kind === 'database' && cloudIcon(x.icon)?.category === 'Storage' ? 'storage' : x.kind ?? 'service');
 
 function architectureTables(ir, c) {
   const { t } = c;
@@ -237,16 +243,20 @@ function architectureTables(ir, c) {
   const componentTable = (head, rows) => table([
     numbered(t),
     { head, cell: (x) => name.get(x.id) },
-    { head: t.column.kind, cell: (x) => t.value.component[x.kind ?? 'service'] },
+    { head: t.column.kind, cell: (x) => t.value.component[kindWord(x)] },
     { head: t.column.boundary, cell: (x) => pathOf(x.id), when: boundaries.length > 0 },
     { head: t.column.icon, cell: (x) => (x.icon ? `\`${x.icon}\`` : ''), when: components.some((x) => x.icon) },
     { head: t.column.details, cell: (x) => c.ref(x.ref, `/components/${indexOf.get(x.id)}/ref`), when: rows.some((x) => x.ref) },
   ], rows);
+  // A queue holds messages on their way, not data: it has a table of its own, so a reader
+  // of the document does not find a topic under the data stores.
   const stores = components.filter((x) => STORE_KINDS.has(x.kind));
-  const others = components.filter((x) => !STORE_KINDS.has(x.kind));
+  const queues = components.filter((x) => x.kind === 'queue');
+  const others = components.filter((x) => !STORE_KINDS.has(x.kind) && x.kind !== 'queue');
   const out = [];
   if (others.length > 0) out.push(c.heading(t.heading.components), ...componentTable(t.column.component, others));
   if (stores.length > 0) out.push(c.heading(t.heading.stores), ...componentTable(t.column.store, stores));
+  if (queues.length > 0) out.push(c.heading(t.heading.queues), ...componentTable(t.column.queue, queues));
   if (boundaries.length > 0) {
     out.push(c.heading(t.heading.boundaries), ...table([
       numbered(t),
@@ -472,7 +482,7 @@ export function emitDoc(ir, options = {}) {
   if (options.part) lines.push(`<a id="${options.part.anchor}"></a>`, '');
   else lines.push(docMarker(lang));
   lines.push(`${'#'.repeat(top)} ${escapeLine(ir.title)}`, '');
-  lines.push(`${t.diagramKind}: ${t.diagram[ir.kind]}${options.part ? ` · ${t.source}: \`source/${options.part.id}.ir.json\`` : ''}`, '');
+  lines.push(`${t.diagramKind}: ${t.diagram[ir.kind]}${options.part ? ` · ${t.source}: \`${options.part.source ?? `source/${options.part.id}.ir.json`}\`` : ''}`, '');
   lines.push(...tables(ir, c));
   const omitted = ir.meta?.omitted ?? [];
   if (omitted.length > 0) lines.push(`${t.omitted}:`, '', ...omitted.map((o) => `- ${escapeLine(o)}`), '');

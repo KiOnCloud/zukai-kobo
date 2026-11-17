@@ -546,3 +546,63 @@ describe('PlantUML sources: an IR written by the mapping reference', () => {
     expect(result.missing.map((m) => [m.page, m.text])).toEqual([['plantuml-1', 'Alice'], ['plantuml-1', 'Bob'], ['plantuml-1', 'hello'], ['plantuml-1', 'hi']]);
   });
 });
+
+describe('a note that is the condition of an «extend»', () => {
+  const usecases = (notes) => one(`@startuml
+actor Patient
+rectangle "Clinic" {
+  usecase "Book an appointment" as UC1
+  usecase (Pay deposit) as UC7
+  usecase "Cancel" as UC2
+}
+Patient --> UC1
+UC7 .> UC1 : <<extend>>
+${notes}
+@enduml`);
+
+  it('is offered on the edge when it stands beside the use case that extends, and stays a text of the page', () => {
+    const page = usecases('note right of UC7\n  Only for first-time\n  patients\nend note');
+    expect(edge(page, '«extend»')).toMatchObject({ from: 'UC7', to: 'UC1', condition: 'Only for first-time patients' });
+    const note = page.nodes.find((n) => n.shape === 'note');
+    expect(note).toMatchObject({ label: 'Only for first-time\npatients', detail: 'right of UC7' });
+  });
+
+  it('is offered on the edge when it is written on the link', () => {
+    const page = usecases('note on link : when the patient is new');
+    expect(edge(page, '«extend»').condition).toBe('when the patient is new');
+  });
+
+  it('is offered to no edge beside the extended use case, beside an actor, as a free note, or beside a use case that extends two', () => {
+    for (const notes of ['note right of UC1 : busiest in January', 'note left of Patient : about 300 a day', 'note "Reminders go out 24h before" as N1']) {
+      expect(usecases(notes).edges.every((e) => e.condition === undefined), notes).toBe(true);
+    }
+    const two = usecases('UC7 .> UC2 : <<extend>>\nnote right of UC7 : first visit');
+    expect(two.edges.every((e) => e.condition === undefined)).toBe(true);
+  });
+
+  it('is not offered on an include or an association', () => {
+    const page = one('@startuml\nusecase A\nusecase B\nA .> B : <<include>>\nnote on link : always\n@enduml');
+    expect(page.edges[0].condition).toBeUndefined();
+  });
+});
+
+describe('the pages of a Markdown file', () => {
+  it('come in the order of the file, whichever language a fence is written in', () => {
+    const md = '# Booking notes\n\n```plantuml\nA -> B : hi\n```\n\nText between.\n\n```mermaid\nstateDiagram-v2\n  [*] --> Open\n```\n\n## Later\n\n```plantuml\nC -> D : bye\n```\n';
+    const r = extractFacts(Buffer.from(md), 'notes.md');
+    expect(r.facts.format).toBe('markdown');
+    expect(r.facts.pages.map((p) => p.id)).toEqual(['plantuml-1', 'mermaid-1', 'plantuml-2']);
+    expect(r.facts.pages.every((p) => !('line' in p))).toBe(true);
+  });
+
+  it('get a name of their own when one heading stands above two fences', () => {
+    const md = '# Booking notes\n\n```plantuml\nA -> B : hi\n```\n\n```mermaid\nstateDiagram-v2\n  [*] --> Open\n```\n\n## Later\n\n```plantuml\nC -> D : bye\n```\n';
+    const names = extractFacts(Buffer.from(md), 'notes.md').facts.pages.map((p) => p.name);
+    expect(names).toEqual(['Booking notes (1)', 'Booking notes (2)', 'Later']);
+    // Two fences of one language under one heading, and a name the numbering would repeat.
+    const same = '## Flow\n\n```plantuml\nA -> B : hi\n```\n\n```plantuml\nC -> D : bye\n```\n\n## Flow (1)\n\n```plantuml\nE -> F : x\n```\n';
+    expect(extractFacts(Buffer.from(same), 'flow.md').facts.pages.map((p) => p.name)).toEqual(['Flow (2)', 'Flow (3)', 'Flow (1)']);
+    const mermaid = '## Steps\n\n```mermaid\nflowchart TD\n  a --> b\n```\n\n```mermaid\nflowchart TD\n  c --> d\n```\n';
+    expect(extractFacts(Buffer.from(mermaid), 'steps.md').facts.pages.map((p) => p.name)).toEqual(['Steps (1)', 'Steps (2)']);
+  });
+});

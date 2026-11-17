@@ -494,7 +494,121 @@ describe('use case diagram: what works for every kind', () => {
     next.relations.push({ id: 'r8', from: 'guest', to: 'search', kind: 'association' });
     const d = diffIr(ir, next);
     expect(d.added).toEqual([{ collection: 'actors', id: 'guest', label: 'Guest' }, { collection: 'relations', id: 'r8', label: '' }]);
-    expect(d.changed).toEqual([{ collection: 'relations', id: 'r5', label: '', fields: ['kind'] }, { collection: 'useCases', id: 'search', label: 'Search and filter the catalogue', fields: ['label'] }]);
+    expect(d.changed).toEqual([{ collection: 'relations', id: 'r5', label: '', fields: ['kind'], values: { kind: { from: expect.any(String), to: 'extend' } } }, { collection: 'useCases', id: 'search', label: 'Search and filter the catalogue', fields: ['label'], values: { label: { from: expect.any(String), to: expect.any(String) } } }]);
     expect(d.removed).toEqual([]);
   });
+});
+
+describe('use case diagram: the order of the model and the ends of the lines', () => {
+  const clinic = () => ({
+    schemaVersion: 1, kind: 'usecase', title: 'Clinic appointment booking',
+    actors: [
+      { id: 'patient', label: 'Patient' }, { id: 'registered', label: 'Registered patient' }, { id: 'receptionist', label: 'Receptionist' }, { id: 'doctor', label: 'Doctor' },
+      { id: 'sms', label: 'SMS gateway', kind: 'system' }, { id: 'pay', label: 'Payment provider', kind: 'system' },
+    ],
+    useCases: [
+      { id: 'search', label: 'Search available slots' }, { id: 'register', label: 'Register an account' }, { id: 'book', label: 'Book an appointment' },
+      { id: 'cancel', label: 'Cancel an appointment' }, { id: 'reschedule', label: 'Reschedule an appointment' }, { id: 'manage', label: 'Manage doctor schedules' },
+      { id: 'checkin', label: 'Check in a patient' }, { id: 'today', label: "View today's appointments" }, { id: 'signin', label: 'Sign in' }, { id: 'deposit', label: 'Pay a deposit' },
+    ],
+    boundaries: [{ id: 'sys', label: 'Clinic booking system', children: ['search', 'register', 'book', 'cancel', 'reschedule', 'manage', 'checkin', 'today', 'signin', 'deposit'] }],
+    relations: [
+      { id: 'r1', from: 'patient', to: 'search', kind: 'association' }, { id: 'r2', from: 'patient', to: 'register', kind: 'association' },
+      { id: 'r3', from: 'registered', to: 'book', kind: 'association' }, { id: 'r4', from: 'registered', to: 'cancel', kind: 'association' }, { id: 'r5', from: 'registered', to: 'reschedule', kind: 'association' },
+      { id: 'r6', from: 'receptionist', to: 'manage', kind: 'association' }, { id: 'r7', from: 'receptionist', to: 'checkin', kind: 'association' }, { id: 'r8', from: 'doctor', to: 'today', kind: 'association' },
+      { id: 'r9', from: 'book', to: 'signin', kind: 'include' }, { id: 'r10', from: 'cancel', to: 'signin', kind: 'include' }, { id: 'r11', from: 'reschedule', to: 'signin', kind: 'include' },
+      { id: 'r12', from: 'deposit', to: 'book', kind: 'extend', condition: 'first visit' },
+      { id: 'r13', from: 'book', to: 'sms', kind: 'association' }, { id: 'r14', from: 'deposit', to: 'pay', kind: 'association' },
+      { id: 'r15', from: 'registered', to: 'patient', kind: 'generalization' },
+    ],
+  });
+  const placed = async (ir) => {
+    const r = await emit(ir, 'drawio', { diagramId: 'u' });
+    expect(r.ok).toBe(true);
+    expect(r.warnings).toEqual([]);
+    const { problems, cells } = checkDrawioStructure(r.output);
+    expect(problems).toEqual([]);
+    const abs = absoluteBounds(cells);
+    return { cells, abs, at: (id) => abs.get(`u:${id}`), paths: edgePaths(cells, abs) };
+  };
+  /** The ids in the order they stand down the page. */
+  const downThePage = (p, ids) => [...ids].sort((a, b) => p.at(a).y - p.at(b).y);
+
+  it('stands the actors of a side in the order the model lists them, in the fixtures too', async () => {
+    const ir = clinic();
+    const p = await placed(ir);
+    expect(downThePage(p, ['patient', 'registered', 'receptionist', 'doctor'])).toEqual(['patient', 'registered', 'receptionist', 'doctor']);
+    expect(downThePage(p, ['sms', 'pay'])).toEqual(['sms', 'pay']);
+    for (const { name, ir: fixture } of fixtures.filter((f) => (f.ir.direction ?? 'LR') === 'LR')) {
+      const q = await placed(fixture);
+      for (const role of ['primary', 'supporting']) {
+        const ids = fixture.actors.filter((a) => roleOf(a) === role).map((a) => a.id);
+        expect(downThePage(q, ids), `${name} ${role}`).toEqual(ids);
+      }
+    }
+  }, 60000);
+
+  it('keeps every actor and use case in its order when one association is added', async () => {
+    const before = await placed(clinic());
+    const more = clinic();
+    more.relations.push({ id: 'r16', from: 'receptionist', to: 'book', kind: 'association' });
+    const after = await placed(more);
+    const actors = more.actors.filter((a) => roleOf(a) === 'primary').map((a) => a.id);
+    expect(downThePage(after, actors)).toEqual(downThePage(before, actors));
+    const useCases = more.useCases.map((u) => u.id);
+    expect(downThePage(after, useCases)).toEqual(downThePage(before, useCases));
+    // Nothing but the receptionist, who moves towards the new use case, leaves its place by more than a line's room.
+    for (const id of [...actors, ...useCases].filter((x) => x !== 'receptionist')) {
+      expect(Math.abs(after.at(id).y - before.at(id).y), id).toBeLessThanOrEqual(20);
+      expect(Math.abs(after.at(id).x - before.at(id).x), id).toBeLessThanOrEqual(20);
+    }
+  }, 60000);
+
+  it('keeps the order when a use case is added, removed, or an actor is put between two others', async () => {
+    const before = await placed(clinic());
+    const added = clinic();
+    added.useCases.push({ id: 'book-for', label: 'Book for a patient' });
+    added.boundaries[0].children.push('book-for');
+    added.relations.push({ id: 'r16', from: 'receptionist', to: 'book-for', kind: 'association' }, { id: 'r17', from: 'book-for', to: 'book', kind: 'generalization' });
+    const removed = clinic();
+    removed.useCases = removed.useCases.filter((u) => u.id !== 'checkin');
+    removed.boundaries[0].children = removed.boundaries[0].children.filter((c) => c !== 'checkin');
+    removed.relations = removed.relations.filter((r) => r.from !== 'checkin' && r.to !== 'checkin');
+    const between = clinic();
+    between.actors.splice(3, 0, { id: 'admin', label: 'Administrator' });
+    between.relations.push({ id: 'r20', from: 'admin', to: 'manage', kind: 'association' });
+    for (const [what, ir] of [['added', added], ['removed', removed], ['between', between]]) {
+      const after = await placed(ir);
+      const shared = (ids) => ids.filter((id) => before.at(id) && after.at(id));
+      for (const ids of [clinic().actors.slice(0, 4).map((a) => a.id), clinic().useCases.map((u) => u.id)]) {
+        expect(downThePage(after, shared(ids)), what).toEqual(downThePage(before, shared(ids)));
+      }
+    }
+    expect(downThePage(await placed(between), ['patient', 'registered', 'receptionist', 'admin', 'doctor'])).toEqual(['patient', 'registered', 'receptionist', 'admin', 'doctor']);
+  }, 60000);
+
+  it('never ends two lines at one point of an ellipse: a use case with many ends on a side is drawn taller', async () => {
+    const ir = clinic();
+    ir.useCases.push({ id: 'book-for', label: 'Book for a patient' });
+    ir.boundaries[0].children.push('book-for');
+    ir.relations.push({ id: 'r16', from: 'receptionist', to: 'book-for', kind: 'association' }, { id: 'r17', from: 'book-for', to: 'book', kind: 'generalization' });
+    const p = await placed(ir);
+    // Four lines end on the side of "Book an appointment" that faces away from the actors.
+    const one = measureEllipse('Book an appointment');
+    expect(p.at('book').height).toBeGreaterThan(one.height);
+    expect(p.at('cancel').height).toBe(measureEllipse('Cancel an appointment').height);
+    for (const u of ir.useCases) {
+      const box = p.at(u.id);
+      const ends = [];
+      for (const r of ir.relations) {
+        const path = p.paths.get(`u:${r.id}`);
+        if (r.from === u.id) ends.push(path[0]);
+        if (r.to === u.id) ends.push(path.at(-1));
+      }
+      for (const side of ['left', 'right']) {
+        const ys = ends.filter((e) => (side === 'left' ? e.x < box.x + box.width / 2 : e.x >= box.x + box.width / 2)).map((e) => e.y).sort((a, b) => a - b);
+        for (let i = 1; i < ys.length; i++) expect(ys[i] - ys[i - 1], `${u.id} ${side}`).toBeGreaterThanOrEqual(12);
+      }
+    }
+  }, 60000);
 });

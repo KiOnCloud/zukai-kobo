@@ -64,9 +64,37 @@ export const hasPlantumlFence = (text) => String(text).split(/\r\n?|\n/).some((l
  * @param {string} text a PlantUML file, or Markdown holding ```plantuml / ```puml fenced blocks
  * @returns {{ facts: 1, format: 'plantuml', pages: object[] }}
  */
-export function extractPlantuml(text) {
+export function extractPlantuml(text, { withLines = false } = {}) {
   const blocks = splitBlocks(String(text ?? ''));
-  return { facts: 1, format: 'plantuml', pages: blocks.map((b, i) => extractPage(b, i + 1)) };
+  // `withLines` adds the line each page starts at, for a caller that orders pages of several readers.
+  return { facts: 1, format: 'plantuml', pages: blocks.map((b, i) => ({ ...offerConditions(extractPage(b, i + 1)), ...(withLines ? { line: b.line } : {}) })) };
+}
+
+const EXTEND = /^\s*(?:«|<<)\s*extends?\s*(?:»|>>)\s*$/i;
+
+/**
+ * PlantUML has no field for the condition of an «extend», so authors write it as a note: on
+ * the link itself, or beside the use case that extends. Such a note is offered as the
+ * `condition` of that edge. It stays a note with its text as well, because whether it is the
+ * condition is the reader's call: a note beside a use case with two «extend» lines, or with
+ * none, is offered to no edge.
+ */
+function offerConditions(page) {
+  const extend = page.edges.filter((e) => EXTEND.test(e.label ?? ''));
+  if (extend.length === 0) return page;
+  for (const note of page.nodes) {
+    if (note.shape !== 'note' || typeof note.detail !== 'string' || !note.label) continue;
+    let edge;
+    const onLink = /^on link (\S+)$/.exec(note.detail);
+    const beside = /^(?:left|right|top|bottom) of (\S+)$/.exec(note.detail);
+    if (onLink) edge = extend.find((e) => e.id === onLink[1]);
+    else if (beside) {
+      const from = extend.filter((e) => e.from === beside[1]);
+      if (from.length === 1) [edge] = from;
+    }
+    if (edge && edge.condition === undefined) edge.condition = note.label.split('\n').map((l) => l.trim()).filter(Boolean).join(' ');
+  }
+  return page;
 }
 
 // ---------------------------------------------------------------------------------------------

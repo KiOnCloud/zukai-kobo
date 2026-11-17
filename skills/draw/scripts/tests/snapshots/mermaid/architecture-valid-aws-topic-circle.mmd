@@ -1,0 +1,41 @@
+---
+title: "Orders on AWS: the topic calls back the API"
+---
+flowchart LR
+  %% id: carrier
+  n7>"Carrier API"]
+  %% id: cloud
+  subgraph n8["AWS Cloud"]
+    %% id: region
+    subgraph n9["eu-west-1"]
+      %% id: gateway
+      n1["API Gateway"]
+      %% id: order-api
+      n2["order-api (Lambda)"]
+      %% id: order-events
+      n3[["SNS order-events"]]
+      %% id: labels
+      n6[("S3 shipping-labels")]
+      %% id: vpc
+      subgraph n10["VPC"]
+        %% id: fulfilment
+        n4["fulfilment (Fargate)"]
+        %% id: orders-db
+        n5[("RDS orders")]
+      end
+    end
+  end
+  %% id: c-gateway-api
+  n1 -->|"invoke"| n2
+  %% id: c-api-topic
+  n2 -->|"publish"| n3
+  %% id: c-topic-fulfilment
+  n3 -->|"deliver"| n4
+  %% id: c-fulfilment-db
+  n4 -->|"SQL"| n5
+  %% id: c-fulfilment-labels
+  n4 -->|"put objects"| n6
+  %% id: c-fulfilment-carrier
+  n4 -->|"HTTPS"| n7
+  %% id: c-topic-api
+  n3 -->|"deliver"| n2

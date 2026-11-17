@@ -26,9 +26,10 @@ const KIND_HEADERS = [
  * @param {string} text a .mmd file, or Markdown holding ```mermaid fenced blocks (one page per block)
  * @returns {{ facts: 1, format: 'mermaid', pages: object[] }}
  */
-export function extractMermaid(text) {
+export function extractMermaid(text, { withLines = false } = {}) {
   const blocks = splitBlocks(String(text ?? ''));
-  return { facts: 1, format: 'mermaid', pages: blocks.map((b, i) => extractPage(b, i + 1)) };
+  // `withLines` adds the line each page starts at, for a caller that orders pages of several readers.
+  return { facts: 1, format: 'mermaid', pages: blocks.map((b, i) => ({ ...extractPage(b, i + 1), ...(withLines ? { line: b.line ?? b.lines[0]?.line ?? 1 } : {}) })) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -53,7 +54,7 @@ function splitBlocks(text) {
       const close = new RegExp(`^\\s{0,3}${fence[0] === '`' ? '`' : '~'}{${fence.length},}\\s*$`);
       let j = i + 1;
       while (j < lines.length && !close.test(lines[j].text)) j++;
-      if (MERMAID_FENCE.test(lines[i].text)) blocks.push({ lines: lines.slice(i + 1, j), heading });
+      if (MERMAID_FENCE.test(lines[i].text)) blocks.push({ lines: lines.slice(i + 1, j), heading, line: lines[i].line });
       i = j;
       continue;
     }

@@ -12,14 +12,15 @@ import { redactText } from './scan-secrets.mjs';
  * JSON a FigJam board returned through the reader script. The content decides, the name only
  * breaks a tie, so a draw.io file saved as `.xml`, a board saved as `.txt` or a PlantUML
  * diagram saved as `.txt` still reads. A Markdown file with fences of both languages gives the
- * pages of both, the Mermaid ones first, under the format `markdown`.
+ * pages of both in the order of the file, under the format `markdown`; pages that the same
+ * heading would name alike are numbered.
  *
  * Facts, the same shape for every source:
  *   { facts: 1, format: 'drawio'|'mermaid'|'plantuml'|'markdown'|'figjam', pages: [{
  *       id, name, direction?, autonumber?, unsupported?: { type, reason },
  *       kindHints: [{ kind, score, evidence: string[] }],          best first; empty when nothing fits
  *       nodes: [{ id, label, shape, texts?, parent?, detail?, icon?, group?, link?, dashed?, box? }],
- *       edges: [{ id, label, from, to, startLabel?, endLabel?, fromPart?, toPart?,
+ *       edges: [{ id, label, from, to, startLabel?, endLabel?, condition?, fromPart?, toPart?,
  *                 fromInferred?, toInferred?, dashed?, startArrow?, endArrow?, y? }],
  *       warnings: string[] }] }
  *
@@ -36,8 +37,8 @@ export function extractFacts(buf, file = '') {
   if (!xmlLike) {
     const text = buf.toString('utf8');
     const plantuml = extractPlantumlLike(text, ext);
-    if (plantuml) return { ok: true, facts: redactFacts(plantuml) };
-    if (mermaidLike) return { ok: true, facts: redactFacts(extractMermaid(text)) };
+    if (plantuml) return { ok: true, facts: redactFacts(distinctPageNames(plantuml)) };
+    if (mermaidLike) return { ok: true, facts: redactFacts(distinctPageNames(extractMermaid(text))) };
   }
   const xml = drawioXmlOf(buf);
   if (xml.error) return { ok: false, error: xml.error };
@@ -54,9 +55,36 @@ function extractPlantumlLike(text, ext) {
   if (ext === '.mmd' || ext === '.mermaid') return undefined;
   const fenced = hasPlantumlFence(text);
   if (!PLANTUML_EXTENSIONS.has(ext) && !fenced && !/^\s*@start[a-z]+\b/im.test(text)) return undefined;
-  const facts = extractPlantuml(text);
-  if (!fenced || !/^\s{0,3}(`{3,}|~{3,})\s*mermaid\b/im.test(text)) return facts;
-  return { facts: 1, format: 'markdown', pages: [...extractMermaid(text).pages, ...facts.pages] };
+  if (!fenced || !/^\s{0,3}(`{3,}|~{3,})\s*mermaid\b/im.test(text)) return extractPlantuml(text);
+  // The pages of both readers in the order of the file, which is the order the reader of the document meets them in.
+  const pages = [...extractMermaid(text, { withLines: true }).pages, ...extractPlantuml(text, { withLines: true }).pages]
+    .sort((a, b) => a.line - b.line)
+    .map(({ line, ...page }) => page);
+  return { facts: 1, format: 'markdown', pages };
+}
+
+/**
+ * Pages of a text source are named by the heading above them, so two diagrams under one
+ * heading would share a name: `--page <name>` could not tell them apart and a bundle would get
+ * two pages of one name. Each such page gets its place among them, `<name> (1)`, `<name> (2)`,
+ * in source order.
+ */
+export function distinctPageNames(facts) {
+  const count = new Map();
+  for (const p of facts.pages) if (p.name) count.set(p.name, (count.get(p.name) ?? 0) + 1);
+  const taken = new Set(facts.pages.map((p) => p.name));
+  const seen = new Map();
+  for (const p of facts.pages) {
+    if (!p.name || count.get(p.name) < 2) continue;
+    const base = p.name;
+    let n = seen.get(base) ?? 0;
+    let name;
+    do { n += 1; name = `${base} (${n})`; } while (taken.has(name));
+    seen.set(base, n);
+    taken.add(name);
+    p.name = name;
+  }
+  return facts;
 }
 
 /**
@@ -102,7 +130,7 @@ export function redactFacts(facts) {
       n.label = clean(n.id, 'label', n.label);
       if (n.texts) n.texts = n.texts.map((t, i) => clean(n.id, `texts/${i}`, t));
     }
-    for (const e of page.edges) for (const f of ['label', 'startLabel', 'endLabel']) if (e[f] !== undefined) e[f] = clean(e.id, f, e[f]);
+    for (const e of page.edges) for (const f of ['label', 'startLabel', 'endLabel', 'condition']) if (e[f] !== undefined) e[f] = clean(e.id, f, e[f]);
     if (sensitive.length > 0) {
       page.sensitive = sensitive;
       page.warnings.push(`${sensitive.length} text${sensitive.length > 1 ? 's hold' : ' holds'} what looks like a credential or personal data (${[...new Set(sensitive.flatMap((x) => x.kinds))].join(', ')}): the value is replaced by a <redacted ...> placeholder in these facts; the source file itself still holds it`);

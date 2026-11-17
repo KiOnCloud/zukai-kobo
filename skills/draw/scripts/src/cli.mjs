@@ -9,13 +9,14 @@
  *     (--to doc: the description tables of the diagram as Markdown, with headings and column headers in the language of --lang;
  *      --overlay, with --to figjam: the script for use_figma that draws what generate_diagram leaves out of a sequence diagram;
  *      --native, with --to figjam: the script(s) for use_figma that draw the whole board at the draw.io coordinates, for every kind)
- *   node cli.mjs bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <en|ja|vi>] [--canvas all|<id,id,...> [--gap <px>]] <run-dir|ir.json>...
+ *   node cli.mjs bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <en|ja|vi>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] [--mermaid-stable] <run-dir|ir.json>...
  *     (one file holding every diagram; a run folder stands for its IRs with the main diagram first;
  *      --canvas adds a first draw.io page with those diagrams side by side;
  *      --to doc writes the description tables of every diagram into one Markdown document)
  *   node cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>   (new labels by IR id, layout kept)
- *   node cli.mjs preview <file.drawio|file.mmd|run.md> [--out <file.png>] [--max-px <n>]   (optional; needs draw.io desktop or Playwright)
- *   node cli.mjs export <file.drawio|run-dir> [--out <dir|file.svg>]   (one editable <name>.drawio.svg per page; needs draw.io desktop or Playwright)
+ *   node cli.mjs preview <file.drawio|file.drawio.svg|file.mmd|run.md> [--page <id|name>] [--out <file.png>] [--max-px <n>]   (optional; needs draw.io desktop or Playwright;
+ *      a draw.io file of several pages shows its first page, or the one --page names)
+ *   node cli.mjs export <file.drawio|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]   (one editable <name>.drawio.svg per page, or only the pages named; needs draw.io desktop or Playwright)
  *   node cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir> [--drawio <out.drawio>] [--allow-sensitive]   (elements added, removed, changed; a dir is a run's source/ folder;
  *      --drawio also draws the change: the new version with what was added in green, changed in amber, removed in red)
  *   node cli.mjs drift <file.drawio|run.md> <ir.json|run-dir>...   (cells that differ from a fresh emit: hand edits made in draw.io)
@@ -46,10 +47,10 @@ import { recordSources, staleRun } from './sources.mjs';
 const USAGE = `usage:
   cli.mjs validate <ir.json>
   cli.mjs emit --to <${EMIT_TARGETS.join('|')}> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--lang <${DOC_LANGS.join('|')}>] [--allow-sensitive] [--mermaid-stable]
-  cli.mjs bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <${DOC_LANGS.join('|')}>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] <run-dir|ir.json>...
+  cli.mjs bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <${DOC_LANGS.join('|')}>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] [--mermaid-stable] <run-dir|ir.json>...
   cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>
-  cli.mjs preview <file.drawio|file.mmd|run.md> [--out <file.png>] [--max-px <n>]
-  cli.mjs export <file.drawio|run-dir> [--out <dir|file.svg>]
+  cli.mjs preview <file.drawio|file.drawio.svg|file.mmd|run.md> [--page <id|name>] [--out <file.png>] [--max-px <n>]
+  cli.mjs export <file.drawio|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]
   cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir> [--drawio <out.drawio>] [--allow-sensitive]
   cli.mjs drift <file.drawio|run.md> <ir.json|run-dir>...
   cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
@@ -64,7 +65,14 @@ const USAGE = `usage:
 
 A run folder (diagrams/<yyyymmdd>_<run-slug>) stands for the IR files in its source/ folder,
 main diagram first. An option takes its value as the next argument or as --option=value.
+A command takes the options its line above shows: any other option is refused, not ignored.
 --allow-sensitive says that what the secret scan found is not a secret.
+--mermaid-stable (emit and bundle, Mermaid text) writes the forms an older Mermaid renderer
+reads: plain participants, a flowchart in place of swimlane-beta, no erDiagram direction line.
+preview draws a .drawio file, an editable picture (.drawio.svg, drawn from the diagram it
+holds), a .mmd file or every block of a combined .md. A draw.io file of several pages shows
+its first page; --page <id|name> picks another, and a name no page has exits 1 with the list
+of pages. export takes --page the same way and then writes only the pictures of those pages.
 --overlay goes with --to figjam: it writes the script that completes a sequence diagram on the
 board (block frames, self-messages, notes); no file is written when the board needs none.
 --native goes with --to figjam too: it writes the script for use_figma that draws the whole
@@ -108,6 +116,29 @@ function fail(code, payload) {
 const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang' };
 const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
 
+/**
+ * The options each command takes. One that a command does not take is refused: an option that
+ * was read and dropped would let the caller believe it had an effect.
+ */
+const COMMAND_OPTIONS = {
+  validate: [],
+  emit: ['--to', '--out', '--overlay', '--native', '--lang', '--allow-sensitive', '--mermaid-stable'],
+  bundle: ['--to', '--out', '--title', '--lang', '--canvas', '--gap', '--allow-sensitive', '--mermaid-stable'],
+  relabel: ['--map', '--out'],
+  preview: ['--page', '--out', '--max-px'],
+  export: ['--page', '--out'],
+  diff: ['--drawio', '--allow-sensitive'],
+  drift: [],
+  snapshot: ['--keep', '--request', '--extra', '--bundle'],
+  revisions: [],
+  restore: ['--keep', '--request', '--extra', '--bundle'],
+  extract: ['--page', '--out', '--figjam-script', '--section', '--from'],
+  cover: [],
+  sources: ['--root', '--only'],
+  // `--only` is named in the message of its own that says where it belongs.
+  stale: ['--root', '--only'],
+};
+
 function parseArgs(argv) {
   const [command, ...rest] = argv;
   const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined };
@@ -118,6 +149,12 @@ function parseArgs(argv) {
     if (!a.startsWith('--')) { opts.positional.push(a); continue; }
     const eq = a.indexOf('=');
     const name = eq < 0 ? a : a.slice(0, eq);
+    const known = Object.hasOwn(FLAGS, name) || Object.hasOwn(VALUE_OPTIONS, name);
+    if (known && Object.hasOwn(COMMAND_OPTIONS, command) && !COMMAND_OPTIONS[command].includes(name)) {
+      const takes = COMMAND_OPTIONS[command];
+      const others = Object.entries(COMMAND_OPTIONS).filter(([, list]) => list.includes(name)).map(([c]) => c);
+      return { error: `${command} does not take ${name}`, hint: `${takes.length > 0 ? `${command} takes ${takes.join(', ')}` : `${command} takes no option`}; ${name} goes with ${others.join(', ')}` };
+    }
     if (Object.hasOwn(FLAGS, name)) {
       if (eq >= 0) return { error: `option ${name} takes no value` };
       opts[FLAGS[name]] = true;
@@ -166,6 +203,17 @@ function readIr(file) {
 
 /** Diagram id of an IR file: its name without `.ir.json` (or `.json`). */
 const diagramIdOf = (file) => basename(file, extname(file)).replace(/\.ir$/, '');
+
+/**
+ * Where an IR of a language variant lies in its run, for the line that names the source of a
+ * diagram: `source/<lang>/<slug>.ir.json`. Translated IRs live in a subfolder of `source/`
+ * named after the language, so a run folder never counts them as further diagrams and the
+ * sources record never sees them. Any other file keeps the usual `source/<slug>.ir.json`.
+ */
+function sourcePathOf(file) {
+  const dir = dirname(resolve(file));
+  return basename(dirname(dir)) === 'source' ? { sourcePath: `source/${basename(dir)}/${basename(file)}` } : {};
+}
 
 /** The IR files of a run folder (its `source/`) or of a plain folder, in run order: main diagram first. */
 function irFilesOf(path) {
@@ -223,7 +271,7 @@ export async function main(argv) {
     if (opts.overlay && opts.to !== 'figjam') return fail(1, { ok: false, errors: [{ path: '/', message: `--overlay goes with --to figjam, not "${opts.to}"` }], usage: USAGE });
     if (opts.native && opts.to !== 'figjam') return fail(1, { ok: false, errors: [{ path: '/', message: `--native goes with --to figjam, not "${opts.to}"` }], usage: USAGE });
     const diagramId = opts.out ? basename(opts.out, extname(opts.out)).replace(/\.ir$/, '') : undefined;
-    const result = await emit(ir, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, diagramId, native: opts.native !== undefined, lang: opts.lang });
+    const result = await emit(ir, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, diagramId, native: opts.native !== undefined, nativeOnly: opts.native !== undefined && opts.out === undefined, lang: opts.lang });
     if (!result.ok) return fail(2, { ok: false, errors: result.errors, warnings: result.warnings });
     // The native scripts carry the labels too, so they are written only past the same gates:
     // <file>.js, then <file>.2.js and so on when the drawing needs more than one script.
@@ -255,7 +303,7 @@ export async function main(argv) {
     if (result.warnings.length > 0) process.stderr.write(JSON.stringify({ warnings: result.warnings }) + '\n');
     // generate_diagram rejects this kind, so there is no Mermaid text to write: only the native scripts.
     if (result.output === undefined) {
-      process.stdout.write(JSON.stringify({ ok: true, out: null, text: `not written: ${result.textSkipped}`, overlay: null, native: nativePaths, warnings: result.warnings.length }) + '\n');
+      process.stdout.write(JSON.stringify({ ok: true, out: null, text: `not written: there is no Mermaid text for a ${ir.kind} diagram on FigJam (generate_diagram does not draw this kind); the native script${nativePaths.length === 1 ? ' draws' : 's draw'} the board`, overlay: null, native: nativePaths, warnings: result.warnings.length }) + '\n');
       return 0;
     }
     if (opts.out) {
@@ -304,7 +352,7 @@ export async function main(argv) {
       const base = basename(file, extname(file)).replace(/\.ir$/, '');
       const n = (seen.get(base) ?? 0) + 1;
       seen.set(base, n);
-      entries.push({ ir, id: n === 1 ? base : `${base}-${n}` });
+      entries.push({ ir, id: n === 1 ? base : `${base}-${n}`, ...sourcePathOf(file) });
     }
     const canvas = opts.canvas === undefined ? undefined : opts.canvas === 'all' ? 'all' : opts.canvas.split(',').map((s) => s.trim()).filter(Boolean);
     const gap = opts.gap === undefined ? undefined : Number(opts.gap);
@@ -367,14 +415,15 @@ export async function main(argv) {
     if (opts.positional.length !== 1) return fail(1, { ok: false, errors: [{ path: '/', message: 'preview takes exactly one file' }], usage: USAGE });
     const maxPx = opts.maxPx === undefined ? undefined : Number(opts.maxPx);
     if (opts.maxPx !== undefined && !(Number.isInteger(maxPx) && maxPx >= 200)) return fail(1, { ok: false, errors: [{ path: '/', message: '--max-px takes a whole number of pixels, 200 or more' }], usage: USAGE });
-    const result = await preview(opts.positional[0], { out: opts.out, maxPx });
+    const result = await preview(opts.positional[0], { out: opts.out, maxPx, page: opts.page });
     if (!result.ok) return fail(1, { ok: false, errors: result.errors });
-    process.stdout.write(JSON.stringify({ ok: true, preview: result.out, files: result.files, tiled: result.tiled === true, ...(result.tiled ? { overlap: result.overlap } : {}), scale: result.scale, renderer: result.renderer, ...(result.blocks ? { blocks: result.blocks } : {}) }) + '\n');
+    process.stdout.write(JSON.stringify({ ok: true, preview: result.out, files: result.files, tiled: result.tiled === true, ...(result.tiled ? { overlap: result.overlap } : {}), scale: result.scale, renderer: result.renderer, ...(result.blocks ? { blocks: result.blocks } : {}), ...(result.page ? { page: result.page, pages: result.pages } : {}) }) + '\n');
     return 0;
   }
   if (opts.command === 'export') {
     if (opts.positional.length !== 1) return fail(1, { ok: false, errors: [{ path: '/', message: 'export takes exactly one .drawio file or run folder' }], usage: USAGE });
-    const result = await exportSvg(opts.positional[0], { out: opts.out });
+    const page = opts.page === undefined ? undefined : opts.page.split(',').map((x) => x.trim()).filter(Boolean);
+    const result = await exportSvg(opts.positional[0], { out: opts.out, page });
     if (result.warnings.length > 0) process.stderr.write(JSON.stringify({ warnings: result.warnings }) + '\n');
     if (!result.ok) return fail(1, { ok: false, errors: result.errors, ...(result.usage ? { usage: USAGE } : {}) });
     process.stdout.write(JSON.stringify({ ok: true, files: result.files, renderer: result.renderer, text: result.text, warnings: result.warnings.length }) + '\n');
@@ -411,7 +460,7 @@ export async function main(argv) {
       const picture = await visualDiff(before, b.entries, { allowSensitive: opts.allowSensitive });
       if (!picture.ok) return fail(2, { ok: false, errors: picture.errors, warnings: picture.warnings });
       if (picture.warnings.length > 0) process.stderr.write(JSON.stringify({ warnings: picture.warnings }) + '\n');
-      if (!picture.differs) report.drawio = { out: null, written: false, reason: 'the two versions do not differ: there is nothing to draw', unchanged: picture.unchanged };
+      if (!picture.differs) report.drawio = { out: null, written: false, reason: picture.metaOnly ? 'the two versions differ only in meta fields, which no diagram shows: there is nothing to draw' : 'the two versions do not differ: there is nothing to draw', unchanged: picture.unchanged };
       else {
         try {
           mkdirSync(dirname(outPath), { recursive: true });
@@ -548,7 +597,7 @@ export async function main(argv) {
     if (irs.length === 0) return fail(1, { ok: false, errors: [{ path: targets[0], message: 'no IR files found' }] });
     const result = cover(read.ir, irs);
     if (!result.ok) {
-      process.stderr.write(JSON.stringify({ ok: false, units: result.units, covered: result.covered, missing: result.missing, hint: 'put each missing text into the IR, or add a meta.omitted entry of the form "\"<text>\": <reason>" (merged into another element, collapsed into a step, left out on purpose); a meta.notes entry does not count' }) + '\n');
+      process.stderr.write(JSON.stringify({ ok: false, units: result.units, covered: result.covered, missing: result.missing, hint: 'put each missing text into the IR, or add a meta.omitted entry that quotes the text and gives the reason, in the form «"<text>": <reason>» (merged into another element, collapsed into a step, left out on purpose); a meta.notes entry does not count' }) + '\n');
       return 2;
     }
     process.stdout.write(JSON.stringify(result) + '\n');

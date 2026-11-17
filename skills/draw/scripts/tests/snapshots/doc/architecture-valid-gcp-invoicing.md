@@ -18,8 +18,13 @@ Diagram kind: Architecture diagram
 | No. | Data store | Kind | Boundary | Icon |
 | --- | --- | --- | --- | --- |
 | 1 | Cloud SQL for PostgreSQL | Database | Project invoicing-prod › asia-northeast1 › VPC network › Private subnet 10.8.0.0/24 | `gcp:cloud_sql` |
-| 2 | Pub/Sub topic | Queue | Project invoicing-prod › asia-northeast1 | `gcp:cloud_pubsub` |
-| 3 | Cloud Storage bucket | Database | Project invoicing-prod › asia-northeast1 | `gcp:cloud_storage` |
+| 2 | Cloud Storage bucket | Storage | Project invoicing-prod › asia-northeast1 | `gcp:cloud_storage` |
+
+## Queues
+
+| No. | Queue | Kind | Boundary | Icon |
+| --- | --- | --- | --- | --- |
+| 1 | Pub/Sub topic | Queue | Project invoicing-prod › asia-northeast1 | `gcp:cloud_pubsub` |
 
 ## Boundaries
 

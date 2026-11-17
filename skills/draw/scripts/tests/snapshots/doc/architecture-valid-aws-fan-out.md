@@ -22,10 +22,15 @@ Diagram kind: Architecture diagram
 
 | No. | Data store | Kind | Boundary | Icon |
 | --- | --- | --- | --- | --- |
-| 1 | S3 load balancer logs | Database | ap-northeast-1 (Tokyo) | `aws:s3` |
+| 1 | S3 load balancer logs | Storage | ap-northeast-1 (Tokyo) | `aws:s3` |
 | 2 | DynamoDB (9 tables, on-demand) | Database | ap-northeast-1 (Tokyo) | `aws:dynamodb` |
-| 3 | S3 attachments | Database | ap-northeast-1 (Tokyo) | `aws:s3` |
-| 4 | SQS reminders | Queue | ap-northeast-1 (Tokyo) | `aws:sqs` |
+| 3 | S3 attachments | Storage | ap-northeast-1 (Tokyo) | `aws:s3` |
+
+## Queues
+
+| No. | Queue | Kind | Boundary | Icon |
+| --- | --- | --- | --- | --- |
+| 1 | SQS reminders | Queue | ap-northeast-1 (Tokyo) | `aws:sqs` |
 
 ## Boundaries
 

@@ -21,11 +21,16 @@ Diagram kind: Architecture diagram
 
 | No. | Data store | Kind | Boundary | Icon |
 | --- | --- | --- | --- | --- |
-| 1 | Cloud Storage load balancer logs | Database | asia-northeast1 (Tokyo) | `gcp:cloud_storage` |
+| 1 | Cloud Storage load balancer logs | Storage | asia-northeast1 (Tokyo) | `gcp:cloud_storage` |
 | 2 | Firestore (9 collections) | Database | asia-northeast1 (Tokyo) | `gcp:cloud_firestore` |
-| 3 | Cloud Storage attachments | Database | asia-northeast1 (Tokyo) | `gcp:cloud_storage` |
-| 4 | Cloud Tasks reminders | Queue | asia-northeast1 (Tokyo) | `gcp:cloud_tasks` |
-| 5 | Pub/Sub booking events | Queue | asia-northeast1 (Tokyo) | `gcp:cloud_pubsub` |
+| 3 | Cloud Storage attachments | Storage | asia-northeast1 (Tokyo) | `gcp:cloud_storage` |
+
+## Queues
+
+| No. | Queue | Kind | Boundary | Icon |
+| --- | --- | --- | --- | --- |
+| 1 | Cloud Tasks reminders | Queue | asia-northeast1 (Tokyo) | `gcp:cloud_tasks` |
+| 2 | Pub/Sub booking events | Queue | asia-northeast1 (Tokyo) | `gcp:cloud_pubsub` |
 
 ## Boundaries
 

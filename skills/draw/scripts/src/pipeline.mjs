@@ -25,11 +25,12 @@ export const EMIT_TARGETS = [...TARGETS, DOC_TARGET];
  * emitter. Errors stop the pipeline; warnings accumulate across every stage.
  * @param {unknown} ir
  * @param {string} target
- * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, native?: boolean, lang?: string, refs?: Map<string, { pageId: string, title: string }> }} [options]
+ * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, native?: boolean, nativeOnly?: boolean, lang?: string, refs?: Map<string, { pageId: string, title: string }> }} [options]
  *   `refs` is set by `bundle` so a `ref` resolves to the target's title (and page link in draw.io).
  *   `lang` (doc only) is the language of the headings and column headers.
  *   `native` (figjam only) also makes the scripts that draw the board at the draw.io coordinates;
- *   a kind generate_diagram rejects is then emitted too, without the Mermaid text.
+ *   a kind generate_diagram rejects is then emitted too, without the Mermaid text. With
+ *   `nativeOnly` the text is not wanted at all, so its warnings are not returned.
  * @returns {Promise<{ ok: boolean, output?: string, overlay?: string, native?: string[], textSkipped?: string, errors: Array<object>, warnings: Array<object> }>}
  *   `overlay` is set for a FigJam sequence diagram that needs the overlay script; `native` holds
  *   the scripts for use_figma in the order to run them; `textSkipped` says why there is no `output`
@@ -77,11 +78,15 @@ export async function emit(ir, target, options = {}) {
         // What generate_diagram cannot draw of a sequence diagram, as a script for use_figma.
         result.overlay = figjamOverlay(ir);
       } else result = { warnings: [] };
-      if (native) result.native = figjamNative((await emitDrawio(ir, { diagramId: options.diagramId })).output, { title: ir.title }).parts;
+      if (native) {
+        const drawn = await emitDrawio(ir, { diagramId: options.diagramId });
+        result.native = figjamNative(drawn.output, { title: ir.title }).parts;
+        result.nativeWarnings = drawn.warnings;
+      }
       break;
     case DOC_TARGET:
       // Inside a bundle (`refs` set) the diagram is one section of the document.
-      result = emitDoc(ir, { lang: options.lang, refs: options.refs, part: options.refs && options.diagramId ? { id: options.diagramId, anchor: options.refs.get(options.diagramId)?.pageId ?? pageIdOf(options.diagramId) } : undefined });
+      result = emitDoc(ir, { lang: options.lang, refs: options.refs, part: options.refs && options.diagramId ? { id: options.diagramId, source: options.sourcePath, anchor: options.refs.get(options.diagramId)?.pageId ?? pageIdOf(options.diagramId) } : undefined });
       if (result.errors) return { ok: false, errors: result.errors, warnings };
       break;
     default:
@@ -93,6 +98,21 @@ export async function emit(ir, target, options = {}) {
   const fellBack = result.warnings.some((w) => w.fallback === 'flowchart');
   const kept = fellBack ? warnings.filter((w) => w.stage !== 'feature-matrix' || /\.(aws|gcp)$/.test(w.feature)) : warnings;
   kept.push(...result.warnings.map((w) => ({ stage: 'emit', ...w })));
+  if (native) {
+    // The native board is the draw.io drawing: what the matrix and the Mermaid emitter say
+    // about the FigJam text (icons and frames lost, another diagram form) is not true of it.
+    // Those warnings are dropped when only the scripts are asked for, and marked as the
+    // text's when both are written; the board gets the warnings of the draw.io emit.
+    const ofText = (w) => w.stage === 'feature-matrix' || w.stage === 'emit';
+    const text = options.nativeOnly === true || textSkipped !== undefined ? [] : kept.filter(ofText).map((w) => ({ ...w, appliesTo: 'figjam-text', message: `${w.message} (this is about the FigJam text for generate_diagram; the native script draws the board from the draw.io layout)` }));
+    const board = [
+      ...checkFeatureMatrix(ir, 'drawio').warnings.map((w) => ({ stage: 'feature-matrix', appliesTo: 'native-board', ...w })),
+      ...result.nativeWarnings.map((w) => ({ stage: 'emit', appliesTo: 'native-board', ...w })),
+    ];
+    const rest = kept.filter((w) => !ofText(w));
+    kept.length = 0;
+    kept.push(...rest, ...text, ...board);
+  }
   return { ok: true, output: result.output, ...(result.overlay ? { overlay: result.overlay } : {}), ...(result.native ? { native: result.native } : {}), ...(textSkipped === undefined ? {} : { textSkipped }), errors: [], warnings: kept };
 }
 
@@ -102,7 +122,7 @@ export async function emit(ir, target, options = {}) {
  * description tables of every diagram as one Markdown document.
  * Errors carry the index and id of the diagram they belong to; all diagrams are checked
  * before anything is emitted.
- * @param {Array<{ ir: unknown, id: string }>} entries
+ * @param {Array<{ ir: unknown, id: string, sourcePath?: string }>} entries `sourcePath` names the IR file in its run when it is not `source/<id>.ir.json`
  * @param {'drawio' | 'mermaid' | 'doc'} target
  * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, title?: string, lang?: string, canvas?: 'all' | string[], gap?: number }} [options]
  *   `canvas` (draw.io only) adds a first page with the named diagrams side by side, `gap` px apart (default 120)
@@ -142,8 +162,27 @@ export async function bundle(entries, target, options = {}) {
     }
   }
   const refs = bundleRefs(entries, options.legacyIds ? slugify : pageIdOf);
+  // A page and a heading are named by the title of their diagram. Two diagrams of one title
+  // would give two pages of one name, which nobody can tell apart in the tab bar or pick by
+  // name: the later one is numbered, and the bundle says so.
+  const pageNames = new Map();
+  if (target !== DOC_TARGET) {
+    const firstOf = new Map();
+    const taken = new Set(entries.map((e) => e.ir?.title));
+    for (const e of entries) {
+      const title = e.ir?.title;
+      if (typeof title !== 'string') continue;
+      if (!firstOf.has(title)) { firstOf.set(title, { id: e.id, n: 1 }); continue; }
+      const first = firstOf.get(title);
+      let name;
+      do { first.n += 1; name = `${title} (${first.n})`; } while (taken.has(name));
+      taken.add(name);
+      pageNames.set(e.id, name);
+      warnings.push({ stage: 'bundle', diagram: e.id, path: '/title', message: `diagrams "${first.id}" and "${e.id}" have the same title "${title}": the ${target === 'drawio' ? 'page' : 'heading'} of "${e.id}" is named "${name}"`, hint: 'give each diagram a title of its own in its IR and bundle again' });
+    }
+  }
   for (const [i, entry] of entries.entries()) {
-    const r = await emit(entry.ir, target, { ...options, diagramId: entry.id, refs });
+    const r = await emit(entry.ir, target, { ...options, diagramId: entry.id, refs, sourcePath: entry.sourcePath });
     const tag = (x) => ({ diagram: entry.id, index: i, ...x });
     warnings.push(...r.warnings.map(tag));
     if (!r.ok) errors.push(...r.errors.map(tag));
@@ -155,13 +194,13 @@ export async function bundle(entries, target, options = {}) {
     const title = options.title ?? 'Diagrams';
     const parts = [`# ${title}`, ''];
     for (const { entry, output } of outputs) {
-      parts.push(`## ${entry.ir.title}`, '', `Source: \`source/${entry.id}.ir.json\``, '', '```mermaid', output.trimEnd(), '```', '');
+      parts.push(`## ${pageNames.get(entry.id) ?? entry.ir.title}`, '', `Source: \`${entry.sourcePath ?? `source/${entry.id}.ir.json`}\``, '', '```mermaid', output.trimEnd(), '```', '');
       const omitted = entry.ir.meta?.omitted ?? [];
       if (omitted.length > 0) parts.push('Not shown on purpose:', '', ...omitted.map((o) => `- ${o}`), '');
     }
     return { ok: true, output: parts.join('\n'), errors: [], warnings };
   }
-  const result = await emitDrawioBundle(entries.map((e) => ({ ir: e.ir, diagramId: e.id })), { canvas, gap: options.gap, title: options.title, legacyIds: options.legacyIds });
+  const result = await emitDrawioBundle(entries.map((e) => ({ ir: e.ir, diagramId: e.id })), { canvas, gap: options.gap, title: options.title, legacyIds: options.legacyIds, pageNames });
   return { ok: true, output: result.output, errors: [], warnings, canvas };
 }
 

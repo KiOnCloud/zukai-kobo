@@ -18,10 +18,15 @@ Diagram kind: Architecture diagram
 
 | No. | Data store | Kind | Boundary | Icon |
 | --- | --- | --- | --- | --- |
-| 1 | Static assets (Cloud Storage) | Database | Google Cloud | `gcp:cloud_storage` |
+| 1 | Static assets (Cloud Storage) | Storage | Google Cloud | `gcp:cloud_storage` |
 | 2 | Cloud SQL for PostgreSQL | Database | Google Cloud › asia-northeast1 › VPC network 10.0.0.0/16 › Private subnet | `gcp:cloud_sql` |
 | 3 | Memorystore for Redis | Cache | Google Cloud › asia-northeast1 › VPC network 10.0.0.0/16 › Private subnet | `gcp:cloud_memorystore` |
-| 4 | Pub/Sub orders | Queue | Google Cloud › asia-northeast1 | `gcp:cloud_pubsub` |
+
+## Queues
+
+| No. | Queue | Kind | Boundary | Icon |
+| --- | --- | --- | --- | --- |
+| 1 | Pub/Sub orders | Queue | Google Cloud › asia-northeast1 | `gcp:cloud_pubsub` |
 
 ## Boundaries
 

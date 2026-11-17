@@ -71,12 +71,13 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="login-with-password:m5" value="Verify password hash" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=312;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=332;entryPerimeter=0;" edge="1" parent="1" source="login-with-password:auth" target="login-with-password:auth">
+        <mxCell id="login-with-password:m5" value="Verify password hash" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;align=left;exitX=0.5;exitY=0;exitDx=0;exitDy=312;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=332;entryPerimeter=0;" edge="1" parent="1" source="login-with-password:auth" target="login-with-password:auth">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="550" y="412"/>
               <mxPoint x="550" y="432"/>
             </Array>
+            <mxPoint x="-39" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="login-with-password:m6" value="200 session token" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="login-with-password:auth" target="login-with-password:web">

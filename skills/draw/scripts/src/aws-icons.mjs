@@ -1,4 +1,5 @@
 import catalog from './aws-icons.json' with { type: 'json' };
+import aliases from './cloud-aliases.json' with { type: 'json' };
 
 /**
  * The icons and group frames of draw.io's cloud libraries (see tools/generate-aws-icons.mjs).
@@ -72,6 +73,43 @@ export function cloudGroup(value) {
 /** Whether an icon draws a store, whatever the `kind` of its component. */
 export const isStoreIcon = (value) => { const icon = cloudIcon(value); return icon !== undefined && PROVIDERS[icon.provider].storeCategories.includes(icon.category); };
 
+/**
+ * The names people write for a service whose stencil draw.io names otherwise (`gcp:gke` for
+ * `gcp:container_engine`), or that has no stencil at all (`gcp:secret_manager`). The table is
+ * written by hand in `cloud-aliases.json`; it is no second set of valid names, only what the
+ * validator answers an unknown name with, so the nearest valid name is never offered in the
+ * place of the right one.
+ * @param {'icons'|'groups'} table
+ * @returns {{ name: string | null } | undefined} the catalog value (`gcp:container_engine`),
+ *   `null` as the name when draw.io has no stencil, undefined when the name is no alias
+ */
+export function cloudAlias(table, value) {
+  const p = parse(value);
+  const list = p && aliases[p.provider]?.[table];
+  if (!list || !Object.hasOwn(list, p.name)) return undefined;
+  return { name: list[p.name] === null ? null : `${p.provider}:${list[p.name]}` };
+}
+/** The alias table of a provider, for the reference page: `[written, catalog name or null]`. */
+export const cloudAliases = (provider, table) => Object.entries(aliases[provider]?.[table] ?? {});
+
+/**
+ * Where else a name that is unknown in one list is a name: the other list of its provider (a
+ * frame written as an icon), or the same list of another provider (`aws:cloud_run`).
+ * @param {'icons'|'groups'} table
+ * @returns {{ value: string, table: 'icons'|'groups', provider: string } | undefined}
+ */
+export function cloudNameElsewhere(table, value) {
+  const p = parse(value);
+  if (!p) return undefined;
+  const other = table === 'icons' ? 'groups' : 'icons';
+  const has = (provider, t, name) => own(PROVIDERS[provider][t], name) !== undefined || (t === 'icons' && provider === LOGO_PROVIDER && own(LOGOS, name) !== undefined);
+  if (has(p.provider, other, p.name)) return { value, table: other, provider: p.provider };
+  for (const provider of Object.keys(PROVIDERS)) {
+    if (provider !== p.provider && has(provider, table, p.name)) return { value: `${provider}:${p.name}`, table, provider };
+  }
+  return undefined;
+}
+
 function editDistance(a, b) {
   let row = Array.from({ length: b.length + 1 }, (_, j) => j);
   for (let i = 1; i <= a.length; i++) {
@@ -116,6 +154,28 @@ export function nearestCloudNames(table, value, limit = 3) {
     return { name: `${prefix}:${name}`, score };
   });
   return scored.filter((s) => s.score < 3.5).sort((a, b) => a.score - b.score).slice(0, limit).map((s) => s.name);
+}
+
+/**
+ * What the validator offers for an unknown name: the catalog names that an alias close to the
+ * written name stands for (`gcp:gke_cluster_x` leads to `gcp:container_engine`), then the
+ * nearest catalog names, without repeats. An alias comes first because a catalog name that
+ * merely looks alike (`gcp:gke_on_prem`) is valid and wrong.
+ * @param {'icons'|'groups'} table
+ */
+export function suggestCloudNames(table, value, limit = 3) {
+  const p = parse(value);
+  if (!p) return nearestCloudNames(table, value, limit);
+  const query = squash(p.name);
+  const byAlias = [];
+  for (const [written, target] of Object.entries(aliases[p.provider]?.[table] ?? {})) {
+    if (target === null) continue;
+    const a = squash(written);
+    if (a.length < 3 || !(a === query || a.includes(query) || query.includes(a))) continue;
+    byAlias.push({ name: `${p.provider}:${target}`, score: Math.abs(a.length - query.length) });
+  }
+  byAlias.sort((a, b) => a.score - b.score);
+  return [...new Set([...byAlias.map((x) => x.name), ...nearestCloudNames(table, value, limit)])].slice(0, limit);
 }
 
 // The names these lookups had while AWS was the only provider; they take the names of every provider.

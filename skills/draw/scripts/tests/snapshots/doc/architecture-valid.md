@@ -19,7 +19,12 @@ Diagram kind: Architecture diagram
 | --- | --- | --- | --- |
 | 1 | PostgreSQL | Database | AWS account › VPC |
 | 2 | Redis | Cache | AWS account › VPC |
-| 3 | SQS orders | Queue | AWS account |
+
+## Queues
+
+| No. | Queue | Kind | Boundary |
+| --- | --- | --- | --- |
+| 1 | SQS orders | Queue | AWS account |
 
 ## Boundaries
 

@@ -19,9 +19,9 @@ Diagram kind: Architecture diagram
 
 | No. | Data store | Kind | Boundary | Icon |
 | --- | --- | --- | --- | --- |
-| 1 | S3 web app | Database | Production account › ap-northeast-1 (Tokyo) | `aws:s3` |
+| 1 | S3 web app | Storage | Production account › ap-northeast-1 (Tokyo) | `aws:s3` |
 | 2 | DynamoDB | Database | Production account › ap-northeast-1 (Tokyo) | `aws:dynamodb` |
-| 3 | S3 attachments | Database | Production account › ap-northeast-1 (Tokyo) | `aws:s3` |
+| 3 | S3 attachments | Storage | Production account › ap-northeast-1 (Tokyo) | `aws:s3` |
 
 ## Boundaries
 

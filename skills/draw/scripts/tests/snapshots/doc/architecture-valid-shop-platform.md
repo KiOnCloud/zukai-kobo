@@ -25,7 +25,12 @@ Diagram kind: Architecture diagram
 | 1 | Orders DB (PostgreSQL) | Database | Cloud account › Private network |
 | 2 | Catalog DB | Database | Cloud account › Private network |
 | 3 | Redis cache | Cache | Cloud account › Private network |
-| 4 | Event bus | Queue | Cloud account |
+
+## Queues
+
+| No. | Queue | Kind | Boundary |
+| --- | --- | --- | --- |
+| 1 | Event bus | Queue | Cloud account |
 
 ## Boundaries
 

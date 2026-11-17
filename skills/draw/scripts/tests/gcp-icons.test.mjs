@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { deflateRawSync } from 'node:zlib';
 import catalog from '../src/aws-icons.json' with { type: 'json' };
-import { PROVIDERS, cloudIcon, cloudGroup, nearestCloudNames, providerOf, isProductLogo, isStoreIcon } from '../src/aws-icons.mjs';
+import { PROVIDERS, cloudIcon, cloudGroup, cloudAlias, cloudAliases, cloudNameElsewhere, suggestCloudNames, nearestCloudNames, providerOf, isProductLogo, isStoreIcon } from '../src/aws-icons.mjs';
 import { parseGcp, buildCatalog, renderGcpReference } from '../tools/generate-aws-icons.mjs';
 import { validateIr } from '../src/validate-ir.mjs';
 import { emit } from '../src/pipeline.mjs';
@@ -879,5 +879,83 @@ describe('a GCP diagram on the native FigJam board', () => {
       expect(title[2] - offset[1] - frame.y, b.id).toBeLessThan(12);
       expect(title[6], b.id).toMatchObject({ v: 't', a: 'l' });
     }
+  });
+});
+
+describe('the names people write for a service draw.io names otherwise', () => {
+  const base = (components, boundaries = []) => ({ schemaVersion: 1, kind: 'architecture', title: 'T', components, boundaries, connections: [] });
+  const hintFor = (icon) => validateIr(base([{ id: 'a', label: 'A', icon }])).errors[0].hint;
+  const groupHint = (group) => validateIr(base([{ id: 'a', label: 'A' }], [{ id: 'b', label: 'B', group, children: ['a'] }])).errors[0].hint;
+
+  it('are answered with the catalog name first, not with a name that only looks alike', () => {
+    expect(hintFor('gcp:cloud_scheduler')).toMatch(/^did you mean gcp:scheduled_tasks\? That is draw\.io's name for it; /);
+    expect(hintFor('gcp:gke')).toMatch(/^did you mean gcp:container_engine\?/);
+    expect(hintFor('gcp:gke')).not.toContain('gke_on_prem');
+    expect(hintFor('gcp:cloud_sql_instance')).toMatch(/^did you mean gcp:cloud_sql\?/);
+    expect(hintFor('gcp:cloud_tasks_queue')).toMatch(/^did you mean gcp:cloud_tasks\?/);
+    expect(hintFor('aws:alb')).toMatch(/^did you mean aws:elastic_load_balancing\?/);
+    expect(groupHint('gcp:subnetwork')).toMatch(/^did you mean gcp:subnet\?/);
+    for (const icon of ['gcp:cloud_scheduler', 'gcp:gke', 'aws:alb']) expect(hintFor(icon)).toContain(`references/${icon.slice(0, 3)}-icons.md`);
+  });
+
+  it('are answered with "no stencil" where draw.io has none, and with no name at all', () => {
+    for (const icon of ['gcp:secret_manager', 'gcp:eventarc', 'gcp:workflows']) {
+      const hint = hintFor(icon);
+      expect(hint, icon).toMatch(/^draw\.io has no stencil for this service: leave "icon" out, and the component keeps its generic shape; /);
+      expect(hint, icon).not.toContain('did you mean');
+    }
+  });
+
+  it('lead to what an alias stands for when the written name only comes close to it', () => {
+    expect(suggestCloudNames('icons', 'gcp:gke_cluster_prod')[0]).toBe('gcp:container_engine');
+    expect(suggestCloudNames('icons', 'gcp:cloud_scheduler_job')[0]).toBe('gcp:scheduled_tasks');
+    // Without an alias near it, the list is the nearest catalog names, as before.
+    expect(suggestCloudNames('icons', 'gcp:cloudrun')).toEqual(nearestCloudNames('icons', 'gcp:cloudrun'));
+    expect(suggestCloudNames('icons', 'gcp:zzzzqqqq')).toEqual([]);
+  });
+
+  it('are a table whose every target is a catalog name and whose every key is none', () => {
+    for (const provider of Object.keys(PROVIDERS)) for (const [table, lookup] of [['icons', cloudIcon], ['groups', cloudGroup]]) {
+      for (const [written, target] of cloudAliases(provider, table)) {
+        expect(lookup(`${provider}:${written}`), `${provider}:${written} must not be a name`).toBeUndefined();
+        if (target !== null) expect(lookup(`${provider}:${target}`), `${provider}:${target}`).toBeDefined();
+        expect(cloudAlias(table, `${provider}:${written}`)).toEqual({ name: target === null ? null : `${provider}:${target}` });
+      }
+    }
+    expect(cloudAlias('icons', 'gcp:cloud_run')).toBeUndefined();
+    expect(cloudAlias('icons', 'azure:functions')).toBeUndefined();
+  });
+
+  it('are printed in the reference page of their provider, as text that is not taken for a name', () => {
+    const page = readFileSync(join(scriptsDir, '..', 'references', 'gcp-icons.md'), 'utf8');
+    expect(page).toContain('## Names that are written otherwise');
+    expect(page).toContain('| gcp:cloud_scheduler | `gcp:scheduled_tasks` (`icon`) |');
+    expect(page).toContain('| gcp:secret_manager | no stencil: leave `icon` out, the generic shape stays |');
+    expect(page).toContain('| gcp:subnetwork | `gcp:subnet` (`group`) |');
+    expect(readFileSync(join(scriptsDir, '..', 'references', 'aws-icons.md'), 'utf8')).toContain('| aws:alb | `aws:elastic_load_balancing` (`icon`) |');
+  });
+});
+
+describe('a name that is written in the wrong list', () => {
+  const base = (components, boundaries = []) => ({ schemaVersion: 1, kind: 'architecture', title: 'T', components, boundaries, connections: [] });
+
+  it('is told apart: a frame written as an icon, an icon written as a frame, a name of the other cloud', () => {
+    const asIcon = validateIr(base([{ id: 'a', label: 'A', icon: 'gcp:vpc_network' }])).errors[0];
+    expect(asIcon.message).toBe('unknown GCP icon "gcp:vpc_network"');
+    expect(asIcon.hint).toMatch(/^gcp:vpc_network is a group frame, not an icon: write it as "group" of the boundary that holds the components; /);
+    const asGroup = validateIr(base([{ id: 'a', label: 'A' }], [{ id: 'b', label: 'B', group: 'gcp:cloud_run', children: ['a'] }])).errors[0];
+    expect(asGroup.hint).toMatch(/^gcp:cloud_run is an icon, not a group frame: write it as "icon" of a component; /);
+    const otherCloud = validateIr(base([{ id: 'a', label: 'A', icon: 'aws:cloud_run' }])).errors[0];
+    expect(otherCloud.hint).toMatch(/^this name is GCP's: write gcp:cloud_run when the component runs on GCP; the nearest AWS names are aws:/);
+    expect(otherCloud.hint).toContain('references/aws-icons.md');
+    const awsFrame = validateIr(base([{ id: 'a', label: 'A' }], [{ id: 'b', label: 'B', group: 'gcp:availability_zone', children: ['a'] }])).errors[0];
+    expect(awsFrame.hint).toMatch(/^did you mean gcp:zone\?/);
+  });
+
+  it('is found by the lookup, and a name that is nowhere is not', () => {
+    expect(cloudNameElsewhere('icons', 'gcp:vpc_network')).toEqual({ value: 'gcp:vpc_network', table: 'groups', provider: 'gcp' });
+    expect(cloudNameElsewhere('icons', 'aws:cloud_run')).toEqual({ value: 'gcp:cloud_run', table: 'icons', provider: 'gcp' });
+    expect(cloudNameElsewhere('groups', 'gcp:vpc')).toEqual({ value: 'aws:vpc', table: 'groups', provider: 'aws' });
+    expect(cloudNameElsewhere('icons', 'gcp:no_such_thing')).toBeUndefined();
   });
 });

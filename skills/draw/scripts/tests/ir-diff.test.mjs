@@ -32,7 +32,7 @@ describe('diffIr', () => {
       expect(d.added).toEqual([{ collection: first, id: 'zz-added', label: 'Added element' }]);
       expect(items.length).toBeGreaterThan(1);
       expect(d.removed).toEqual([{ collection: first, id: dropped.id, label: dropped.label ?? dropped.name ?? dropped.title ?? '' }]);
-      expect(d.changed).toEqual([{ collection: first, id: reworded.id, label: 'New wording', fields: ['label'] }]);
+      expect(d.changed).toEqual([{ collection: first, id: reworded.id, label: 'New wording', fields: ['label'], values: { label: { from: reworded.label, to: 'New wording' } } }]);
     });
   }
 
@@ -42,7 +42,8 @@ describe('diffIr', () => {
     const cls = next.classes.find((c) => Array.isArray(c.attributes) && c.attributes.length > 0) ?? next.classes[0];
     cls.attributes = [...(cls.attributes ?? []), { name: 'createdAt', type: 'Date', visibility: 'private' }];
     const d = diffIr(ir, next);
-    expect(d.changed).toEqual([{ collection: 'classes', id: cls.id, label: cls.label, fields: ['attributes'] }]);
+    const was = ir.classes.find((c) => c.id === cls.id).attributes;
+    expect(d.changed).toEqual([{ collection: 'classes', id: cls.id, label: cls.label, fields: ['attributes'], values: { attributes: { from: was, to: cls.attributes } } }]);
   });
 
   it('reports a new title and a changed kind as a replacement', () => {
@@ -174,5 +175,105 @@ describe('diffRun', () => {
     const d = diffRun([], [{ id: 'shop', ir: arch('Shop') }, { id: 'shop-02-detail', ir: arch('Shop detail') }]);
     expect(d.diagramsAdded).toEqual(['shop', 'shop-02-detail']);
     expect(d.hints).toEqual([]);
+  });
+});
+
+describe('a message put into or taken out of nested blocks', () => {
+  // Three blocks around one another, as a sequence diagram of a login draws them.
+  const login = {
+    schemaVersion: 1, kind: 'sequence', title: 'Login',
+    participants: [{ id: 'web', label: 'Web' }, { id: 'auth', label: 'Auth' }],
+    messages: [
+      { id: 'm1', from: 'web', to: 'auth', label: 'login' },
+      { id: 'm2', from: 'auth', to: 'auth', label: 'verify password' },
+      { id: 'm3', from: 'auth', to: 'web', label: 'session', kind: 'return' },
+      { id: 'm4', from: 'auth', to: 'web', label: 'locked', kind: 'return' },
+    ],
+    blocks: [
+      { id: 'outer', kind: 'alt', label: 'user found', messages: ['m2', 'm3'], branches: [{ label: 'user locked', messages: ['m4'] }] },
+      { id: 'middle', kind: 'opt', label: 'not locked', messages: ['m2', 'm3'] },
+      { id: 'inner', kind: 'opt', label: 'password matches', messages: ['m3'] },
+    ],
+  };
+  const withAudit = () => {
+    const next = clone(login);
+    next.messages.splice(3, 0, { id: 'audit', from: 'auth', to: 'auth', label: 'record the login' });
+    for (const b of next.blocks) b.messages.push('audit');
+    return next;
+  };
+
+  it('reports the message, not the blocks whose lists grew by it', () => {
+    const d = diffIr(login, withAudit());
+    expect(d.added).toEqual([{ collection: 'messages', id: 'audit', label: 'record the login' }]);
+    expect(d.changed).toEqual([]);
+    expect(d.reordered).toEqual([]);
+  });
+
+  it('reports a removed message the same way, in a first section and in a branch', () => {
+    const d = diffIr(withAudit(), login);
+    expect(d.removed.map((e) => e.id)).toEqual(['audit']);
+    expect(d.changed).toEqual([]);
+    const branch = clone(login);
+    branch.messages.push({ id: 'm5', from: 'auth', to: 'web', label: 'try later', kind: 'return' });
+    branch.blocks[0].branches[0].messages.push('m5');
+    expect(diffIr(login, branch).changed).toEqual([]);
+    expect(diffIr(branch, login).changed).toEqual([]);
+  });
+
+  it('still reports a block that took in a message both versions have, a new section and a new condition', () => {
+    const moved = clone(login);
+    moved.blocks[2].messages = ['m2', 'm3'];
+    expect(diffIr(login, moved).changed.map((e) => [e.id, e.fields])).toEqual([['inner', ['messages']]]);
+
+    const section = withAudit();
+    section.messages.push({ id: 'm5', from: 'auth', to: 'web', label: 'try later', kind: 'return' });
+    section.blocks[0].branches.push({ label: 'too many attempts', messages: ['m5'] });
+    expect(diffIr(login, section).changed.map((e) => [e.id, e.fields])).toEqual([['outer', ['branches']]]);
+
+    const reworded = withAudit();
+    reworded.blocks[1].label = 'account active';
+    expect(diffIr(login, reworded).changed.map((e) => [e.id, e.fields])).toEqual([['middle', ['label']]]);
+  });
+
+  it('keeps the containers of the other kinds as they were: a group that gains a new node is changed', () => {
+    const flowchart = { schemaVersion: 1, kind: 'flowchart', title: 'F', nodes: [{ id: 'a', label: 'A' }], edges: [], groups: [{ id: 'g', label: 'G', children: ['a'] }] };
+    const next = clone(flowchart);
+    next.nodes.push({ id: 'b', label: 'B' });
+    next.groups[0].children.push('b');
+    expect(diffIr(flowchart, next).changed.map((e) => [e.id, e.fields])).toEqual([['g', ['children']]]);
+  });
+});
+
+describe('the old value of a changed field', () => {
+  const er = {
+    schemaVersion: 1, kind: 'state', title: 'S',
+    states: [{ id: 's0', kind: 'initial' }, { id: 'open', label: 'Open' }, { id: 'closed', label: 'Closed' }],
+    transitions: [{ id: 't1', from: 's0', to: 'open' }, { id: 't2', from: 'open', to: 'closed', event: 'close', guard: 'at most 5 failed attempts' }],
+  };
+
+  it('stands beside the new one for every field, with a side left out where the field was not set', () => {
+    const next = clone(er);
+    next.transitions[1].guard = 'at most 3 failed attempts';
+    next.transitions[1].action = 'notify the owner';
+    delete next.transitions[1].event;
+    next.states[1].label = 'Active';
+    const d = diffIr(er, next);
+    expect(d.changed).toEqual([
+      { collection: 'states', id: 'open', label: 'Active', fields: ['label'], values: { label: { from: 'Open', to: 'Active' } } },
+      { collection: 'transitions', id: 't2', label: 'at most 3 failed attempts', fields: ['action', 'event', 'guard'], values: {
+        action: { to: 'notify the owner' },
+        event: { from: 'close' },
+        guard: { from: 'at most 5 failed attempts', to: 'at most 3 failed attempts' },
+      } },
+    ]);
+    // The keys a reader of 2.3.0 knows are all still there.
+    for (const e of d.changed) expect(Object.keys(e)).toEqual(['collection', 'id', 'label', 'fields', 'values']);
+  });
+
+  it('goes through diffRun to the list of a run unchanged', () => {
+    const next = clone(er);
+    next.states[2].label = 'Archived';
+    const d = diffRun([{ id: 'ticket', ir: er }], [{ id: 'ticket', ir: next }]);
+    expect(d.diagrams[0].changed[0].values).toEqual({ label: { from: 'Closed', to: 'Archived' } });
   });
 });

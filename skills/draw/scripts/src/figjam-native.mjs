@@ -864,8 +864,11 @@ function drawCells(cells) {
     marker(endArrow, points.at(-1), points.at(-2), s.endFill !== '0', endSize, stroke, width);
     const p = along(points, 0.5);
     // The label of the edge itself stands on the middle of the line, or a little above it so that its background leaves the line whole.
+    // A label the emitter moved off the middle (the wide label of a self-message, which starts
+    // beside the activation bar) carries the move as an offset and runs the way its alignment says.
     const above = s.verticalAlign === 'bottom';
-    text(p.x, p.y - (above ? 3 : 0), 0, 0, plainLabel(cell.value), { ...fontOf(cell, EDGE_FONT_SIZE), ...(above ? { v: 'b' } : {}) });
+    const moved = cell.geo.offset ?? { x: 0, y: 0 };
+    text(p.x + moved.x, p.y + moved.y - (above ? 3 : 0), 0, 0, plainLabel(cell.value), alignOf(s, { ...fontOf(cell, EDGE_FONT_SIZE), ...(above ? { v: 'b' } : {}) }));
   };
 
   /** A label that belongs to an edge: a point of the route plus an offset; `align` says which side of it the text runs to. */

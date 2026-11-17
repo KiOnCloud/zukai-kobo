@@ -18,10 +18,15 @@ Diagram kind: Architecture diagram
 
 | No. | Data store | Kind | Boundary | Icon |
 | --- | --- | --- | --- | --- |
-| 1 | Static assets (S3) | Database | AWS Cloud | `aws:s3` |
+| 1 | Static assets (S3) | Storage | AWS Cloud | `aws:s3` |
 | 2 | Aurora PostgreSQL | Database | AWS Cloud › ap-northeast-1 › VPC 10.0.0.0/16 › Private subnet | `aws:aurora` |
 | 3 | ElastiCache Redis | Cache | AWS Cloud › ap-northeast-1 › VPC 10.0.0.0/16 › Private subnet | `aws:elasticache` |
-| 4 | SQS orders | Queue | AWS Cloud › ap-northeast-1 | `aws:sqs` |
+
+## Queues
+
+| No. | Queue | Kind | Boundary | Icon |
+| --- | --- | --- | --- | --- |
+| 1 | SQS orders | Queue | AWS Cloud › ap-northeast-1 | `aws:sqs` |
 
 ## Boundaries
 

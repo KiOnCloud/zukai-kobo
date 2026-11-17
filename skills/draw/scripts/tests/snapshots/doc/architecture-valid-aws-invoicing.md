@@ -18,8 +18,13 @@ Diagram kind: Architecture diagram
 | No. | Data store | Kind | Boundary | Icon |
 | --- | --- | --- | --- | --- |
 | 1 | RDS PostgreSQL | Database | AWS account › ap-northeast-1 › VPC › Private subnet | `aws:rds` |
-| 2 | SQS queue | Queue | AWS account › ap-northeast-1 | `aws:sqs` |
-| 3 | S3 bucket | Database | AWS account › ap-northeast-1 | `aws:s3` |
+| 2 | S3 bucket | Storage | AWS account › ap-northeast-1 | `aws:s3` |
+
+## Queues
+
+| No. | Queue | Kind | Boundary | Icon |
+| --- | --- | --- | --- | --- |
+| 1 | SQS queue | Queue | AWS account › ap-northeast-1 | `aws:sqs` |
 
 ## Boundaries
 

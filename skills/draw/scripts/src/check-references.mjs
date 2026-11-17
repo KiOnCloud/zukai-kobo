@@ -1,4 +1,4 @@
-import { PROVIDERS, cloudIcon, cloudGroup, nearestCloudNames, providerOf } from './aws-icons.mjs';
+import { PROVIDERS, cloudIcon, cloudGroup, cloudAlias, cloudNameElsewhere, suggestCloudNames, providerOf } from './aws-icons.mjs';
 import { sourcePathProblem } from './sources.mjs';
 /**
  * Referential-integrity checks that JSON Schema cannot express: unique ids across the
@@ -266,9 +266,29 @@ function checkCloudNames(ir, collection, field, table, lookup, err) {
     // A value of the wrong shape is the schema's error; only a well-formed name is looked up.
     const provider = isObj(el) && typeof el[field] === 'string' && /^[a-z]+:[a-z0-9_]{1,64}$/.test(el[field]) ? PROVIDERS[providerOf(el[field])] : undefined;
     if (!provider || lookup(el[field])) return;
-    const near = nearestCloudNames(table, el[field]);
     const what = `${provider.title} ${field === 'icon' ? 'icon' : 'group frame'}`;
-    err(`/${collection}/${i}/${field}`, `unknown ${what} "${el[field]}"`, `${near.length ? `did you mean ${near.join(', ')}? ` : ''}the names are listed in ${provider.reference}; leave "${field}" out when none fits`);
+    const listed = `the names are listed in ${provider.reference}; leave "${field}" out when none fits`;
+    // What the name is known as comes before what it merely looks like: a near name that is
+    // valid and wrong (`gcp:gke_on_prem` for `gcp:gke`) would be drawn without a complaint.
+    const alias = cloudAlias(table, el[field]);
+    const elsewhere = alias ? undefined : cloudNameElsewhere(table, el[field]);
+    let hint;
+    if (alias && alias.name === null) {
+      hint = `draw.io has no stencil for this service: leave "${field}" out, and the ${field === 'icon' ? 'component keeps its generic shape' : 'boundary is a plain frame'}; ${listed}`;
+    } else if (alias) {
+      hint = `did you mean ${alias.name}? That is draw.io's name for it; ${listed}`;
+    } else if (elsewhere && elsewhere.provider === providerOf(el[field])) {
+      hint = elsewhere.table === 'groups'
+        ? `${el[field]} is a group frame, not an icon: write it as "group" of the boundary that holds the components; ${listed}`
+        : `${el[field]} is an icon, not a group frame: write it as "icon" of a component; ${listed}`;
+    } else if (elsewhere) {
+      const near = suggestCloudNames(table, el[field]);
+      hint = `this name is ${PROVIDERS[elsewhere.provider].title}'s: write ${elsewhere.value} when the ${field === 'icon' ? 'component runs' : 'frame is'} on ${PROVIDERS[elsewhere.provider].title}${near.length ? `; the nearest ${provider.title} names are ${near.join(', ')}` : ''}; ${listed}`;
+    } else {
+      const near = suggestCloudNames(table, el[field]);
+      hint = `${near.length ? `did you mean ${near.join(', ')}? ` : ''}${listed}`;
+    }
+    err(`/${collection}/${i}/${field}`, `unknown ${what} "${el[field]}"`, hint);
   });
 }
 

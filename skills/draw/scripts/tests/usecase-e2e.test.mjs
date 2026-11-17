@@ -162,7 +162,7 @@ describe('use case diagram through the CLI: revise', () => {
     expect(r.out.differs).toBe(true);
     const d = r.out.diagrams.find((x) => x.id === 'library');
     expect(d.added).toEqual([{ collection: 'actors', id: 'guest', label: 'Guest' }, { collection: 'relations', id: 'r8', label: '' }]);
-    expect(d.changed).toEqual([{ collection: 'useCases', id: 'borrow', label: 'Borrow up to five books', fields: ['label'] }]);
+    expect(d.changed).toEqual([{ collection: 'useCases', id: 'borrow', label: 'Borrow up to five books', fields: ['label'], values: { label: { from: expect.any(String), to: expect.any(String) } } }]);
     expect(r.out.hints.map((h) => h.message)).toEqual(['part library-01-borrow may need the same change (useCases borrow carries ref "library-01-borrow")']);
     expect(cli('diff', before, before).out.differs).toBe(false);
   });

@@ -272,6 +272,39 @@ export function backEdges(nodes, edges) {
 }
 
 /**
+ * The edges that close a circle, in the order the edges are given: an edge whose target
+ * already leads to its source over the edges before it. The author lists the connections of
+ * a system in the order of the flow, so the connection that comes back (a topic that pushes
+ * to the service that publishes to it) is listed after the way out, and it is the one to lay
+ * out against the flow. Left to itself the layout breaks a circle at an edge of its own
+ * choosing, which can turn the main flow against the direction of the diagram. What remains
+ * without these edges is acyclic. Self-loops are never touched.
+ * @param {Array<{id:string,from:string,to:string}>} edges
+ * @returns {Set<string>} ids of the edges that close a circle
+ */
+export function closingEdges(edges) {
+  const out = new Map();
+  const reaches = (from, to) => {
+    const seen = new Set([from]);
+    const queue = [from];
+    while (queue.length > 0) {
+      const at = queue.shift();
+      if (at === to) return true;
+      for (const next of out.get(at) ?? []) if (!seen.has(next)) { seen.add(next); queue.push(next); }
+    }
+    return false;
+  };
+  const closing = new Set();
+  for (const e of edges) {
+    if (e.from === e.to) continue;
+    if (reaches(e.to, e.from)) { closing.add(e.id); continue; }
+    if (!out.has(e.from)) out.set(e.from, []);
+    out.get(e.from).push(e.to);
+  }
+  return closing;
+}
+
+/**
  * The cycle each node lies on: a map from node id to the id of one node that stands for its
  * strongly connected component. Two nodes share a value exactly when each can be reached
  * from the other; a node on no cycle has a value of its own.

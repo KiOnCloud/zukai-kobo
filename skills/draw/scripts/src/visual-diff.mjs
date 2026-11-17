@@ -212,6 +212,16 @@ function mergeIr(oldIr, newIr, { keepClaimed = true } = {}) {
   const show = (v) => (v === undefined ? 'not set' : typeof v === 'string' ? `"${v}"` : String(v));
   const scalar = (v) => v === undefined || typeof v !== 'object';
   const name = (item, id) => (labelOf(item) === '' ? id : `"${labelOf(item)}"`);
+  // The old value of a field that is a list: its members by name, or how many entries it had.
+  const elementOf = (id) => [...before.values()].map((m) => m.get(id)).find(Boolean);
+  const oldList = (f, o, v) => {
+    if (strings(o) && (v === undefined || strings(v))) return `${f} was ${o.length === 0 ? 'empty' : o.map((id) => (elementOf(id) ? name(elementOf(id), id) : `"${id}"`)).join(', ')}`;
+    // The rows of a table are listed one by one after this line.
+    if (MEMBER_KEYS.includes(f)) return `${f} changed`;
+    if (Array.isArray(o) && Array.isArray(v) && o.length !== v.length) return `${f}: ${o.length} before, ${v.length} now`;
+    if (o === undefined) return `${f} was not set`;
+    return `${f} changed`;
+  };
   for (const e of d.added) { status.set(e.id, 'added'); tips.set(e.id, 'added'); }
   for (const e of d.removed) {
     if (!back.has(e.id)) continue;
@@ -221,7 +231,7 @@ function mergeIr(oldIr, newIr, { keepClaimed = true } = {}) {
   for (const e of d.changed) {
     const x = before.get(e.collection).get(e.id);
     const y = after.get(e.collection).get(e.id);
-    const what = e.fields.map((f) => (scalar(x[f]) && scalar(y[f]) ? `${f} was ${show(x[f])}` : `${f} changed`)).join('; ');
+    const what = e.fields.map((f) => (scalar(x[f]) && scalar(y[f]) ? `${f} was ${show(x[f])}` : oldList(f, x[f], y[f]))).join('; ');
     status.set(e.id, 'changed');
     tips.set(e.id, what);
     notes.push(`${name(y, e.id)}: ${what}`, ...(rowNotes.get(e.id) ?? []).map((n) => `${name(y, e.id)}: ${n}`));
@@ -415,14 +425,18 @@ function markPage(body, slug, page) {
  * @param {Array<{ id: string, ir: object }>} oldEntries valid IRs with their diagram ids
  * @param {Array<{ id: string, ir: object }>} newEntries
  * @param {{ allowSensitive?: boolean }} [options]
- * @returns {Promise<{ ok: boolean, differs?: boolean, output?: string, pages?: object[], unchanged?: string[],
- *   notDrawn?: object[], errors: object[], warnings: object[] }>} without a difference there is no `output`
+ * @returns {Promise<{ ok: boolean, differs?: boolean, metaOnly?: boolean, output?: string, pages?: object[], unchanged?: string[],
+ *   notDrawn?: object[], errors: object[], warnings: object[] }>} without a difference a drawing shows there is no
+ *   `output`; `metaOnly` then says that the versions do differ, in `meta` fields alone
  */
 export async function visualDiff(oldEntries, newEntries, options = {}) {
   const run = diffRun(oldEntries, newEntries);
   const before = new Map(oldEntries.map((e) => [e.id, e.ir]));
   const changed = new Map(run.diagrams.map((d) => [d.id, d]));
-  if (!run.differs) return { ok: true, differs: false, unchanged: newEntries.map((e) => e.id), errors: [], warnings: [] };
+  const isDrawn = (d) => d.replaced || d.added.length + d.removed.length + d.changed.length + d.reordered.length > 0 || d.fields.some((f) => !f.field.startsWith('meta.'));
+  if (run.diagramsAdded.length + run.diagramsRemoved.length === 0 && !run.diagrams.some(isDrawn)) {
+    return { ok: true, differs: false, metaOnly: run.differs, unchanged: newEntries.map((e) => e.id), errors: [], warnings: [] };
+  }
 
   const whole = (status) => ({ whole: status, status: new Map(), tips: new Map(), parts: new Map(), notDrawn: [], notes: [], fields: [] });
   const entries = [];
@@ -433,7 +447,8 @@ export async function visualDiff(oldEntries, newEntries, options = {}) {
   for (const e of newEntries) {
     if (run.diagramsAdded.includes(e.id)) { entries.push(e); pages.set(e.id, { ...whole('added'), diagram: e.id, state: 'added' }); continue; }
     const d = changed.get(e.id);
-    if (!d) { entries.push(e); unchanged.push(e.id); continue; }
+    // A difference in `meta` alone (the sources, a note) is nothing the drawing shows: no page.
+    if (!d || !isDrawn(d)) { entries.push(e); unchanged.push(e.id); continue; }
     const old = before.get(e.id);
     // The labels of the old version are written on the page too (removed elements, old values).
     const secrets = scanSecrets(old);

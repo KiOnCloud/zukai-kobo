@@ -85,12 +85,13 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="nightly-stock-sync:m6" value="Write the run summary" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=716;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=736;entryPerimeter=0;" edge="1" parent="1" source="nightly-stock-sync:job" target="nightly-stock-sync:job">
+        <mxCell id="nightly-stock-sync:m6" value="Write the run summary" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;align=left;exitX=0.5;exitY=0;exitDx=0;exitDy=716;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=736;entryPerimeter=0;" edge="1" parent="1" source="nightly-stock-sync:job" target="nightly-stock-sync:job">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="190" y="816"/>
               <mxPoint x="190" y="836"/>
             </Array>
+            <mxPoint x="-39" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="nightly-stock-sync:pages:tab" value="loop for every page" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=4;resizable=0;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="1">

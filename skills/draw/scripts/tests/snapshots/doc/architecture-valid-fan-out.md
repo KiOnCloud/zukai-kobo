@@ -17,7 +17,12 @@ Diagram kind: Architecture diagram
 | No. | Data store | Kind |
 | --- | --- | --- |
 | 1 | Orders DB | Database |
-| 2 | Event bus | Queue |
+
+## Queues
+
+| No. | Queue | Kind |
+| --- | --- | --- |
+| 1 | Event bus | Queue |
 
 ## Connections
 

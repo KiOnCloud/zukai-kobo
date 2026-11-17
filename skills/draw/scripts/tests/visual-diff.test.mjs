@@ -259,6 +259,65 @@ describe('the picture of a diff between two versions of a run', () => {
     expect(a.output).toBe(b.output);
   });
 
+  it('leaves the blocks around an inserted message as they are, and colours the message', async () => {
+    const before = {
+      schemaVersion: 1, kind: 'sequence', title: 'Login',
+      participants: [{ id: 'web', label: 'Web' }, { id: 'auth', label: 'Auth' }, { id: 'log', label: 'AuditLog' }],
+      messages: [
+        { id: 'm1', from: 'web', to: 'auth', label: 'login' },
+        { id: 'm2', from: 'auth', to: 'auth', label: 'verify password' },
+        { id: 'm3', from: 'auth', to: 'web', label: 'session', kind: 'return' },
+        { id: 'm4', from: 'auth', to: 'web', label: 'locked', kind: 'return' },
+      ],
+      blocks: [
+        { id: 'outer', kind: 'alt', label: 'user found', messages: ['m2', 'm3'], branches: [{ label: 'user locked', messages: ['m4'] }] },
+        { id: 'middle', kind: 'opt', label: 'not locked', messages: ['m2', 'm3'] },
+        { id: 'inner', kind: 'opt', label: 'password matches', messages: ['m3'] },
+      ],
+    };
+    const after = structuredClone(before);
+    after.messages.splice(3, 0, { id: 'audit', from: 'auth', to: 'log', label: 'record the login' });
+    for (const b of after.blocks) b.messages.push('audit');
+    const r = await draw([{ id: 'login', ir: before }], [{ id: 'login', ir: after }]);
+    expect(r.errors).toEqual([]);
+    expect(r.pages).toEqual([{ diagram: 'login', page: 'login', state: 'changed', added: 1, changed: 0, removed: 0 }]);
+    const style = styles(r.output);
+    expect(style.get('login:audit')).toMatch(STATE_COLOURS.added);
+    for (const frame of ['outer', 'middle', 'inner']) {
+      expect(style.get(`login:${frame}`), frame).not.toMatch(ANY_STATE_COLOUR);
+      expect(style.get(`login:${frame}:tab`), frame).not.toMatch(ANY_STATE_COLOUR);
+    }
+    expect(r.output).not.toContain('messages changed');
+    expect(r.output).not.toContain('branches changed');
+  });
+
+  it('writes what a list was, by name, in the legend of a container that changed', async () => {
+    const before = flow('Groups', { groups: [{ id: 'g', label: 'Checks', children: ['check'] }] });
+    const after = flow('Groups', { groups: [{ id: 'g', label: 'Checks', children: ['check', 'done'] }] });
+    const r = await draw([{ id: 'f', ir: before }], [{ id: 'f', ir: after }]);
+    expect(r.output).toContain(inLabel('"Checks": children was "Check the request"'));
+  });
+
+  it('draws no page for a diagram whose meta fields alone differ, and nothing at all when that is every difference', async () => {
+    const noted = (ir, note) => ({ ...ir, meta: { source: 'scout', sources: ['src/a.js', note], notes: [note] } });
+    const a = flow('Login');
+    const b = flow('Login (business)');
+    const both = await draw(
+      [{ id: 'login', ir: noted(a, 'src/b.js') }, { id: 'login-business', ir: noted(b, 'src/b.js') }],
+      [{ id: 'login', ir: { ...noted(a, 'src/c.js'), nodes: [...a.nodes, { id: 'audit', label: 'Write the audit log' }], edges: [...a.edges, { id: 'e9', from: 'check', to: 'audit' }] } }, { id: 'login-business', ir: noted(b, 'src/c.js') }],
+    );
+    expect(both.pages.map((p) => p.diagram)).toEqual(['login']);
+    expect(both.unchanged).toEqual(['login-business']);
+    expect(pagesOf(both.output).map((p) => p.id)).toEqual(['login']);
+
+    const metaOnly = await draw([{ id: 'login', ir: noted(a, 'src/b.js') }], [{ id: 'login', ir: noted(a, 'src/c.js') }]);
+    expect(metaOnly).toMatchObject({ ok: true, differs: false, metaOnly: true, unchanged: ['login'] });
+    expect(metaOnly.output).toBeUndefined();
+    // A new title is on the page, so it still makes one.
+    const titled = await draw([{ id: 'login', ir: a }], [{ id: 'login', ir: { ...a, title: 'Sign in' } }]);
+    expect(titled.pages).toHaveLength(1);
+  });
+
   it('does not take the plain output of a run for the picture of a diff', async () => {
     expect(isVisualDiff((await emit(flow('Plain'), 'drawio', { diagramId: 'plain' })).output)).toBe(false);
   });

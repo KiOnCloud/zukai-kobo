@@ -1,8 +1,8 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
 import { cloudIcon, cloudGroup } from './aws-icons.mjs';
-import { layoutGraph, backEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, widestWord, LABEL_PAD } from './layout-graph.mjs';
+import { layoutGraph, backEdges, closingEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, widestWord, LABEL_PAD } from './layout-graph.mjs';
 import { measureEllipse } from './layout-graph.mjs';
-import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
+import { layoutSequence, NOTE_FOLD, NOTE_PAD, SELF_LOOP, selfLabelBox } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
 import { widestLine, roomFor, safeWidth, sameText } from './text-metrics.mjs';
 
@@ -47,6 +47,8 @@ export async function emitDrawioBundle(entries, options = {}) {
   const rendered = [];
   for (const [i, entry] of entries.entries()) {
     const page = await emitDrawioPage(entry.ir, { diagramId: ids[i], refs, slug });
+    // Two diagrams of one title would be two pages of one name: the caller hands the later one a name of its own.
+    if (options.pageNames?.has(ids[i])) page.name = options.pageNames.get(ids[i]);
     rendered.push(page);
     warnings.push(...page.warnings.map((w) => ({ ...w, diagram: page.diagramId })));
   }
@@ -2004,6 +2006,11 @@ async function arrangeArchitecture(ir, refs, how) {
     return { ...node, ...measureNode(label, { pad: padOf(kind), baseHeight: kind === 'database' || kind === 'cache' ? 70 : 40 }) };
   });
   const edges = ir.connections.map((c) => ({ id: c.id, from: c.from, to: c.to, label: c.label, style: `${STYLE.flowEdge}${c.bidirectional ? 'startArrow=classic;startFill=1;' : ''}` }));
+  // A connection that closes a circle (a topic that pushes back to the service that publishes
+  // to it) is laid out against the flow, so the connections listed before it keep the
+  // direction of the diagram and a component outside the frames keeps its side.
+  const closing = closingEdges(edges);
+  for (const e of edges) if (closing.has(e.id)) e.layoutReversed = true;
   const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
   // The ports of a figure depend on the sides its connections use, so they are worked out
   // afresh for every arrangement that is tried.
@@ -2177,9 +2184,12 @@ function emitSequence(ir, cid, warnings, refs) {
     if (msg.from === msg.to) {
       // Anchor both ends on the lifeline's centre line explicitly; the lifeline perimeter
       // would otherwise attach the arrow head on the far side and draw it across the line.
-      const x = from.centerX + 50;
+      const x = from.centerX + SELF_LOOP.out;
+      // A label too wide to stand centred over the loop starts beside the activation bar.
+      const box = selfLabelBox(label);
+      const beside = box.aligned ? { style: 'align=left;', labelOffset: { x: box.left - SELF_LOOP.out, y: 0 } } : { style: '' };
       const anchors = `exitX=0.5;exitY=0;exitDx=0;exitDy=${y - 10 - from.y};exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=${y + 10 - from.y};entryPerimeter=0;`;
-      cells.push(edge({ id: cid(msg.id), value: htmlLabel(label), style: `${STYLE.selfMessage}${anchors}`, source: cid(msg.from), target: cid(msg.to), points: [{ x, y: y - 10 }, { x, y: y + 10 }], link }));
+      cells.push(edge({ id: cid(msg.id), value: htmlLabel(label), style: `${STYLE.selfMessage}${beside.style}${anchors}`, source: cid(msg.from), target: cid(msg.to), points: [{ x, y: y - 10 }, { x, y: y + 10 }], link, ...(beside.labelOffset ? { labelOffset: beside.labelOffset } : {}) }));
       continue;
     }
     const style = kind === 'return' ? STYLE.returnMessage : kind === 'async' ? STYLE.asyncMessage : STYLE.syncMessage;
@@ -2407,7 +2417,13 @@ async function emitUsecase(ir, cid, refs, warnings) {
   const outerRoom = { left: 0, top: 0 };
   const bracketCount = (side) => new Set(byHand.filter((e) => OPPOSITE_SIDE[nodeById.get(e.from).side] === side).map((e) => e.to)).size;
   for (const side of ['left', 'top']) if (bracketCount(side) > 0) outerRoom[side] = ACTOR_BRACKET.out + ACTOR_BRACKET.step * bracketCount(side);
-  const options = { 'elk.padding': `[top=${12 + outerRoom.top},left=${12 + outerRoom.left},bottom=12,right=12]` };
+  // The nodes of a layer are ordered from the model: the actors of a side stand as the model
+  // lists them, the use cases as the engine derives their order from the model and its
+  // edges. Left to the crossing minimisation, the order is whatever crosses the fewest
+  // lines, and one added association turns a whole column round: the reader of a change
+  // then finds nothing where it was. It also lets the author fix a crossing, by the order
+  // of the actors in the IR.
+  const options = { 'elk.padding': `[top=${12 + outerRoom.top},left=${12 + outerRoom.left},bottom=12,right=12]`, 'elk.layered.crossingMinimization.forceNodeModelOrder': 'true' };
   const arrange = () => layoutGraph({ nodes, containers, edges: routed, direction, spacing: { nodeNode: 40, layer: 70 }, options });
   let layout = await arrange();
   // A boundary is as wide as its use cases need, which only the layout knows; a title that
@@ -2418,6 +2434,11 @@ async function emitUsecase(ir, cid, refs, warnings) {
     if (height > c.headerHeight) { c.headerHeight = height; c.title = plainTitle(c.label, height); taller = true; }
   }
   if (taller) layout = await arrange();
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const boxOf = (id) => absoluteBox(id, layout, parentOf);
+  // Two line ends on one ellipse never lie on each other: a use case with more ends on a
+  // side than its outline has room for is drawn taller, and the layout runs again.
+  for (let pass = 0; pass < 2 && growCrowdedUseCases(layout, routed, useCases, boxOf, horizontal).length > 0; pass++) layout = await arrange();
   // A line that enters a boundary from above runs across its title: the title steps aside.
   let unplaced = placeGroupTitles(layout, { containers, nodes, edges: routed });
   for (let pass = 0; unplaced && pass < 6; pass++) {
@@ -2427,8 +2448,6 @@ async function emitUsecase(ir, cid, refs, warnings) {
   if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a line crosses the title of a boundary; no free place was found for it along the top of the boundary', hint: 'set "direction" to "LR" or shorten the boundary label' });
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
 
-  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
-  const boxOf = (id) => absoluteBox(id, layout, parentOf);
   placeActorGeneralizations(layout, byHand, { actors, horizontal, boxOf });
   for (const e of edges) {
     const route = layout.edges.get(e.id);
@@ -2436,6 +2455,45 @@ async function emitUsecase(ir, cid, refs, warnings) {
     e.style += usecaseAnchorStyle('exit', usecaseAnchor(nodeById.get(e.from), boxOf(e.from), route.start)) + usecaseAnchorStyle('entry', usecaseAnchor(nodeById.get(e.to), boxOf(e.to), route.end));
   }
   return graphCells(cid, layout, { containers, nodes, edges, direction }, warnings);
+}
+
+/** The least distance between two line ends on one side of a use case: an open arrowhead and a hollow triangle side by side. */
+const ELLIPSE_END_GAP = 15;
+
+/**
+ * Use cases that are too low for the line ends of one of their sides, with the height each
+ * needs. The engine sets the ends of a side evenly over that side of the layout box; on a
+ * one-line ellipse three of them stand some ten pixels apart, and a hollow triangle then
+ * lies on the arrowhead beside it. A taller ellipse gives every end its own stretch of the
+ * outline, and the lines stay straight. Returns the ids that grew.
+ */
+function growCrowdedUseCases(layout, edges, useCases, boxOf, horizontal) {
+  const grown = [];
+  for (const n of useCases) {
+    const b = boxOf(n.id);
+    const sides = { left: [], right: [], top: [], bottom: [] };
+    for (const e of edges) {
+      const route = layout.edges.get(e.id);
+      if (!route?.start || !route?.end) continue;
+      for (const [id, pt] of [[e.from, route.start], [e.to, route.end]]) {
+        if (id !== n.id) continue;
+        const dx = Math.min(Math.abs(pt.x - b.x), Math.abs(pt.x - b.x - b.width));
+        const dy = Math.min(Math.abs(pt.y - b.y), Math.abs(pt.y - b.y - b.height));
+        const side = dx <= dy ? (Math.abs(pt.x - b.x) <= Math.abs(pt.x - b.x - b.width) ? 'left' : 'right') : (Math.abs(pt.y - b.y) <= Math.abs(pt.y - b.y - b.height) ? 'top' : 'bottom');
+        sides[side].push(dx <= dy ? pt.y : pt.x);
+      }
+    }
+    // The sides across the flow are the ones lines end on; they are as long as the node is high (or wide, top-down).
+    let need = 0;
+    for (const side of horizontal ? ['left', 'right'] : ['top', 'bottom']) {
+      const at = sides[side].sort((p, q) => p - q);
+      if (at.length < 2 || at.every((v, i) => i === 0 || v - at[i - 1] >= ELLIPSE_END_GAP)) continue;
+      need = Math.max(need, (at.length + 1) * ELLIPSE_END_GAP);
+    }
+    const size = horizontal ? 'height' : 'width';
+    if (need > n[size]) { n[size] = 2 * Math.ceil(need / 2); grown.push(n.id); }
+  }
+  return grown;
 }
 
 /**

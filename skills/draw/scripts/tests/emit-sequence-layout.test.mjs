@@ -388,3 +388,64 @@ describe('activations of a sequence diagram in draw.io', () => {
     expect(await spans(nested)).toEqual({ m2: 'x m2..m3', m4: 'x m4..m5', m1: 'b m1..m6' });
   });
 });
+
+describe('the label of a self-message in draw.io', () => {
+  const lockout = {
+    schemaVersion: 1, kind: 'sequence', title: 'Record a failed attempt',
+    participants: [{ id: 'svc', label: 'AuthService' }, { id: 'pol', label: 'LockoutPolicy' }, { id: 'repo', label: 'UserRepository', kind: 'database' }],
+    messages: [
+      { id: 'm1', from: 'svc', to: 'pol', label: 'recordFailure(user)' },
+      { id: 'm2', from: 'pol', to: 'pol', label: 'n += 1' },
+      { id: 'm3', from: 'pol', to: 'pol', label: 'lockedUntil = now + 30 min' },
+      { id: 'm4', from: 'pol', to: 'pol', label: 'lockedUntil = null' },
+      { id: 'm5', from: 'pol', to: 'repo', label: 'save(user)' },
+      { id: 'm6', from: 'repo', to: 'pol', label: 'saved', kind: 'return' },
+      { id: 'm7', from: 'pol', to: 'pol', label: 'Counting a failed attempt for the business view of the login' },
+      { id: 'm8', from: 'pol', to: 'svc', label: 'done', kind: 'return' },
+    ],
+    blocks: [
+      { id: 'b1', kind: 'alt', label: 'failedAttempts >= 3', messages: ['m3'], branches: [{ label: 'fewer than 3', messages: ['m4'] }] },
+      { id: 'b2', kind: 'opt', label: 'audit', messages: ['m7'] },
+    ],
+  };
+  /** Where draw.io writes the label of a self-message: from the loop's far side, moved by the offset, left-aligned or centred. */
+  const labelSpan = (cell, lifelineX, text) => {
+    const w = Math.ceil(textWidth(text));
+    const offset = Number(cell.mxGeometry.mxPoint?.find((p) => p.as === 'offset')?.x ?? 0);
+    const anchor = lifelineX + 50 + offset;
+    return /(?:^|;)align=left;/.test(cell.style) ? { left: anchor, right: anchor + w } : { left: anchor - w / 2, right: anchor + w / 2 };
+  };
+
+  it('starts right of the activation bar when it is too wide to stand centred over the loop, and the frame holds it', async () => {
+    const { r, cells, box } = await sequenceCells(lockout);
+    expect(r.warnings).toEqual([]);
+    const lifeline = box('pol');
+    const centre = lifeline.x + lifeline.width / 2;
+    const bar = centre + M.activationWidth / 2;
+    const frames = { m3: box('b1'), m4: box('b1'), m7: box('b2') };
+    for (const msg of lockout.messages.filter((x) => x.from === x.to)) {
+      const span = labelSpan(cells.find((c) => c.id === `sq:${msg.id}`), centre, msg.label);
+      // Clear of the activation bar on the lifeline it belongs to.
+      expect(span.left, msg.id).toBeGreaterThanOrEqual(bar + 4);
+      const frame = frames[msg.id];
+      if (frame) expect(span.right, `${msg.id} inside its frame`).toBeLessThanOrEqual(frame.x + frame.width - 4);
+    }
+    // The two frames are wider than the loop alone would make them.
+    expect(frames.m3.x + frames.m3.width).toBeGreaterThan(centre + 60 + 16);
+  });
+
+  it('makes the gap to the next lifeline as wide as the label needs, with room before that lifeline', async () => {
+    const { cells, box } = await sequenceCells(lockout);
+    const centre = box('pol').x + box('pol').width / 2;
+    const next = box('repo').x + box('repo').width / 2;
+    const span = labelSpan(cells.find((c) => c.id === 'sq:m7'), centre, lockout.messages[6].label);
+    expect(span.right).toBeLessThanOrEqual(next - M.activationWidth / 2 - 4);
+  });
+
+  it('keeps a short label centred over the loop, written as before', async () => {
+    const { cells } = await sequenceCells(lockout);
+    const short = cells.find((c) => c.id === 'sq:m2');
+    expect(short.style).not.toContain('align=left;');
+    expect(short.mxGeometry.mxPoint?.some((p) => p.as === 'offset') ?? false).toBe(false);
+  });
+});
