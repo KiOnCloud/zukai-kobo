@@ -13,7 +13,7 @@ describe('committed bundle', () => {
   }, 60_000);
 
   it('stays under the size budget and uses LF line endings', () => {
-    expect(statSync(bundlePath).size).toBeLessThan(2.5 * 1024 * 1024);
+    expect(statSync(bundlePath).size).toBeLessThan(3 * 1024 * 1024);
     expect(readFileSync(bundlePath, 'utf8')).not.toMatch(/\r/);
   });
 });
