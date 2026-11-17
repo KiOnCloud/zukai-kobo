@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "kind": "state",
+  "title": "Support ticket lifecycle",
+  "states": [
+    {
+      "id": "start",
+      "kind": "initial"
+    },
+    {
+      "id": "new",
+      "label": "New"
+    },
+    {
+      "id": "triaged",
+      "label": "Triaged"
+    },
+    {
+      "id": "closed",
+      "label": "Closed"
+    },
+    {
+      "id": "in-progress",
+      "label": "In progress",
+      "kind": "composite",
+      "children": [
+        "ip-start",
+        "investigating",
+        "waiting-for-customer",
+        "ip-end"
+      ]
+    },
+    {
+      "id": "ip-start",
+      "kind": "initial"
+    },
+    {
+      "id": "investigating",
+      "label": "Investigating"
+    },
+    {
+      "id": "waiting-for-customer",
+      "label": "WaitingForCustomer"
+    },
+    {
+      "id": "ip-end",
+      "kind": "final"
+    },
+    {
+      "id": "review",
+      "label": "Review"
+    },
+    {
+      "id": "end",
+      "kind": "final"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "e1",
+      "from": "start",
+      "to": "new"
+    },
+    {
+      "id": "e2",
+      "from": "new",
+      "to": "triaged",
+      "event": "assign",
+      "guard": "agent available",
+      "action": "notify agent"
+    },
+    {
+      "id": "e3",
+      "from": "new",
+      "to": "closed",
+      "event": "spam detected"
+    },
+    {
+      "id": "e4",
+      "from": "ip-start",
+      "to": "investigating"
+    },
+    {
+      "id": "e5",
+      "from": "investigating",
+      "to": "waiting-for-customer",
+      "event": "ask for details"
+    },
+    {
+      "id": "e6",
+      "from": "waiting-for-customer",
+      "to": "investigating",
+      "event": "customer replied"
+    },
+    {
+      "id": "e7",
+      "from": "investigating",
+      "to": "ip-end",
+      "event": "fix found"
+    },
+    {
+      "id": "e8",
+      "from": "triaged",
+      "to": "in-progress",
+      "event": "start work"
+    },
+    {
+      "id": "e10",
+      "from": "in-progress",
+      "to": "closed",
+      "event": "resolve",
+      "guard": "low priority"
+    },
+    {
+      "id": "e11",
+      "from": "in-progress",
+      "to": "review",
+      "event": "resolve",
+      "guard": "high priority"
+    },
+    {
+      "id": "e12",
+      "from": "review",
+      "to": "closed",
+      "event": "approved"
+    },
+    {
+      "id": "e13",
+      "from": "review",
+      "to": "in-progress",
+      "event": "rejected"
+    },
+    {
+      "id": "e14",
+      "from": "closed",
+      "to": "end"
+    }
+  ],
+  "meta": {
+    "source": "recook",
+    "notes": [
+      "recooked from ticket-states.puml, page \"Support ticket lifecycle\""
+    ],
+    "omitted": [
+      "\"Second agent checks the answer\": description inside the Review state; a state shows its name only",
+      "\"Only for enterprise plans\": note beside Review; a state diagram has no notes",
+      "\"Created by e-mail or form\": note beside New; a state diagram has no notes"
+    ]
+  }
+}

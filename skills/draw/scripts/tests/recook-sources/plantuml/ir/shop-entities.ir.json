@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "kind": "er",
+  "title": "Shop entities",
+  "entities": [
+    {
+      "id": "customer",
+      "label": "Customer",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk",
+          "comment": "generated"
+        },
+        {
+          "name": "email",
+          "type": "varchar(255)"
+        },
+        {
+          "name": "name",
+          "type": "varchar(120)"
+        }
+      ]
+    },
+    {
+      "id": "order",
+      "label": "Order",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "key": "fk"
+        },
+        {
+          "name": "placed_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "status",
+          "type": "varchar(20)"
+        }
+      ]
+    },
+    {
+      "id": "order-line",
+      "label": "order_line",
+      "attributes": [
+        {
+          "name": "order_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "line_no",
+          "type": "int",
+          "key": "pk"
+        },
+        {
+          "name": "product_id",
+          "type": "uuid",
+          "key": "fk"
+        },
+        {
+          "name": "quantity",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "id": "product",
+      "label": "Product",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "sku",
+          "type": "varchar(40)"
+        },
+        {
+          "name": "price",
+          "type": "decimal(10,2)"
+        }
+      ]
+    },
+    {
+      "id": "loyalty-card",
+      "label": "Loyalty card",
+      "attributes": []
+    }
+  ],
+  "relations": [
+    {
+      "id": "e1",
+      "from": "customer",
+      "to": "order",
+      "label": "places",
+      "fromCardinality": "one",
+      "toCardinality": "many"
+    },
+    {
+      "id": "e2",
+      "from": "order",
+      "to": "order-line",
+      "label": "contains",
+      "fromCardinality": "one",
+      "toCardinality": "one-many"
+    },
+    {
+      "id": "e3",
+      "from": "product",
+      "to": "order-line",
+      "fromCardinality": "one",
+      "toCardinality": "many",
+      "identifying": false
+    },
+    {
+      "id": "e4",
+      "from": "customer",
+      "to": "loyalty-card",
+      "fromCardinality": "zero-one",
+      "toCardinality": "zero-one"
+    }
+  ],
+  "meta": {
+    "source": "recook",
+    "notes": [
+      "recooked from shop-entities.puml, page \"plantuml-1\"",
+      "added: title (the source has none)"
+    ]
+  }
+}

@@ -55,7 +55,7 @@ const USAGE = `usage:
   cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
   cli.mjs revisions <run-dir>
   cli.mjs restore <run-dir> <rNNN|undo|redo> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
-  cli.mjs extract <file.drawio|file.drawio.svg|file.drawio.png|file.mmd|file.md|board.json...> [--page <id|name>[,...]] [--out <facts.json>]
+  cli.mjs extract <file.drawio|file.drawio.svg|file.drawio.png|file.mmd|file.puml|file.md|board.json...> [--page <id|name>[,...]] [--out <facts.json>]
   cli.mjs extract --figjam-script <file.js> [--section <name|node-id>] [--from <n>]
   cli.mjs cover <facts.json> <ir.json|run-dir>...
   cli.mjs sources <run-dir> [--root <project>] [--only <id,id,...>]

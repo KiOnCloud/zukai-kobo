@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "er",
+  "title": "Orders DB tables",
+  "entities": [
+    {
+      "id": "orders",
+      "label": "orders",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "key": "fk"
+        },
+        {
+          "name": "total",
+          "type": "decimal(10,2)"
+        }
+      ]
+    },
+    {
+      "id": "order-lines",
+      "label": "order_lines",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "order_id",
+          "type": "uuid",
+          "key": "fk"
+        },
+        {
+          "name": "sku",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "e11",
+      "from": "orders",
+      "to": "order-lines",
+      "label": "has",
+      "fromCardinality": "one",
+      "toCardinality": "many"
+    }
+  ],
+  "meta": {
+    "source": "recook",
+    "notes": [
+      "recooked from shop-deployment.puml, page \"Web shop deployment\"",
+      "added: title (the tables of Orders DB)"
+    ]
+  }
+}

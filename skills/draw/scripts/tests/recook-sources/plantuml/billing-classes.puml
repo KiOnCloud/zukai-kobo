@@ -1,0 +1,57 @@
+@startuml
+' Domain model of billing
+skinparam classAttributeIconSize 0
+hide empty members
+title Billing domain
+
+package "billing.domain" {
+  abstract class Document {
+    # id : UUID
+    # issuedAt : Instant
+    + {abstract} total() : Money
+  }
+  class Invoice extends Document {
+    - lines : List<InvoiceLine>
+    + addLine(product : Product, qty : int) : void
+    + total() : Money
+    + {static} draft(customer : Customer) : Invoice
+  }
+  class InvoiceLine {
+    + quantity : int
+    + unitPrice : Money
+  }
+  enum InvoiceStatus {
+    DRAFT
+    ISSUED
+    PAID
+  }
+  interface Taxable <<domain>> {
+    + taxRate() : Decimal
+  }
+}
+
+namespace billing.infra {
+  interface InvoiceRepository {
+    + save(invoice : Invoice)
+    + findById(id : UUID) : Invoice
+  }
+  class "JPA invoice repository" as JpaRepo
+}
+
+class Customer
+Customer : + name : String
+Customer : + vatId : String
+
+Invoice "1" *-- "1..*" InvoiceLine : contains >
+Invoice --> InvoiceStatus
+Invoice ..|> Taxable
+Customer "1" o-- "0..*" Invoice : is billed by
+JpaRepo ..|> InvoiceRepository
+JpaRepo ..> Invoice : persists
+CreditNote --|> Document
+InvoiceLine -left-> Product
+
+note right of Invoice : Immutable once ISSUED
+note "Money is always in <b>minor units</b>" as N1
+N1 .. InvoiceLine
+@enduml

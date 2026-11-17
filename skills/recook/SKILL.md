@@ -1,6 +1,6 @@
 ---
 name: recook
-description: Rebuild a diagram made elsewhere (a draw.io file, a FigJam board or Mermaid text) as Zukai diagrams. Reads the source with a deterministic extractor, maps what it shows to the validated JSON model under Zukai's rules (one kind per diagram, architecture at resource level, sub-flows as linked parts, business or technical view), checks that no text of the source was lost, then emits and reviews through the draw skill's closing contract. Use for "recook this drawio", "redo our old architecture diagram the Zukai way", "convert this FigJam board", "clean up this Mermaid chart". Not for a diagram Zukai delivered, which the revise skill changes, nor for a picture or screenshot.
+description: Rebuild a diagram made elsewhere (a draw.io file, a FigJam board, Mermaid or PlantUML text) as Zukai diagrams. Reads the source with a deterministic extractor, maps what it shows to the validated JSON model under Zukai's rules (one kind per diagram, architecture at resource level, sub-flows as linked parts, business or technical view), checks that no text of the source was lost, then emits and reviews through the draw skill's closing contract. Use for "recook this drawio", "redo our old architecture diagram the Zukai way", "convert this FigJam board", "clean up this Mermaid chart", "turn our PlantUML into draw.io". Not for a diagram Zukai delivered, which the revise skill changes, nor for a picture or screenshot.
 ---
 
 # Zukai recook
@@ -41,12 +41,13 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
 <source> [--to drawio|mermaid|figjam] [--kind <kind>] [--scope overview|detailed] [--audience technical|business|both] [--doc] [--svg] [<request>]
 ```
 
-- `<source>` is a file path (`.drawio`, `.xml`, `.drawio.svg`, `.drawio.png`, `.mmd`, `.md`)
+- `<source>` is a file path (`.drawio`, `.xml`, `.drawio.svg`, `.drawio.png`, `.mmd`, `.puml`,
+  `.plantuml`, `.pu`, `.iuml`, or `.md` with ```` ```mermaid ```` or ```` ```plantuml ```` blocks)
   or a FigJam board: a `figma.com/board/...` link, optionally with `node-id` of a section, or
   the words "the board" / a section name when a Figma tool is connected and the user named
   the board earlier. No source given: ask for it in one plain question; nothing else is
   asked first.
-- A PNG or JPEG without a draw.io copy inside, a screenshot, a PDF, a PlantUML or an Excel
+- A PNG or JPEG without a draw.io copy inside, a screenshot, a PDF, a Visio or an Excel
   file is not a source: `extract` refuses it. Say so in one line, name the sources that work,
   and offer the draw skill's `clarify` mode with the picture as the description. Never read a
   picture by eye into an IR here.
@@ -60,7 +61,9 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
   asks for an image, and offered at the end otherwise. When no renderer is installed, the
   report quotes the hint of `export` and says that no picture was written.
 - `--to` defaults to the source's own tool: `drawio` for a draw.io file, `mermaid` for
-  Mermaid text, `figjam` for a board. The report offers the other targets.
+  Mermaid text, `figjam` for a board. PlantUML is a source only, Zukai does not write it:
+  PlantUML text (and a Markdown file that mixes both languages) defaults to `drawio`. The
+  report offers the other targets.
 
 ## 1. Read the source
 
@@ -91,10 +94,21 @@ The facts are what the run keeps of it, with such values already replaced by pla
    facts (`page:<name>#1`, `#2` ...): `generate_diagram` puts its diagrams on the page itself,
    side by side. Recook only the ones the user asked for: extract again with `--page`, and ask
    which when the request does not say and the facts hold more than one.
-3. On exit 1, quote the error and stop; never fall back to reading the XML or the board
+3. PlantUML text is read like any file, with these differences. One file may hold several
+   `@startuml ... @enduml` diagrams and a Markdown file several fences: each is a page
+   (`plantuml-1`, `plantuml-2` ...), named by its `title`, else by the name after
+   `@startuml`, else by the Markdown heading above its fence. A page with an `unsupported`
+   field is a diagram type that is not read (a mind map, a Gantt chart, a wireframe, JSON,
+   an activity diagram in the legacy `(*) -->` syntax ...): it has no nodes, it is never
+   recooked and never guessed from the text; name it to the user with its type and reason,
+   and offer the draw skill's `clarify` mode for it. The preprocessor is not run: a warning
+   `!include of <file> is not followed` means that what that file declares is missing from
+   the facts; say so, and when the missing file is a diagram of its own, offer to recook it
+   as a source too. Never open the included file or the `.puml` itself to fill the facts in.
+4. On exit 1, quote the error and stop; never fall back to reading the XML or the board
    yourself. The one exception is `--page` naming a page the source does not have: its hint
    lists the pages, so choose from that list (or ask) and extract again.
-4. Make the run folder as the closing contract names it, `diagrams/<yyyymmdd>_<run-slug>/`,
+5. Make the run folder as the closing contract names it, `diagrams/<yyyymmdd>_<run-slug>/`,
    with a short English kebab-case slug of what the source shows (`order-system`,
    `refund-gateway-call`). A facts page without a name (a diagram on a board page outside
    any section) gets its title from what it shows, in the user's language, recorded as an
@@ -121,7 +135,8 @@ describes, with these differences:
 - A source with several pages: one diagram per page unless the user says otherwise. Ask the
   kind once for the page with the most nodes and list the suggestion for every other page in
   the question text ("Page 'Orders ERD' becomes an `er` diagram linked from 'Orders DB'");
-  "Other" (in the text form: naming another kind) changes one. A page that only repeats the others (an overview page whose
+  "Other" (in the text form: naming another kind) changes one. A page marked `unsupported`
+  gets no kind and no diagram. A page that only repeats the others (an overview page whose
   labels all occur on other pages) is named and left out unless the user wants it.
 - A page mixes kinds when a second kind hint scored on shapes the best kind does not draw
   (entity tables with key rows, lifelines or lanes on an architecture or flowchart page; a
@@ -204,13 +219,17 @@ facts alone:
   a line), do not guess past them: say in the report which elements look misread, keep what
   is sure, and offer the user to fix those few by hand or with `revise`.
 - **Layout is free.** The direction (`TB`, `LR`) and every position are Zukai's to choose;
-  they are not content.
+  they are not content. The one hint to follow is a page's `direction` (`LR` for PlantUML's
+  `left to right direction`): the author chose how the diagram reads, so use it as the IR's
+  `direction` for a kind that takes one.
 - **What a Zukai drawing adds is not content.** A board or file that Zukai drew carries a
   `↳ <slug>` line under an element that has a part (that is its `ref`, not part of its
   label) and writes `<`, `>`, `%`, `&` in labels sent to FigJam as ＜, ＞, ％, ＆ (write them
   back as ASCII).
 - **Order** comes from the facts: participants and lanes left to right by `box.x` (top to
-  bottom for horizontal lanes), messages by `y` when the source draws lifelines; a
+  bottom for horizontal lanes), messages by `y` when the source draws lifelines; facts read
+  from Mermaid or PlantUML text have no `box`, and the order of the nodes in the facts is the
+  order; a
   `sequence` part made from the edges of another kind follows `mapping.md`.
 - `meta.source` is `recook`, and the first `meta.notes` entry says where it came from:
   `recooked from <source path or board link>, page "<name>"`, with the page's name (or id)
@@ -249,8 +268,8 @@ with the offer of a `revise`, never `wrong` (the checklist says so for `meta.sou
 
 ## Rules
 
-- Never edit the source file or copy it into the run folder, never read raw draw.io XML or a
-  board in place of `extract`, and never write the reader script by hand.
+- Never edit the source file or copy it into the run folder, never read raw draw.io XML, PlantUML
+  text or a board in place of `extract`, and never write the reader script by hand.
 - Never hand-write Mermaid, draw.io XML or FigJam content; every rule of the closing contract
   holds, the secret scan included: a source often carries a password or a real address in a
   label or a sticky. The facts already show it as `<redacted ...>`; the IR carries a

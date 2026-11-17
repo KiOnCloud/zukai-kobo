@@ -1,0 +1,52 @@
+@startuml checkout-sequence
+' Checkout call order, kept next to the code
+!include ./theme.iuml
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #555555
+}
+title Checkout: place an order
+autonumber
+
+actor Customer as C
+participant "Web shop" as Web <<React>>
+boundary "API gateway" as GW
+control OrderService
+database "Orders DB" as DB
+queue "order-events" as Q
+collections Workers
+
+== Submit ==
+C -> Web : Press "Place order"
+Web -> GW ++ : POST /orders
+GW -> OrderService ++ : createOrder(cart)
+note right of OrderService
+  Validates the cart
+  and **locks** the prices
+end note
+OrderService -> OrderService : checkStock()
+
+alt all items in stock
+  OrderService -> DB : INSERT order
+  DB --> OrderService : order id
+  OrderService ->> Q : OrderPlaced
+  return 201 Created
+else an item is missing
+  OrderService --> GW : 409 Out of stock
+end
+GW --> Web -- : response
+
+== Fulfil ==
+loop for each line
+  Q ->> Workers : reserve\nstock
+end
+opt customer opted in
+  Workers ->> C : Confirmation mail
+end
+... up to 5 minutes later ...
+note over Web, GW : Polling every 10 s
+Web <- GW : order status
+/' the browser shows the result '/
+Web -> C : Show "Thank you"
+@enduml
