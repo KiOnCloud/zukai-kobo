@@ -164,6 +164,9 @@ at 40 characters; `drift` and `relabel` read them as they are.
   that cannot break (a call, a qualified name, a URL) makes the box as wide as that word
   needs. A class or ER table (wraps at 300 px) and a sequence note (220 px, or the gap
   beside its lifeline) grow the same way; the note moves the lifelines apart for the room.
+  A lane of an activity diagram and a composite state are at least as wide as the widest
+  such word of their title needs; in a left-to-right activity diagram that is the height of
+  the lane, along which its turned title runs.
 - Text width: a line is measured by its glyphs in draw.io's default font, Helvetica at
   12 px (`scripts/src/text-metrics.mjs`): `i` is 2.7 px, `n` 6.7 px, `W` 11.3 px, a CJK or
   full-width character 12.3 px, a letter with diacritics as wide as its base letter, bold

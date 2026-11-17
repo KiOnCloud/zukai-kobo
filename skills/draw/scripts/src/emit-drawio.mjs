@@ -789,7 +789,9 @@ async function emitState(ir, cid, refs, warnings) {
   const shown = new Map(ir.states.map((s, i) => [s.id, refLabel(s.label, s.ref, refs, `/states/${i}/ref`, warnings)]));
   // A composite's header is as tall as the lines of its title: a ref adds one.
   const compositeHeader = (lines) => 30 + 16 * (lines - 1);
-  const containers = composites.map((s) => ({ id: s.id, label: shown.get(s.id).label, link: shown.get(s.id).link, parent: parent.get(s.id), style: STYLE.composite, headerHeight: compositeHeader(shown.get(s.id).label.split('\n').length) }));
+  // A title wraps at the composite's width, but a word of it cannot break: the composite is at least as wide as that word needs.
+  const titleRoom = (label) => 2 * Math.ceil((roomFor(widestWord(label, { bold: true })) + 2 * LABEL_PAD) / 2);
+  const containers = composites.map((s) => ({ id: s.id, label: shown.get(s.id).label, link: shown.get(s.id).link, parent: parent.get(s.id), style: STYLE.composite, headerHeight: compositeHeader(shown.get(s.id).label.split('\n').length), minWidth: titleRoom(shown.get(s.id).label) }));
   const nodes = ir.states.filter((s) => kindOf(s) !== 'composite').map((s) => {
     const kind = kindOf(s);
     const circle = kind === 'initial' || kind === 'final';

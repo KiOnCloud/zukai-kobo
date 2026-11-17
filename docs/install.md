@@ -330,6 +330,22 @@ diagram without such a word comes out as before. A delivered diagram that has on
 arranged differently when it is emitted again, so `/zukai:revise` reports it as changed
 since delivery before it redraws it. Nothing changes in how a run is written or read.
 
+## Upgrading to 2.2.2
+
+Version 2.2.2 finishes what 2.2.1 began: the title of an activity lane and of a composite
+state no longer runs out of its header in draw.io output. A lane was as wide as its nodes
+needed, at least 220 px, and a composite state as wide as its members, so a title that is
+one long word (a class or component name) had nowhere to wrap; in a left-to-right activity
+diagram the turned titles of neighbouring lanes were drawn over each other.
+
+A lane and a composite state are now at least as wide as the widest such word of their
+title needs; in a left-to-right activity diagram that is the height of the lane. A title of
+several words wraps as before, so a diagram without such a title comes out unchanged. A
+delivered diagram that has one comes out arranged differently when it is emitted again, so
+`/zukai:revise` reports it as changed since delivery before it redraws it. The script of
+`emit --to figjam --native` is made from the same layout, so the board follows. Nothing
+changes in how a run is written or read.
+
 ## Upgrading from it-diagrams
 
 Zukai was published as `it-diagrams` up to version 1.0.0. The IR format and the CLI did
