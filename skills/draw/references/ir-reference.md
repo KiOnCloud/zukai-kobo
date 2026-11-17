@@ -34,6 +34,7 @@ Errors come back as JSON on stderr with a JSON-pointer `path`, a `message` and u
 | `direction` | no | `TB` (default), `BT`, `LR`, `RL`; ignored by sequence and by Mermaid's `architecture-beta`; draw.io lays an architecture out in the given direction |
 | `meta.source` | no | `clarify`, `scout`, `brainstorm`, `recook`, `manual` |
 | `meta.notes` | no | free text, for example the file paths a scout derived the diagram from |
+| `meta.sources` | no | the files the diagram was derived from, one path each, relative to the project root, with forward slashes (`src/auth/login-handler.ts`); files only, no folders, no absolute path and no `..`. The scout mode writes it, and `sources` / `stale` follow it to tell when the code moved on |
 | `meta.audience` | no | `technical` (default) or `business`; the review applies the audience items of the checklist (see `variants.md`) |
 | `meta.lang` | no | BCP 47 tag (`vi`, `ja`, `en-GB`) of the label language, set on a translated variant |
 | `meta.omitted` | no | what the diagram leaves out on purpose, one string each with a short reason; the review never asks for these back, and the report and Markdown bundle list them as "not shown on purpose" |

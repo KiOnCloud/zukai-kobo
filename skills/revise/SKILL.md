@@ -166,7 +166,9 @@ why, in one line, in the user's language.
    into that view by `variants.md`. A step that gains or loses a `ref` part changes the part
    too. A run whose IR says `meta.source: "scout"` and receives a change the code does not
    have: set `meta.source` to `"manual"` and add a `meta.notes` entry saying from which
-   revision on it no longer reflects the code.
+   revision on it no longer reflects the code. `meta.sources` stays as it is: the diagram
+   is still about those files, and the sync skill uses the list when the user later wants
+   it compared with the code again.
 4. `diff <run>/history/<rNNN>/source <run>/source` and read every hint it prints. A hint
    about a part or a business view is either applied now or answered in the report. The
    list has four parts: `added`, `removed`, `changed` (with the fields that differ) and
@@ -207,7 +209,11 @@ run. Nothing in `source/` or in the delivered files changes before that confirma
    printed (those of the restored revision). When that revision kept hand-edited files,
    `restore` lists them as `extras` (under `history/rNNN/extras/`, or `history/extras/rNNN/`
    once the revision was rotated out); say so: they match the restored IRs and can be copied
-   back over the emitted files if the user wants their old layout.
+   back over the emitted files if the user wants their old layout. For a scouted run
+   `restore` also prints `sourcesRecord`: `restored` when the record of the source files
+   went back with the IRs, `removed` when the restored revision was made before the run had
+   one. Pass it on in one line, because after undoing a sync the run is behind the code
+   again and `stale` says so.
 
 ## 8. New diagram route
 

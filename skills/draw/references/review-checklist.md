@@ -54,7 +54,8 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 9. No degenerate control: a merge or join with one incoming flow, a decision or fork with
    one outgoing flow, a node nothing reaches, a branch that never ends.
 10. In `scout` mode the diagram contains only what the code does, with the source files in
-    `meta.notes`, and no open questions or suggestions anywhere in the output.
+    `meta.notes` and in `meta.sources`, and no open questions or suggestions anywhere in the
+    output.
 11. An `architecture` diagram stays at the level of deployed resources (`ir-reference.md`,
     Level of detail). Each of these is a `wrong` finding, because the diagram then answers a
     question it was not asked: several components that are parts of one resource (one icon
