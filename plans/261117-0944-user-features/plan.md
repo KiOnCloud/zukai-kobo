@@ -1,6 +1,6 @@
 # User features: sync, SVG export, description tables, visual diff, GCP, use case, PlantUML
 
-Status: in progress.
+Status: done. All seven features are merged and released as 2.3.0; the suite passes (55 files, 1650 tests, 1 skipped). Skill-level rounds: e2e-261117-scout-sync-doc-svg.md, e2e-261117-usecase-diff-plantuml.md, e2e-261117-gcp.md, and e2e-261117-confirm.md (26 High and Medium findings fixed, none open). install.ps1 was edited but not run (no PowerShell); no real FigJam board was drawn.
 
 ## Outcome
 
