@@ -286,7 +286,7 @@ sources.
 
 ## Status
 
-Version 2.2.1 is the open beta. Version 2.2.0 added `/zukai:recook` and version 2.0.0 added `/zukai:revise`; forks of the skill should read
+Version 2.2.2 is the open beta. Version 2.2.0 added `/zukai:recook` and version 2.0.0 added `/zukai:revise`; forks of the skill should read
 [Upgrading to 2.2.0](docs/install.md#upgrading-to-220),
 [Upgrading to 2.0.0](docs/install.md#upgrading-to-200) and
 [Upgrading to 2.0.1](docs/install.md#upgrading-to-201). Every diagram kind and target listed above works and is
