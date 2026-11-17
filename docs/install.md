@@ -314,6 +314,22 @@ diagrams. Nothing changes for existing runs and commands.
   the board, as for the other FigJam scripts: the script is tested against a stand-in for the
   Figma API only.
 
+## Upgrading to 2.2.1
+
+Version 2.2.1 fixes a label that ran out of its box in draw.io output. A node wraps its label
+at 260 px, but a word with no place to break (a call such as
+`ngComponentOutlet(ComponentMap[cell.component],`, a qualified name, a URL) stands alone on
+its line, and when it was wider than the box it ran past both borders. A sequence note and
+the header of a class or ER table spilled the same way, and a table row cut the end of the
+word off. Nothing was reported.
+
+A node, a table and a sequence note are now at least as wide as their widest such word
+needs, as a decision and a participant header already were; a note moves the lifelines
+beside it apart to make the room. Text that can wrap still wraps at the same width, so a
+diagram without such a word comes out as before. A delivered diagram that has one comes out
+arranged differently when it is emitted again, so `/zukai:revise` reports it as changed
+since delivery before it redraws it. Nothing changes in how a run is written or read.
+
 ## Upgrading from it-diagrams
 
 Zukai was published as `it-diagrams` up to version 1.0.0. The IR format and the CLI did
