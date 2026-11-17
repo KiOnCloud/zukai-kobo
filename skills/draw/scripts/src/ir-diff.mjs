@@ -18,7 +18,7 @@
 
 /** Top-level scalar fields worth reporting; `meta` is compared field by field. */
 const TOP_FIELDS = ['title', 'kind', 'direction'];
-const META_FIELDS = ['source', 'audience', 'lang', 'omitted', 'notes'];
+const META_FIELDS = ['source', 'audience', 'lang', 'omitted', 'notes', 'sources'];
 /** Keys whose values name an element (or, for `ref`, a diagram) by id, from the IR schema. */
 const REF_KEYS = new Set(['from', 'to', 'children', 'participants', 'after', 'ref', 'lane']);
 

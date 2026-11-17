@@ -2,6 +2,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, r
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { validateIr } from './validate-ir.mjs';
 import { orderIrFiles, runSlugOf } from './run-order.mjs';
+import { RECORD_SUFFIX } from './sources.mjs';
 
 /**
  * Revisions of a run folder (`diagrams/<yyyymmdd>_<run-slug>/`): every IR of the run copied
@@ -10,12 +11,18 @@ import { orderIrFiles, runSlugOf } from './run-order.mjs';
  *
  *   history/r007/revision.json       { rev, number, createdAt, request, files, extras, undo, redo, bundle?, undoOf? }
  *   history/r007/source/*.ir.json    every IR of the run at that point
+ *   history/r007/source/<run-slug>.sources.json   the sources record of that point, when the run had one
  *   history/r007/extras/<path>       delivered files that carried hand edits, when given
  *   history/extras/r003/<path>       the extras of a revision that was rotated away
  *
  * Extras are the only copy of a file the user edited by hand in draw.io, so rotation never
  * deletes them: when their revision goes, they move to `history/extras/<rev>/` and stay
  * until the user removes them.
+ *
+ * The sources record (`sources.mjs`) says which state of the code the IRs were last read
+ * against, so it travels with them: a snapshot copies it, and a restore puts back the record
+ * of the revision or, when that revision has none, removes the current one. Left in place it
+ * would vouch for IRs it was never taken for, and `stale` would call an old diagram current.
  *
  * `undo` and `redo` in the newest record are the two stacks of the run as that revision left
  * them: the revisions that hold the states before the current one (nearest last) and the
@@ -35,6 +42,12 @@ const fail = (code, message, hint) => ({ ok: false, code, errors: [{ path: '/', 
 function irFiles(dir) {
   if (!existsSync(dir)) return [];
   return orderIrFiles(readdirSync(dir).filter((f) => f.endsWith('.ir.json')), runSlugOf(dir));
+}
+
+/** The sources record files of a `source/` folder (one per run, named after the run slug). */
+function sourcesRecords(dir) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((f) => f.endsWith(RECORD_SUFFIX)).sort();
 }
 
 function readRecord(revPath) {
@@ -142,6 +155,8 @@ export function snapshotRun(runDir, options = {}) {
   const files = irFiles(join(run, 'source'));
   mkdirSync(join(tmp, 'source'), { recursive: true });
   for (const f of files) cpSync(join(run, 'source', f), join(tmp, 'source', f));
+  const sources = sourcesRecords(join(run, 'source'));
+  for (const f of sources) cpSync(join(run, 'source', f), join(tmp, 'source', f));
   for (const e of extras) {
     mkdirSync(dirname(join(tmp, 'extras', e.rel)), { recursive: true });
     cpSync(e.abs, join(tmp, 'extras', e.rel));
@@ -155,6 +170,7 @@ export function snapshotRun(runDir, options = {}) {
     extras: extras.map((e) => e.rel),
     undo: stacks.undo,
     redo: stacks.redo,
+    ...(sources.length > 0 ? { sources } : {}),
     ...(options.bundle ? { bundle: options.bundle } : {}),
     ...(options.undoOf ? { undoOf: options.undoOf } : {}),
   };
@@ -225,6 +241,7 @@ export function restoreRun(runDir, revOrStep, options = {}) {
   const files = irFiles(join(target.path, 'source'));
   if (files.length === 0) return fail(1, `revision ${rev} holds no IR files; refusing to empty source/`, 'pick another revision with `revisions`');
   const contents = new Map(files.map((f) => [f, readFileSync(join(target.path, 'source', f), 'utf8')]));
+  const records = new Map(sourcesRecords(join(target.path, 'source')).map((f) => [f, readFileSync(join(target.path, 'source', f), 'utf8')]));
   const errors = [];
   for (const [f, text] of contents) {
     let ir;
@@ -258,8 +275,13 @@ export function restoreRun(runDir, revOrStep, options = {}) {
     for (const out of [join(run, 'drawio', `${slug}.drawio`), join(run, 'mermaid', `${slug}.mmd`)]) rmSync(out, { force: true });
   }
   for (const [f, text] of contents) writeFileSync(join(source, f), text, 'utf8');
+  // The record of the restored state, or none: the current one was taken for other IRs.
+  const hadRecord = sourcesRecords(source).length > 0;
+  for (const f of sourcesRecords(source)) if (!records.has(f)) rmSync(join(source, f));
+  for (const [f, text] of records) writeFileSync(join(source, f), text, 'utf8');
+  const sourcesRecord = records.size > 0 ? 'restored' : hadRecord ? 'removed' : undefined;
   // The extras of the restored revision: where they are now (its folder may just have been rotated away).
   const extrasDir = existsSync(join(target.path, 'extras')) ? `history/${rev}/extras` : `history/extras/${rev}`;
   const extras = filesUnder(join(run, extrasDir)).map((f) => `${extrasDir}/${f}`);
-  return { ok: true, restored: rev, snapshot: snap.rev, removedRevisions: snap.removed, ...(snap.keptExtras ? { keptExtras: snap.keptExtras } : {}), files, removedDiagrams, ...(extras.length > 0 ? { extras } : {}), ...(bundle ? { bundle } : {}) };
+  return { ok: true, restored: rev, snapshot: snap.rev, removedRevisions: snap.removed, ...(snap.keptExtras ? { keptExtras: snap.keptExtras } : {}), files, removedDiagrams, ...(sourcesRecord ? { sourcesRecord } : {}), ...(extras.length > 0 ? { extras } : {}), ...(bundle ? { bundle } : {}) };
 }
