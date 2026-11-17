@@ -102,6 +102,41 @@ locally; only the page itself is fetched). Exit 1 with a hint when neither is in
 step is optional and `docs/install.md` says how to set a renderer up. Look at the PNG as
 the review gate of `closing-contract.md` describes before reporting.
 
+## Pictures: editable SVG
+
+```bash
+node "<skill-dir>/scripts/bin/cli.mjs" export ./diagrams/20260506_order-checkout
+node "<skill-dir>/scripts/bin/cli.mjs" export ./order-checkout.drawio [--out <folder|file.svg>]
+```
+
+Writes one `<name>.drawio.svg` per page and prints `{"ok":true,"files":[{"page":<page id>,
+"title":...,"out":<path>,"width":...,"height":...}],"renderer":...,"text":"svg"}`. The file
+is an SVG picture, so GitHub, a browser and a wiki show it (`![Checkout](svg/checkout.drawio.svg)`),
+and its root carries the page's own diagram in the `content` attribute, so draw.io opens it
+for editing and `extract` reads it back as it reads the `.drawio` file.
+
+- A run folder stands for its combined `<run-slug>.drawio` and gets the pictures in
+  `svg/<slug>.drawio.svg`, named by diagram; without a combined file, the files of `drawio/`
+  are exported. A single file gets its picture beside it, named after the file (one page)
+  or after each page. `--out` names another folder, or the file itself when there is one page.
+- Each picture holds one page. The first page of a `--canvas` bundle is a page like any
+  other and becomes `canvas.drawio.svg`, the whole run side by side. A link from a step to
+  the page of its part cannot work in a file of one page: the picture has no link there (the
+  label and the `↳ <title>` line stay), and the diagram inside keeps the cell unchanged.
+- Labels are written as SVG text, one element per line where the layout put it, on a white
+  background, in `Helvetica, Arial, sans-serif`. draw.io's own SVG export keeps labels as
+  HTML, which only a browser draws; a PDF converter or a wiki's own renderer shows "Text is
+  not SVG" instead. A label that holds a table, a list, an image or right-to-left text keeps
+  the HTML form and is named in a warning; an image loaded from an address is a warning
+  too, because a picture shown through `<img>` loads nothing.
+- The renderers are those of `preview`: draw.io desktop when installed (offline), else
+  Playwright with draw.io's viewer in a local browser. The text step needs the browser, so
+  draw.io desktop without Playwright gives `"text":"html"` and a warning. Exit 1 with a
+  hint that names where it looked when neither is installed, when the target has no draw.io
+  file, or when `--out` names one file for several pages; nothing is written then, and a
+  picture is never made any other way.
+- Run it again after every change of the run: the picture does not follow the `.drawio` file.
+
 ## Where the output goes and how to open it
 
 Write next to the IR file with the `.drawio` extension unless the user names a path. The

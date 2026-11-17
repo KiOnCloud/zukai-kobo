@@ -62,7 +62,7 @@ the user's answer is awaited; never pick for them.
 Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them from the request.
 
 ```text
-[<run-folder|ir-path>] [--preview|--apply] [--doc] <request>
+[<run-folder|ir-path>] [--preview|--apply] [--doc] [--svg] <request>
 ```
 
 - A path first selects the run (an IR path means the run folder that holds it). The first
@@ -76,6 +76,14 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
   that asks only for the tables ("also give me the tables for the design document"), it
   changes no IR: write the file as the closing contract's section "Description tables"
   says and report where it is, with no snapshot, no route and no review.
+
+- `--svg` also writes the pictures of the run, `svg/<slug>.drawio.svg` (a draw.io run only),
+  as the draw skill's flag does. It is not needed for a run that already has them: the
+  closing contract writes the pictures of an `svg/` folder again on every change, so a
+  picture in a wiki or a README never shows the diagram as it was. Without the flag and
+  without an `svg/` folder, pictures are written when the user asks for an image. When no
+  renderer is installed, the report quotes the hint of `export`, says that no picture was
+  written, and names the pictures in `svg/` that still show the run before the change.
 
 ## 1. Find the run
 

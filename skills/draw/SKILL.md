@@ -24,9 +24,10 @@ node "<skill-dir>/scripts/bin/cli.mjs" emit --to <mermaid|drawio|figjam> <ir.jso
 node "<skill-dir>/scripts/bin/cli.mjs" bundle --to doc --lang <en|ja|vi> --out <file.md> <run-folder>
 ```
 
-Node 22.13 or newer is required; the CLI has no other dependency. One command reaches the
-network: `preview`, the optional review image, fetches its renderer when draw.io desktop is not
-installed (the diagram itself is rendered locally). Every other command works offline.
+Node 22.13 or newer is required; the CLI has no other dependency. Two commands reach the
+network: `preview`, the optional review image, and `export`, the optional SVG pictures, fetch
+their renderer when draw.io desktop is not installed (the diagram itself is rendered
+locally). Every other command works offline.
 `cli.mjs help` prints every command.
 
 ## Arguments and modes
@@ -53,6 +54,13 @@ The invocation arguments select the mode and target. Claude Code appends them as
   the CLI and never pick the nearest one in the user's place.
 - `--to <target>` picks `drawio` (default: editable file, the form PMs review), `mermaid`
   (text for Markdown) or `figjam`.
+- `--svg` also writes a picture of every diagram, `svg/<slug>.drawio.svg` in the run folder
+  (target `drawio` only): an SVG that GitHub, a browser or a wiki shows and that draw.io
+  still opens for editing. Without the flag the pictures are written when the user asks for
+  an image for a wiki, a README or a design document, and offered in one line at the end
+  otherwise. They need the renderer `preview` uses; when none is installed the report
+  quotes the hint of `export`, which names where it looked, and says that no picture was
+  written. `references/closing-contract.md`, step 5, has the command.
 - `--kind <kind>` fixes the diagram kind (see the next section); without it the kind is
   always asked, never guessed.
 - `--scope overview|detailed` fixes the level of detail (see the next section); without it

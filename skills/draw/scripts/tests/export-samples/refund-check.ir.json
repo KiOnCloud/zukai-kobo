@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "kind": "flowchart",
+  "title": "Refund check",
+  "nodes": [
+    { "id": "start", "label": "Start", "shape": "terminal" },
+    { "id": "check", "label": "Is the amount over 500 EUR & approved?", "shape": "decision" },
+    { "id": "pay", "label": "Pay back to the card" },
+    { "id": "done", "label": "Done", "shape": "terminal" }
+  ],
+  "edges": [
+    { "id": "e1", "from": "start", "to": "check" },
+    { "id": "e2", "from": "check", "to": "pay", "label": "yes" },
+    { "id": "e3", "from": "check", "to": "done", "label": "no" },
+    { "id": "e4", "from": "pay", "to": "done" }
+  ]
+}

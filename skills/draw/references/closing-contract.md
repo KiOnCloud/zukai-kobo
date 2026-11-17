@@ -14,6 +14,7 @@ where the date is today and `<run-slug>` is a short English kebab-case name of t
 | `<run-slug>.md` | the whole run as one Markdown file, one heading and block per diagram (target `mermaid`) |
 | `drawio/<slug>.drawio` | each diagram on its own, for reuse (target `drawio`) |
 | `mermaid/<slug>.mmd` | each diagram on its own (target `mermaid`) |
+| `svg/<slug>.drawio.svg` | a picture of each diagram that GitHub, a browser or a wiki shows and draw.io still opens for editing; written only when asked for (step 5; target `drawio`) |
 | `figjam/<slug>.mmd` | the text sent to FigJam, kept so it can be previewed and reviewed before the board is made (target `figjam`) |
 | `figjam/<slug>.overlay.js` | for a sequence diagram: the script that draws on the board what `generate_diagram` leaves out (target `figjam`, `target-figjam.md` section 5) |
 | `<run-slug>.<lang>.drawio`, `source/labels.<lang>.json` | a language variant of the combined file and its label map (`variants.md`) |
@@ -78,7 +79,25 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    for something the user chose to leave out is not applied: record the omission in
    `meta.omitted` (with its reason) so the next round does not raise it again. If no
    preview could be rendered, the review runs on the IR and warnings only and says so.
-5. Show the user: the run folder, the combined file, the list of diagrams in it, every
+5. Pictures, only when asked for: the invocation carried `--svg`, or the user wants an
+   image of the diagrams for a wiki, a README or a design document. For target `drawio`,
+   once the review is over and the files are final, run
+   `node "<skill-dir>/scripts/bin/cli.mjs" export <run-folder>`. It writes
+   `svg/<slug>.drawio.svg` for every page of `<run-slug>.drawio` (each diagram, and
+   `svg/canvas.drawio.svg` for the page that shows them side by side) and lists them under
+   `files`. Such a file is an SVG picture with the diagram inside: Markdown shows it with
+   `![<title>](svg/<slug>.drawio.svg)`, and draw.io opens the same file for editing. Each
+   picture holds its own page only, so a step that refers to a part keeps its label and the
+   part's title but has no link to it. The command needs the renderer `preview` uses and
+   writes nothing without one: on exit 1 quote its hint, which names where it looked, say
+   that no picture was written and that the `.drawio` file is complete without it, and
+   never make an SVG any other way. Show its warnings verbatim (`text: "html"` in the
+   output means draw.io desktop drew the pictures without Playwright beside it, so the
+   labels are HTML that only a browser shows). A Mermaid or FigJam run has no draw.io file
+   to export: say so and offer the `drawio` target. Not asked for, the step is skipped and
+   step 7 offers it.
+6. Show the user: the run folder, the combined file, the list of diagrams in it, the
+   pictures of step 5 when they were written, every
    warning verbatim, the review verdict with the number of rounds and any remaining
    findings, the reviewer's own `Images:` line per diagram (opened or not opened; never
    assume it opened them, and when `preview` failed quote its hint, which names where it
@@ -90,8 +109,9 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    open questions, spec doubts, bug suspicions or suggestions about the business logic.
    A scouted run records its sources before this report, as "Sources of a scouted run"
    below says, and the report has one line about the record.
-6. Offer the other targets in one line, and in the same line the description tables when
-   the run has none. Do not emit them unless asked.
+7. Offer the other targets in one line, in the same line the description tables when the
+   run has none, and for a `drawio` run without pictures the SVG pictures for a wiki or a
+   README. Do not emit or export them unless asked.
 
 Rules that hold in every mode:
 
@@ -185,7 +205,7 @@ diagram the components, the data stores, the boundaries and the connections.
 
 Write them when the user asks for a description, a specification table or text for a design
 document ("a table of the steps", "bảng mô tả", "設計書に貼る表"), or passed `--doc`. Without
-that, step 6 offers them and nothing is written. They are no target: a run has them beside
+that, step 7 offers them and nothing is written. They are no target: a run has them beside
 its draw.io or Mermaid files, never in their place.
 
 ```bash
@@ -211,7 +231,7 @@ node "<skill-dir>/scripts/bin/cli.mjs" bundle --to doc --lang <en|ja|vi> --out <
   leaves nothing out; the `model:` and `detail:` warnings are the ones the emit already
   printed and are not shown twice.
 - The tables are not previewed and not reviewed on their own: they hold what the reviewed
-  IRs hold. Step 5 names the file and says in one line what it is for; do not print its
+  IRs hold. Step 6 names the file and says in one line what it is for; do not print its
   content in the report.
 
 ## When revise calls this contract
@@ -245,11 +265,18 @@ the run folder and its run slug, never a new folder, and changes these steps:
   asked (`review-checklist.md`, Revision). Without a renderer, or for a Mermaid run, the
   review reads the change list instead and says so. The picture is rebuilt with the same
   `diff --drawio` call after every review round that edits an IR.
-- Step 5 adds the route taken (direct, consult, new diagram or undo), the revision written
+- Step 5 runs again whenever the run folder has an `svg/` folder, asked for or not: a
+  picture that shows the diagram as it was before the change is wrong. `export` writes
+  every picture again over the earlier one; delete `svg/<slug>.drawio.svg` of a diagram the
+  change removed. Without a renderer, say that the pictures in `svg/` still show the run
+  before this change and name them. A run without `svg/` gets pictures only when asked,
+  as in every run.
+- Step 6 adds the route taken (direct, consult, new diagram or undo), the revision written
   (`history/rNNN`), the change list from `diff` in plain words, the path of the picture of
   the change as a review aid beside the delivered files, and the outcome of the drift
   check.
-- Step 6 is skipped unless the user asks for another target.
+- Step 7 is skipped unless the user asks for another target, for the description tables or
+  for the pictures.
 - A revision made by the revise skill does not read the code, so it does not record
   sources again: the record keeps saying which state of the code the run was last compared
   with. One case adds to it: a new
