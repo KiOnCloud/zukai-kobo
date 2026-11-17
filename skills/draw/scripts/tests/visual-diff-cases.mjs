@@ -149,6 +149,23 @@ export const CASES = [
     },
     notes: ['"order placed": event was "checkout"', '"Cancelled": moved, now after f-end'],
   },
+  {
+    kind: 'usecase',
+    fixture: 'valid-generalization',
+    edit: (ir) => ({
+      ...ir,
+      useCases: [...patch(without(ir.useCases, 'collect-points'), 'place-order', { label: 'Place an order online' }), { id: 'cancel', label: 'Cancel an order' }],
+      boundaries: patch(ir.boundaries, 'shop', { children: [...ir.boundaries[0].children.filter((id) => id !== 'collect-points'), 'cancel'] }),
+      relations: [...patch(without(ir.relations, 'a3'), 'x1', { condition: 'a voucher code was entered' }), { id: 'a8', from: 'customer', to: 'cancel', kind: 'association' }],
+    }),
+    cells: {
+      added: ['cancel', 'a8'],
+      removed: ['collect-points', 'a3'],
+      changed: ['place-order', 'x1', 'shop'],
+      plain: ['customer', 'pay', 'i1', 'g1'],
+    },
+    notes: ['"Place an order online": label was "Place an order"', 'condition was "the customer has a voucher code"'],
+  },
 ];
 
 /** The old and the new model of a case. */

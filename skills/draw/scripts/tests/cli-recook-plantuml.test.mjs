@@ -44,6 +44,7 @@ describe('cli recook of PlantUML sources (committed bundle, another working dire
     ['leave-request-activity', 'activity'],
     ['shop-deployment', 'architecture'],
     ['shop-entities', 'er'],
+    ['library-usecases', 'usecase'],
   ])('%s: the IRs of the mapping validate, cover the facts and emit draw.io', (source, kind) => {
     const { dir, facts, summary } = makeRun(source, `${kind}-run`);
     expect(summary.pages[0].kindHints[0].kind).toBe(kind);

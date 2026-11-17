@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "usecase",
+  "title": "Library system",
+  "direction": "LR",
+  "meta": {
+    "source": "recook",
+    "notes": ["recooked from library-usecases.puml, page \"Library system\""],
+    "omitted": ["\"Only when the book is overdue\": note beside Pay a late fee; a use case diagram has no notes"]
+  },
+  "actors": [
+    { "id": "member", "label": "Member" },
+    { "id": "lib", "label": "Librarian" },
+    { "id": "pay", "label": "Payment gateway", "kind": "system" }
+  ],
+  "useCases": [
+    { "id": "search", "label": "Search the catalogue" },
+    { "id": "borrow", "label": "Borrow a book" },
+    { "id": "return", "label": "Return a book" },
+    { "id": "fee", "label": "Pay a late fee" },
+    { "id": "check", "label": "Check membership" },
+    { "id": "manage", "label": "Manage the catalogue" },
+    { "id": "reserve", "label": "Reserve a book" }
+  ],
+  "boundaries": [
+    { "id": "library", "label": "Library system", "children": ["search", "borrow", "return", "fee", "check", "manage"] }
+  ],
+  "relations": [
+    { "id": "r1", "from": "member", "to": "search", "kind": "association" },
+    { "id": "r2", "from": "member", "to": "borrow", "kind": "association" },
+    { "id": "r3", "from": "member", "to": "return", "kind": "association" },
+    { "id": "r4", "from": "lib", "to": "manage", "kind": "association" },
+    { "id": "r5", "from": "lib", "to": "member", "kind": "generalization" },
+    { "id": "r6", "from": "borrow", "to": "check", "kind": "include" },
+    { "id": "r7", "from": "fee", "to": "return", "kind": "extend" },
+    { "id": "r8", "from": "fee", "to": "pay", "kind": "association" },
+    { "id": "r9", "from": "reserve", "to": "borrow", "kind": "generalization" }
+  ]
+}

@@ -40,6 +40,7 @@ describe('emit --to doc', () => {
     { kind: 'state', name: 'valid', has: ['Diagram kind: State diagram', '## States', '## Transitions', '| Draft | → Placed [cart not empty] | — | — | — | — | — | — |'] },
     { kind: 'er', name: 'valid-fk-anchors', has: ['Diagram kind: ER diagram', '## Entities', '### Order', '| 2 | customer\\_id | uuid | FK |', '## Relations', '| 1 | Customer | 1 | Order | 0..* | places | Yes |'] },
     { kind: 'class', name: 'valid', has: ['Diagram kind: Class diagram', '## Classes', '### Order', 'Stereotype: «aggregate root»', '| 3 | AddLine(Product product, int quantity) | Method | ErrorOr&lt;OrderLine&gt; | public |', '## Relations'] },
+    { kind: 'usecase', name: 'valid-generalization', has: ['Diagram kind: Use case diagram', '## Actors', '## Use cases', '## Boundaries', '## Relations', '| 5 | Payment service provider | System | Supporting |', '| 8 | Apply a voucher | Extend | Place an order | the customer has a voucher code |'] },
     { kind: 'architecture', name: 'valid-aws-zones', has: ['Diagram kind: Architecture diagram', '## Components', '## Data stores', '## Boundaries', '## Connections', '| 7 | RDS primary | RDS standby (Multi-AZ) | replication | Both ways |'] },
   ];
 

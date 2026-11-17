@@ -124,6 +124,9 @@ describe('description tables: what they hold', () => {
         case 'flowchart':
           expect([rows(h.steps), arrows(h.steps), rows(h.groups)]).toEqual([n('nodes'), n('edges'), n('groups')]);
           break;
+        case 'usecase':
+          expect([rows(h.actors), rows(h.useCases), rows(h.boundaries), rows(h.relations)]).toEqual([n('actors'), n('useCases'), n('boundaries'), n('relations')]);
+          break;
         default:
           throw new Error(`no row count for kind ${copy.kind}`);
       }
@@ -275,6 +278,7 @@ const CARRIERS = [
   { kind: 'architecture', fixture: 'valid-ref-parts', heading: 'Components', label: 'Order API' },
   { kind: 'class', fixture: 'valid-ref-parts', label: 'Order' },
   { kind: 'er', fixture: 'valid-ref-parts', label: 'CUSTOMER' },
+  { kind: 'usecase', fixture: 'valid-ref-parts', heading: 'Use cases', label: 'Sync the orders' },
 ];
 const PART = 'order-sync-01-load';
 const part = () => ({ id: PART, ir: { ...loadFixture('flowchart', 'valid-refund-check'), title: 'Load the orders of one shop' } });

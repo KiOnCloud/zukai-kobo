@@ -372,6 +372,50 @@ function flowchartTables(ir, c) {
   return out;
 }
 
+function usecaseTables(ir, c) {
+  const { t } = c;
+  const actors = list(ir, 'actors');
+  const useCases = list(ir, 'useCases');
+  const boundaries = list(ir, 'boundaries');
+  const relations = list(ir, 'relations');
+  const name = new Map([...actors, ...useCases, ...boundaries].map((x) => [x.id, escapeCell(x.label)]));
+  const parentOf = parents(boundaries);
+  const kindOf = (a) => a.kind ?? 'person';
+  const out = [
+    c.heading(t.heading.actors),
+    ...table([
+      numbered(t),
+      { head: t.column.actor, cell: (a) => name.get(a.id) },
+      { head: t.column.kind, cell: (a) => t.value.actorKind[kindOf(a)] },
+      // A person starts the exchange and a system supports it unless the IR says otherwise.
+      { head: t.column.role, cell: (a) => t.value.actorRole[a.role ?? (kindOf(a) === 'system' ? 'supporting' : 'primary')] },
+    ], actors),
+    c.heading(t.heading.useCases),
+    ...table([
+      numbered(t),
+      { head: t.column.useCase, cell: (u) => name.get(u.id) },
+      { head: t.column.boundary, cell: (u) => (parentOf.has(u.id) ? name.get(parentOf.get(u.id).id) : ''), when: boundaries.length > 0 },
+      { head: t.column.details, cell: (u, i) => c.ref(u.ref, `/useCases/${i}/ref`), when: useCases.some((u) => u.ref) },
+    ], useCases),
+  ];
+  if (boundaries.length > 0) {
+    out.push(c.heading(t.heading.boundaries), ...table([
+      numbered(t),
+      { head: t.column.boundary, cell: (b) => name.get(b.id) },
+    ], boundaries));
+  }
+  if (relations.length > 0) {
+    out.push(c.heading(t.heading.relations), ...table([
+      numbered(t),
+      { head: t.column.from, cell: (r) => name.get(r.from) },
+      { head: t.column.relation, cell: (r) => t.value.useCaseRelation[r.kind] },
+      { head: t.column.to, cell: (r) => name.get(r.to) },
+      { head: t.column.condition, cell: (r) => (r.condition ? escapeCell(r.condition) : ''), when: relations.some((r) => r.condition) },
+    ], relations));
+  }
+  return out;
+}
+
 /** The tables of each kind. A new kind is one more function here and its words in doc-strings.mjs. */
 const TABLES = {
   flowchart: flowchartTables,
@@ -381,6 +425,7 @@ const TABLES = {
   class: classTables,
   architecture: architectureTables,
   activity: activityTables,
+  usecase: usecaseTables,
 };
 
 export const DOC_KINDS = Object.keys(TABLES);
