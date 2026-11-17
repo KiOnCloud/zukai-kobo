@@ -80,6 +80,7 @@ export function emitMermaid(ir, options = {}) {
       break;
     }
     case 'activity': emitActivity(ir, emit, t, options.stable === true, options.refs !== undefined); break;
+    case 'usecase': emitUsecase(ir, emit, t); break;
     default: throw new Error(`unknown kind "${ir.kind}"`);
   }
   // swimlane-beta puts its lane header row where Mermaid draws a front-matter title, so the
@@ -708,4 +709,65 @@ function emitActivity(ir, emit, t, stable, bundled) {
       else if (c.kind === 'initial' || c.kind === 'fork' || c.kind === 'join') emit(`  style ${ids.get(c.id)} ${FILLED}`);
     }
   }
+}
+
+/**
+ * Use case diagrams. Mermaid has none, so the form is a flowchart, left to right unless the
+ * IR says otherwise: an actor is a box whose first line says «actor» (a person) or «system»,
+ * a use case a stadium node, a boundary a subgraph. An association is a plain line, written
+ * from the end that stands first (a primary actor before its use case, a supporting actor
+ * after it), `include` and `extend` are dotted arrows labelled with the stereotype (and the
+ * condition), and a generalization is a solid arrow labelled «generalization», since a
+ * flowchart has no hollow triangle. The feature matrix owns the warnings for what is lost.
+ */
+function emitUsecase(ir, emit, t) {
+  const ids = safeIds();
+  emit(`flowchart ${ir.direction ?? 'LR'}`);
+  for (const a of ir.actors) ids.add(a.id);
+  for (const u of ir.useCases) ids.add(u.id);
+  const boundaries = ir.boundaries ?? [];
+  for (const b of boundaries) ids.add(b.id);
+  const isSystem = (a) => (a.kind ?? 'person') === 'system';
+  const supporting = new Set(ir.actors.filter((a) => (a.role ?? (isSystem(a) ? 'supporting' : 'primary')) === 'supporting').map((a) => a.id));
+  const actorIds = new Set(ir.actors.map((a) => a.id));
+  const inside = new Set(boundaries.flatMap((b) => b.children));
+  const useCaseLine = (u) => {
+    const i = ir.useCases.indexOf(u);
+    return `${ids.get(u.id)}(["${t.withRef(t.label(u.label, `/useCases/${i}/label`), u.ref, `/useCases/${i}/ref`, u.label)}"])`;
+  };
+  ir.actors.forEach((a, i) => {
+    emit(idComment('  ', a.id));
+    emit(`  ${ids.get(a.id)}["${t.label(`${isSystem(a) ? '«system»' : '«actor»'}\n${a.label}`, `/actors/${i}/label`)}"]`);
+  });
+  for (const u of ir.useCases) {
+    if (inside.has(u.id)) continue;
+    emit(idComment('  ', u.id));
+    emit(`  ${useCaseLine(u)}`);
+  }
+  boundaries.forEach((b, i) => {
+    emit(idComment('  ', b.id));
+    emit(`  subgraph ${ids.get(b.id)}["${t.label(b.label, `/boundaries/${i}/label`)}"]`);
+    for (const child of b.children) {
+      emit(idComment('    ', child));
+      emit(`    ${useCaseLine(ir.useCases.find((u) => u.id === child))}`);
+    }
+    emit('  end');
+  });
+  ir.relations.forEach((r, i) => {
+    emit(idComment('  ', r.id));
+    const from = ids.get(r.from);
+    const to = ids.get(r.to);
+    switch (r.kind) {
+      case 'association': {
+        // The layout ranks a node after the one its line starts at.
+        const actor = actorIds.has(r.from) ? r.from : r.to;
+        const useCase = actor === r.from ? r.to : r.from;
+        emit(supporting.has(actor) ? `  ${ids.get(useCase)} --- ${ids.get(actor)}` : `  ${ids.get(actor)} --- ${ids.get(useCase)}`);
+        break;
+      }
+      case 'include': emit(`  ${from} -.->|"«include»"| ${to}`); break;
+      case 'extend': emit(`  ${from} -.->|"${t.label(r.condition ? `«extend»\n[${r.condition}]` : '«extend»', `/relations/${i}/condition`)}"| ${to}`); break;
+      default: emit(`  ${from} -->|"«generalization»"| ${to}`); break;
+    }
+  });
 }

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "usecase",
+  "title": "Online shop checkout",
+  "direction": "LR",
+  "meta": { "source": "clarify", "notes": ["assumed: guests cannot use the loyalty programme"] },
+  "actors": [
+    { "id": "customer", "label": "Customer" },
+    { "id": "guest", "label": "Guest" },
+    { "id": "registered", "label": "Registered customer" },
+    { "id": "support", "label": "Support agent" },
+    { "id": "psp", "label": "Payment service provider", "kind": "system" },
+    { "id": "carrier", "label": "Carrier", "kind": "system" }
+  ],
+  "useCases": [
+    { "id": "place-order", "label": "Place an order" },
+    { "id": "pay", "label": "Pay for the order" },
+    { "id": "pay-card", "label": "Pay by card" },
+    { "id": "pay-transfer", "label": "Pay by bank transfer" },
+    { "id": "apply-voucher", "label": "Apply a voucher" },
+    { "id": "collect-points", "label": "Collect loyalty points" },
+    { "id": "track", "label": "Track the delivery" },
+    { "id": "refund", "label": "Refund an order" }
+  ],
+  "boundaries": [
+    { "id": "shop", "label": "Online shop", "children": ["place-order", "pay", "pay-card", "pay-transfer", "apply-voucher", "collect-points", "track", "refund"] }
+  ],
+  "relations": [
+    { "id": "g1", "from": "guest", "to": "customer", "kind": "generalization" },
+    { "id": "g2", "from": "registered", "to": "customer", "kind": "generalization" },
+    { "id": "a1", "from": "customer", "to": "place-order", "kind": "association" },
+    { "id": "a2", "from": "customer", "to": "track", "kind": "association" },
+    { "id": "a3", "from": "registered", "to": "collect-points", "kind": "association" },
+    { "id": "a4", "from": "support", "to": "refund", "kind": "association" },
+    { "id": "i1", "from": "place-order", "to": "pay", "kind": "include" },
+    { "id": "x1", "from": "apply-voucher", "to": "place-order", "kind": "extend", "condition": "the customer has a voucher code" },
+    { "id": "g3", "from": "pay-card", "to": "pay", "kind": "generalization" },
+    { "id": "g4", "from": "pay-transfer", "to": "pay", "kind": "generalization" },
+    { "id": "a5", "from": "pay", "to": "psp", "kind": "association" },
+    { "id": "a6", "from": "refund", "to": "psp", "kind": "association" },
+    { "id": "a7", "from": "track", "to": "carrier", "kind": "association" }
+  ]
+}

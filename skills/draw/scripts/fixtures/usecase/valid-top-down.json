@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "usecase",
+  "title": "Parking garage",
+  "direction": "TB",
+  "meta": { "source": "clarify" },
+  "actors": [
+    { "id": "driver", "label": "Driver" },
+    { "id": "subscriber", "label": "Subscriber" },
+    { "id": "visitor", "label": "Visitor" },
+    { "id": "attendant", "label": "Attendant" },
+    { "id": "bank", "label": "Card acquirer", "kind": "system" },
+    { "id": "plates", "label": "Plate recognition", "kind": "system" }
+  ],
+  "useCases": [
+    { "id": "enter", "label": "Enter the garage" },
+    { "id": "leave", "label": "Leave the garage" },
+    { "id": "pay", "label": "Pay the parking fee" },
+    { "id": "read-plate", "label": "Read the number plate" },
+    { "id": "open", "label": "Open the barrier by hand" }
+  ],
+  "boundaries": [
+    { "id": "garage", "label": "Garage system", "children": ["enter", "leave", "pay", "read-plate", "open"] }
+  ],
+  "relations": [
+    { "id": "g1", "from": "subscriber", "to": "driver", "kind": "generalization" },
+    { "id": "g2", "from": "visitor", "to": "driver", "kind": "generalization" },
+    { "id": "a1", "from": "driver", "to": "enter", "kind": "association" },
+    { "id": "a2", "from": "driver", "to": "leave", "kind": "association" },
+    { "id": "a3", "from": "attendant", "to": "open", "kind": "association" },
+    { "id": "i1", "from": "enter", "to": "read-plate", "kind": "include" },
+    { "id": "i2", "from": "leave", "to": "read-plate", "kind": "include" },
+    { "id": "x1", "from": "pay", "to": "leave", "kind": "extend", "condition": "no subscription" },
+    { "id": "a4", "from": "pay", "to": "bank", "kind": "association" },
+    { "id": "a5", "from": "read-plate", "to": "plates", "kind": "association" }
+  ]
+}

@@ -42,8 +42,8 @@ writes the file and runs the closing contract in `references/closing-contract.md
   sub-diagram per sub-flow that deserves its own picture, each collapsed element carrying
   `ref` to its part, each part complete on its own. The element is the one the part details:
   a flowchart node, an activity action, a sequence message (the call whose callee the part
-  follows), a state, an architecture component, a class or an ER entity; `ir-reference.md`
-  has the field for each kind. Put the part's id in `ref` only, never in a label, so the
+  follows), a state, an architecture component, a class, an ER entity or a use case;
+  `ir-reference.md` has the field for each kind. Put the part's id in `ref` only, never in a label, so the
   reader sees the part's title and a page link instead of a slug. Never produce parts
   without the main diagram.
 - Redact. Never copy connection strings, keys, tokens, hostnames with credentials, or
@@ -122,6 +122,38 @@ incoming connection, and `meta.omitted` says so. Supporting resources (`aws-icon
 Choosing) are listed in `meta.omitted` too, in one entry. Label a connection with the
 protocol only when the files state it (a port alone is not a protocol); otherwise with the
 call the code makes, or leave the label out.
+
+### usecase
+
+The actors and their goals are in what the system offers to the outside and in who may use
+it, not in its call chains.
+
+1. Goals: read the entry points a user or another system can reach: the route table,
+   controllers, GraphQL operations, CLI commands, menu or navigation definitions, public
+   message consumers, scheduled jobs. Group the entry points that serve one goal into one
+   use case ("list, show, create and cancel a booking" are two or three goals, not four
+   endpoints), and name it by what the actor gets done, in the words the user interface or
+   the documentation uses. An endpoint, a screen or a handler is never a use case by itself
+   (`ir-reference.md`, usecase, Level of detail).
+2. Actors: read who is allowed in: roles and their rights (an enum of roles, policies,
+   guards, middleware, `authorize` attributes, tables of rights), and the kinds of client (a
+   public site, an admin area, a partner API). Each role that reaches at least one goal is
+   an actor; a role that holds every right of another is a `generalization`. An entry point
+   without any guard belongs to an anonymous actor ("Visitor"). A scheduler that starts a
+   job is an actor of `kind` `system` with `role` `primary`.
+3. Supporting actors: the outside systems the code calls while serving a goal (HTTP
+   clients, SDK clients, mail and payment gateways) are actors of `kind` `system`,
+   associated with the use cases whose code path calls them.
+4. Relations: a guard that lets a role reach an entry point is the `association`. A service
+   or step that several use cases always call and that a reader would name (signing in, a
+   credit check) is an `include`; behaviour behind a feature flag or a condition on top of
+   a goal is an `extend` with that condition. Do not turn every shared helper into an
+   include.
+5. Boundaries: one per deployed application or bounded module whose entry points were read.
+
+Cite the route file, the policy or role definition and the client registrations in
+`meta.notes`. Under the scope `detailed` a use case whose flow deserves a picture carries
+`ref` to a `sequence` or `activity` part scouted from its handler.
 
 ## Output
 

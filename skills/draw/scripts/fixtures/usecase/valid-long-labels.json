@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "usecase",
+  "title": "経費精算",
+  "meta": { "source": "clarify", "lang": "ja" },
+  "actors": [
+    { "id": "employee", "label": "従業員" },
+    { "id": "approver", "label": "Phê duyệt viên cấp phòng ban và cấp công ty" },
+    { "id": "erp", "label": "AccountsPayableReconciliationService", "kind": "system" }
+  ],
+  "useCases": [
+    { "id": "submit", "label": "出張旅費および交際費の経費精算申請を提出する" },
+    { "id": "attach", "label": "Attach the receipts and the supporting documents that the finance policy asks for" },
+    { "id": "approve", "label": "Duyệt yêu cầu hoàn ứng" },
+    { "id": "export", "label": "ExportApprovedExpenseClaimsToAccountsPayable(batch)" },
+    { "id": "ok", "label": "OK" }
+  ],
+  "boundaries": [
+    { "id": "system", "label": "経費精算システム (Expense reimbursement system of the whole group)", "children": ["submit", "attach", "approve", "export", "ok"] }
+  ],
+  "relations": [
+    { "id": "a1", "from": "employee", "to": "submit", "kind": "association" },
+    { "id": "i1", "from": "submit", "to": "attach", "kind": "include" },
+    { "id": "a2", "from": "approver", "to": "approve", "kind": "association" },
+    { "id": "x1", "from": "export", "to": "approve", "kind": "extend", "condition": "承認済みの申請がある" },
+    { "id": "a3", "from": "erp", "to": "export", "kind": "association" },
+    { "id": "a4", "from": "employee", "to": "ok", "kind": "association" }
+  ]
+}

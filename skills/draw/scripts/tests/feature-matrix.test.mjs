@@ -46,6 +46,11 @@ function expectedFeatures() {
       ...enumOf(def('activity').controls.items.properties.kind).map((k) => `control.kind.${k}`),
       'flow.guard',
     ],
+    usecase: [
+      ...enumOf(def('usecase').actors.items.properties.kind).map((k) => `actor.kind.${k}`),
+      ...enumOf(def('usecase').relations.items.properties.kind).map((k) => `relation.kind.${k}`),
+      'boundary', 'relation.condition', 'useCase.ref',
+    ],
   };
   return out;
 }

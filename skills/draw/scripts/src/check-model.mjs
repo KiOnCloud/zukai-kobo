@@ -22,6 +22,7 @@ const SIZE_OF = {
   er: (ir) => ({ n: list(ir, 'entities').length, what: 'entities' }),
   class: (ir) => ({ n: list(ir, 'classes').length, what: 'classes' }),
   architecture: (ir) => ({ n: list(ir, 'components').length, what: 'components' }),
+  usecase: (ir) => ({ n: list(ir, 'actors').length + list(ir, 'useCases').length, what: 'actors and use cases' }),
 };
 
 function degrees(nodes, edges) {
@@ -135,7 +136,63 @@ function checkEr(ir, warn) {
   });
 }
 
-const CHECKS = { flowchart: checkFlowchart, activity: checkActivity, state: checkState, sequence: checkSequence, er: checkEr };
+/**
+ * A use case exists for an actor: one that no actor reaches, directly or through the use
+ * cases that include it, that it extends or that it is a kind of, serves nobody on this
+ * diagram. An actor exists for a use case: its own, or one of an actor it is a kind of.
+ */
+function checkUsecase(ir, warn) {
+  const actors = list(ir, 'actors');
+  const useCases = list(ir, 'useCases');
+  const relations = list(ir, 'relations');
+  const actorIds = new Set(actors.map((a) => a.id));
+  const useCaseIds = new Set(useCases.map((u) => u.id));
+  // Use cases an actor is associated with, then everything that follows from them.
+  const reached = new Set();
+  const acts = new Set();
+  for (const r of relations) {
+    if (r.kind !== 'association') continue;
+    const actor = actorIds.has(r.from) ? r.from : actorIds.has(r.to) ? r.to : undefined;
+    const useCase = useCaseIds.has(r.from) ? r.from : useCaseIds.has(r.to) ? r.to : undefined;
+    if (actor === undefined || useCase === undefined) continue;
+    reached.add(useCase);
+    acts.add(actor);
+  }
+  const next = new Map(useCases.map((u) => [u.id, []]));
+  for (const r of relations) {
+    if (!useCaseIds.has(r.from) || !useCaseIds.has(r.to)) continue;
+    // The included one runs with its base; the extension runs with the use case it extends;
+    // a special use case is reached with the general one, and the general one with a special one.
+    if (r.kind === 'include') next.get(r.from).push(r.to);
+    else if (r.kind === 'extend') next.get(r.to).push(r.from);
+    else if (r.kind === 'generalization') { next.get(r.from).push(r.to); next.get(r.to).push(r.from); }
+  }
+  const queue = [...reached];
+  while (queue.length > 0) {
+    for (const id of next.get(queue.shift()) ?? []) if (!reached.has(id)) { reached.add(id); queue.push(id); }
+  }
+  useCases.forEach((u, i) => {
+    if (reached.has(u.id)) return;
+    warn(`/useCases/${i}`, `model: no actor reaches use case ${q(u.id)}, directly or through include, extend or generalization`, 'add the association with the actor whose goal it is, or the relation to the use case it belongs to, or remove it');
+  });
+  // An actor that is a kind of another takes part in what the general one does.
+  const generalOf = new Map(actors.map((a) => [a.id, []]));
+  for (const r of relations) if (r.kind === 'generalization' && actorIds.has(r.from) && actorIds.has(r.to)) generalOf.get(r.from).push(r.to);
+  const takesPart = (id, seen = new Set()) => acts.has(id) || (!seen.has(id) && (seen.add(id), generalOf.get(id).some((g) => takesPart(g, seen))));
+  actors.forEach((a, i) => {
+    if (takesPart(a.id)) return;
+    warn(`/actors/${i}`, `model: actor ${q(a.id)} has no use case`, 'add the association with the use case it starts or takes part in, or remove it');
+  });
+  const seen = new Map();
+  relations.forEach((r, i) => {
+    const ends = r.kind === 'association' ? [r.from, r.to].sort() : [r.from, r.to];
+    const key = JSON.stringify([r.kind, ...ends]);
+    if (seen.has(key)) warn(`/relations/${i}`, `model: relation ${q(r.id)} repeats relation ${q(seen.get(key))} (same kind, same ends)`, 'remove one of the two');
+    else seen.set(key, r.id);
+  });
+}
+
+const CHECKS = { flowchart: checkFlowchart, activity: checkActivity, state: checkState, sequence: checkSequence, er: checkEr, usecase: checkUsecase };
 
 /**
  * @param {object} ir a valid IR

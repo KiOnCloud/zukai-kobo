@@ -1,0 +1,39 @@
+---
+title: "Library lending"
+---
+flowchart LR
+  %% id: member
+  n1["«actor»<br/>Member"]
+  %% id: librarian
+  n2["«actor»<br/>Librarian"]
+  %% id: payment
+  n3["«system»<br/>Payment provider"]
+  %% id: library
+  subgraph n10["Library system"]
+    %% id: search
+    n4(["Search the catalogue"])
+    %% id: borrow
+    n5(["Borrow a book"])
+    %% id: return
+    n6(["Return a book"])
+    %% id: check-card
+    n7(["Check the library card"])
+    %% id: pay-fine
+    n8(["Pay a late fee"])
+    %% id: register
+    n9(["Register a new member"])
+  end
+  %% id: r1
+  n1 --- n4
+  %% id: r2
+  n1 --- n5
+  %% id: r3
+  n1 --- n6
+  %% id: r4
+  n2 --- n9
+  %% id: r5
+  n5 -.->|"«include»"| n7
+  %% id: r6
+  n8 -.->|"«extend»<br/>#91;the book is overdue#93;"| n6
+  %% id: r7
+  n8 --- n3

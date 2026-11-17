@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "usecase",
+  "title": "Clinic appointments",
+  "meta": { "source": "clarify", "audience": "business" },
+  "actors": [
+    { "id": "patient", "label": "Patient" },
+    { "id": "receptionist", "label": "Receptionist" },
+    { "id": "doctor", "label": "Doctor" },
+    { "id": "insurer", "label": "Health insurer", "kind": "system" },
+    { "id": "reminder-job", "label": "Nightly reminder run", "kind": "system", "role": "primary" }
+  ],
+  "useCases": [
+    { "id": "book", "label": "Book an appointment" },
+    { "id": "cancel", "label": "Cancel an appointment" },
+    { "id": "remind", "label": "Remind the patient" },
+    { "id": "check-in", "label": "Check a patient in" },
+    { "id": "record", "label": "Record the consultation" },
+    { "id": "invoice", "label": "Issue an invoice" },
+    { "id": "claim", "label": "Claim the cost from the insurer" }
+  ],
+  "boundaries": [
+    { "id": "booking", "label": "Booking portal", "children": ["book", "cancel", "remind"] },
+    { "id": "practice", "label": "Practice management", "children": ["check-in", "record", "invoice", "claim"] }
+  ],
+  "relations": [
+    { "id": "a1", "from": "patient", "to": "book", "kind": "association" },
+    { "id": "a2", "from": "patient", "to": "cancel", "kind": "association" },
+    { "id": "a3", "from": "reminder-job", "to": "remind", "kind": "association" },
+    { "id": "a4", "from": "receptionist", "to": "book", "kind": "association" },
+    { "id": "a5", "from": "receptionist", "to": "check-in", "kind": "association" },
+    { "id": "a6", "from": "doctor", "to": "record", "kind": "association" },
+    { "id": "a7", "from": "receptionist", "to": "invoice", "kind": "association" },
+    { "id": "x1", "from": "claim", "to": "invoice", "kind": "extend", "condition": "the patient is insured" },
+    { "id": "a8", "from": "claim", "to": "insurer", "kind": "association" }
+  ]
+}

@@ -106,6 +106,16 @@ export function enumerateFeatures(ir) {
       list(ir, 'flows').forEach((f, i) => { if (f.guard) use('flow.guard', `/flows/${i}`, f.id); });
       break;
     }
+    case 'usecase': {
+      list(ir, 'actors').forEach((a, i) => use(`actor.kind.${a.kind ?? 'person'}`, `/actors/${i}`, a.id));
+      list(ir, 'useCases').forEach((u, i) => { if (u.ref) use('useCase.ref', `/useCases/${i}`, u.id); });
+      list(ir, 'boundaries').forEach((b, i) => use('boundary', `/boundaries/${i}`, b.id));
+      list(ir, 'relations').forEach((r, i) => {
+        use(`relation.kind.${r.kind}`, `/relations/${i}`, r.id);
+        if (r.condition) use('relation.condition', `/relations/${i}`, r.id);
+      });
+      break;
+    }
     default:
       break;
   }

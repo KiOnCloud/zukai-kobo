@@ -103,7 +103,7 @@ describe('mermaid.parse on every figjam profile output', () => {
   }, 30_000);
 
   for (const { kind, name, ir } of validFixtures()) {
-    if (ir.kind === 'class' || ir.kind === 'activity') continue;
+    if (ir.kind === 'class' || ir.kind === 'activity' || ir.kind === 'usecase') continue;
     it(`parses ${kind}/${name}`, async () => {
       const r = await emit(ir, 'figjam', { allowSensitive: true });
       expect(r.ok).toBe(true);

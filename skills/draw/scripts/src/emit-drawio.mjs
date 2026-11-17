@@ -1,6 +1,7 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
 import { awsIcon, awsGroup } from './aws-icons.mjs';
 import { layoutGraph, backEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, widestWord, LABEL_PAD } from './layout-graph.mjs';
+import { measureEllipse } from './layout-graph.mjs';
 import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
 import { widestLine, roomFor, safeWidth, sameText } from './text-metrics.mjs';
@@ -117,6 +118,7 @@ async function emitDrawioPage(ir, options = {}) {
     case 'architecture': cells = await emitArchitecture(ir, cid, refs, warnings); break;
     case 'sequence': cells = emitSequence(ir, cid, warnings, refs); break;
     case 'activity': cells = await emitActivity(ir, cid, warnings, refs); break;
+    case 'usecase': cells = await emitUsecase(ir, cid, refs, warnings); break;
     default: throw new Error(`unknown kind "${ir.kind}"`);
   }
   return { diagramId: slug, name: ir.title, cells, warnings };
@@ -2205,4 +2207,263 @@ async function emitActivity(ir, cid, warnings, refs) {
     if (label) cells.push(edgeLabel({ id: `${cid(f.id)}:label`, value: htmlLabel(f.guard), parent: cid(f.id), position: label.position, offset: label.offset }));
   }
   return cells;
+}
+
+/** The stick figure of an actor, at the size of draw.io's UML library; its name is drawn below it. */
+const ACTOR_FIGURE = { width: 30, height: 60 };
+const USECASE_STYLE = {
+  actor: 'shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;',
+  // An outside system that takes part: a box marked «system», so nobody reads it as a person.
+  system: `whiteSpace=wrap;html=1;${labelPad('process')}`,
+  useCase: 'ellipse;whiteSpace=wrap;html=1;',
+  // The system boundary: a rectangle with its name at the top, as UML draws the subject.
+  boundary: 'rounded=0;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;fontStyle=1;spacingTop=4;',
+  edge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;',
+};
+const USECASE_EDGE = {
+  association: 'endArrow=none;',
+  include: 'dashed=1;endArrow=open;endSize=10;endFill=0;',
+  extend: 'dashed=1;endArrow=open;endSize=10;endFill=0;',
+  generalization: 'endArrow=block;endSize=14;endFill=0;',
+};
+/** The side of a node that faces along the flow, and the one that faces against it. */
+const FLOW_SIDE = { LR: 'right', RL: 'left', TB: 'bottom', BT: 'top' };
+const OPPOSITE_SIDE = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' };
+/** How far the line of a generalization between two actors that are not neighbours stands off their column, and the pitch of further ones. */
+const ACTOR_BRACKET = { out: 20, step: 14 };
+
+/** The role of an actor: a person starts use cases unless told otherwise, an outside system is called on. */
+const actorRole = (a) => a.role ?? ((a.kind ?? 'person') === 'system' ? 'supporting' : 'primary');
+
+/**
+ * Where a line meets a shape of a use case diagram, as draw.io's relative anchor, from the
+ * point the layout routed it to on the shape's layout box. An ellipse is narrower than its
+ * box everywhere but the middle of a side, so the last stretch of the line is carried on in
+ * its own direction to the outline; the anchor is that point, kept as it is (`perimeter`
+ * off), so the line stays straight where draw.io would otherwise turn it towards the centre.
+ * A figure with its name below is met at the figure's side, or under the name when the line
+ * comes from below.
+ */
+function usecaseAnchor(n, layoutBox, pt) {
+  const b = drawBox(n, layoutBox);
+  const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
+  if (n.ellipse) {
+    const rx = b.width / 2;
+    const ry = b.height / 2;
+    const cx = b.x + rx;
+    const cy = b.y + ry;
+    const sideways = Math.min(Math.abs(pt.x - b.x), Math.abs(pt.x - b.x - b.width)) <= Math.min(Math.abs(pt.y - b.y), Math.abs(pt.y - b.y - b.height));
+    if (sideways) {
+      const t = clamp((pt.y - cy) / ry, -0.98, 0.98);
+      return { x: (cx + Math.sign(pt.x - cx || 1) * rx * Math.sqrt(1 - t * t) - b.x) / b.width, y: (cy + t * ry - b.y) / b.height, dx: 0, dy: 0, fixed: true };
+    }
+    const t = clamp((pt.x - cx) / rx, -0.98, 0.98);
+    return { x: (cx + t * rx - b.x) / b.width, y: (cy + Math.sign(pt.y - cy || 1) * ry * Math.sqrt(1 - t * t) - b.y) / b.height, dx: 0, dy: 0, fixed: true };
+  }
+  const a = { x: clamp((pt.x - b.x) / b.width), y: clamp((pt.y - b.y) / b.height), dx: 0, dy: 0, fixed: false };
+  // Under the name of a figure: the point itself, as an offset from the figure's bottom.
+  if (pt.y > b.y + b.height + 0.5) Object.assign(a, { dx: pt.x - (b.x + a.x * b.width), dy: pt.y - (b.y + b.height), fixed: true });
+  return a;
+}
+const usecaseAnchorStyle = (prefix, a) => `${prefix}X=${round(a.x)};${prefix}Y=${round(a.y)};${prefix}Dx=${round(a.dx)};${prefix}Dy=${round(a.dy)};${a.fixed ? `${prefix}Perimeter=0;` : ''}`;
+
+/**
+ * Use case diagram. The layout engine places the primary actors in the first layer and the
+ * supporting actors and outside systems in the last one, with the system boundaries and
+ * their use cases between them: left and right of the boundary in the default left-to-right
+ * direction, above and below it top-down. Along the flow an included use case follows its
+ * base, an extending one follows the use case it extends, and a special use case follows
+ * the general one, so the use cases an actor starts stand nearest to it.
+ *
+ * Every line of an actor leaves from one point of its figure, so its associations run as
+ * one line that parts where the use cases are. A generalization between two actors of one
+ * side is not the engine's: they share a layer, and the line is drawn straight between
+ * neighbours, or round the outside of the column when another actor stands between them.
+ */
+async function emitUsecase(ir, cid, refs, warnings) {
+  const direction = ir.direction ?? 'LR';
+  const horizontal = direction === 'LR' || direction === 'RL';
+  const even = (v) => 2 * Math.ceil(v / 2);
+  const role = new Map(ir.actors.map((a) => [a.id, actorRole(a)]));
+  const isActor = (id) => role.has(id);
+  const portSide = (id) => (role.get(id) === 'primary' ? FLOW_SIDE[direction] : OPPOSITE_SIDE[FLOW_SIDE[direction]]);
+  const parent = parentMap(ir.boundaries ?? []);
+
+  // A boundary title stays on one line up to a width; a longer one wraps, and a word of it
+  // cannot break, so the boundary is at least as wide as that word.
+  const titleWidth = (label) => even(Math.max(roomFor(widestWord(label, { bold: true })), Math.min(320, roomFor(wrapText(label, Infinity, { bold: true }).widest))) + 2 * LABEL_PAD);
+  const headerOf = (lines) => 30 + 16 * (lines - 1);
+  const containers = (ir.boundaries ?? []).map((b) => ({ id: b.id, label: b.label, style: USECASE_STYLE.boundary, headerHeight: 30, minWidth: titleWidth(b.label), title: plainTitle(b.label) }));
+
+  const actors = ir.actors.map((a) => {
+    const side = portSide(a.id);
+    const layoutOptions = { 'elk.layered.layering.layerConstraint': role.get(a.id) === 'primary' ? 'FIRST_SEPARATE' : 'LAST_SEPARATE' };
+    if ((a.kind ?? 'person') === 'system') {
+      const label = `«system»\n${a.label}`;
+      const size = measureNode(label);
+      return { id: a.id, label, style: USECASE_STYLE.system, width: size.width, height: size.height, own: size, side, layoutOptions };
+    }
+    const below = measureLabelBelow(a.label);
+    return { id: a.id, label: a.label, style: `${USECASE_STYLE.actor}labelWidth=${below.wrap};`, width: even(Math.max(ACTOR_FIGURE.width, below.width)), height: even(ACTOR_FIGURE.height + below.height), own: ACTOR_FIGURE, drawWidth: ACTOR_FIGURE.width, drawHeight: ACTOR_FIGURE.height, side, layoutOptions };
+  });
+  // The actors of one side get one layout box across the flow, so their figures line up; each
+  // is drawn at its own size in the middle (or at the top) of that box.
+  for (const which of ['primary', 'supporting']) {
+    const group = actors.filter((n) => role.get(n.id) === which);
+    const across = Math.max(0, ...group.map((n) => (horizontal ? n.width : n.height)));
+    for (const n of group) {
+      if (horizontal) { if (n.width < across) { n.drawWidth = n.drawWidth ?? n.width; n.width = across; } }
+      else if (n.height < across) { n.drawWidth = n.drawWidth ?? n.width; n.drawHeight = n.drawHeight ?? n.height; n.height = across; }
+    }
+  }
+  // One port per actor, on the side that faces the system, at the middle of the figure: its
+  // lines leave together. A port is a 1 px box whose centre the line ends at.
+  const portAt = (n, shift = 0) => {
+    const mid = n.own.height / 2;
+    switch (n.side) {
+      case 'right': return { x: n.width - 1, y: mid + shift - 0.5 };
+      case 'left': return { x: 0, y: mid + shift - 0.5 };
+      case 'bottom': return { x: n.width / 2 + shift - 0.5, y: n.height - 1 };
+      default: return { x: n.width / 2 + shift - 0.5, y: 0 };
+    }
+  };
+  for (const n of actors) n.ports = [{ id: `${n.id}:port`, ...portAt(n) }];
+
+  const useCases = ir.useCases.map((u, i) => {
+    const { label, link } = refLabel(u.label, u.ref, refs, `/useCases/${i}/ref`, warnings);
+    const size = measureEllipse(label);
+    return { id: u.id, label, link, parent: parent.get(u.id), style: `${USECASE_STYLE.useCase}spacingLeft=${size.spacing};spacingRight=${size.spacing};`, width: size.width, height: size.height, ellipse: true };
+  });
+  const nodes = [...actors, ...useCases];
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+
+  const edges = ir.relations.map((r) => {
+    const e = { id: r.id, from: r.from, to: r.to, style: `${USECASE_STYLE.edge}${USECASE_EDGE[r.kind]}` };
+    // The end that comes first along the flow.
+    let first = r.from;
+    switch (r.kind) {
+      case 'association': {
+        const actor = isActor(r.from) ? r.from : r.to;
+        first = role.get(actor) === 'primary' ? actor : (actor === r.from ? r.to : r.from);
+        break;
+      }
+      case 'include': e.label = '«include»'; break;
+      case 'extend': e.label = r.condition ? `«extend»\n[${r.condition}]` : '«extend»'; first = r.to; break;
+      default:
+        if (!isActor(r.from)) first = r.to;
+        else if (role.get(r.from) === role.get(r.to)) e.byHand = true;
+        else first = role.get(r.from) === 'primary' ? r.from : r.to;
+    }
+    if (first !== r.from) e.layoutReversed = true;
+    if (!e.byHand) {
+      // A generalization that crosses the system keeps clear of the associations of its actors.
+      const port = (id) => {
+        const n = nodeById.get(id);
+        if (r.kind !== 'generalization') return `${id}:port`;
+        n.ports.push({ id: `${id}:port:${r.id}`, ...portAt(n, 14) });
+        return `${id}:port:${r.id}`;
+      };
+      if (isActor(r.from)) e.fromPort = port(r.from);
+      if (isActor(r.to)) e.toPort = port(r.to);
+    }
+    return e;
+  });
+  const byHand = edges.filter((e) => e.byHand);
+  const routed = edges.filter((e) => !e.byHand);
+
+  // Room outside the first layer for the lines drawn round a column of actors.
+  const outerRoom = { left: 0, top: 0 };
+  const bracketCount = (side) => new Set(byHand.filter((e) => OPPOSITE_SIDE[nodeById.get(e.from).side] === side).map((e) => e.to)).size;
+  for (const side of ['left', 'top']) if (bracketCount(side) > 0) outerRoom[side] = ACTOR_BRACKET.out + ACTOR_BRACKET.step * bracketCount(side);
+  const options = { 'elk.padding': `[top=${12 + outerRoom.top},left=${12 + outerRoom.left},bottom=12,right=12]` };
+  const arrange = () => layoutGraph({ nodes, containers, edges: routed, direction, spacing: { nodeNode: 40, layer: 70 }, options });
+  let layout = await arrange();
+  // A boundary is as wide as its use cases need, which only the layout knows; a title that
+  // wraps at that width needs a taller header, and the layout runs once more with it.
+  let taller = false;
+  for (const c of containers) {
+    const height = headerOf(headerLines(c.label, layout.containers.get(c.id).width));
+    if (height > c.headerHeight) { c.headerHeight = height; c.title = plainTitle(c.label, height); taller = true; }
+  }
+  if (taller) layout = await arrange();
+  // A line that enters a boundary from above runs across its title: the title steps aside.
+  let unplaced = placeGroupTitles(layout, { containers, nodes, edges: routed });
+  for (let pass = 0; unplaced && pass < 6; pass++) {
+    layout = await arrange();
+    unplaced = placeGroupTitles(layout, { containers, nodes, edges: routed });
+  }
+  if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a line crosses the title of a boundary; no free place was found for it along the top of the boundary', hint: 'set "direction" to "LR" or shorten the boundary label' });
+  for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
+
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const boxOf = (id) => absoluteBox(id, layout, parentOf);
+  placeActorGeneralizations(layout, byHand, { actors, horizontal, boxOf });
+  for (const e of edges) {
+    const route = layout.edges.get(e.id);
+    if (!route?.start || !route?.end) continue;
+    e.style += usecaseAnchorStyle('exit', usecaseAnchor(nodeById.get(e.from), boxOf(e.from), route.start)) + usecaseAnchorStyle('entry', usecaseAnchor(nodeById.get(e.to), boxOf(e.to), route.end));
+  }
+  return graphCells(cid, layout, { containers, nodes, edges, direction }, warnings);
+}
+
+/**
+ * Route the generalizations between actors of one side, which stand in one layer. Between
+ * neighbours the line runs straight from the special actor to the general one, along the
+ * column (or the row, in a top-down diagram). When another actor stands between them it
+ * leaves the special actor on the side away from the system, runs outside the column and
+ * comes back to the general one; the lines to one general actor share that run. The routes
+ * are written into `layout.edges` as the engine writes its own.
+ */
+function placeActorGeneralizations(layout, byHand, { actors, horizontal, boxOf }) {
+  if (byHand.length === 0) return;
+  const byId = new Map(actors.map((n) => [n.id, n]));
+  const whole = new Map(actors.map((n) => [n.id, boxOf(n.id)]));
+  const drawn = new Map(actors.map((n) => [n.id, drawBox(n, whole.get(n.id))]));
+  // Along the column: y for actors beside the system, x for actors above or below it.
+  const lo = (b) => (horizontal ? b.y : b.x);
+  const hi = (b) => (horizontal ? b.y + b.height : b.x + b.width);
+  const tracks = new Map();
+  for (const e of byHand) {
+    const child = byId.get(e.from);
+    const general = byId.get(e.to);
+    const [cw, gw, cd, gd] = [whole.get(e.from), whole.get(e.to), drawn.get(e.from), drawn.get(e.to)];
+    const column = actors.filter((n) => n.side === child.side && n.id !== e.from && n.id !== e.to);
+    const between = column.some((n) => lo(whole.get(n.id)) > Math.min(lo(cw), lo(gw)) && hi(whole.get(n.id)) < Math.max(hi(cw), hi(gw)));
+    const after = lo(cw) > lo(gw); // the special actor stands below (or right of) the general one
+    if (!between) {
+      if (horizontal) {
+        const x = cd.x + cd.width / 2;
+        const gx = gd.x + gd.width / 2;
+        const start = { x, y: after ? cd.y : cw.y + cw.height };
+        const end = { x: gx, y: after ? gw.y + gw.height : gd.y };
+        // Figures of different widths stand on one centre line; a step covers what is left.
+        const mid = (start.y + end.y) / 2;
+        layout.edges.set(e.id, { start, end, points: Math.abs(x - gx) < 0.5 ? [] : [{ x, y: mid }, { x: gx, y: mid }] });
+      } else {
+        const y = cd.y + cd.height / 2;
+        const gy = gd.y + gd.height / 2;
+        const start = { x: after ? cd.x : cd.x + cd.width, y };
+        const end = { x: after ? gd.x + gd.width : gd.x, y: gy };
+        const mid = (start.x + end.x) / 2;
+        layout.edges.set(e.id, { start, end, points: Math.abs(y - gy) < 0.5 ? [] : [{ x: mid, y }, { x: mid, y: gy }] });
+      }
+      continue;
+    }
+    const outer = OPPOSITE_SIDE[child.side];
+    const key = `${outer}|${e.to}`;
+    if (!tracks.has(key)) tracks.set(key, [...tracks.keys()].filter((k) => k.startsWith(`${outer}|`)).length);
+    const off = ACTOR_BRACKET.out + ACTOR_BRACKET.step * tracks.get(key);
+    const all = [...column, child, general].map((n) => whole.get(n.id));
+    if (horizontal) {
+      const x = outer === 'left' ? Math.min(...all.map((b) => b.x)) - off : Math.max(...all.map((b) => b.x + b.width)) + off;
+      const start = { x: outer === 'left' ? cd.x : cd.x + cd.width, y: cd.y + cd.height / 2 };
+      const end = { x: outer === 'left' ? gd.x : gd.x + gd.width, y: gd.y + gd.height / 2 };
+      layout.edges.set(e.id, { start, end, points: [{ x, y: start.y }, { x, y: end.y }] });
+    } else {
+      const y = outer === 'top' ? Math.min(...all.map((b) => b.y)) - off : Math.max(...all.map((b) => b.y + b.height)) + off;
+      const start = { x: cd.x + cd.width / 2, y: outer === 'top' ? cd.y : cw.y + cw.height };
+      const end = { x: gd.x + gd.width / 2, y: outer === 'top' ? gd.y : gw.y + gw.height };
+      layout.edges.set(e.id, { start, end, points: [{ x: start.x, y }, { x: end.x, y }] });
+    }
+  }
 }

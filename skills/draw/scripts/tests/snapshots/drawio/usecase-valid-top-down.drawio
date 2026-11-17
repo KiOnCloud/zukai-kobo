@@ -1,0 +1,124 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="parking-garage" name="Parking garage">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="parking-garage:garage" value="Garage system" style="rounded=0;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;fontStyle=1;spacingTop=4;align=left;spacingLeft=254;" vertex="1" parent="1">
+          <mxGeometry x="12" y="208" width="528" height="342" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:driver" value="Driver" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=40;" vertex="1" parent="1">
+          <mxGeometry x="144" y="46" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:subscriber" value="Subscriber" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=66;" vertex="1" parent="1">
+          <mxGeometry x="237" y="46" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:visitor" value="Visitor" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=42;" vertex="1" parent="1">
+          <mxGeometry x="331" y="46" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:attendant" value="Attendant" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=60;" vertex="1" parent="1">
+          <mxGeometry x="422" y="46" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:bank" value="«system»&lt;br&gt;Card acquirer" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="293" y="630" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:plates" value="«system»&lt;br&gt;Plate recognition" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="630" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:enter" value="Enter the garage" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=11;spacingRight=11;" vertex="1" parent="parking-garage:garage">
+          <mxGeometry x="22" y="50" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:leave" value="Leave the garage" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=9;spacingRight=9;" vertex="1" parent="parking-garage:garage">
+          <mxGeometry x="182" y="50" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:pay" value="Pay the parking fee" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="parking-garage:garage">
+          <mxGeometry x="275" y="272" width="132" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:read-plate" value="Read the number plate" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=11;spacingRight=11;" vertex="1" parent="parking-garage:garage">
+          <mxGeometry x="30.67" y="272" width="154" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:open" value="Open the barrier by hand" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=11;spacingRight=11;" vertex="1" parent="parking-garage:garage">
+          <mxGeometry x="342" y="50" width="166" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="parking-garage:g1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=block;endSize=14;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="parking-garage:subscriber" target="parking-garage:driver">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:g2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=block;endSize=14;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="parking-garage:visitor" target="parking-garage:driver">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="346" y="26"/>
+              <mxPoint x="159" y="26"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:a1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="parking-garage:driver" target="parking-garage:enter">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="159" y="153"/>
+              <mxPoint x="94" y="153"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:a2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="parking-garage:driver" target="parking-garage:leave">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="159" y="153"/>
+              <mxPoint x="254" y="153"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:a3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="parking-garage:attendant" target="parking-garage:open">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:i1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;dashed=1;endArrow=open;endSize=10;endFill=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.333;entryY=0.029;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="parking-garage:enter" target="parking-garage:read-plate">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:i1:label" value="«include»" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="parking-garage:i1">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:i2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;dashed=1;endArrow=open;endSize=10;endFill=0;exitX=0.333;exitY=0.971;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.667;entryY=0.029;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="parking-garage:leave" target="parking-garage:read-plate">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="234" y="435"/>
+              <mxPoint x="145.33" y="435"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:i2:label" value="«include»" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="parking-garage:i2">
+          <mxGeometry x="-0.34" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:x1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;dashed=1;endArrow=open;endSize=10;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.667;entryY=0.971;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="parking-garage:pay" target="parking-garage:leave">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="353" y="333"/>
+              <mxPoint x="274" y="333"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:x1:label" value="«extend»&lt;br&gt;[no subscription]" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="parking-garage:x1">
+          <mxGeometry x="-0.31" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:a4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="parking-garage:pay" target="parking-garage:bank">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="parking-garage:a5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="parking-garage:read-plate" target="parking-garage:plates">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="560"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -130,6 +130,39 @@ component, and an edge label that is an endpoint path, a job or a field moves in
 (`sequence` for the calls, `er` for the tables), with the connection label reduced to the
 protocol or purpose.
 
+## usecase
+
+| Facts | IR |
+|---|---|
+| `actor` (a stick figure) | `actors[]` with `kind` `person`. A figure whose label names a system, a service or a job ("Core banking", "Nightly run") is `kind` `system`: record `changed: actor "<label>" drawn as a figure is an outside system` in the report |
+| `box` or `rounded` outside the frame, joined to ovals by plain lines, or one whose label starts with `«system»`, `«actor»`, `<<system>>` | `actors[]` with `kind` `system`; the stereotype line is not part of the label |
+| `ellipse` with a label | `useCases[]` |
+| `container`, `lane` or `group` around the ovals | `boundaries[]` with the ovals inside as `children`. A frame that also holds a figure keeps the use cases only: actors stand outside the system, and the report says the figure was moved out |
+| plain line between a figure (or system box) and an oval, whatever its arrowhead | `association`; an arrowhead on it says who starts the exchange and is not kept |
+| `dashed` line marked `«include»`, `<<include>>`, `<<includes>>`, `<<uses>>` | `include`, `from` the oval the line starts at |
+| `dashed` line marked `«extend»`, `<<extend>>`, `<<extends>>` | `extend`, `from` the oval the line starts at; a further line of the label, a `[condition]` or an "extension point" text is the `condition` |
+| `block-open` end between two figures or two ovals | `generalization`, `from` the end without the triangle |
+| `dashed` line between ovals with no stereotype | ask nothing: an `include` when the source's legend or its other lines say so, else list it in `meta.omitted` with the reason "dashed line without a stereotype" |
+| a `note` or free `text` | a use case diagram has no note element: the title when it is one, else `meta.omitted` |
+
+Which actors are `primary` and which `supporting` follows from the side they stand on in the
+source: figures and systems on the side the reader starts from (left, or top) are primary,
+those on the far side supporting. Set `role` only where that differs from the default (a
+person is primary, a system supporting).
+
+The level of detail of the draw skill holds (`ir-reference.md`, usecase): the recook keeps
+the source's use cases as they are worded, also where one reads as a step or a screen, and
+the review lists such a label as a `polish` finding with the offer of a `revise`. Ovals
+joined in a row by arrows that are not stereotyped are a flow, not use cases: the page is a
+`flowchart` or `activity` diagram, or mixes kinds (the best kind as the main diagram, the
+flow as a part linked with `ref` from the use case it details).
+
+A Mermaid flowchart that stands for a use case diagram (boxes marked «actor» or «system»,
+stadium nodes, dotted links marked «include» or «extend»; Zukai's own Mermaid form is one)
+is read with the kind hint `usecase`: the `terminal` nodes are the use cases, the marked
+boxes the actors, a subgraph the boundary, a link labelled «generalization» a
+generalization.
+
 ## PlantUML sources
 
 PlantUML text has no header that names its type: the reader tells it from the statements and
@@ -237,15 +270,13 @@ Component and deployment (architecture-shaped facts):
 - A `dashed` connection is asynchronous or a dependency; the IR draws one line style, so say
   in the report which connections the source drew dashed.
 
-Use case (the `usecase` kind): `ellipse` with `detail` `usecase` is a use case, `actor` an
-actor (`detail` `business` for `actor/`), a `container` with `detail` `rectangle` or
-`package` the system boundary with the use cases inside it. An edge between an actor and a
-use case is an association; a dashed edge labelled `«include»` or `«extend»` is that
-relation, from the edge's `from` to its `to` as drawn; a `block-open` end is a
-generalization, the element at the other end being the special one. A `note` goes to
-`meta.omitted` unless the kind has notes. Write this page with the `usecase` section of
-`<draw-dir>/references/ir-reference.md`; when that reference lists no `usecase` kind, this
-Zukai version cannot draw one: say so, and ask the user for another kind or to leave the page out.
+Use case (the `usecase` section above holds): `ellipse` with `detail` `usecase` is a use
+case, `actor` an actor (`detail` `business` for `actor/` is still a person), a `container`
+with `detail` `rectangle` or `package` the system boundary with the use cases inside it. An
+edge between an actor and a use case is an association; a dashed edge whose label is
+`«include»` or `«extend»` is that relation, from the edge's `from` to its `to` as drawn; a
+`block-open` end is a generalization, the element at the other end being the special one. A
+`note` goes to `meta.omitted`, since the kind has no note element.
 
 ## A sequence part made from another kind
 

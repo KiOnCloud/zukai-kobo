@@ -30,7 +30,8 @@ Only the folders of the targets actually emitted exist; `source/` always does.
    listed paths), and validate again. Do not emit until every IR passes. A valid IR can
    still print warnings on stderr, the same ones every emit repeats: `model:` (a decision
    with one way out, a step connected to nothing, a state never reached, a reply before its
-   call, a foreign key without a relation), `size:` (far more elements than a reader
+   call, a foreign key without a relation, a use case no actor reaches, an actor without a
+   use case), `size:` (far more elements than a reader
    follows), `detail:` and the secret scan. Fix the IR for each `model:` warning before
    emitting, or record the reason in `meta.omitted` when the gap is on purpose (the warning
    then stays, and the report quotes it beside that entry). On a `size:` warning, say the

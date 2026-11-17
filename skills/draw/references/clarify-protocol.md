@@ -27,8 +27,8 @@ sub-flow (payment, notification, retry) into one step, record in `meta.notes` wh
 and lift any decisive rule of that sub-flow into the main diagram. Under `detailed` draft the
 main diagram first, then one sub-diagram per sub-flow worth its own picture, and set `ref` on
 the main diagram's collapsed element to the part's slug: the step of a flowchart or activity
-diagram, the message of a sequence diagram, the state, component, class or entity of the
-other kinds (`ir-reference.md` lists the field per kind).
+diagram, the message of a sequence diagram, the state, component, class, entity or use case
+of the other kinds (`ir-reference.md` lists the field per kind).
 
 ## Choosing the kind
 
@@ -45,6 +45,7 @@ that question, never to choose silently:
 | classes, interfaces, inheritance, modules and their relations | `class` |
 | services, databases, queues, deployment units, network boundaries, external systems | `architecture` |
 | who does which step, hand-offs between teams or systems, parallel work, swimlanes | `activity` |
+| who uses the system and what for, roles, goals, features per role, scope of a system | `usecase` |
 
 ## Question bank
 
@@ -130,6 +131,37 @@ when the request hints at them.
 Draw.io is the primary target for activity diagrams. Mermaid renders them with the beta
 `swimlane-beta` syntax (or a plain flowchart with `--mermaid-stable`), and FigJam does not
 support them; say so when the user asks for those targets.
+
+### usecase
+
+| Slot | Question | Default |
+|---|---|---|
+| actors | Who uses the system? List the roles (not people's names), and the outside systems that take part. | none; required |
+| goals | What does each actor come to the system to get done? One goal each, as a verb phrase ("Borrow a book"). | none; required |
+| system boundary | What is the system called, and is it one system or several subsystems with their own use cases? | one boundary named after the subject of the request |
+| supporting actors | Which outside systems or roles does the system call on to finish a goal (a payment provider, a mail service), and for which goals? | none |
+| shared behaviour | Is there something several goals always do as a part of them (signing in, checking a card)? | none |
+| optional behaviour | Is there something that happens only sometimes on top of a goal? Under what condition? | none |
+| kinds of actor or goal (optional) | Is one role a special kind of another (a registered customer is a customer), or one goal a special way of doing another (pay by card)? | none |
+
+An answer that lists steps ("opens the page, scans the card, confirms") or screens is one
+goal: name the goal, and keep the steps for a part under the scope `detailed` (`ref` on the
+use case, a part of kind `activity`, `sequence` or `flowchart`) or, under `overview`, for
+`meta.notes`. Ask for the goal when only steps were given ("What is the member trying to
+get done with these steps?"). Shared behaviour becomes `include`, optional behaviour
+`extend` with its condition, a special kind `generalization`.
+
+Under `detailed`, ask which goals deserve a part (default: the one or two the request
+dwells on, never all of them) and take the steps of each in the same round. The kind of
+such a part is not asked: `activity` when the actor and the system (or several actors) take
+turns, which is the usual case, `flowchart` when one party does every step, `sequence` when
+the user describes calls between systems. The draft says which kind each part got, and the
+part's title is the label of its use case.
+
+Draw.io is the primary target for use case diagrams. Mermaid has no use case diagram: the
+CLI writes a flowchart and warns for what is lost. FigJam's `generate_diagram` does not
+take one either; the board is drawn with `emit --native`. Say so when the user asks for
+those targets.
 
 ## Draft and closing
 
