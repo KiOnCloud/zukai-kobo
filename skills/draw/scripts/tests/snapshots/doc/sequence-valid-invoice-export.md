@@ -17,10 +17,10 @@ Diagram kind: Sequence diagram
 | No. | From | To | Message | Kind | Condition |
 | --- | --- | --- | --- | --- | --- |
 | 1 | ExportJob | InvoiceDocumentBuilderService | Build(invoiceId) | Synchronous | — |
-| 2 | InvoiceDocumentBuilderService | ExportJob | null | Reply | opt: invoiceId empty |
-| 3 | InvoiceDocumentBuilderService | InvoiceRepository | GetInvoice(invoiceId) | Synchronous | opt: invoice cached = false |
-| 4 | InvoiceRepository | Database | SELECT invoice | Synchronous | opt: invoice cached = false |
-| 5 | InvoiceRepository | InvoiceDocumentBuilderService | invoice | Reply | opt: invoice cached = false |
-| 6 | InvoiceDocumentBuilderService | InvoiceRepository | GetLines(invoiceId) | Synchronous | alt: has lines |
-| 7 | InvoiceRepository | InvoiceDocumentBuilderService | lines | Reply | alt: has lines |
-| 8 | InvoiceDocumentBuilderService | ExportJob | document | Reply | alt else: no lines |
+| 2 | InvoiceDocumentBuilderService | ExportJob | null | Reply | Only if invoiceId empty |
+| 3 | InvoiceDocumentBuilderService | InvoiceRepository | GetInvoice(invoiceId) | Synchronous | Only if invoice cached = false |
+| 4 | InvoiceRepository | Database | SELECT invoice | Synchronous | Only if invoice cached = false |
+| 5 | InvoiceRepository | InvoiceDocumentBuilderService | invoice | Reply | Only if invoice cached = false |
+| 6 | InvoiceDocumentBuilderService | InvoiceRepository | GetLines(invoiceId) | Synchronous | If has lines |
+| 7 | InvoiceRepository | InvoiceDocumentBuilderService | lines | Reply | If has lines |
+| 8 | InvoiceDocumentBuilderService | ExportJob | document | Reply | Otherwise, if no lines |

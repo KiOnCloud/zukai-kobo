@@ -56,7 +56,7 @@ const bareEnv = (extra) => {
 describe('export: usage and input errors (no renderer needed)', () => {
   it('lists the command in the help', () => {
     const r = spawnSync(process.execPath, [cliPath, 'help'], { cwd, encoding: 'utf8' });
-    expect(r.stdout).toContain('cli.mjs export <file.drawio|run-dir> [--out <dir|file.svg>]');
+    expect(r.stdout).toContain('cli.mjs export <file.drawio|file.drawio.svg|run-dir> [--out <dir|file.svg>]');
     expect(r.stdout).toMatch(/export writes each page of a draw\.io file as a picture that still opens in draw\.io/);
   }, 60_000);
 
@@ -64,7 +64,7 @@ describe('export: usage and input errors (no renderer needed)', () => {
     for (const args of [['export'], ['export', 'a.drawio', 'b.drawio']]) {
       const r = cli(...args);
       expect(r.code).toBe(1);
-      expect(r.errors[0].message).toBe('export takes exactly one .drawio file or run folder');
+      expect(r.errors[0].message).toBe('export takes exactly one .drawio file, editable picture (.drawio.svg) or run folder');
       expect(r.err.usage).toContain('cli.mjs export');
     }
     expect(cli('export', 'a.drawio', '--out').errors[0].message).toBe('option --out needs a value');
@@ -208,6 +208,35 @@ describe.skipIf(!hasPlaywright)('export with a renderer', () => {
     const again = join(cwd, 'wiki', 'payout.facts.json');
     expect(cli('extract', join(cwd, 'wiki', 'payout.svg'), '--out', again).code).toBe(0);
     expect(cli('cover', again, join(dir, 'source', 'refund-01-payout.ir.json')).code).toBe(0);
+  }, 180_000);
+
+  it('takes an editable picture and draws the diagram it holds again, as preview and extract read it', () => {
+    const picture = join(dir, 'svg', 'refund-01-payout.drawio.svg');
+    const held = join(cwd, 'held.facts.json');
+    expect(cli('extract', picture, '--out', held).code).toBe(0);
+    // Into another folder: the picture keeps its name and holds the same diagram.
+    const copy = cli('export', picture, '--out', join(cwd, 'again'));
+    expect(copy.code).toBe(0);
+    expect(copy.out.files).toHaveLength(1);
+    expect(copy.out.files[0]).toMatchObject({ page: 'refund-01-payout', out: join(cwd, 'again', 'refund-01-payout.drawio.svg') });
+    const text = readFileSync(copy.out.files[0].out, 'utf8');
+    expect(text.startsWith('<svg content="&lt;mxfile')).toBe(true);
+    if (hasPlaywright) expect(text).toContain('>Check the request</text>');
+    const back = join(cwd, 'again.facts.json');
+    expect(cli('extract', copy.out.files[0].out, '--out', back).code).toBe(0);
+    expect(JSON.parse(readFileSync(back, 'utf8')).pages).toEqual(JSON.parse(readFileSync(held, 'utf8')).pages);
+    // A page it holds is picked by name as in a .drawio file; one it does not hold is listed.
+    expect(cli('export', picture, '--page', 'refund-01-payout', '--out', join(cwd, 'again')).code).toBe(0);
+    const unknown = cli('export', picture, '--page', 'refund');
+    expect(unknown.code).toBe(1);
+    expect(unknown.errors[0].message).toBe('no page "refund" in this file');
+    // Without --out the picture is written over itself.
+    expect(cli('export', picture).out.files[0].out).toBe(picture);
+    // A plain SVG holds no diagram.
+    const plain = write(join(cwd, 'plain.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>');
+    const refused = cli('export', plain);
+    expect(refused.code).toBe(1);
+    expect(refused.errors[0].message).toMatch(/^this SVG holds no draw\.io diagram/);
   }, 180_000);
 
   it('writes the pictures again after a change of the run, over the earlier ones', () => {

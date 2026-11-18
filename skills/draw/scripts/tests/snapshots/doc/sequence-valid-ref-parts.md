@@ -17,6 +17,6 @@ Diagram kind: Sequence diagram
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Sync job | Order service | loadOrders(request) | Synchronous | — | `order-sync-01-load` |
 | 2 | Order service | Sync job | orders | Reply | — | — |
-| 3 | Sync job | Sync job | mergeChanges(orders) | Synchronous | opt: any orders | `order-sync-02-store` |
-| 4 | Sync job | Orders DB | save(orders) | Synchronous | opt: any orders | — |
-| 5 | Orders DB | Sync job | saved | Reply | opt: any orders | — |
+| 3 | Sync job | Sync job | mergeChanges(orders) | Synchronous | Only if any orders | `order-sync-02-store` |
+| 4 | Sync job | Orders DB | save(orders) | Synchronous | Only if any orders | — |
+| 5 | Orders DB | Sync job | saved | Reply | Only if any orders | — |

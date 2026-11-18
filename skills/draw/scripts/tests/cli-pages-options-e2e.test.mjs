@@ -65,6 +65,25 @@ describe('an option a command does not take', () => {
     expect(existsSync(join(cwd, 'x.json'))).toBe(false);
   });
 
+  it('never names, as an option a command takes, one that the command refuses too', () => {
+    const r = cli('stale', 'run', '--page', 'x');
+    expect(r.code).toBe(1);
+    expect(r.errors[0].message).toBe('stale does not take --page');
+    expect(r.errors[0].hint).toBe('stale takes --root; --page goes with preview, export, extract');
+    // And an option that belongs to one command is not said to go with one that refuses it.
+    expect(cli('validate', 'f.ir.json', '--only', 'a').errors[0].hint).toBe('validate takes no option; --only goes with sources');
+    // Every option a hint offers is one the command reads without refusing it.
+    const help = cli('help').stdout;
+    const usage = help.split('\n').filter((l) => /^ {2}cli\.mjs \w+ /.test(l));
+    for (const command of new Set(usage.map((l) => /cli\.mjs (\w+)/.exec(l)[1]))) {
+      const line = usage.filter((l) => l.includes(`cli.mjs ${command} `)).join('\n');
+      const refused = cli(command, 'x', command === 'preview' ? '--lang' : '--max-px', '1').errors[0];
+      for (const offered of (/takes (--[^;]*);/.exec(refused.hint)?.[1] ?? '').split(', ').filter(Boolean)) {
+        expect(line, `${command} ${offered}`).toContain(offered);
+      }
+    }
+  });
+
   it('still names an option no command has, and keeps the messages that say where an option belongs', () => {
     expect(cli('preview', 'x.drawio', '--frobnicate').errors[0].message).toBe('unknown option --frobnicate');
     expect(cli('stale', 'run', '--only', 'a').errors[0].message).toBe('--only goes with sources');

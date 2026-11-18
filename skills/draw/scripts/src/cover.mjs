@@ -73,18 +73,25 @@ export function holdersOf(irs) {
   return holders;
 }
 
-/** The texts a facts file asks to find: one per line of every label. */
+/**
+ * The texts a facts file asks to find: one per line of every label, since the lines of a
+ * shape are often texts of their own (a name over a stereotype, a title over a field). A note
+ * is one text however many lines its author broke it into: its lines are one sentence, and a
+ * reader who leaves the note out says so once, quoting it as it reads.
+ */
 export function unitsOf(facts) {
   const units = [];
   let pageName = '';
   const push = (page, element, text) => {
     for (const line of String(text ?? '').split('\n')) if (tokensOf(line).length > 0) units.push({ page, element, text: line.trim(), pageName });
   };
+  const whole = (page, element, text) => push(page, element, String(text ?? '').split('\n').map((l) => l.trim()).filter(Boolean).join(' '));
   for (const page of facts.pages ?? []) {
     pageName = page.name ?? '';
     for (const node of page.nodes ?? []) {
-      push(page.id, node.id, node.label);
-      for (const t of node.texts ?? []) push(page.id, node.id, t);
+      const add = node.shape === 'note' ? whole : push;
+      add(page.id, node.id, node.label);
+      for (const t of node.texts ?? []) add(page.id, node.id, t);
     }
     for (const edge of page.edges ?? []) {
       push(page.id, edge.id, edge.label);

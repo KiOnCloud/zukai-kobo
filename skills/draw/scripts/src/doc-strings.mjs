@@ -1,8 +1,10 @@
 /**
  * Every word the description tables write themselves: headings, column headers and the names
- * of fixed values, per language. Labels come from the IR and are never translated. UML
- * operators (`alt`, `else`, `loop`), key marks (`PK`), visibilities and multiplicities are
- * notation and stay as they are in every language.
+ * of fixed values, per language. Labels come from the IR and are never translated. Key marks
+ * (`PK`), visibilities and multiplicities are notation and stay as they are in every language.
+ * The operators of a sequence block (`alt`, `else`, `loop`) are notation too, but the reader
+ * of a table is not always one who knows it: the Condition column says what a block means in
+ * words of the language (`block`), with the label of the block at `{label}`.
  *
  * A new language is one more entry with the same keys; a new diagram kind adds its name to
  * `diagram` and the words its tables need. The tests compare the keys of every language.
@@ -36,6 +38,7 @@ export const DOC_STRINGS = {
       message: { sync: 'Synchronous', async: 'Asynchronous', return: 'Reply' },
       position: { left: 'Left', right: 'Right', over: 'Over' },
       state: { initial: 'Initial', final: 'Final', simple: 'Simple', composite: 'Composite' },
+      block: { alt: 'If {label}', else: 'Otherwise, if {label}', opt: 'Only if {label}', loop: 'Repeated: {label}', par: 'At the same time: {label}' },
       member: { attribute: 'Attribute', method: 'Method' },
       classRelation: { inheritance: 'Inheritance', realization: 'Realization', composition: 'Composition', aggregation: 'Aggregation', association: 'Association', dependency: 'Dependency' },
       component: { service: 'Service', database: 'Database', queue: 'Queue', cache: 'Cache', storage: 'Storage', client: 'Client', external: 'External system' },
@@ -70,7 +73,8 @@ export const DOC_STRINGS = {
       participant: { actor: 'アクター', participant: '参加者', database: 'データベース', boundary: 'バウンダリ', control: 'コントロール', entity: 'エンティティ' },
       message: { sync: '同期', async: '非同期', return: '応答' },
       position: { left: '左', right: '右', over: '上に重ねる' },
-      state: { initial: '開始', final: '終了', simple: '単純', composite: '複合' },
+      state: { initial: '開始', final: '終了', simple: '通常', composite: '複合' },
+      block: { alt: '{label} の場合', else: 'それ以外で {label} の場合', opt: '{label} の場合のみ', loop: '繰り返し: {label}', par: '同時に: {label}' },
       member: { attribute: '属性', method: 'メソッド' },
       classRelation: { inheritance: '継承', realization: '実現', composition: 'コンポジション', aggregation: '集約', association: '関連', dependency: '依存' },
       component: { service: 'サービス', database: 'データベース', queue: 'キュー', cache: 'キャッシュ', storage: 'ストレージ', client: 'クライアント', external: '外部システム' },
@@ -105,7 +109,8 @@ export const DOC_STRINGS = {
       participant: { actor: 'Tác nhân', participant: 'Thành phần', database: 'Cơ sở dữ liệu', boundary: 'Biên', control: 'Điều khiển', entity: 'Thực thể' },
       message: { sync: 'Đồng bộ', async: 'Bất đồng bộ', return: 'Phản hồi' },
       position: { left: 'Bên trái', right: 'Bên phải', over: 'Đè lên' },
-      state: { initial: 'Khởi đầu', final: 'Kết thúc', simple: 'Đơn', composite: 'Phức hợp' },
+      state: { initial: 'Khởi đầu', final: 'Kết thúc', simple: 'Thông thường', composite: 'Phức hợp' },
+      block: { alt: 'Nếu {label}', else: 'Ngược lại, nếu {label}', opt: 'Chỉ khi {label}', loop: 'Lặp lại: {label}', par: 'Đồng thời: {label}' },
       member: { attribute: 'Thuộc tính', method: 'Phương thức' },
       classRelation: { inheritance: 'Kế thừa', realization: 'Hiện thực hóa', composition: 'Hợp thành', aggregation: 'Kết tập', association: 'Liên kết', dependency: 'Phụ thuộc' },
       component: { service: 'Dịch vụ', database: 'Cơ sở dữ liệu', queue: 'Hàng đợi', cache: 'Bộ nhớ đệm', storage: 'Lưu trữ', client: 'Máy khách', external: 'Hệ thống bên ngoài' },

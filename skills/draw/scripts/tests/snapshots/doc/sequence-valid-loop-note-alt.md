@@ -17,10 +17,10 @@ Diagram kind: Sequence diagram
 | No. | From | To | Message | Kind | Condition |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Web shop | Order service | POST /orders | Synchronous | — |
-| 2 | Order service | Payment provider | Authorize card payment for the order total | Synchronous | loop: up to 3 attempts |
-| 3 | Payment provider | Order service | authorized | Reply | loop: up to 3 attempts |
-| 4 | Order service | Web shop | 201 Created | Reply | alt: authorized |
-| 5 | Order service | Web shop | 402 Payment Required | Reply | alt else: declined after 3 attempts |
+| 2 | Order service | Payment provider | Authorize card payment for the order total | Synchronous | Repeated: up to 3 attempts |
+| 3 | Payment provider | Order service | authorized | Reply | Repeated: up to 3 attempts |
+| 4 | Order service | Web shop | 201 Created | Reply | If authorized |
+| 5 | Order service | Web shop | 402 Payment Required | Reply | Otherwise, if declined after 3 attempts |
 
 ## Notes
 

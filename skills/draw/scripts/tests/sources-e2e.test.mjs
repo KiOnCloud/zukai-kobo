@@ -352,3 +352,50 @@ describe('meta.sources in the IR', () => {
     expect(d).toMatchObject({ added: [], removed: [], changed: [] });
   });
 });
+
+describe('a run folder under another name', () => {
+  it('keeps its record: stale, sources and restore find it by what source/ holds', () => {
+    const p = project();
+    expect(cli(['sources', p.run]).code).toBe(0);
+    expect(cli(['snapshot', p.run, '--request', 'before the change']).code).toBe(0);
+    const renamed = join(p.root, 'diagrams', '20261117_sign-in');
+    cpSync(p.run, renamed, { recursive: true });
+    const record = join(renamed, 'source', 'login.sources.json');
+
+    const current = cli(['stale', renamed]);
+    expect(current.code).toBe(0);
+    expect(current.out.runs[0]).toMatchObject({ record, stale: false });
+
+    writeFileSync(join(p.root, 'src/auth/password.js'), 'export const verify = () => true;\n');
+    const behind = cli(['stale', renamed]);
+    expect(behind.code).toBe(2);
+    expect(behind.out.runs[0].changed).toEqual(['src/auth/password.js']);
+
+    // Recording again renews that record; no second one appears under the new name.
+    expect(cli(['sources', renamed]).out.record).toBe(record);
+    expect(readdirSync(join(renamed, 'source')).filter((f) => f.endsWith('.sources.json'))).toEqual(['login.sources.json']);
+    expect(cli(['stale', renamed]).code).toBe(0);
+
+    // The revision holds the record of its state, and the run is behind the code again after it.
+    const back = cli(['restore', renamed, 'r001']);
+    expect(back.out).toMatchObject({ ok: true, sourcesRecord: 'restored' });
+    const after = cli(['stale', renamed]);
+    expect(after.code).toBe(2);
+    expect(after.out.runs[0]).toMatchObject({ record, changed: ['src/auth/password.js'] });
+  });
+
+  it('refuses to pick between several records when none is named after the run', () => {
+    const p = project();
+    expect(cli(['sources', p.run]).code).toBe(0);
+    const renamed = join(p.root, 'diagrams', '20261117_sign-in');
+    cpSync(p.run, renamed, { recursive: true });
+    cpSync(join(renamed, 'source', 'login.sources.json'), join(renamed, 'source', 'other.sources.json'));
+    for (const command of ['stale', 'sources']) {
+      const r = cli([command, renamed]);
+      expect(r.code).toBe(1);
+      expect(r.errors[0].message).toMatch(/^2 sources records in .* and none is named after the run: login\.sources\.json, other\.sources\.json$/);
+      expect(r.errors[0].hint).toContain('sign-in.sources.json');
+    }
+    expect(readdirSync(join(renamed, 'source')).filter((f) => f.endsWith('.sources.json'))).toEqual(['login.sources.json', 'other.sources.json']);
+  });
+});

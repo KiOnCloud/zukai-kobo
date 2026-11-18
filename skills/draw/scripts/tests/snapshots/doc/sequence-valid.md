@@ -16,15 +16,15 @@ Diagram kind: Sequence diagram
 
 | No. | From | To | Message | Kind | Condition |
 | --- | --- | --- | --- | --- | --- |
-| 1 | User | Web app | Submit credentials | Synchronous | loop: until 3 attempts |
-| 2 | Web app | Auth service | POST /login | Synchronous | loop: until 3 attempts |
-| 3 | Auth service | User DB | SELECT user by email | Synchronous | loop: until 3 attempts |
-| 4 | User DB | Auth service | user row | Reply | loop: until 3 attempts |
-| 5 | Auth service | Auth service | Verify password hash | Synchronous | loop: until 3 attempts |
-| 6 | Auth service | Web app | 200 session token | Reply | loop: until 3 attempts<br>alt: password matches |
-| 7 | Web app | User | Redirect to dashboard | Reply | loop: until 3 attempts<br>alt: password matches |
-| 8 | Auth service | Web app | 401 invalid credentials | Reply | loop: until 3 attempts<br>alt else: password wrong |
-| 9 | Web app | User | Show error | Reply | loop: until 3 attempts<br>alt else: password wrong |
+| 1 | User | Web app | Submit credentials | Synchronous | Repeated: until 3 attempts |
+| 2 | Web app | Auth service | POST /login | Synchronous | Repeated: until 3 attempts |
+| 3 | Auth service | User DB | SELECT user by email | Synchronous | Repeated: until 3 attempts |
+| 4 | User DB | Auth service | user row | Reply | Repeated: until 3 attempts |
+| 5 | Auth service | Auth service | Verify password hash | Synchronous | Repeated: until 3 attempts |
+| 6 | Auth service | Web app | 200 session token | Reply | Repeated: until 3 attempts<br>If password matches |
+| 7 | Web app | User | Redirect to dashboard | Reply | Repeated: until 3 attempts<br>If password matches |
+| 8 | Auth service | Web app | 401 invalid credentials | Reply | Repeated: until 3 attempts<br>Otherwise, if password wrong |
+| 9 | Web app | User | Show error | Reply | Repeated: until 3 attempts<br>Otherwise, if password wrong |
 | 10 | Web app | Auth service | Audit login attempt | Asynchronous | — |
 
 ## Notes

@@ -291,6 +291,21 @@ describe('the picture of a diff between two versions of a run', () => {
     expect(r.output).not.toContain('branches changed');
   });
 
+  it('colours the member a container gained or lost, and leaves the frame of the container as it was', async () => {
+    const before = flow('Groups', { groups: [{ id: 'g', label: 'Checks', children: ['check'] }] });
+    const after = flow('Groups', { nodes: [...before.nodes, { id: 'audit', label: 'Write the audit entry' }], edges: [...before.edges, { id: 'e3', from: 'check', to: 'audit' }], groups: [{ id: 'g', label: 'Checks', children: ['check', 'audit'] }] });
+    const gained = await draw([{ id: 'f', ir: before }], [{ id: 'f', ir: after }]);
+    expect(gained.pages).toEqual([{ diagram: 'f', page: 'f', state: 'changed', added: 2, changed: 0, removed: 0 }]);
+    const style = styles(gained.output);
+    expect(style.get('f:audit')).toMatch(STATE_COLOURS.added);
+    expect(style.get('f:g')).not.toMatch(ANY_STATE_COLOUR);
+    expect(gained.output).not.toContain('children was');
+    const lost = await draw([{ id: 'f', ir: after }], [{ id: 'f', ir: before }]);
+    expect(lost.pages).toEqual([{ diagram: 'f', page: 'f', state: 'changed', added: 0, changed: 0, removed: 2 }]);
+    expect(styles(lost.output).get('f:audit')).toMatch(STATE_COLOURS.removed);
+    expect(styles(lost.output).get('f:g')).not.toMatch(ANY_STATE_COLOUR);
+  });
+
   it('writes what a list was, by name, in the legend of a container that changed', async () => {
     const before = flow('Groups', { groups: [{ id: 'g', label: 'Checks', children: ['check'] }] });
     const after = flow('Groups', { groups: [{ id: 'g', label: 'Checks', children: ['check', 'done'] }] });

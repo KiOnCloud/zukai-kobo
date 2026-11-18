@@ -72,7 +72,34 @@ describe('cli recook of PlantUML sources (committed bundle, another working dire
     const r = run(['cover', facts, dir]);
     expect(r.code).toBe(2);
     expect(r.error.ok).toBe(false);
-    expect(r.error.missing.map((m) => m.text)).toEqual(['Only for', 'enterprise plans', 'customer replied']);
+    // The note of two lines is one text, named as it reads.
+    expect(r.error.missing.map((m) => m.text)).toEqual(['Only for enterprise plans', 'customer replied']);
+  });
+
+  it('cover counts a note of several lines as one text, and a label of several lines line by line', () => {
+    const dir = join(cwd, 'diagrams', '20261117_notes');
+    mkdirSync(join(dir, 'source'), { recursive: true });
+    const puml = join(dir, 'notes.puml');
+    writeFileSync(puml, '@startuml\nactor Patient\nusecase "Pay a deposit\\nat the desk" as UC7\nPatient --> UC7\nnote right of UC7\n  Only for first-time\n  patients\nend note\n@enduml\n');
+    const facts = join(dir, 'source', 'notes.facts.json');
+    expect(run(['extract', puml, '--out', facts]).code).toBe(0);
+    const ir = {
+      schemaVersion: 1, kind: 'usecase', title: 'Deposit',
+      actors: [{ id: 'patient', label: 'Patient' }],
+      usecases: [{ id: 'pay', label: 'Pay a deposit at the desk' }],
+      relations: [{ id: 'r1', from: 'patient', to: 'pay', type: 'association' }],
+      meta: { omitted: [] },
+    };
+    const file = join(dir, 'source', 'notes.ir.json');
+    writeFileSync(file, JSON.stringify(ir));
+    const dropped = run(['cover', facts, dir]);
+    expect(dropped.code).toBe(2);
+    // Patient, the two lines of the use case label, and the note: four texts, one missing.
+    expect(dropped.error).toMatchObject({ units: 4, covered: 3 });
+    expect(dropped.error.missing.map((m) => m.text)).toEqual(['Only for first-time patients']);
+    ir.meta.omitted.push('"Only for first-time patients": a use case diagram has no note');
+    writeFileSync(file, JSON.stringify(ir));
+    expect(run(['cover', facts, dir]).json).toMatchObject({ ok: true, units: 4, covered: 4, missing: [] });
   });
 
   it('a credential in a label is redacted in the facts file and reported', () => {

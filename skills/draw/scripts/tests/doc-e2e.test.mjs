@@ -34,7 +34,7 @@ const MARK = (lang) => `<!-- zukai doc, lang=${lang}: generated from the IR, reg
 describe('emit --to doc', () => {
   // One diagram of each kind, with what its tables must say.
   const KINDS = [
-    { kind: 'sequence', name: 'valid', has: ['Diagram kind: Sequence diagram', '## Participants', '## Steps', '## Notes', '| 8 | Auth service | Web app | 401 invalid credentials | Reply | loop: until 3 attempts<br>alt else: password wrong |'] },
+    { kind: 'sequence', name: 'valid', has: ['Diagram kind: Sequence diagram', '## Participants', '## Steps', '## Notes', '| 8 | Auth service | Web app | 401 invalid credentials | Reply | Repeated: until 3 attempts<br>Otherwise, if password wrong |'] },
     { kind: 'flowchart', name: 'valid-refund-approval', has: ['Diagram kind: Flowchart', '## Steps', '## Groups', '| 5 | Amount over 500 EUR? | Decision | Approval | [no] → Approve automatically<br>[yes] → Manager review |'] },
     { kind: 'activity', name: 'valid-fork-join', has: ['Diagram kind: Activity diagram', '## Lanes', '## Steps', '| 3 | Sales | (Fork) | Fork | → Pick items (hand-off to Warehouse)<br>→ Issue invoice (hand-off to Finance) |'] },
     { kind: 'state', name: 'valid', has: ['Diagram kind: State diagram', '## States', '## Transitions', '| Draft | → Placed [cart not empty] | — | — | — | — | — | — |'] },
@@ -77,7 +77,7 @@ describe('emit --to doc', () => {
     expect(ja.stdout.split('\n')[0]).toBe(MARK('ja'));
     expect(ja.stdout).toContain('図の種類: シーケンス図');
     expect(ja.stdout).toContain('| No. | 元 | 先 | メッセージ | 種別 | 条件 |');
-    expect(ja.stdout).toContain('| 1 | User | Web app | Submit credentials | 同期 | loop: until 3 attempts |');
+    expect(ja.stdout).toContain('| 1 | User | Web app | Submit credentials | 同期 | 繰り返し: until 3 attempts |');
     const vi = cli('emit', '--to', 'doc', '--lang=vi', fixture('er', 'valid-fk-anchors'));
     expect(vi.stdout).toContain('Loại sơ đồ: Sơ đồ ER');
     expect(vi.stdout).toContain('| STT | Thuộc tính | Kiểu | Khóa |');
@@ -179,10 +179,10 @@ describe('bundle --to doc', () => {
     const section = (title) => doc.slice(doc.indexOf(`\n## ${title}\n`), doc.indexOf('\n<a id=', doc.indexOf(`\n## ${title}\n`)));
     const technical = section('Order sync');
     expect(technical).toContain('| 1 | Sync job | Order service | loadOrders(request) | Synchronous | — | [Load the orders of one shop](#order-sync-01-load) |');
-    expect(technical).toContain('| 3 | Sync job | Sync job | mergeChanges(orders) | Synchronous | opt: any orders | [Stored orders](#order-sync-02-store) |');
+    expect(technical).toContain('| 3 | Sync job | Sync job | mergeChanges(orders) | Synchronous | Only if any orders | [Stored orders](#order-sync-02-store) |');
     const business = section('Order sync (business)');
     expect(business).toContain('| 1 | Sync job | Order service | loadOrders(request) | Synchronous | — | [Load the orders (business)](#order-sync-01-load-business) |');
-    expect(business).toContain('| 3 | Sync job | Sync job | mergeChanges(orders) | Synchronous | opt: any orders | — |');
+    expect(business).toContain('| 3 | Sync job | Sync job | mergeChanges(orders) | Synchronous | Only if any orders | — |');
     // Every link has its anchor in the document.
     const anchors = new Set([...doc.matchAll(/<a id="([^"]+)"><\/a>/g)].map((m) => m[1]));
     const links = [...doc.matchAll(/\]\(#([^)]+)\)/g)].map((m) => m[1]);

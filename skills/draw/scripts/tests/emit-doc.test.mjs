@@ -140,10 +140,10 @@ describe('description tables: what they hold', () => {
 
   it('names the fixed values of each kind: message kinds, block conditions, keys, cardinalities, directions', () => {
     const seq = rowsUnder(emitDoc(loadFixture('sequence', 'valid')).output, 'Steps');
-    expect(seq[0]).toEqual(['1', 'User', 'Web app', 'Submit credentials', 'Synchronous', 'loop: until 3 attempts']);
+    expect(seq[0]).toEqual(['1', 'User', 'Web app', 'Submit credentials', 'Synchronous', 'Repeated: until 3 attempts']);
     // A message inside two blocks names both, the outer one first; an else section is named as one.
-    expect(seq[5][5]).toBe('loop: until 3 attempts<br>alt: password matches');
-    expect(seq[7][5]).toBe('loop: until 3 attempts<br>alt else: password wrong');
+    expect(seq[5][5]).toBe('Repeated: until 3 attempts<br>If password matches');
+    expect(seq[7][5]).toBe('Repeated: until 3 attempts<br>Otherwise, if password wrong');
     expect(seq[9]).toEqual(['10', 'Web app', 'Auth service', 'Audit login attempt', 'Asynchronous', '—']);
     expect(rowsUnder(emitDoc(loadFixture('sequence', 'valid')).output, 'Notes')).toEqual([
       ['1', 'Rate limited per IP', 'Web app', 'Right', '1. Submit credentials'],
@@ -244,7 +244,7 @@ describe('description tables: languages', () => {
     const vi = emitDoc(ir, { lang: 'vi' }).output;
     expect(ja).toContain('図の種類: シーケンス図');
     expect(tablesOf(ja)[1].header).toEqual(['No.', '元', '先', 'メッセージ', '種別', '条件']);
-    expect(tablesOf(ja)[1].rows[0]).toEqual(['1', 'User', 'Web app', 'Submit credentials', '同期', 'loop: until 3 attempts']);
+    expect(tablesOf(ja)[1].rows[0]).toEqual(['1', 'User', 'Web app', 'Submit credentials', '同期', '繰り返し: until 3 attempts']);
     expect(vi).toContain('Loại sơ đồ: Sơ đồ trình tự');
     expect(tablesOf(vi)[1].header).toEqual(['STT', 'Từ', 'Đến', 'Thông điệp', 'Loại', 'Điều kiện']);
     expect(tablesOf(vi)[1].rows[9]).toEqual(['10', 'Web app', 'Auth service', 'Audit login attempt', 'Bất đồng bộ', '—']);
@@ -254,6 +254,35 @@ describe('description tables: languages', () => {
       expect(shape('ja')).toEqual(shape('en'));
       expect(shape('vi')).toEqual(shape('en'));
     }
+  });
+
+  it('says what a block means in the words of each language, never by its operator, and calls an ordinary state by a natural word', () => {
+    const ir = {
+      schemaVersion: 1, kind: 'sequence', title: 'Blocks',
+      participants: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }],
+      messages: ['m1', 'm2', 'm3', 'm4', 'm5'].map((id) => ({ id, from: 'a', to: 'b', label: id })),
+      blocks: [
+        { id: 'k1', kind: 'alt', label: 'card', messages: ['m1'], branches: [{ label: 'cash', messages: ['m2'] }] },
+        { id: 'k2', kind: 'par', label: 'mail', messages: ['m3'], branches: [{ label: 'text', messages: ['m4'] }] },
+        { id: 'k3', kind: 'opt', label: 'late', messages: ['m5'] },
+      ],
+    };
+    const conditions = (lang) => rowsUnder(emitDoc(ir, { lang }).output, { en: 'Steps', ja: 'ステップ', vi: 'Các bước' }[lang]).map((r) => r[5]);
+    expect(conditions('en')).toEqual(['If card', 'Otherwise, if cash', 'At the same time: mail', 'At the same time: text', 'Only if late']);
+    expect(conditions('ja')).toEqual(['card の場合', 'それ以外で cash の場合', '同時に: mail', '同時に: text', 'late の場合のみ']);
+    expect(conditions('vi')).toEqual(['Nếu card', 'Ngược lại, nếu cash', 'Đồng thời: mail', 'Đồng thời: text', 'Chỉ khi late']);
+    const loop = { ...ir, blocks: [{ id: 'k4', kind: 'loop', label: 'every page', messages: ['m1'] }] };
+    expect(rowsUnder(emitDoc(loop, { lang: 'vi' }).output, 'Các bước')[0][5]).toBe('Lặp lại: every page');
+    for (const lang of DOC_LANGS) {
+      const text = emitDoc(ir, { lang }).output;
+      expect(text, lang).not.toMatch(/\b(alt|par|opt|else|and):/);
+    }
+    // A label that reads as markup is escaped inside the wording as anywhere else.
+    expect(rowsUnder(emitDoc({ ...ir, blocks: [{ id: 'k5', kind: 'opt', label: 'a | b', messages: ['m1'] }] }).output, 'Steps')[0][5]).toBe('Only if a \\| b');
+    const states = (lang) => emitDoc(loadFixture('state', 'valid'), { lang }).output;
+    expect(states('ja')).toContain('| 通常 |');
+    expect(states('ja')).not.toContain('単純');
+    expect(states('vi')).toContain('| Thông thường |');
   });
 
   it('records the language in the first line, and refuses one it does not have', () => {
@@ -344,16 +373,25 @@ describe('description tables: the checks before them', () => {
     expect(r.errors).toHaveLength(2);
   });
 
-  it('repeats the model warnings and asks the feature matrix nothing', async () => {
+  it('asks the feature matrix nothing and leaves the model and detail warnings to the emit of the diagram', async () => {
     // A class diagram is refused for FigJam by the matrix; its tables are written like any other.
     expect((await emit(loadFixture('class', 'valid'), 'figjam')).ok).toBe(false);
     expect((await emit(loadFixture('class', 'valid'), 'doc')).ok).toBe(true);
     const ir = loadFixture('flowchart', 'valid');
     ir.nodes.push({ id: 'alone', label: 'Left alone' });
+    // The emit of the diagram says it once; the tables written from the same IR do not say it again.
+    expect((await emit(ir, 'drawio')).warnings.map((w) => w.stage)).toEqual(['model']);
     const r = await emit(ir, 'doc');
     expect(r.ok).toBe(true);
-    expect(r.warnings.map((w) => w.stage)).toEqual(['model']);
+    expect(r.warnings).toEqual([]);
     expect(r.output).toContain('Left alone');
+    const run = await bundle([{ id: 'flow', ir }], 'doc');
+    expect(run.ok).toBe(true);
+    expect(run.warnings.filter((w) => w.stage === 'model' || w.stage === 'detail')).toEqual([]);
+    const detailed = loadFixture('architecture', 'valid');
+    detailed.connections[0].label = '1. GET /api/v1/orders';
+    expect((await emit(detailed, 'drawio')).warnings.some((w) => w.stage === 'detail')).toBe(true);
+    expect((await bundle([{ id: 'arch', ir: detailed }], 'doc')).warnings.filter((w) => w.stage === 'model' || w.stage === 'detail')).toEqual([]);
   });
 
   it('scans for secrets as for a local file: a credential is refused, a guess is a warning', async () => {

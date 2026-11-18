@@ -27,8 +27,9 @@ export const CASES = [
     cells: {
       added: ['notify', 'e16'],
       removed: ['note', 'e15'],
-      changed: ['auto', 'reject', 'e3', 'e3:label', 'g-payout'],
-      plain: ['start', 'pay', 'e1', 'g-finance'],
+      // The group lost the note that is gone: the note is red, the frame of the group is not amber.
+      changed: ['auto', 'reject', 'e3', 'e3:label'],
+      plain: ['start', 'pay', 'e1', 'g-finance', 'g-payout'],
     },
     notes: ['"Approve without review": label was "Approve automatically"', '"not found": label was "no"', '"Send rejection with reason": moved, now after "Amount over 500 EUR?"'],
   },
@@ -80,8 +81,10 @@ export const CASES = [
     cells: {
       added: ['table:$diff:frame', 'data', 'mailer', 'c10', 'c11'],
       removed: ['cache:$diff:frame', 'c6', 'c6:label'],
-      changed: ['api:$diff:frame', 'psp', 'c4', 'c4:label', 'vpc', 'private'],
-      plain: ['cloud', 'region', 'db', 'c1'],
+      // The VPC now holds the load balancer, which both versions have: that frame changed. The
+      // private subnet only lost the cache that is gone: its frame did not.
+      changed: ['api:$diff:frame', 'psp', 'c4', 'c4:label', 'vpc'],
+      plain: ['cloud', 'region', 'db', 'c1', 'private'],
     },
     notDrawn: ['public'],
     notes: ['"Order API (ECS on EC2)": label was "Order API (ECS Fargate)"', '"HTTP/2": label was "HTTP"'],
@@ -144,8 +147,9 @@ export const CASES = [
     cells: {
       added: ['hold', 't18', 't19', 't20'],
       removed: ['returned', 'packing', 't13', 't13:label', 't16', 't6', 't7'],
-      changed: ['t2', 't2:label', 'fulfil', 'cancelled'],
-      plain: ['new', 'picking', 't1', 's0'],
+      // The composite state lost a state that is gone: the state is red, the frame is not amber.
+      changed: ['t2', 't2:label', 'cancelled'],
+      plain: ['new', 'picking', 't1', 's0', 'fulfil'],
     },
     notes: ['"order placed": event was "checkout"', '"Cancelled": moved, now after f-end'],
   },
@@ -161,7 +165,7 @@ export const CASES = [
     cells: {
       added: ['cancel', 'a8'],
       removed: ['collect-points', 'a3'],
-      changed: ['place-order', 'x1', 'shop'],
+      changed: ['place-order', 'x1'],
       plain: ['customer', 'pay', 'i1', 'g1'],
     },
     notes: ['"Place an order online": label was "Place an order"', 'condition was "the customer has a voucher code"'],

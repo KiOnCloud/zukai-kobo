@@ -66,10 +66,13 @@ function sequenceTables(ir, c) {
   // lists every message of it, so it is the longer of the two.
   const sizeOf = (b) => b.messages.length + (b.branches ?? []).reduce((n, br) => n + br.messages.length, 0);
   const outerFirst = blocks.map((b, i) => ({ b, i })).sort((x, y) => sizeOf(y.b) - sizeOf(x.b) || x.i - y.i).map((x) => x.b);
+  // In the reader's words, not in the operators of the notation: a further section of `alt`
+  // is "otherwise", one of `par` runs at the same time as the first.
+  const said = (key, label) => t.value.block[key].replace('{label}', escapeCell(label));
   const condition = (m) => joinLines(outerFirst.map((b) => {
-    if (b.messages.includes(m.id)) return `${b.kind}: ${escapeCell(b.label)}`;
+    if (b.messages.includes(m.id)) return said(b.kind, b.label);
     const branch = (b.branches ?? []).find((br) => br.messages.includes(m.id));
-    return branch ? `${b.kind} ${b.kind === 'par' ? 'and' : 'else'}: ${escapeCell(branch.label)}` : '';
+    return branch ? said(b.kind === 'alt' ? 'else' : b.kind, branch.label) : '';
   }));
   const out = [
     c.heading(t.heading.participants),

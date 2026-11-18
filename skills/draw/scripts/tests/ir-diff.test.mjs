@@ -235,13 +235,34 @@ describe('a message put into or taken out of nested blocks', () => {
     expect(diffIr(login, reworded).changed.map((e) => [e.id, e.fields])).toEqual([['middle', ['label']]]);
   });
 
-  it('keeps the containers of the other kinds as they were: a group that gains a new node is changed', () => {
-    const flowchart = { schemaVersion: 1, kind: 'flowchart', title: 'F', nodes: [{ id: 'a', label: 'A' }], edges: [], groups: [{ id: 'g', label: 'G', children: ['a'] }] };
-    const next = clone(flowchart);
-    next.nodes.push({ id: 'b', label: 'B' });
-    next.groups[0].children.push('b');
-    expect(diffIr(flowchart, next).changed.map((e) => [e.id, e.fields])).toEqual([['g', ['children']]]);
+  it('reads a container the same way: a member that came or went is the change, not the frame around it', () => {
+    const flowchart = { schemaVersion: 1, kind: 'flowchart', title: 'F', nodes: [{ id: 'a', label: 'A' }, { id: 'c', label: 'C' }], edges: [], groups: [{ id: 'g', label: 'G', children: ['a'] }] };
+    const gained = clone(flowchart);
+    gained.nodes.push({ id: 'b', label: 'B' });
+    gained.groups[0].children.push('b');
+    expect(diffIr(flowchart, gained)).toMatchObject({ added: [{ collection: 'nodes', id: 'b' }], changed: [] });
+    // The other way round the node is gone, and again the group is not in the list.
+    expect(diffIr(gained, flowchart)).toMatchObject({ removed: [{ collection: 'nodes', id: 'b' }], changed: [] });
+    // A node both versions have that is put into the group is a change of the group: nothing else says it.
+    const moved = clone(flowchart);
+    moved.groups[0].children.push('c');
+    expect(diffIr(flowchart, moved).changed).toEqual([{ collection: 'groups', id: 'g', label: 'G', fields: ['children'], values: { children: { from: ['a'], to: ['a', 'c'] } } }]);
+    // The same for a boundary of a use case diagram and for a composite state.
+    const usecase = { schemaVersion: 1, kind: 'usecase', title: 'U', actors: [{ id: 'user', label: 'User' }], useCases: [{ id: 'book', label: 'Book' }], boundaries: [{ id: 'sys', label: 'System', children: ['book'] }], relations: [{ id: 'r1', from: 'user', to: 'book', kind: 'association' }] };
+    const more = clone(usecase);
+    more.useCases.push({ id: 'cancel', label: 'Cancel' });
+    more.boundaries[0].children.push('cancel');
+    expect(diffIr(usecase, more).changed).toEqual([]);
+    const state = { schemaVersion: 1, kind: 'state', title: 'S', states: [{ id: 'run', label: 'Running', children: ['warm'] }, { id: 'warm', label: 'Warming up' }], transitions: [] };
+    const deeper = clone(state);
+    deeper.states.push({ id: 'steady', label: 'Steady' });
+    deeper.states[0].children.push('steady');
+    expect(diffIr(state, deeper).changed).toEqual([]);
+    // A container that also changed something of its own is still listed, with that field alone.
+    deeper.states[0].label = 'In operation';
+    expect(diffIr(state, deeper).changed.map((e) => [e.id, e.fields])).toEqual([['run', ['label']]]);
   });
+
 });
 
 describe('the old value of a changed field', () => {

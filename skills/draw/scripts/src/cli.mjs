@@ -16,7 +16,7 @@
  *   node cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>   (new labels by IR id, layout kept)
  *   node cli.mjs preview <file.drawio|file.drawio.svg|file.mmd|run.md> [--page <id|name>] [--out <file.png>] [--max-px <n>]   (optional; needs draw.io desktop or Playwright;
  *      a draw.io file of several pages shows its first page, or the one --page names)
- *   node cli.mjs export <file.drawio|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]   (one editable <name>.drawio.svg per page, or only the pages named; needs draw.io desktop or Playwright)
+ *   node cli.mjs export <file.drawio|file.drawio.svg|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]   (one editable <name>.drawio.svg per page, or only the pages named; needs draw.io desktop or Playwright)
  *   node cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir> [--drawio <out.drawio>] [--allow-sensitive]   (elements added, removed, changed; a dir is a run's source/ folder;
  *      --drawio also draws the change: the new version with what was added in green, changed in amber, removed in red)
  *   node cli.mjs drift <file.drawio|run.md> <ir.json|run-dir>...   (cells that differ from a fresh emit: hand edits made in draw.io)
@@ -50,7 +50,7 @@ const USAGE = `usage:
   cli.mjs bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <${DOC_LANGS.join('|')}>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] [--mermaid-stable] <run-dir|ir.json>...
   cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>
   cli.mjs preview <file.drawio|file.drawio.svg|file.mmd|run.md> [--page <id|name>] [--out <file.png>] [--max-px <n>]
-  cli.mjs export <file.drawio|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]
+  cli.mjs export <file.drawio|file.drawio.svg|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]
   cli.mjs diff <old.ir.json|old-dir> <new.ir.json|new-dir> [--drawio <out.drawio>] [--allow-sensitive]
   cli.mjs drift <file.drawio|run.md> <ir.json|run-dir>...
   cli.mjs snapshot <run-dir> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]
@@ -79,7 +79,8 @@ board (block frames, self-messages, notes); no file is written when the board ne
 board at the coordinates of the draw.io layout (<file>.js, then <file>.2.js, ... when one
 script would be too long; run them in order). It works for every kind, class and activity
 included; for those two no Mermaid text is written.
-export writes each page of a draw.io file as a picture that still opens in draw.io
+export writes each page of a draw.io file as a picture that still opens in draw.io; given
+such a picture (.drawio.svg), it draws the diagram the picture holds again.
 diff --drawio writes a picture of the change beside the list: a draw.io file of the new version
 with one page per diagram that changed, where what was added is green, what changed or moved
 is amber and what was removed is drawn again in red with a dashed outline, and a legend under
@@ -135,9 +136,14 @@ const COMMAND_OPTIONS = {
   extract: ['--page', '--out', '--figjam-script', '--section', '--from'],
   cover: [],
   sources: ['--root', '--only'],
-  // `--only` is named in the message of its own that says where it belongs.
-  stale: ['--root', '--only'],
+  stale: ['--root'],
 };
+
+/**
+ * Options a command reads only to refuse them with a message of its own that says where they
+ * belong. They are no options of the command: no hint names them as something it takes.
+ */
+const REFUSED_WITH_REASON = { stale: ['--only'] };
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
@@ -150,7 +156,7 @@ function parseArgs(argv) {
     const eq = a.indexOf('=');
     const name = eq < 0 ? a : a.slice(0, eq);
     const known = Object.hasOwn(FLAGS, name) || Object.hasOwn(VALUE_OPTIONS, name);
-    if (known && Object.hasOwn(COMMAND_OPTIONS, command) && !COMMAND_OPTIONS[command].includes(name)) {
+    if (known && Object.hasOwn(COMMAND_OPTIONS, command) && !COMMAND_OPTIONS[command].includes(name) && !(REFUSED_WITH_REASON[command] ?? []).includes(name)) {
       const takes = COMMAND_OPTIONS[command];
       const others = Object.entries(COMMAND_OPTIONS).filter(([, list]) => list.includes(name)).map(([c]) => c);
       return { error: `${command} does not take ${name}`, hint: `${takes.length > 0 ? `${command} takes ${takes.join(', ')}` : `${command} takes no option`}; ${name} goes with ${others.join(', ')}` };
@@ -421,7 +427,7 @@ export async function main(argv) {
     return 0;
   }
   if (opts.command === 'export') {
-    if (opts.positional.length !== 1) return fail(1, { ok: false, errors: [{ path: '/', message: 'export takes exactly one .drawio file or run folder' }], usage: USAGE });
+    if (opts.positional.length !== 1) return fail(1, { ok: false, errors: [{ path: '/', message: 'export takes exactly one .drawio file, editable picture (.drawio.svg) or run folder' }], usage: USAGE });
     const page = opts.page === undefined ? undefined : opts.page.split(',').map((x) => x.trim()).filter(Boolean);
     const result = await exportSvg(opts.positional[0], { out: opts.out, page });
     if (result.warnings.length > 0) process.stderr.write(JSON.stringify({ warnings: result.warnings }) + '\n');

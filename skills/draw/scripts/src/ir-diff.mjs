@@ -21,6 +21,12 @@
  * only by ids that were added or removed, the block itself did not change: the message that
  * came or went is reported, not every frame around it. A message that both versions have and
  * that moved in or out of the block, and a section that came or went, still make it `changed`.
+ *
+ * A container is read the same way. A boundary, a group or a composite state that gained a
+ * new member or lost one that is gone did not change: the member is reported as added or
+ * removed, and a reader who saw the frame marked as changed would look for a difference in
+ * the frame that is not there. A member both versions have that moved into or out of the
+ * container still makes it `changed`, since nothing else in the list says so.
  */
 
 /** Top-level scalar fields worth reporting; `meta` is compared field by field. */
@@ -32,8 +38,12 @@ const REF_KEYS = new Set(['from', 'to', 'children', 'participants', 'after', 're
 export const labelOf = (item) => item.label ?? item.name ?? item.title ?? item.guard ?? item.event ?? '';
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-/** Fields of an element that list the messages it spans: the first section of a block and its further sections. */
-const MEMBER_LISTS = new Set(['messages', 'branches']);
+/**
+ * Fields of an element that list its members by id: the messages a block spans (its first
+ * section and its further sections) and the children of a container (a boundary, a group, a
+ * composite state).
+ */
+const MEMBER_LISTS = new Set(['messages', 'branches', 'children']);
 
 /** `value` without the given ids in any list of ids it holds, however deep. */
 function withoutIds(value, ids) {

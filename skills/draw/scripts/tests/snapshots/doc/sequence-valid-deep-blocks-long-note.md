@@ -15,12 +15,12 @@ Diagram kind: Sequence diagram
 
 | No. | From | To | Message | Kind | Condition |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Sync job | ERP | GET /stock?page=n | Synchronous | loop: for every page |
-| 2 | ERP | Sync job | stock page | Reply | loop: for every page |
-| 3 | Sync job | Shop database | UPDATE stock level | Synchronous | loop: for every page<br>loop: for every item<br>alt: item is known<br>opt: level changed |
-| 4 | Shop database | Sync job | rows updated | Reply | loop: for every page<br>loop: for every item<br>alt: item is known<br>opt: level changed |
-| 5 | Sync job | Shop database | INSERT sync error | Synchronous | loop: for every page<br>loop: for every item<br>alt else: item is unknown |
-| 6 | Sync job | Shop database | COMMIT | Synchronous | loop: for every page<br>loop: for every item |
+| 1 | Sync job | ERP | GET /stock?page=n | Synchronous | Repeated: for every page |
+| 2 | ERP | Sync job | stock page | Reply | Repeated: for every page |
+| 3 | Sync job | Shop database | UPDATE stock level | Synchronous | Repeated: for every page<br>Repeated: for every item<br>If item is known<br>Only if level changed |
+| 4 | Shop database | Sync job | rows updated | Reply | Repeated: for every page<br>Repeated: for every item<br>If item is known<br>Only if level changed |
+| 5 | Sync job | Shop database | INSERT sync error | Synchronous | Repeated: for every page<br>Repeated: for every item<br>Otherwise, if item is unknown |
+| 6 | Sync job | Shop database | COMMIT | Synchronous | Repeated: for every page<br>Repeated: for every item |
 | 7 | Sync job | Sync job | Write the run summary | Synchronous | — |
 
 ## Notes

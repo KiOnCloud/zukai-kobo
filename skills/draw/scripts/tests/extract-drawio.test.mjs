@@ -207,7 +207,7 @@ describe('facts never hold a credential or personal data', () => {
     const { facts } = extractFacts(Buffer.from(xml), 'x.drawio');
     const ir = (omitted) => ({ schemaVersion: 1, kind: 'flowchart', title: 'Orders', nodes: [{ id: 'api', label: 'Order API', shape: 'process' }], edges: [], meta: { omitted } });
     expect(cover(facts, [{ name: 'o', ir: ir(['"Cấu hình: DB_PASSWORD=<db password> (tạm thời), hỏi <staff e-mail>": a credential and a contact, not part of the system']) }]).ok).toBe(true);
-    expect(cover(facts, [{ name: 'o', ir: ir([]) }]).missing.map((m) => m.text)).toEqual(['Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời)', 'hỏi <redacted e-mail>']);
+    expect(cover(facts, [{ name: 'o', ir: ir([]) }]).missing.map((m) => m.text)).toEqual(['Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời) hỏi <redacted e-mail>']);
   });
 });
 

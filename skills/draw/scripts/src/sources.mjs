@@ -128,15 +128,37 @@ function readIrs(run) {
   return { entries };
 }
 
-/** The file that holds the record of a run: `source/<run-slug>.sources.json`. */
+/**
+ * The file that holds the record of a run: `source/<run-slug>.sources.json`. A run folder
+ * that was renamed or copied under another name still holds the record under the old slug,
+ * and a run has one record, so the one `*.sources.json` its `source/` holds is the record
+ * whatever it is called: the folder says which record is its own, not its name.
+ */
 export function recordPathOf(runDir) {
   const run = resolve(runDir);
-  return join(run, 'source', `${runSlugOf(run) ?? basename(run)}${RECORD_SUFFIX}`);
+  const source = join(run, 'source');
+  const named = join(source, `${runSlugOf(run) ?? basename(run)}${RECORD_SUFFIX}`);
+  if (existsSync(named)) return named;
+  const held = recordsIn(source);
+  return held.length === 1 ? join(source, held[0]) : named;
+}
+
+function recordsIn(source) {
+  try {
+    return readdirSync(source).filter((f) => f.endsWith(RECORD_SUFFIX)).sort();
+  } catch {
+    return [];
+  }
 }
 
 function readRecord(run, given) {
   const path = recordPathOf(run);
-  if (!existsSync(path)) return { path };
+  if (!existsSync(path)) {
+    // Several records and none named after the run: nothing says which one speaks for it.
+    const held = recordsIn(join(run, 'source'));
+    if (held.length > 1) return { several: true, error: fail(1, given, `${held.length} sources records in ${join(run, 'source')} and none is named after the run: ${held.join(', ')}`, `a run has one record: keep the one that belongs to this run as ${basename(path)} and delete the others, or delete them all and record again with: sources <run-dir>`) };
+    return { path };
+  }
   let record;
   try {
     record = JSON.parse(readFileSync(path, 'utf8'));
@@ -175,8 +197,9 @@ export function recordSources(runDir, options = {}) {
     if (unknown.length > 0) return fail(1, '--only', `no diagram ${unknown.map((u) => `"${u}"`).join(', ')} in this run`, `diagrams: ${read.entries.map((e) => e.id).join(', ')}`);
   }
   const existing = readRecord(run, runDir);
-  // A record that cannot be read is replaced by a full recording, never patched.
-  if (existing.error && only) return existing.error;
+  // A record that cannot be read is replaced by a full recording, never patched. Several
+  // records are never replaced: which of them to keep is the user's to say.
+  if (existing.error && (only || existing.several)) return existing.error;
   const kept = only && existing.record ? existing.record : undefined;
   let root;
   if (options.root === undefined && kept) root = resolve(run, kept.root ?? '.');

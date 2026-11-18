@@ -417,7 +417,7 @@ function sourcesOf(target, cwd) {
 }
 
 /**
- * @param {string} target a .drawio file, or a run folder
+ * @param {string} target a .drawio file, an editable picture (.drawio.svg), or a run folder
  * @param {{ out?: string, cwd?: string, page?: string[], renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
  *   `out` is a folder, or a file name ending in `.svg` when one page is written;
  *   `page` keeps only the pages named, by id or name, and is an error when one is not there;
@@ -439,9 +439,17 @@ export async function exportSvg(target, options = {}) {
     } catch (e) {
       return fail({ path: file, message: `cannot read file: ${e.message}` });
     }
+    // An editable picture stands for the diagram it holds, as it does for `preview` and
+    // `extract`: its pages are drawn again, the one page of a picture into the picture itself.
+    const picture = /\.svg$/i.test(file);
+    if (picture) {
+      const inside = drawioXmlOf(Buffer.from(xml, 'utf8'));
+      if (inside.error) return fail({ path: file, message: inside.error, hint: 'export draws the diagram a .drawio.svg holds; a plain SVG holds none and is already a picture' });
+      xml = inside.xml;
+    }
     const split = drawioPages(xml);
-    if (split.error) return fail({ path: file, message: split.error, hint: 'export takes a .drawio file or a run folder; a Mermaid or FigJam run has no draw.io file to export' });
-    const names = pageFileNames(split.pages, basename(file).replace(/\.(drawio|xml)$/i, ''), split.zukai);
+    if (split.error) return fail({ path: file, message: split.error, hint: 'export takes a .drawio file, an editable picture (.drawio.svg) or a run folder; a Mermaid or FigJam run has no draw.io file to export' });
+    const names = pageFileNames(split.pages, basename(file).replace(/\.(drawio\.svg|drawio|xml|svg)$/i, ''), split.zukai);
     // A picture keeps the name it has in the whole file, so one page exported alone replaces its own picture.
     const picked = selectPages(split.pages, sources.files.length === 1 ? options.page : undefined);
     if (picked.error) return fail({ path: '--page', ...picked.error });

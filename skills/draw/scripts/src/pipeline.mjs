@@ -21,8 +21,8 @@ export const EMIT_TARGETS = [...TARGETS, DOC_TARGET];
 
 /**
  * Validate an IR and emit it for one target. Order: schema and references, feature matrix
- * (not for `doc`, which shows every element), model and size, level of detail, secret scan,
- * emitter. Errors stop the pipeline; warnings accumulate across every stage.
+ * (not for `doc`, which shows every element), model and size, level of detail (both not for
+ * `doc`, whose IRs the emit for a target already reported on), secret scan, emitter. Errors stop the pipeline; warnings accumulate across every stage.
  * @param {unknown} ir
  * @param {string} target
  * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, native?: boolean, nativeOnly?: boolean, lang?: string, refs?: Map<string, { pageId: string, title: string }> }} [options]
@@ -47,8 +47,13 @@ export async function emit(ir, target, options = {}) {
   const textSkipped = native && !matrix.ok ? matrix.errors.map((e) => e.message).join('; ') : undefined;
   if (!matrix.ok && !native) return { ok: false, errors: matrix.errors, warnings };
 
-  warnings.push(...checkModel(ir).warnings.map((w) => ({ stage: 'model', ...w })));
-  warnings.push(...checkDetail(ir).warnings.map((w) => ({ stage: 'detail', ...w })));
+  // The description tables are written beside the files of a target, from IRs whose emit for
+  // that target has just said what the model and the level of detail still get wrong. Said
+  // again by the tables, one warning would stand in the output of a run once per command.
+  if (target !== DOC_TARGET) {
+    warnings.push(...checkModel(ir).warnings.map((w) => ({ stage: 'model', ...w })));
+    warnings.push(...checkDetail(ir).warnings.map((w) => ({ stage: 'detail', ...w })));
+  }
 
   const secrets = scanSecrets(ir);
   warnings.push(...secrets.warnings.map((w) => ({ stage: 'secret-scan', ...w })));
