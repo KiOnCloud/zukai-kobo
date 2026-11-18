@@ -343,3 +343,6 @@ its reason.
   passed to `drift`, and never stands in for the combined file of the run.
 - Keep every rule of the closing contract: labels in the user's language, file names and ids
   in English ASCII, no secrets in labels, warnings shown verbatim.
+- A reworded or new label follows the project glossary when there is one: its confirmed term
+  of the user's language, none of its avoided words (`references/glossary.md` of the draw
+  skill). The closing contract's `glossary check` holds the translated IRs of a variant to it too.

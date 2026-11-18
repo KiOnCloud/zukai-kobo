@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "flowchart",
+  "title": "ログインの流れ",
+  "direction": "TB",
+  "meta": { "lang": "ja" },
+  "nodes": [
+    { "id": "start", "label": "オフィスのポータルを開く", "shape": "terminal" },
+    { "id": "office", "label": "オフィス" },
+    { "id": "backoffice", "label": "バックオフィスシステム" },
+    { "id": "stock", "label": "在庫チェック" },
+    { "id": "order", "label": "注文" },
+    { "id": "done", "label": "サインイン完了", "shape": "terminal" }
+  ],
+  "edges": [
+    { "id": "e1", "from": "start", "to": "office" },
+    { "id": "e2", "from": "office", "to": "backoffice" },
+    { "id": "e3", "from": "backoffice", "to": "stock" },
+    { "id": "e4", "from": "stock", "to": "order" },
+    { "id": "e5", "from": "order", "to": "done" }
+  ]
+}

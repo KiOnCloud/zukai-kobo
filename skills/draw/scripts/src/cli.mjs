@@ -26,6 +26,7 @@
  *   node cli.mjs restore <run-dir> <rNNN|undo|redo> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (snapshot the current state, then put a revision back)
  *   node cli.mjs sources <run-dir> [--root <project>] [--only <id,id,...>]   (record a hash of every source file the diagrams of a run were drawn from)
  *   node cli.mjs stale <run-dir>... [--root <project>]   (the recorded source files that changed or are gone; exit 2 when there are any)
+ *   node cli.mjs glossary list|add|set|pairs|check ...   (the project glossary in .zukai/glossary.json; check exits 2 on a blocking finding)
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
@@ -45,6 +46,7 @@ import { extractFacts, extractBoards } from './extract.mjs';
 import { figjamReaderScript } from './extract-figjam.mjs';
 import { cover } from './cover.mjs';
 import { recordSources, staleRun } from './sources.mjs';
+import { STATUSES, readGlossary, addEntries, setStatus, readRun, pairsOf, redactedPairs, checkRuns } from './glossary.mjs';
 
 const USAGE = `usage:
   cli.mjs validate <ir.json>
@@ -64,6 +66,11 @@ const USAGE = `usage:
   cli.mjs cover <facts.json> <ir.json|run-dir>...
   cli.mjs sources <run-dir> [--root <project>] [--only <id,id,...>]
   cli.mjs stale <run-dir>... [--root <project>]
+  cli.mjs glossary list [--root <project>] [--status <${STATUSES.join('|')}>]
+  cli.mjs glossary add --entries <file.json> [--status <suggested|confirmed>] [--root <project>]
+  cli.mjs glossary set <id> --status <${STATUSES.join('|')}> [--root <project>]
+  cli.mjs glossary pairs <run-dir>... [--root <project>]
+  cli.mjs glossary check <run-dir>... [--root <project>]
   cli.mjs help
 
 A run folder (diagrams/<yyyymmdd>_<run-slug>) stands for the IR files in its source/ folder,
@@ -119,6 +126,19 @@ stdout; exit 0 when no recorded file changed, exit 2 when one changed or is gone
 run and per diagram) or a diagram names sources the record does not hold, exit 1 when a run
 has no record. Without --root it uses the root the record was taken with, which is stored
 relative to the run folder. It needs no network and no git, so it can run in CI.
+glossary works on .zukai/glossary.json under the project root (--root, else the working
+directory): preferred terms per language, each entry suggested, confirmed or rejected. Only a
+confirmed entry is applied. list prints the entries; add takes {"entries": [{terms, avoid?,
+note?}]} from a file, as suggestions unless --status confirmed, skips an entry that is already
+there (a rejected one included) and reports one that contradicts a confirmed entry under
+conflicts without writing it; set changes the status of one entry. A term or an avoided term
+is one line of at most 80 characters, a note at most 280, and nothing the secret scan finds is
+taken. pairs prints the label of each original IR beside its translation, from the translated
+IRs under source/<lang>/ and from the keys of a label map that name one label (the rest are
+counted under unpaired), with secret values redacted. check holds the labels of the runs to the
+confirmed entries and prints the findings; exit 2 when one is blocking (a label that equals an
+avoided term, or a translated IR that does not carry the confirmed term of a label), exit 1
+when the project has no glossary or it does not match its schema.
 Exit codes: 0 success, 1 usage or I/O error, 2 validation errors.`;
 
 function fail(code, payload) {
@@ -127,7 +147,7 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang', '--entries': 'entries', '--status': 'status' };
 const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
 
 /**
@@ -150,7 +170,15 @@ const COMMAND_OPTIONS = {
   cover: [],
   sources: ['--root', '--only'],
   stale: ['--root'],
+  'glossary list': ['--root', '--status'],
+  'glossary add': ['--entries', '--status', '--root'],
+  'glossary set': ['--status', '--root'],
+  'glossary pairs': ['--root'],
+  'glossary check': ['--root'],
 };
+
+/** Commands of two words: the first word names a group, the second the command in it. */
+const GROUPS = new Set(Object.keys(COMMAND_OPTIONS).filter((c) => c.includes(' ')).map((c) => c.split(' ')[0]));
 
 /**
  * Options a command reads only to refuse them with a message of its own that says where they
@@ -159,8 +187,18 @@ const COMMAND_OPTIONS = {
 const REFUSED_WITH_REASON = { stale: ['--only'] };
 
 function parseArgs(argv) {
-  const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined };
+  let [command, ...rest] = argv;
+  // The second word of a grouped command is read before any option, so an option of one
+  // subcommand is still refused on another.
+  if (GROUPS.has(command)) {
+    const sub = rest[0];
+    const subs = Object.keys(COMMAND_OPTIONS).filter((c) => c.startsWith(`${command} `)).map((c) => c.split(' ')[1]);
+    if (sub === undefined || sub.startsWith('-')) return { error: `${command} needs a command: ${subs.join(', ')}` };
+    if (!subs.includes(sub)) return { error: `unknown command "${command} ${sub}"`, hint: `${command} takes ${subs.join(', ')}` };
+    command = `${command} ${sub}`;
+    rest = rest.slice(1);
+  }
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined, entries: undefined, status: undefined };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -683,7 +721,68 @@ export async function main(argv) {
     if (errors.length > 0) return fail(1, { ok: false, errors });
     return stale ? 2 : 0;
   }
+  if (opts.command.startsWith('glossary ')) return glossaryCommand(opts);
   return fail(1, { ok: false, errors: [{ path: '/', message: `unknown command "${opts.command ?? ''}"` }], usage: USAGE });
+}
+
+/** `glossary list|add|set|pairs|check`. */
+function glossaryCommand(opts) {
+  const sub = opts.command.split(' ')[1];
+  const usage = (message, hint) => fail(1, { ok: false, errors: [{ path: '/', message, ...(hint ? { hint } : {}) }], usage: USAGE });
+  if (opts.status !== undefined && !STATUSES.includes(opts.status)) return usage(`unknown status "${opts.status}"`, `--status takes one of: ${STATUSES.join(', ')}`);
+  if (sub === 'list') {
+    if (opts.positional.length !== 0) return usage('glossary list takes no file');
+    const read = readGlossary(opts.root);
+    if (!read.ok) return fail(1, { ok: false, path: read.path, errors: read.errors });
+    const entries = read.glossary.entries.filter((e) => opts.status === undefined || e.status === opts.status);
+    const counts = Object.fromEntries(STATUSES.map((s) => [s, read.glossary.entries.filter((e) => e.status === s).length]));
+    process.stdout.write(JSON.stringify({ ok: true, path: read.path, exists: read.exists, rev: read.rev, counts, entries }) + '\n');
+    return 0;
+  }
+  if (sub === 'add') {
+    if (opts.positional.length !== 0 || opts.entries === undefined) return usage('glossary add needs --entries <file.json> and no other file');
+    if (opts.status === 'rejected') return usage('glossary add writes suggested or confirmed entries', 'reject an entry with glossary set <id> --status rejected');
+    let input;
+    try {
+      input = JSON.parse(readFileSync(resolve(opts.entries), 'utf8'));
+    } catch (e) {
+      return fail(1, { ok: false, errors: [{ path: opts.entries, message: `cannot read the entries: ${e instanceof SyntaxError ? 'not valid JSON' : e.code ?? 'error'}`, hint: 'a JSON object {"entries": [{"terms": {"en": "...", "vi": "..."}}]}' }] });
+    }
+    if (input === null || typeof input !== 'object' || !Array.isArray(input.entries) || input.entries.length === 0) return fail(1, { ok: false, errors: [{ path: opts.entries, message: 'the file must hold {"entries": [...]} with at least one entry' }] });
+    const result = addEntries(opts.root, input.entries, { status: opts.status ?? 'suggested' });
+    if (!result.ok) return fail(1, { ok: false, errors: result.errors });
+    process.stdout.write(JSON.stringify({ ok: true, rev: result.rev, written: result.written, added: result.added, skipped: result.skipped, conflicts: result.conflicts }) + '\n');
+    return 0;
+  }
+  if (sub === 'set') {
+    if (opts.positional.length !== 1 || opts.status === undefined) return usage('glossary set takes one entry id and --status <status>');
+    const read = readGlossary(opts.root);
+    if (!read.ok) return fail(1, { ok: false, path: read.path, errors: read.errors });
+    if (!read.exists) return fail(1, { ok: false, errors: [{ path: read.path, message: 'the project has no glossary', hint: 'write one with glossary add, or pass --root <project>' }] });
+    const result = setStatus(opts.root, opts.positional[0], opts.status, { expectedRev: read.rev });
+    if (!result.ok) return fail(1, { ok: false, errors: result.errors });
+    if (result.missing) return fail(1, { ok: false, errors: [{ path: '/', message: `no entry ${opts.positional[0]} in the glossary`, hint: 'glossary list prints the ids' }] });
+    process.stdout.write(JSON.stringify({ ok: true, rev: result.rev, written: result.written, id: result.id, status: result.status }) + '\n');
+    return 0;
+  }
+  if (opts.positional.length === 0) return usage(`glossary ${sub} takes at least one run folder`);
+  if (sub === 'pairs') {
+    const pairs = [];
+    const unpaired = {};
+    for (const dir of opts.positional) {
+      const run = readRun(dir);
+      if (!run.ok) return fail(1, { ok: false, errors: run.errors });
+      const found = pairsOf(run);
+      pairs.push(...redactedPairs(found.pairs));
+      for (const [form, n] of Object.entries(found.unpaired)) unpaired[form] = (unpaired[form] ?? 0) + n;
+    }
+    process.stdout.write(JSON.stringify({ ok: true, pairs, unpaired }) + '\n');
+    return 0;
+  }
+  const result = checkRuns(opts.root, opts.positional);
+  if (!result.ok) return fail(1, { ok: false, errors: result.errors });
+  process.stdout.write(JSON.stringify(result.report) + '\n');
+  return result.report.blocking > 0 ? 2 : 0;
 }
 
 process.exitCode = await main(process.argv.slice(2));

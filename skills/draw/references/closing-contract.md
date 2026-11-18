@@ -154,6 +154,13 @@ Rules that hold in every mode:
   (`order-service`, `m3`), never from counters alone.
 - Labels are what the reader sees. Write them in the user's language. File names, ids and
   the `meta.notes` paths are English ASCII, so the files sort, diff and reference cleanly.
+- When the project has a glossary (`.zukai/glossary.json` under the project root;
+  `glossary.md`), a label uses the confirmed term of the user's language for a word the
+  glossary holds, and none of its avoided words. Before the report, run
+  `glossary check <run-folder>`: a blocking finding (exit 2) is fixed in the IR like a
+  validation error and the run emitted again; warnings are listed in the report. A recooked
+  run is the exception: its labels stay as the source writes them, and every finding goes
+  into the report. Without a glossary the step is skipped. A suggested entry is never applied.
 - A `detail:` warning says that an architecture diagram shows the inside of a resource or
   the order of calls (`ir-reference.md`, Level of detail). Fix the IR and emit again before
   the review gate; the author never accepts one. Only the user can keep it: ask once

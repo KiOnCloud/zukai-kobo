@@ -174,7 +174,9 @@ each kind you write; for an `architecture` diagram also the draw skill's "AWS ic
 facts alone:
 
 - **Content stays.** Every label is copied as the source writes it: no rewording, no
-  translation, no spelling fixes. Only a line break inside a label may become a space, since
+  translation, no spelling fixes, and no term of the project glossary put in place of the
+  source's word. The closing contract's `glossary check` still runs: its findings go into
+  the report as offers of a `revise`, never as changes made by the recook. Only a line break inside a label may become a space, since
   it was layout. A wording the user wants changed is a `revise` afterwards. Two changes
   come from Zukai's rules, never from taste, and each is listed in the report:
   - a connection label that the level of detail moves into a part (an endpoint, a
