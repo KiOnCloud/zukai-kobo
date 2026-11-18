@@ -1,7 +1,7 @@
 ---
 title: "Open a run's diagram in draw.io from the console and from the chat"
 description: "An Open in draw.io button in the labs console, cli open for the agent, and a closing question after every draw.io run; the diagram reaches draw.io by postMessage, never in a URL."
-status: in-progress
+status: completed
 priority: P2
 effort: 2.5d
 branch: claude/wizardly-babbage-o4mmey
