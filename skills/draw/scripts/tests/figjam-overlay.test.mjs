@@ -156,6 +156,33 @@ describe('figjam overlay script', () => {
     for (let i = 1; i < tops.length; i++) expect(tops[i] - tops[i - 1]).toBeGreaterThanOrEqual(30);
   });
 
+  it('keeps rows free under a self-message whose label wraps into more lines than one row holds', async () => {
+    const ir = structuredClone(loadFixture('sequence', 'valid'));
+    const self = ir.messages.find((m) => m.from === m.to);
+    self.label = 'Check that the visit starts more than twenty-four hours from now, then release the slot for other patients and log the change';
+    expect(self.label.length).toBeGreaterThanOrEqual(120);
+    const i = ir.messages.indexOf(self);
+    const rows = sequenceRows(ir);
+    const at = rows.findIndex((x) => x.type === 'message' && x.index === i);
+    const pads = rows.slice(at + 1).findIndex((x) => !(x.type === 'pad' && x.of === 'self'));
+    // At 200 px a line holds about 21 characters of the 16 px face and is 19 px high: six lines need two rows of 80.
+    expect(pads).toBe(1);
+    // The text keeps the rows free as further messages of the first participant to itself, as it does for a long note.
+    const r = await emit(ir, 'figjam');
+    const written = r.output.split('\n').map((l) => l.trim()).filter((l) => MESSAGE_LINE.test(l));
+    expect(written).toHaveLength(rows.length);
+    expect(written.slice(at + 1, at + 1 + pads).every((l) => l.endsWith(': …'))).toBe(true);
+    const { figma, section } = fakeBoard(r.output, ir.title);
+    await runOn(r.overlay, figma);
+    const text = section.children.find((c) => c.type === 'TEXT' && c.name === 'zukai-overlay' && c.characters === self.label);
+    expect(text).toBeDefined();
+    // The label starts at the top of its loop and runs down into the free row, never into the row of the next message.
+    const rowY = (k) => 158 + 80 * (k + 1);
+    const lines = Math.ceil(self.label.length / 21);
+    expect(text.y).toBeGreaterThanOrEqual(rowY(at) - 14 - 1);
+    expect(text.y + lines * 19).toBeLessThanOrEqual(rowY(at + 1 + pads) - 14);
+  });
+
   it('changes nothing and says why when the board is not the one the text made', async () => {
     const ir = loadFixture('sequence', 'valid');
     const r = await emit(ir, 'figjam');

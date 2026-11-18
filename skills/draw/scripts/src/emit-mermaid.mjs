@@ -1,5 +1,5 @@
 import { sameText } from './text-metrics.mjs';
-import { noteRows, labelRowsBefore } from './figjam-overlay.mjs';
+import { noteRows, labelRowsBefore, selfRows } from './figjam-overlay.mjs';
 import { encodeLabel, encodeInline, encodeMember, identifierToken, architectureLabel, figjamLabel, safeIds, frontMatter } from './mermaid-text.mjs';
 
 /**
@@ -233,6 +233,8 @@ function emitSequence(ir, emit, t, stable) {
     for (let k = 0; k < (labelRows[i] ?? 0); k++) emit(padLine(indent()));
     emit(idComment(indent(), m.id));
     emit(`${indent()}${ids.get(m.from)}${MESSAGE_ARROW[m.kind ?? 'sync']}${ids.get(m.to)}: ${t.withRef(t.label(m.label, `/messages/${i}/label`), m.ref, `/messages/${i}/ref`, m.label)}`);
+    // A self-message whose label wraps into more lines than one row holds keeps further rows free for it.
+    if (t.profile === 'figjam' && m.from === m.to) for (let k = 1; k < selfRows(m); k++) emit(padLine(indent()));
     notes.forEach((n, ni) => {
       if (n.after === m.id) {
         emit(idComment(indent(), n.id));

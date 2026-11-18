@@ -37,6 +37,16 @@ export function noteRows(ir, n) {
   return Math.max(1, Math.ceil((21 * lines + 36) / ROW_PITCH));
 }
 
+/**
+ * Rows a self-message needs so that its label, wrapped at 200 px beside its loop, does not run
+ * into the next row: one, or more for a long label. A line of the 16 px face holds about 21
+ * characters at that width and is 19 px high.
+ */
+export function selfRows(m) {
+  const lines = Math.max(1, Math.ceil(figjamLabel(m.label).label.length / 21));
+  return Math.max(1, Math.ceil((19 * lines + 8) / ROW_PITCH));
+}
+
 /** Blocks with the range of their messages and how many blocks enclose each. */
 function blocksOf(ir) {
   const order = new Map(ir.messages.map((m, i) => [m.id, i]));
@@ -67,10 +77,10 @@ export function labelRowsBefore(ir) {
 
 /**
  * The rows of a sequence diagram in the order the figjam text writes them. Besides one row
- * per message and per note there are empty rows: the further rows of a long note, and a row
- * for the label of a block inside another block. `emitSequence` of emit-mermaid.mjs
+ * per message and per note there are empty rows: the further rows of a long note or of the
+ * long label of a self-message, and a row for the label of a block inside another block. `emitSequence` of emit-mermaid.mjs
  * writes the same rows with `noteRows` and `labelRowsBefore`; a test holds the two together.
- * @returns {Array<{ type: 'message' | 'note', index: number } | { type: 'pad', of: 'note' | 'block', index: number }>}
+ * @returns {Array<{ type: 'message' | 'note', index: number } | { type: 'pad', of: 'note' | 'block' | 'self', index: number }>}
  */
 export function sequenceRows(ir) {
   const notes = ir.notes ?? [];
@@ -84,6 +94,7 @@ export function sequenceRows(ir) {
   ir.messages.forEach((m, i) => {
     for (const b of blocks.filter((x) => x.first === i && x.depth >= HEADER_ROW_DEPTH).sort((a, c) => a.depth - c.depth)) rows.push({ type: 'pad', of: 'block', index: b.index });
     rows.push({ type: 'message', index: i });
+    if (m.from === m.to) for (let k = 1; k < selfRows(m); k++) rows.push({ type: 'pad', of: 'self', index: i });
     notes.forEach((n, ni) => { if (n.after === m.id) note(ni); });
     // Innermost block first, as the text closes them.
     for (const b of blocks.filter((x) => x.last === i).sort((a, c) => c.depth - a.depth)) notes.forEach((n, ni) => { if (n.after === b.id) note(ni); });
@@ -130,7 +141,7 @@ export function figjamOverlay(ir) {
   // A note written right after the last message of a section still stands inside its frame.
   const lastRowOf = (messageIndex) => {
     let k = rowOfMessage.get(messageIndex);
-    const own = (r) => r && (r.type === 'note' || (r.type === 'pad' && r.of === 'note')) && notes[r.index].after === ir.messages[messageIndex].id;
+    const own = (r) => r && (((r.type === 'note' || (r.type === 'pad' && r.of === 'note')) && notes[r.index].after === ir.messages[messageIndex].id) || (r.type === 'pad' && r.of === 'self' && r.index === messageIndex));
     while (own(rows[k + 1])) k++;
     return k;
   };
@@ -151,7 +162,7 @@ export function figjamOverlay(ir) {
       const to = pIndex.get(m.to);
       // The text of a message with a `ref` gains the slug; the board is matched on what was sent.
       const label = text(m.label) + (m.ref ? ` ${text(`↳ ${m.ref}`)}` : '');
-      return from === to ? { self: label, at: from, kind: m.kind ?? 'sync' } : { message: label, from, to };
+      return from === to ? { self: label, at: from, kind: m.kind ?? 'sync', ...(selfRows(m) > 1 ? { rows: selfRows(m) } : {}) } : { message: label, from, to };
     }),
     blocks: blocks.map((b) => ({
       kind: b.kind,
@@ -350,7 +361,9 @@ D.rows.forEach((r, k) => {
     arrow(x + 48, y - 14, x + 48, y + 14, 'NONE', dashed);
     arrow(x + 48, y + 14, x + 4, y + 14, r.kind === 'async' ? 'ARROW_LINES' : 'ARROW_EQUILATERAL', dashed);
     const t = label(r.self, x + 62, y, 16, 200);
-    t.y = y - t.height / 2;
+    // A label of one row stands beside the middle of its loop; a longer one starts at the top
+    // of the loop and runs down into the rows kept free for it.
+    t.y = r.rows ? y - 14 : y - t.height / 2;
     right = Math.max(right, x + 62 + t.width);
   } else if (r.note !== undefined) {
     const xs = r.over.map(xOf);
