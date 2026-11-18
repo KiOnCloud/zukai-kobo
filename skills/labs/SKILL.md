@@ -5,10 +5,10 @@ description: Open the Zukai labs console, a local page on 127.0.0.1 that lists t
 
 # Zukai labs
 
-The labs console is a page on `127.0.0.1` that lists the runs under `diagrams/`, shows each
-one, and lets the user queue jobs: a new diagram, a change, an undo, an edit made in the
-console, a sync, a recook, an export, glossary suggestions. The server only reads the runs
-and never writes under `diagrams/`. Every change is a job that this session takes, carries
+The labs console is a page on `127.0.0.1` that lists the runs under the project's runs
+folder (`<runs-dir>`, `diagrams/` by default), shows each one, and lets the user queue jobs:
+a new diagram, a change, an undo, an edit made in the console, a sync, a recook, an export,
+glossary suggestions. The server only reads the runs and never writes under `<runs-dir>`. Every change is a job that this session takes, carries
 out by following the skill the job stands for, and closes. This skill holds no diagram rule
 of its own and never changes a run itself: it opens the console, waits, routes each job to
 the draw, revise, sync or recook skill, passes their questions to the console and hands
@@ -35,6 +35,7 @@ plugin. When neither folder of a skill holds its file, stop and name both paths 
 Every CLI call comes from `<draw-dir>`:
 
 ```bash
+node "<draw-dir>/scripts/bin/cli.mjs" runs-dir
 node "<draw-dir>/scripts/bin/cli.mjs" labs start [--port <n>] [--idle-minutes <n>] [--skip-cloud-check]
 node "<draw-dir>/scripts/bin/cli.mjs" labs status
 node "<draw-dir>/scripts/bin/cli.mjs" labs stop [--force]
@@ -49,8 +50,12 @@ Each prints one JSON object on stdout; an error is `{"ok": false, "error": {"cod
 "message"}}` on stderr with exit 1 (section 7 says what each code means). `cli.mjs help`
 describes every command.
 
-The working directory is the project root, the folder that holds `diagrams/` and
-`.zukai/`. Run every command from there.
+The working directory is the project root, the folder that holds `.zukai/` and the runs
+folder. Run every command from there. Before `labs start`, run `runs-dir` once: its
+`runsDir` is `<runs-dir>`, the folder the runs live in (`diagrams` unless
+`.zukai/config.json` names another; `<draw-dir>/references/closing-contract.md` has the
+rule). On `bad-config`, show its message and hint and stop; `labs start` refuses the same
+setting.
 
 ## Arguments
 
@@ -111,8 +116,8 @@ Every answer names the session; keep using the id `labs start` gave.
 
 ## 3. Carry out a job
 
-The job has `id`, `kind`, `run` (the run folder's name under `diagrams/`, when the kind
-works on one), `params`, and `folder`, the absolute path of a folder of its own where this
+The job has `id`, `kind`, `run` (the run folder's name under `<runs-dir>/`, when the kind
+works on one) with `runDir`, the absolute path of that run folder, `params`, and `folder`, the absolute path of a folder of its own where this
 session writes its question files, its report and the files it attaches to a question. A
 job of kind `apply-edit` also has `irFile`, the IR the user edited in the console.
 
@@ -125,13 +130,13 @@ step is skipped because this job is what holds the run, and its report closes th
 | Kind | Follow | With the job's parameters |
 |---|---|---|
 | `draw` | `<draw-dir>/SKILL.md`, from "Arguments and modes" to the end of its closing contract | `mode` as the first word (when the job has none, the mode is asked in the opening call), `request` as the request, `to`, `kind`, `scope` and `audience` as its flags, `svg: true` as `--svg`, `doc` as below. What the job leaves open is asked in the opening call, as that skill says. |
-| `revise` | `<revise-dir>/SKILL.md`, from section 1 | `run` as the path argument, `request` as the request, `preview: true` as `--preview`, `svg` and `doc` as for `draw` |
+| `revise` | `<revise-dir>/SKILL.md`, from section 1 | `runDir` as the path argument, `request` as the request, `preview: true` as `--preview`, `svg` and `doc` as for `draw` |
 | `restore` | `<revise-dir>/SKILL.md`, sections 1 to 3, then section 7 ("Undo route") | `target` (`undo`, `redo` or `rNNN`) is the target of its step 2, passed as given; never work the target out |
 | `apply-edit` | `<revise-dir>/SKILL.md`, sections 1 to 3, then section 5 ("Direct route") | the IR in `irFile` is the whole change of the diagram `diagram`; see below |
-| `sync` | `<sync-dir>/SKILL.md`, from section 1 | `run` as the path argument |
+| `sync` | `<sync-dir>/SKILL.md`, from section 1 | `runDir` as the path argument |
 | `recook` | `<recook-dir>/SKILL.md`, from section 1 | `source` as `<source>`, the other parameters as for `draw` |
 | `export` | `<draw-dir>/references/closing-contract.md`, step 5 and the section "Description tables" | `svg: true` asks for the pictures, `doc` for the tables; nothing else of the contract runs |
-| `glossary-suggest` | `<draw-dir>/references/glossary.md`, the paragraph "To suggest entries from existing diagrams" | `runs`, where `all` means every run under `diagrams/` |
+| `glossary-suggest` | `<draw-dir>/references/glossary.md`, the paragraph "To suggest entries from existing diagrams" | `runs`, where `all` means every run under `<runs-dir>/` |
 
 `doc` lists the languages of the description tables; the closing contract's section
 "Description tables" says which file each language becomes.
@@ -140,7 +145,7 @@ For `apply-edit`, `validate` the file of `irFile` first. Before the snapshot of 
 route, compare `baseRev` with the SHA-256 of the bytes of `source/<diagram>.ir.json`:
 
 ```bash
-node -e "process.stdout.write(require('crypto').createHash('sha256').update(require('fs').readFileSync(process.argv[1])).digest('hex'))" "diagrams/<run>/source/<diagram>.ir.json"
+node -e "process.stdout.write(require('crypto').createHash('sha256').update(require('fs').readFileSync(process.argv[1])).digest('hex'))" "<runDir>/source/<diagram>.ir.json"
 ```
 
 When the two differ, the run changed after the console loaded the IR: ask (section 4)

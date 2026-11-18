@@ -3,9 +3,17 @@
 Every mode of the draw skill ends here, with no shortcut, and so does every change made by
 the revise skill. `<skill-dir>` is the draw skill's directory, as `SKILL.md` locates it.
 
-Every run writes into one folder of the user's project, `diagrams/<yyyymmdd>_<run-slug>/`,
+Every run writes into one folder of the user's project, `<runs-dir>/<yyyymmdd>_<run-slug>/`,
 where the date is today and `<run-slug>` is a short English kebab-case name of the feature
-(`login-by-staff`). A re-emit later in the same conversation reuses the folder. Inside:
+(`login-by-staff`). A re-emit later in the same conversation reuses the folder.
+
+`<runs-dir>` is the project's runs folder. Resolve it once, at the start of the run, from the
+project root: `node "<skill-dir>/scripts/bin/cli.mjs" runs-dir` prints `runsDir` (relative to
+the root) and `path` (absolute). It is `diagrams` unless the project's `.zukai/config.json`
+names another folder; the examples in the references write `./diagrams/`, which is that
+default. When `runs-dir` exits 1 with `bad-config`, show its message and hint and stop: never
+write the run into `diagrams/` in its place. Every skill that finds, lists or writes runs
+(draw, revise, sync, recook, labs) uses this folder and this rule. Inside a run folder:
 
 | Path | Content |
 |---|---|

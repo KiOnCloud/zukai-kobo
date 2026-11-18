@@ -5,7 +5,8 @@ validates it and emits every target from it. Never hand-write Mermaid or draw.io
 
 Validate with the CLI and fix the full error list before emitting (`<skill-dir>` is the
 directory that contains the `SKILL.md` you loaded; the working directory is the user's
-project, so always pass the absolute path):
+project, so always pass the absolute path; `./diagrams/` is the default runs folder, see
+`<runs-dir>` in `closing-contract.md`):
 
 ```bash
 node "<skill-dir>/scripts/bin/cli.mjs" validate ./diagrams/order-checkout.ir.json

@@ -89,17 +89,21 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
 
 ## 1. Find the run
 
-A run is a folder `diagrams/<yyyymmdd>_<run-slug>/` with a `source/` folder of IR files.
+A run is a folder `<runs-dir>/<yyyymmdd>_<run-slug>/` with a `source/` folder of IR files.
+`<runs-dir>` is the project's runs folder: run `node "<draw-dir>/scripts/bin/cli.mjs" runs-dir`
+once from the project root before anything else and use its `runsDir` (`diagrams` unless
+`.zukai/config.json` names another; `<draw-dir>/references/closing-contract.md` has the
+rule). On `bad-config`, show its message and hint and stop.
 
 1. A path argument wins. A path that does not exist, or that is neither a run folder nor an
    IR inside one, is an error: say which path it was and what is missing (`source/`), list
-   the runs under `diagrams/`, and stop. Never fall back to another run in its place.
+   the runs under `<runs-dir>/`, and stop. Never fall back to another run in its place.
 2. Otherwise the runs made or revised earlier in this conversation. One run: use it, unless
    the request names another. Several: the one the request points at, by its slug, a
    diagram title or the labels of its elements (a request about "the validation step"
    belongs to the run that has one). When that singles out no run, ask as in rule 3; the
    most recent one is not a default.
-3. Otherwise list the runs under `diagrams/` in the working directory and read their IRs.
+3. Otherwise list the runs under `<runs-dir>/` in the working directory and read their IRs.
    One run whose slug, diagram titles or element labels match the request: use it and say
    which. None or several: ask once with `AskUserQuestion`, up to four runs, newest first,
    labelled by date and slug, each with its diagram titles as the description.

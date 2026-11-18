@@ -4,7 +4,7 @@
  * scouted run with revisions), plus the things a listing must leave out (a link to a folder
  * outside, a file named like a run, a folder that is not a run, a link inside a run).
  */
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -12,16 +12,28 @@ import { fixturesDir, loadFixture } from './helpers.mjs';
 import { snapshotRun } from '../src/revisions.mjs';
 import { recordSources } from '../src/sources.mjs';
 
+/** The runs folders the labs tests run against: the default, and one a project setting names. */
+export const RUNS_DIRS = [undefined, 'docs/diagrams'];
+
 const write = (file, value) => {
   mkdirSync(join(file, '..'), { recursive: true });
   writeFileSync(file, typeof value === 'string' ? value : `${JSON.stringify(value, null, 2)}\n`);
   return file;
 };
 
-export function labsProject() {
+/**
+ * With `runsDir`, the project names that folder in `.zukai/config.json` and every run lies
+ * there instead of under `diagrams/`; `dir` is the runs folder either way.
+ */
+export function labsProject({ runsDir } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'zukai-labs-project-'));
   cpSync(join(fixturesDir, 'glossary', 'project'), root, { recursive: true });
-  const diagrams = join(root, 'diagrams');
+  const diagrams = join(root, ...(runsDir ?? 'diagrams').split('/'));
+  if (runsDir !== undefined) {
+    mkdirSync(join(diagrams, '..'), { recursive: true });
+    renameSync(join(root, 'diagrams'), diagrams);
+    write(join(root, '.zukai', 'config.json'), { config: 1, runsDir });
+  }
 
   // A scouted run with a part, a business view, pictures, drafts and two revisions.
   write(join(root, 'src', 'pay.js'), 'export const pay = () => true;\n');
@@ -63,7 +75,7 @@ export function labsProject() {
   write(join(diagrams, 'notes', 'source', 'x.ir.json'), loadFixture('flowchart', 'valid'));
   link(join(outside, 'outside.txt'), join(checkout, 'source', 'leak.txt'), 'file');
 
-  return { root, outside, runs: { login: '20261109_login-flow', checkout: '20261110_checkout', lifecycle: '20261111_order-lifecycle', board: '20261112_team-board' } };
+  return { root, dir: diagrams, outside, runs: { login: '20261109_login-flow', checkout: '20261110_checkout', lifecycle: '20261111_order-lifecycle', board: '20261112_team-board' } };
 }
 
 /** A SHA-256 per file of a tree, links included as their target text. */

@@ -3,11 +3,12 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:pat
 import { validateIr } from './validate-ir.mjs';
 import { orderIrFiles, runSlugOf } from './run-order.mjs';
 import { RECORD_SUFFIX } from './sources.mjs';
+import { runFolderPattern } from './project-config.mjs';
 
 /**
- * Revisions of a run folder (`diagrams/<yyyymmdd>_<run-slug>/`): every IR of the run copied
- * together into `history/r<NNN>/`, so a main diagram, its `ref` parts and its business views
- * are always restored as one consistent set. Only the newest revisions are kept.
+ * Revisions of a run folder (`<runs folder>/<yyyymmdd>_<run-slug>/`, `diagrams/` by
+ * default): every IR of the run copied together into `history/r<NNN>/`, so a main diagram,
+ * its `ref` parts and its business views are always restored as one consistent set. Only the newest revisions are kept.
  *
  *   history/r007/revision.json       { rev, number, createdAt, request, files, extras, undo, redo, bundle?, undoOf? }
  *   history/r007/source/*.ir.json    every IR of the run at that point
@@ -109,9 +110,9 @@ function revisionDirs(runDir) {
 }
 
 function checkRun(runDir) {
-  if (!existsSync(runDir)) return fail(1, `no such folder: ${runDir}`, 'pass the run folder, diagrams/<yyyymmdd>_<run-slug>');
+  if (!existsSync(runDir)) return fail(1, `no such folder: ${runDir}`, `pass the run folder, ${runFolderPattern()}`);
   if (!existsSync(join(runDir, 'source')) || !statSync(join(runDir, 'source')).isDirectory()) {
-    return fail(1, `no source/ folder in ${runDir}`, 'pass the run folder, diagrams/<yyyymmdd>_<run-slug>');
+    return fail(1, `no source/ folder in ${runDir}`, `pass the run folder, ${runFolderPattern()}`);
   }
   return null;
 }

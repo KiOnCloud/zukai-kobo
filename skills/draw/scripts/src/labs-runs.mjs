@@ -1,12 +1,12 @@
 /**
- * What the labs console reads about the runs of a project: the run folders under
- * `diagrams/`, the diagrams, files, revisions and stale state of one run, one diagram with
+ * What the labs console reads about the runs of a project: the run folders under its runs
+ * folder (`diagrams/` unless `.zukai/config.json` names another, `project-config.mjs`), the diagrams, files, revisions and stale state of one run, one diagram with
  * its labels and warnings, the description tables built in memory, and what changed since a
  * revision. Nothing here writes a file.
  *
  * Every name a caller passes (a run, a diagram, a revision, a file) is looked up in a listing
  * this module built itself from the real folders; none is joined into a path. A run is a
- * real folder (not a link) under `diagrams/` whose name starts with `yyyymmdd_`; a file is an
+ * real folder (not a link) under the runs folder whose name starts with `yyyymmdd_`; a file is an
  * entry of the run's own listing whose real path lies inside the run folder.
  */
 import { lstatSync, readFileSync, readdirSync, realpathSync, existsSync } from 'node:fs';
@@ -20,9 +20,8 @@ import { listRevisions } from './revisions.mjs';
 import { staleRun, RECORD_SUFFIX } from './sources.mjs';
 import { diffRun } from './ir-diff.mjs';
 import { labelsOf } from './ir-labels.mjs';
-import { projectRoot } from './glossary.mjs';
+import { runsPath, runFoldersIn } from './project-config.mjs';
 
-const RUN_RE = /^\d{8}_[^/\\]+$/;
 const LANG_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 /** Files a run listing never holds: the revisions (shown by History) and temporary siblings. */
 const HIDDEN_TOP = new Set(['history']);
@@ -32,23 +31,18 @@ const isRealDir = (path) => { try { return lstatSync(path).isDirectory(); } catc
 const isRealFile = (path) => { try { return lstatSync(path).isFile(); } catch { return false; } };
 const readJson = (file) => { try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return undefined; } };
 
-export const diagramsDir = (root) => join(projectRoot(root), 'diagrams');
-
-/** The names of the run folders of a project, newest first. */
+/**
+ * The names of the run folders of a project, newest first. The runs folder is resolved on
+ * every call, so a changed setting reaches a running console; a bad setting throws its
+ * `ConfigError`.
+ */
 export function runNames(root) {
-  const dir = diagramsDir(root);
-  let names;
-  try {
-    names = readdirSync(dir);
-  } catch {
-    return [];
-  }
-  return names.filter((n) => RUN_RE.test(n) && isRealDir(join(dir, n))).sort().reverse();
+  return runFoldersIn(runsPath(root));
 }
 
 /** The absolute folder of a run named in the listing, or undefined. */
 export function runPath(root, name) {
-  return typeof name === 'string' && runNames(root).includes(name) ? join(diagramsDir(root), name) : undefined;
+  return typeof name === 'string' && runNames(root).includes(name) ? join(runsPath(root), name) : undefined;
 }
 
 /** The IR file names of a run's `source/`, in run order. */
@@ -101,8 +95,9 @@ const revisionCount = (runDir) => (isRealDir(join(runDir, 'history')) ? readdirS
 
 /** Every run of a project, newest first, as the runs list shows it. */
 export function listRuns(root) {
-  return runNames(root).map((name) => {
-    const dir = join(diagramsDir(root), name);
+  const runs = runsPath(root);
+  return runFoldersIn(runs).map((name) => {
+    const dir = join(runs, name);
     const slug = name.slice('yyyymmdd_'.length);
     const diagrams = diagramsOf(dir);
     const main = diagrams[0];

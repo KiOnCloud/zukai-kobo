@@ -64,13 +64,17 @@ the sync.
 
 ## 1. Find the run
 
-A run is a folder `diagrams/<yyyymmdd>_<run-slug>/` with a `source/` folder of IR files.
+A run is a folder `<runs-dir>/<yyyymmdd>_<run-slug>/` with a `source/` folder of IR files.
+`<runs-dir>` is the project's runs folder: run `node "<draw-dir>/scripts/bin/cli.mjs" runs-dir`
+once from the project root before anything else and use its `runsDir` (`diagrams` unless
+`.zukai/config.json` names another; `<draw-dir>/references/closing-contract.md` has the
+rule). On `bad-config`, show its message and hint and stop.
 
 1. A path argument wins. A path that does not exist, or that is neither a run folder nor an
    IR inside one, is an error: say which path it was and what is missing (`source/`), list
-   the runs under `diagrams/`, and stop. Never fall back to another run in its place.
+   the runs under `<runs-dir>/`, and stop. Never fall back to another run in its place.
 2. Otherwise a run drawn from code earlier in this conversation, when there is exactly one.
-3. Otherwise list the runs under `diagrams/` in the working directory and keep those drawn
+3. Otherwise list the runs under `<runs-dir>/` in the working directory and keep those drawn
    from code (section 2 says which are). None: stop with the refusal of section 2. One: use it and
    say which. Several: run `stale` once with all of them that have a
    `source/<run-slug>.sources.json`, then ask once which run to sync, up to four options:

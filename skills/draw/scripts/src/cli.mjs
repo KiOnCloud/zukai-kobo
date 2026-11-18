@@ -31,6 +31,8 @@
  *   node cli.mjs open --check <run-dir|file.drawio|file.drawio.svg>   (whether and how it can be opened here; changes nothing)
  *   node cli.mjs labs start|status|stop ...   (the labs console of a project on 127.0.0.1)
  *   node cli.mjs labs wait|progress|ask|done|holds ...   (the agent's side of the console's jobs; holds exits 2 when a job holds the run)
+ *   node cli.mjs runs-dir [set <folder>] [--root <project>]   (the project's runs folder, from .zukai/config.json, else diagrams)
+ *   node cli.mjs index list|rebuild|forget ...   (the projects that hold runs, from the per-user run index)
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
@@ -54,6 +56,8 @@ import { startServer, serverStatus, stopServer, serve, readServerFile } from './
 import { agentCall } from './labs-client.mjs';
 import { openDrawio, checkOpen } from './open-drawio.mjs';
 import { projectRoot } from './glossary.mjs';
+import { readProjectConfig, setRunsDir, projectOfRun, runDirAt, runFolderPattern, runFoldersIn, runsPath } from './project-config.mjs';
+import { registerProject, listIndex, rebuildIndex, forgetProject, indexOff } from './run-index.mjs';
 import { STATUSES, readGlossary, addEntries, setStatus, readRun, pairsOf, redactedPairs, checkRuns } from './glossary.mjs';
 
 const USAGE = `usage:
@@ -90,9 +94,15 @@ const USAGE = `usage:
   cli.mjs labs ask <job> --session <id> --question @<file.json> [--timeout <s>] [--root <project>]
   cli.mjs labs done <job> --session <id> --result <done|failed> [--report @<file>] [--root <project>]
   cli.mjs labs holds <run> [--root <project>]
+  cli.mjs runs-dir [--root <project>]
+  cli.mjs runs-dir set <folder> [--root <project>]
+  cli.mjs index list
+  cli.mjs index rebuild [--scan <folder>]...
+  cli.mjs index forget <project-root>
   cli.mjs help
 
-A run folder (diagrams/<yyyymmdd>_<run-slug>) stands for the IR files in its source/ folder,
+A run folder (<runs-dir>/<yyyymmdd>_<run-slug>; <runs-dir> is diagrams unless the project's
+.zukai/config.json names another, see runs-dir) stands for the IR files in its source/ folder,
 main diagram first. An option takes its value as the next argument or as --option=value.
 A command takes the options its line above shows: any other option is refused, not ignored.
 --allow-sensitive says that what the secret scan found is not a secret.
@@ -173,7 +183,7 @@ and opens nothing.
 labs start serves the console of the project (--root, else the working directory) on
 127.0.0.1, on a port that is the same for the project every time (--port or ZUKAI_LABS_PORT
 replace it; a busy port is reported, never replaced by the next one). A second start reuses
-the running server. The server reads the runs under diagrams/ and never writes there; it
+the running server. The server reads the runs under the runs folder and never writes there; it
 writes .zukai/labs/ and, from the console's Glossary section, .zukai/glossary.json, and
 ends itself after --idle-minutes (default 30) with nothing to do, or on labs stop (--force
 when a job is open). start and status print the console URL with
@@ -189,6 +199,25 @@ an answer. done closes the job with done or failed and the report. Error codes: 
 not-this-project, session-refused, session-replaced, transport, bad-request. labs holds <run>
 prints whether a console job is working on a run: exit 2 when one is, exit 0 when none is or
 no console runs. Before changing a run, a session outside the console asks holds.
+runs-dir prints the project's runs folder (--root, else the working directory):
+{"ok": true, "root", "runsDir", "path", "from": "config"|"default"}. It is "runsDir" in
+.zukai/config.json ({"config": 1, "runsDir": "docs/diagrams"}, committed with the project),
+else diagrams. runs-dir set <folder> writes it, keeping the other keys of the file, and prints
+{"ok": true, "root", "runsDir", "previous", "file", "runsLeftIn"?}; runsLeftIn names the old
+folder and how many runs it holds, which are not moved. The folder is relative to the project
+root, with / between its parts, and stays inside the project: an absolute path, a . or ..
+part, .zukai/, .git/ or a link that leads out of the project is refused. A setting that
+cannot be used is an error everywhere it is read, never a fall back to diagrams: exit 1 with
+{"ok": false, "error": {"code": "bad-config", "message", "hint", "path"}}.
+index list prints the projects of the per-user run index with what their runs folder holds
+now: {"ok": true, "file", "projects": [{"root", "alive", "reason"?, "runsDir", "runs",
+"lastSeen"}], "warnings"}. The index holds only project roots and when they were last seen;
+bundle, snapshot, restore, sources, labs start and runs-dir add the project they work in, and
+drop the projects that no longer exist. index rebuild drops those too and, for each --scan
+folder, registers the projects found up to four levels below it; index forget removes one.
+The index lives in ZUKAI_HOME, else %LOCALAPPDATA%\zukai on Windows, else ~/.zukai.
+ZUKAI_INDEX=off stops every read and write of it; the index commands then exit 1 with
+code index-off.
 Exit codes: 0 success, 1 usage or I/O error, 2 validation errors.`;
 
 function fail(code, payload) {
@@ -197,7 +226,7 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang', '--entries': 'entries', '--status': 'status', '--port': 'port', '--idle-minutes': 'idleMinutes', '--session': 'session', '--message': 'message', '--question': 'question', '--result': 'result', '--report': 'report', '--timeout': 'timeout' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang', '--entries': 'entries', '--status': 'status', '--port': 'port', '--idle-minutes': 'idleMinutes', '--session': 'session', '--message': 'message', '--question': 'question', '--result': 'result', '--report': 'report', '--timeout': 'timeout', '--scan': 'scan' };
 const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable', '--skip-cloud-check': 'skipCloudCheck', '--force': 'force', '--check': 'check', '--web': 'web', '--desktop': 'desktop' };
 
 /**
@@ -235,6 +264,10 @@ const COMMAND_OPTIONS = {
   'labs ask': ['--session', '--question', '--timeout', '--root'],
   'labs done': ['--session', '--result', '--report', '--root'],
   'labs holds': ['--root'],
+  'runs-dir': ['--root'],
+  'index list': [],
+  'index rebuild': ['--scan'],
+  'index forget': [],
 };
 
 /** Commands of two words: the first word names a group, the second the command in it. */
@@ -258,7 +291,7 @@ function parseArgs(argv) {
     command = `${command} ${sub}`;
     rest = rest.slice(1);
   }
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined, entries: undefined, status: undefined, port: undefined, idleMinutes: undefined, skipCloudCheck: false, force: false, check: false, web: false, desktop: false, session: undefined, message: undefined, question: undefined, result: undefined, report: undefined, timeout: undefined };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined, entries: undefined, status: undefined, port: undefined, idleMinutes: undefined, skipCloudCheck: false, force: false, check: false, web: false, desktop: false, session: undefined, message: undefined, question: undefined, result: undefined, report: undefined, timeout: undefined, scan: [] };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -291,6 +324,7 @@ function parseArgs(argv) {
     }
     if (value === '') return { error: `option ${name} needs a value` };
     if (name === '--extra') opts.extras.push(value);
+    else if (name === '--scan') opts.scan.push(value);
     else opts[VALUE_OPTIONS[name]] = value;
   }
   return opts;
@@ -465,7 +499,7 @@ export async function main(argv) {
       }
       if (!isDir) { files.push(arg); continue; }
       const found = irFilesOf(resolve(arg));
-      if (found.length === 0) return fail(1, { ok: false, errors: [{ path: arg, message: 'no *.ir.json file in this folder', hint: 'pass the run folder, diagrams/<yyyymmdd>_<run-slug>, or its source/ folder' }] });
+      if (found.length === 0) return fail(1, { ok: false, errors: [{ path: arg, message: 'no *.ir.json file in this folder', hint: `pass the run folder, ${runFolderPattern()}, or its source/ folder` }] });
       files.push(...found);
     }
     const entries = [];
@@ -501,6 +535,7 @@ export async function main(argv) {
       }
       if (warnings.length > 0) process.stderr.write(JSON.stringify({ warnings }) + '\n');
       process.stdout.write(JSON.stringify({ ok: true, native: paths, calls: paths.length, created: packed.created, bytes: packed.parts.map((script) => Buffer.byteLength(script)), drawings: packed.drawings, diagrams: entries.length, order: entries.map((e) => e.id), warnings: warnings.length }) + '\n');
+      registerRunProject(opts.native, ...opts.positional);
       return 0;
     }
     const canvas = opts.canvas === undefined ? undefined : opts.canvas === 'all' ? 'all' : opts.canvas.split(',').map((s) => s.trim()).filter(Boolean);
@@ -519,6 +554,7 @@ export async function main(argv) {
       return fail(1, { ok: false, errors: [{ path: opts.out, message: `cannot write file: ${e.message}` }] });
     }
     process.stdout.write(JSON.stringify({ ok: true, out: outPath, diagrams: entries.length, order: entries.map((e) => e.id), warnings: result.warnings.length, ...(result.canvas ? { canvas: result.canvas } : {}) }) + '\n');
+    registerRunProject(opts.out, ...opts.positional);
     return 0;
   }
   if (opts.command === 'relabel') {
@@ -671,6 +707,7 @@ export async function main(argv) {
     else result = snapshotRun(opts.positional[0], { keep, request: opts.request, extras, bundle: bundleOptions });
     if (!result.ok) return fail(result.code, { ok: false, errors: result.errors });
     process.stdout.write(JSON.stringify(result) + '\n');
+    if (opts.command !== 'revisions') registerRunProject(opts.positional[0]);
     return 0;
   }
   if (opts.command === 'extract') {
@@ -760,6 +797,7 @@ export async function main(argv) {
     const { warnings, ...rest } = result;
     if (warnings.length > 0) process.stderr.write(JSON.stringify({ warnings }) + '\n');
     process.stdout.write(JSON.stringify({ ...rest, warnings: warnings.length }) + '\n');
+    registerRunProject(opts.positional[0]);
     return 0;
   }
   if (opts.command === 'stale') {
@@ -784,6 +822,8 @@ export async function main(argv) {
   if (opts.command === 'open') return openCommand(opts);
   if (opts.command.startsWith('glossary ')) return glossaryCommand(opts);
   if (opts.command.startsWith('labs ')) return labsCommand(opts);
+  if (opts.command === 'runs-dir') return runsDirCommand(opts);
+  if (opts.command.startsWith('index ')) return indexCommand(opts);
   return fail(1, { ok: false, errors: [{ path: '/', message: `unknown command "${opts.command ?? ''}"` }], usage: USAGE });
 }
 
@@ -808,6 +848,12 @@ async function labsCommand(opts) {
   if (['wait', 'progress', 'ask', 'done', 'holds'].includes(sub)) return labsAgentCommand(sub, opts);
   if (opts.positional.length !== 0) return fail(1, { ok: false, errors: [{ path: '/', message: `labs ${sub} takes no file` }], usage: USAGE });
   if (sub === 'serve') return serve({ root: opts.root, port: opts.port, idleMinutes: opts.idleMinutes });
+  // A console over the wrong folder would show no runs and say nothing: a bad setting stops
+  // it. status still answers, with the error, so a running server and its job stay reachable.
+  if (sub === 'start') {
+    const config = readProjectConfig(opts.root);
+    if (!config.ok) return fail(1, { ok: false, error: config.error.toJSON() });
+  }
   const result = sub === 'start'
     ? await startServer({ root: opts.root, port: opts.port, idleMinutes: opts.idleMinutes, skipCloudCheck: opts.skipCloudCheck })
     : sub === 'status' ? await serverStatus({ root: opts.root }) : await stopServer({ root: opts.root, force: opts.force });
@@ -815,6 +861,7 @@ async function labsCommand(opts) {
   // Each start names a fresh agent session: the agent passes it to every call of the bridge.
   const out = sub === 'start' ? { ...result.out, session: `s-${randomBytes(12).toString('base64url')}` } : result.out;
   process.stdout.write(JSON.stringify(out) + '\n');
+  if (sub === 'start' && result.code === 0) registerProject(projectRoot(opts.root));
   return result.code;
 }
 
@@ -825,9 +872,15 @@ async function labsAgentCommand(sub, opts) {
   if (sub === 'holds') {
     if (opts.positional.length !== 1) return bad('labs holds takes one run folder');
     const run = basename(resolve(opts.positional[0]));
-    // Without --root, a run folder given by its path names its own project: diagrams/<run> lies directly under it.
-    const parent = dirname(resolve(opts.positional[0]));
-    const runRoot = opts.root === undefined && basename(parent) === 'diagrams' ? dirname(parent) : undefined;
+    // Without --root, a run folder given by its path names its own project: the one whose runs folder holds it.
+    // When a setting above the run cannot be read, the owner is unknown: say so rather than "not held".
+    let runRoot;
+    try {
+      runRoot = opts.root === undefined ? projectOfRun(resolve(opts.positional[0])) : undefined;
+    } catch (e) {
+      if (e?.code === 'bad-config') return fail(1, { ok: false, error: e.toJSON() });
+      throw e;
+    }
     if (runRoot) file = readServerFile(runRoot);
     if (!file) { process.stdout.write(JSON.stringify({ held: false }) + '\n'); return 0; }
     const r = await agentCall(file, { method: 'GET', path: `/agent/holds?run=${encodeURIComponent(run)}` });
@@ -879,6 +932,73 @@ async function labsAgentCommand(sub, opts) {
   const r = await agentCall(file, call);
   if (!r.ok) return fail(1, { ok: false, error: r.error });
   process.stdout.write(JSON.stringify(r.body) + '\n');
+  return 0;
+}
+
+/**
+ * Add the project of the run that holds one of the paths to the run index. Called after the
+ * command printed its result; it never changes the output or the exit code.
+ */
+function registerRunProject(...paths) {
+  try {
+    for (const path of paths) {
+      if (typeof path !== 'string') continue;
+      const run = runDirAt(resolve(path));
+      const root = run && projectOfRun(run);
+      if (root) { registerProject(root); return; }
+    }
+  } catch {
+    // the index is a cache: a project it misses is found again by index rebuild
+  }
+}
+
+/** `runs-dir` and `runs-dir set <folder>`: the project's runs folder. */
+function runsDirCommand(opts) {
+  const root = projectRoot(opts.root);
+  const bad = (message) => fail(1, { ok: false, error: { code: 'bad-request', message }, usage: USAGE });
+  if (opts.positional.length === 0) {
+    const config = readProjectConfig(root);
+    if (!config.ok) return fail(1, { ok: false, error: config.error.toJSON() });
+    const path = runsPath(root);
+    process.stdout.write(JSON.stringify({ ok: true, root, runsDir: config.runsDir, path, from: config.from }) + '\n');
+    // Skills ask runs-dir at their start, so a project that holds runs is registered even
+    // when its runs were written with file tools only.
+    if (runFoldersIn(path).length > 0) registerProject(root);
+    return 0;
+  }
+  if (opts.positional[0] !== 'set') return bad(`unknown command "runs-dir ${opts.positional[0]}"; runs-dir takes set <folder>, or nothing to print the folder`);
+  if (opts.positional.length !== 2) return bad('runs-dir set takes one folder, relative to the project root');
+  if (!existsSync(root) || !statSync(root).isDirectory()) return bad(`no such project folder: ${root}`);
+  const result = setRunsDir(root, opts.positional[1]);
+  if (!result.ok) return fail(1, { ok: false, error: result.error.toJSON() });
+  process.stdout.write(JSON.stringify({ ok: true, root, runsDir: result.runsDir, previous: result.previous, file: result.file, ...(result.runsLeftIn ? { runsLeftIn: result.runsLeftIn } : {}) }) + '\n');
+  registerProject(root);
+  return 0;
+}
+
+/** `index list|rebuild|forget`: the per-user run index. */
+function indexCommand(opts) {
+  const sub = opts.command.split(' ')[1];
+  if (indexOff()) return fail(1, { ok: false, error: { code: 'index-off', message: 'the run index is off (ZUKAI_INDEX=off)', hint: 'unset ZUKAI_INDEX to read and write the index' } });
+  const bad = (message) => fail(1, { ok: false, error: { code: 'bad-request', message }, usage: USAGE });
+  if (sub === 'list') {
+    if (opts.positional.length !== 0) return bad('index list takes no argument');
+    const { file, projects, warnings } = listIndex();
+    if (warnings.length > 0) process.stderr.write(JSON.stringify({ warnings }) + '\n');
+    process.stdout.write(JSON.stringify({ ok: true, file, projects, warnings }) + '\n');
+    return 0;
+  }
+  if (sub === 'rebuild') {
+    if (opts.positional.length !== 0) return bad('index rebuild takes folders only through --scan <folder>');
+    const result = rebuildIndex({ scan: opts.scan.map((d) => resolve(d)) });
+    if (!result.ok) return fail(1, { ok: false, error: result.error });
+    process.stdout.write(JSON.stringify(result) + '\n');
+    return 0;
+  }
+  if (opts.positional.length !== 1) return bad('index forget takes one project root, as index list prints it');
+  const result = forgetProject(opts.positional[0]);
+  if (!result.ok) return fail(1, { ok: false, error: result.error });
+  process.stdout.write(JSON.stringify(result) + '\n');
   return 0;
 }
 

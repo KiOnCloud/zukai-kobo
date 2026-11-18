@@ -21,6 +21,7 @@ import { findDrawioBinary, drawioMissing } from './preview.mjs';
 import { drawioPages } from './export-svg.mjs';
 import { drawioXmlOf } from './extract-drawio.mjs';
 import { embedHostOf, openerPage } from './drawio-embed.mjs';
+import { runFolderPattern } from './project-config.mjs';
 
 /** How long an opener page is kept: long enough to reopen it, short enough not to pile up. */
 export const PAGE_TTL_MS = 24 * 60 * 60_000;
@@ -37,7 +38,7 @@ const refuse = (code, message, hint) => ({ ok: false, code, message, ...(hint ? 
 export function resolveDrawio(target) {
   const path = resolve(target);
   const st = statSync(path, { throwIfNoEntry: false });
-  if (!st) return refuse('not-found', `${target} does not exist`, 'give a run folder (diagrams/<yyyymmdd>_<run-slug>), a .drawio file or a .drawio.svg file');
+  if (!st) return refuse('not-found', `${target} does not exist`, `give a run folder (${runFolderPattern()}), a .drawio file or a .drawio.svg file`);
   if (st.isDirectory()) return resolveRun(path);
   return resolveFile(path);
 }

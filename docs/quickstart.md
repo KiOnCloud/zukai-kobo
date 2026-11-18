@@ -57,6 +57,10 @@ diagrams/20261109_login-flow/
 
 Open the `.drawio` file in draw.io desktop or at app.diagrams.net; every shape is editable.
 
+The runs go under `diagrams/`. To keep them elsewhere in the project, run
+`node <skill-dir>/scripts/bin/cli.mjs runs-dir set docs/diagrams` once from the project root
+([details](install.md#where-the-runs-live-and-the-run-index)).
+
 To see every run of the project in your browser, run `/zukai:labs` in the same session: it
 gives you the address of a console on `127.0.0.1` where you can look at each diagram and
 queue changes, which the session then makes. The console is described in

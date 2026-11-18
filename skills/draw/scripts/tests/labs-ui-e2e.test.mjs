@@ -13,7 +13,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadPlaywright } from '../src/preview.mjs';
 import { scriptsDir } from './helpers.mjs';
-import { labsProject } from './labs-project.mjs';
+import { labsProject, RUNS_DIRS } from './labs-project.mjs';
 import { embedStandIn } from './embed-stand-in.mjs';
 
 const pw = loadPlaywright();
@@ -34,7 +34,7 @@ async function viewerReachable(browser) {
   try { return await probe.evaluate(() => fetch('https://viewer.diagrams.net/js/viewer-static.min.js', { mode: 'no-cors' }).then(() => true, () => false)); } finally { await probe.close(); }
 }
 
-describe.skipIf(pw === null)('the console in a browser', () => {
+describe.skipIf(pw === null).each(RUNS_DIRS)('the console in a browser (runs folder %s)', (runsDir) => {
   let p;
   let started;
   let browser;
@@ -42,8 +42,8 @@ describe.skipIf(pw === null)('the console in a browser', () => {
   let embed;
   beforeAll(async () => {
     embed = await embedStandIn();
-    p = labsProject();
-    const dir = join(p.root, 'diagrams', '20261115_markup', 'source');
+    p = labsProject({ runsDir });
+    const dir = join(p.dir, '20261115_markup', 'source');
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, 'markup.ir.json'), JSON.stringify({ schemaVersion: 1, kind: 'flowchart', title: MARKUP, nodes: [{ id: 'a', label: MARKUP }, { id: 'b', label: 'End' }], edges: [{ id: 'e', from: 'a', to: 'b' }] }));
     const port = await freePort();
@@ -68,6 +68,16 @@ describe.skipIf(pw === null)('the console in a browser', () => {
     expect(await page.locator('img[src="x"]').count()).toBe(0);
     expect(page.url()).not.toContain('#t=');
     expect([...hosts].filter((h) => h !== new URL(started.url).host)).toEqual([]);
+    await page.close();
+  }, 60_000);
+
+  it('names the runs folder of the project where it names a folder', async () => {
+    const page = await browser.newPage();
+    await page.goto(started.url);
+    // The first page is drawn before the first state arrives; it must not keep the default.
+    await page.getByText(`Diagrams under ${runsDir ?? 'diagrams'}/, the jobs`).waitFor({ timeout: 10_000 });
+    await page.goto(`${new URL(started.url).origin}/#/diagrams/${p.runs.checkout}`);
+    await page.getByText(`${runsDir ?? 'diagrams'}/${p.runs.checkout}`, { exact: true }).waitFor({ timeout: 10_000 });
     await page.close();
   }, 60_000);
 

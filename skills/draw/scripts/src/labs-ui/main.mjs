@@ -9,7 +9,7 @@ import { api, readToken, onForbidden } from './api.mjs';
 import { createStore } from './store.mjs';
 import { SECTIONS } from './nav.mjs';
 import { createJobPanel } from './views/job-panel.mjs';
-import { agentBadge, KIND_LABEL } from './words.mjs';
+import { agentBadge, KIND_LABEL, runsDirOf } from './words.mjs';
 import { segmented } from './views/choice.mjs';
 import { glyph } from './views/glyphs.mjs';
 
@@ -113,6 +113,9 @@ export function start(root = document.getElementById('app')) {
     };
     replace(nav, S().Menu({ label: 'Sections', items: SECTIONS.map((x) => ({ label: x.label, icon: x.icon, href: `#/${x.id}`, checked: x.id === section.id, hint: hints[x.id] })) }));
   }
+  // The runs folder a view was drawn with: a view built before the first state, or before the
+  // setting changed, names the wrong folder and is drawn again.
+  let viewRunsDir = null;
   function navigate() {
     const hash = window.location.hash.replace(/^#\/?/, '');
     const [sectionId = SECTIONS[0].id, ...parts] = hash.split('/').map((p) => { try { return decodeURIComponent(p); } catch { return ''; } });
@@ -124,6 +127,7 @@ export function start(root = document.getElementById('app')) {
     newButton.hidden = section.id === 'diagrams' && (!parts[0] || parts[0] === 'new' || parts[0] === 'recook');
     if (key === route && view) { view.route?.(parts); return; }
     route = key;
+    viewRunsDir = runsDirOf(store);
     view?.dispose?.();
     store.set({ answeringHere: null });
     setCrumbs([{ label: section.label, href: `#/${section.id}` }]);
@@ -183,6 +187,7 @@ export function start(root = document.getElementById('app')) {
         const stamp = r.data.change.split('-')[1];
         store.set({ state: r.data, change: r.data.change });
         drawNav();
+        if (view && runsDirOf(store) !== viewRunsDir) { route = null; navigate(); }
         // Silence and the agent's coming and going change no file, so they count as a change too.
         const signature = JSON.stringify([r.data.change, r.data.agent?.attached, r.data.agent?.waiting, r.data.jobs?.open?.silent, store.get().answeringHere]);
         if (signature !== lastSignature) { lastSignature = signature; await panel.render(r.data); view?.stateChanged?.(r.data); }

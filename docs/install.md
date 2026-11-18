@@ -124,6 +124,42 @@ a moment while the glossary is written; and `labs/`, the console's state on this
 (`server.json` with the port, the process and the console's token, `server.log`, and one
 folder per job). An install or an uninstall never touches `.zukai/`.
 
+### Where the runs live, and the run index
+
+A project's runs live under `diagrams/` unless `.zukai/config.json` names another folder
+inside the project, `{"config": 1, "runsDir": "docs/diagrams"}`. The file is committed, so
+every teammate's agent writes into the same folder. Set it with `runs-dir set` from the
+project root and read it back with `runs-dir`:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs runs-dir set docs/diagrams
+node <skill-dir>/scripts/bin/cli.mjs runs-dir
+```
+
+The folder must stay inside the project: an absolute path, a `..` part, `.zukai/`, `.git/`
+or a link that leads out of the project is refused. Runs already under the old folder are
+not moved; `runs-dir set` names the old folder and how many runs it holds, so you can move
+them yourself (with `git mv`) or leave them. A setting that cannot be used stops every
+command that reads runs with `bad-config` and the file to fix, never a quiet fall back to
+`diagrams/`.
+
+Each user also has a run index, a list of the projects that hold runs, which
+`index list` prints with the runs each one holds now:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs index list
+```
+
+It holds the project folders and when they were last used, nothing of the diagrams, and it
+lives outside every project: `~/.zukai/index.json`, or `%LOCALAPPDATA%\zukai\index.json` on
+Windows (`ZUKAI_HOME` moves it). The folder is private to the user (0700, the file 0600).
+The commands that write runs add their project to it; a project folder that was deleted is
+reported as dead and dropped the next time the index is written. The index is a cache: if
+it is lost, `index rebuild --scan <folder>` finds the projects up to four levels below that
+folder again, and `index forget <folder>` removes one. `ZUKAI_INDEX=off` stops every read and
+write of it. An uninstall leaves the index in place; delete `~/.zukai/` (or
+`%LOCALAPPDATA%\zukai\`) to remove it.
+
 ## Claude Code (plugin)
 
 Add the marketplace and install the plugin. The repository is public, so no GitHub account
@@ -157,7 +193,9 @@ or idle. Removing the marketplace also uninstalls every plugin installed from it
 `~/.claude/plugins/` as it was before the install: the plugin copy lived under
 `cache/zukai/zukai/<version>/`, the marketplace clone under
 `marketplaces/zukai/`, and the records in `installed_plugins.json` and
-`known_marketplaces.json`.
+`known_marketplaces.json`. The per-user run index, `~/.zukai/` (or `%LOCALAPPDATA%\zukai\`
+on Windows), is left in place; delete that folder to remove it (see "Where the runs live, and
+the run index" above).
 
 ### Credentials (only for a private fork)
 
@@ -703,6 +741,39 @@ parts that did not run is enough when nothing on the board changed since, and ru
 again from part 1 is the safe choice when in doubt. The bundle written to save calls takes
 only the diagrams none of whose parts ran, and it goes into the run folder of the first of
 them. A Starter plan allows 20 Figma MCP calls a month.
+
+## Upgrading to 2.6.0
+
+Version 2.6.0 lets a project keep its runs in a folder of its choice and lists the projects
+that hold runs. Existing `.ir.json` files, run folders, CLI commands, options and exit codes
+keep working unchanged, and a project without `.zukai/config.json` behaves exactly as 2.5.1
+did: its runs stay under `diagrams/`.
+
+- **`runs-dir`.** `cli.mjs runs-dir` prints the project's runs folder and where it came from;
+  `runs-dir set <folder>` writes `runsDir` into `.zukai/config.json`, a committed file. Every
+  skill resolves the folder once at its start, and the CLI, its hints and the labs console
+  follow it. A setting that cannot be used is the new error code `bad-config` (exit 1);
+  `labs start` and `labs holds` refuse it, and `labs status` still answers, with
+  `configError`, so a running console stays reachable.
+- **`index list`, `index rebuild`, `index forget`.** A per-user run index lists the projects
+  that hold runs, with the runs each holds now. `bundle`, `snapshot`, `restore`, `sources`,
+  `labs start` and `runs-dir` add the project they work in; the index never fails them.
+  `ZUKAI_INDEX=off` turns it off; the `index` commands then exit 1 with `index-off`.
+- **The console** names the project's runs folder wherever it named `diagrams/`, Copy path
+  included, and says on its Overview when the setting cannot be used. A job the agent takes
+  carries `runDir`, the absolute path of its run.
+
+What changes for a project you already have:
+
+- Nothing, until `runs-dir set` is run. Changing the folder later moves no run: the old runs
+  stay where they are and drop out of the console and the skills until you move them.
+- The first command that writes a run creates `~/.zukai/` (or `%LOCALAPPDATA%\zukai\`) with
+  `index.json`, which holds the absolute paths of your projects and nothing of their content.
+  Set `ZUKAI_INDEX=off` if you do not want it.
+- Forks and wrappers: the closing contract now names the run folder `<runs-dir>/...` and
+  says how to resolve it; the draw, revise, sync, recook and labs skills run `runs-dir` at
+  their start. The tests keep the index in a temporary `ZUKAI_HOME` (`tests/setup-index-home.mjs`,
+  through `vitest.config.mjs`), which the installers leave out of a copied install.
 
 ## Upgrading to 2.5.1
 

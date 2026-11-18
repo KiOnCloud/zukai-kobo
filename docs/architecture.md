@@ -694,7 +694,7 @@ Every change to a run is a job for the attached agent, routed to the skill that 
 makes that change. An undo, for one, is a hand-edit check with a question, a restore and
 then the closing contract (`skills/revise/SKILL.md`); a server that did it itself would be
 a second implementation of revise that drifts from the first. So no request to the server
-changes a file under `diagrams/`. The server writes its own state under `.zukai/labs/`
+changes a file under the project's runs folder. The server writes its own state under `.zukai/labs/`
 (`server.json`, `server.log`, the job records) and the glossary, through the lock above,
 when the user edits it in the console.
 
@@ -860,6 +860,55 @@ file in draw.io. What the user sees is in `README.md`; this section is why it wo
   to a page that renders it, without changing `open`, `--check` or the closing question.
   The embed page is unversioned, so a release opens one run on the web by hand.
 
+## Runs folder and run index
+
+A project's runs live under one folder, `diagrams/` unless `.zukai/config.json` says
+`{"config": 1, "runsDir": "<folder>"}`. `project-config.mjs` holds the only resolver,
+`runsPath(root)`, and every reader and writer of runs asks it: the console's listing
+(`labs-runs.mjs`), `labs holds` through `projectOfRun`, which finds the project whose runs
+folder holds a run folder (the nearest setting above it, else a parent named `diagrams`),
+the hints that name a run folder, and the skills, which run `runs-dir` once at their start
+(`references/closing-contract.md`). It is read on every call, so a changed setting reaches a
+running console without a restart. When a setting above a run cannot be read,
+`projectOfRun` throws instead of guessing, so `labs holds` exits with `bad-config` rather than
+answering "not held" for a run a console job may hold; the console redraws a page that was
+built before its first state named the folder. The setting is a project file and not a user one because
+the runs are part of the project: committed, reviewed and shared with the team, and found by
+every teammate's agent in the same place.
+
+The folder must lie inside the project. The sources record stores its root relative to the
+run folder (`sources.mjs`), the server looks runs up only below the project, and a runs
+folder outside it would leave git and the team; a link that leads out is refused for the
+same reason, as are `.zukai/` and `.git/`. A setting that cannot be used (unreadable, not
+JSON, an unknown `config` number, a bad `runsDir`) is `bad-config` everywhere, never a fall
+back to `diagrams/`: runs written into the wrong folder fail silently and far from their
+cause, a refused command fails at once and names the file. `/api/state` carries the error
+instead of failing, so the console can say what to fix. `runs-dir set` writes the file
+through a temporary sibling and keeps its other keys; it never moves runs, since a move is a
+change to the project the user should make and review.
+
+The run index answers "which diagrams do I have, in which project" across projects. It is a
+cache in the user's home (`ZUKAI_HOME`, else `%LOCALAPPDATA%\zukai`, else `~/.zukai`;
+`run-index.mjs`) that holds the real path of each project root and when it was last seen,
+nothing else: `index list` reads the runs from each project's runs folder every time, so the
+index never holds data a run folder does not, and losing it loses nothing that
+`index rebuild --scan` cannot find again. The commands that write runs (`bundle`,
+`snapshot`, `restore`, `sources`) and `labs start`, `runs-dir set` and `runs-dir` (when the
+project holds runs, so a skill that wrote with file tools is still seen) register their
+project after they printed their result; registering swallows every error, so the index
+never changes a command's output or exit code. A write reads the file right before it
+renames a temporary sibling into place, and drops the projects whose folder is gone; a
+project whose setting is being edited or whose drive is not mounted keeps its entry. A file
+written by a newer version, or one that cannot be read, is never replaced: another install
+channel may be newer. Two sessions writing at once lose at most one entry, which their next
+command adds back. Reading never writes. `ZUKAI_INDEX=off` stops both.
+
+Storage in the plugin's install folder was ruled out (a version bump replaces it), and so
+was `CLAUDE_PLUGIN_DATA` (the Codex and folder-copy installs have none). A runs folder shared
+by several projects (a docs repository) is the next likely variant: `runsPath` and the
+index's project list would stay, the inside-the-project rule and the relative root of the
+sources record would change.
+
 ## Extension rule
 
 Adding a target means one new `emit-<target>.mjs`, one column in `feature-matrix.json`, one
@@ -950,3 +999,20 @@ that speaks the embed protocol (the real host refuses headless browsers), with S
 popup route; `labs-ui-e2e.test.mjs` takes the console's button through the same stand-in.
 `bundle-drift.test.mjs` also holds
 `bin/labs-ui/` to a fresh build, file for file, within its size budgets.
+
+For the runs folder, `project-config.test.mjs` covers the default, the setting, every value
+the rule refuses (a link out of the project and into `.git/` included), `bad-config` for each
+kind of bad file, `projectOfRun` with a nested project, and `runs-dir set` keeping the other
+keys and naming the runs left behind; `cli.test.mjs` runs `runs-dir` and `runs-dir set`
+through the bundle with their refusals. `labs-runs.test.mjs`, `labs-server.test.mjs` and
+`labs-ui-e2e.test.mjs` run once with `diagrams/` and once with a project whose setting names
+`docs/diagrams` (`labs-project.mjs`, `RUNS_DIRS`), the server also with a setting that cannot
+be used, and `labs-ui.test.mjs` holds every view that names the folder to the state's
+`runsDir`. For the index, `run-index.test.mjs` covers its place on each system, one entry per
+project, the private modes, a dead project dropped on write and never on read, a corrupt
+file, the opt-out, a write that fails, and the scan; `run-index-e2e.test.mjs` takes two
+projects through the bundle, deletes one, deletes the index and rebuilds it from a scan, and
+checks that a failing write leaves the output of `bundle` byte for byte as it was.
+`tests/setup-index-home.mjs`, loaded by `vitest.config.mjs`, gives every test file a
+temporary `ZUKAI_HOME`, which the CLIs it spawns inherit, so no test writes the index of the
+person running it.

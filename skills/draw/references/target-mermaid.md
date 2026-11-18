@@ -7,7 +7,8 @@ Emits Mermaid text for every v1 kind: `flowchart`, `sequenceDiagram`, `stateDiag
 ## Run
 
 `<skill-dir>` is the directory that contains the `SKILL.md` you loaded. The working
-directory is the user's project, so pass absolute paths.
+directory is the user's project, so pass absolute paths. The examples write `./diagrams/`, the default runs folder; a project whose
+`.zukai/config.json` names another writes there instead (`closing-contract.md`, `<runs-dir>`).
 
 ```bash
 node "<skill-dir>/scripts/bin/cli.mjs" emit --to mermaid ./diagrams/order-checkout.ir.json --out ./diagrams/order-checkout.mmd

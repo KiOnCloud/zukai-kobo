@@ -8,7 +8,7 @@
 import { S } from '../sienna.mjs';
 import { h, replace } from '../dom.mjs';
 import { api } from '../api.mjs';
-import { DIAGRAM_KINDS, TARGETS, MODES, SCOPES, AUDIENCES, DOC_LANGS, EXAMPLES, compatNote, kindLabel } from '../words.mjs';
+import { DIAGRAM_KINDS, TARGETS, MODES, SCOPES, AUDIENCES, DOC_LANGS, EXAMPLES, compatNote, kindLabel, runsDirOf } from '../words.mjs';
 import { choiceTiles, segmented, toggleChips } from './choice.mjs';
 import { glyph } from './glyphs.mjs';
 
@@ -155,7 +155,7 @@ export function newDiagram({ store, recook = false, mode: startMode } = {}) {
 
   const steps = recook
     ? [
-      step(1, 'Where is the diagram?', 'The file stays as it is; the run is written under diagrams/.', sourceField, h('p', { class: 'caption zl-muted' }, `For example ${SOURCES.join(', ')}`), requestError),
+      step(1, 'Where is the diagram?', `The file stays as it is; the run is written under ${runsDirOf(store)}/.`, sourceField, h('p', { class: 'caption zl-muted' }, `For example ${SOURCES.join(', ')}`), requestError),
       step(2, 'What kind is it?', null, kindTiles),
       step(3, 'How much, for whom?', null, h('div', { class: 'zl-split' }, scopeSegment, audienceSegment)),
       step(4, 'What should come out?', null, targetTiles, compat, svgSwitch, docChips),
