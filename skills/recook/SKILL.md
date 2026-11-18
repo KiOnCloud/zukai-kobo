@@ -285,6 +285,10 @@ omission counts only in the form `"<text>": <reason>`. An element left out with 
 takes its lines with it.
 Never satisfy the check with an element the source does not have. `meta.notes` does not count: a note is not shown, so a text put there is dropped
 without saying so.
+`cover` does not report a relation of the IR that the facts lack, since a recook adds some
+on purpose, so compare the number of edges of each facts page with the number of relations
+of the IRs made from it, and account for every difference by an `added:` note, a
+`meta.omitted` entry or a split into parts.
 
 ## 5. Closing contract
 
