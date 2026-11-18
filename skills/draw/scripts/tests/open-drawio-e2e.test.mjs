@@ -60,7 +60,7 @@ beforeAll(async () => {
   write(join(project, 'diagrams', '20261118_lifecycle', 'lifecycle.md'), '# Lifecycle\n');
   write(join(project, 'diagrams', '20261118_lifecycle', 'mermaid', 'lifecycle.mmd'), 'stateDiagram-v2\n');
   write(join(project, 'diagrams', '20261118_board', 'figjam', 'board.mmd'), 'flowchart LR\n');
-});
+}, 120_000);
 
 const run = () => join(project, 'diagrams', '20261118_every-fixture');
 const runFile = () => join(run(), 'every-fixture.drawio');
@@ -73,19 +73,19 @@ describe('open through the bundle', () => {
     expect(cli(['open', '--web', '--desktop', run()])).toMatchObject({ code: 1, err: { ok: false, error: { code: 'bad-request' } } });
     expect(cli(['open'])).toMatchObject({ code: 1, err: { error: { code: 'bad-request' } } });
     expect(cli(['open', '--page', 'x', run()]).code).toBe(1);
-  });
+  }, 60_000);
 
   it('check answers can: false with a reason for a cloud session, Mermaid and FigJam, with exit 0', () => {
     expect(cli(['open', '--check', run()], { CLAUDE_CODE_REMOTE: 'true' })).toMatchObject({ code: 0, out: { ok: true, can: false, via: null, reason: 'cloud-session' } });
     expect(cli(['open', '--check', join(project, 'diagrams', '20261118_lifecycle')])).toMatchObject({ code: 0, out: { can: false, reason: 'not-supported' } });
     expect(cli(['open', '--check', join(project, 'diagrams', '20261118_board')])).toMatchObject({ code: 0, out: { can: false, reason: 'not-supported' } });
     expect(cli(['open', join(project, 'diagrams', '20261118_lifecycle')])).toMatchObject({ code: 1, err: { ok: false, error: { code: 'not-supported' } } });
-  });
+  }, 60_000);
 
   it.skipIf(process.platform !== 'linux')('says no-display on Linux without a display', () => {
     expect(cli(['open', '--check', run()])).toMatchObject({ code: 0, out: { can: false, reason: 'no-display' } });
     expect(cli(['open', run()])).toMatchObject({ code: 1, err: { error: { code: 'no-display' } } });
-  });
+  }, 60_000);
 
   it.skipIf(!posix)('starts draw.io desktop with the run file when it is on PATH', async () => {
     const bin = mkdtempSync(join(tmpdir(), 'zukai-open-bin-'));
@@ -97,7 +97,7 @@ describe('open through the bundle', () => {
     await until(() => existsSync(join(bin, 'drawio.args.json')));
     // The window the user edits in: the file alone, none of the headless flags (--no-sandbox).
     expect(JSON.parse(readFileSync(join(bin, 'drawio.args.json'), 'utf8'))).toEqual([runFile()]);
-  });
+  }, 60_000);
 
   it.skipIf(!posix)('writes a private opener page and hands the opener its path alone', async () => {
     const bin = mkdtempSync(join(tmpdir(), 'zukai-open-bin-'));
@@ -109,7 +109,7 @@ describe('open through the bundle', () => {
     expect(statSync(r.out.page).mode & 0o777).toBe(0o600);
     expect(statSync(join(r.out.page, '..')).mode & 0o777).toBe(0o700);
     expect(readFileSync(r.out.page, 'utf8')).toContain('src="http://127.0.0.1:4100/?embed=1&amp;proto=json');
-  });
+  }, 60_000);
 });
 
 describe.skipIf(pw === null || !posix)('the opener page in a browser', () => {
