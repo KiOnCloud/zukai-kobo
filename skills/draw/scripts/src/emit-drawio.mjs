@@ -1277,13 +1277,15 @@ async function nearSide(layout, { nodes, edges }, arrange) {
  * components at their usual distance.
  *
  * A label stands at the middle of a stretch of the longest segment of its line: above or
- * below a horizontal stretch, left or right of a vertical one. A stretch ends where the line
+ * below a horizontal stretch, left or right of a vertical one. With `anySegment`, when that
+ * segment has no free place, the next longest that has one takes it (see `emitArchitecture`
+ * for the arrangement that asks for it). A stretch ends where the line
  * crosses the border of a frame, so a label never lies across a border. The place must be
  * free: no component or name, no other label, no other line, no corner icon of a frame.
  * @returns {string|undefined} the id of the first connection whose label has no such place;
  *   the caller hands that label back to the layout engine and lays out again
  */
-function placeLineLabels(layout, own, { containers, nodes, edges }) {
+function placeLineLabels(layout, own, { containers, nodes, edges }, { anySegment = false } = {}) {
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
   const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
   const within = (a, b) => a.x >= b.x && a.y >= b.y && a.x + a.width <= b.x + b.width && a.y + a.height <= b.y + b.height;
@@ -1305,16 +1307,14 @@ function placeLineLabels(layout, own, { containers, nodes, edges }) {
     const path = pathOf(e);
     if (!path) return e.id;
     const text = { width: Math.ceil(widestLine(e.label)) + 8, height: 16 * String(e.label).split(/\r\n?|\n/).length };
-    let longest;
-    for (let i = 1; i < path.length; i++) {
-      const length = Math.abs(path[i].x - path[i - 1].x) + Math.abs(path[i].y - path[i - 1].y);
-      if (!longest || length > longest.length) longest = { a: path[i - 1], b: path[i], length };
-    }
     // A line that shares a stretch with others of its caller is labelled on a stretch that is
     // its own, the longest of them that has a free place.
     const mine = layout.edges.get(e.id).own;
     const length = (sg) => Math.abs(sg.a.x - sg.b.x) + Math.abs(sg.a.y - sg.b.y);
-    const candidates = mine ? mine.map(([p, q]) => ({ a: p, b: q })).sort((p, q) => length(q) - length(p)) : [longest];
+    const segments = mine ? mine.map(([p, q]) => ({ a: p, b: q })) : path.slice(1).map((b, i) => ({ a: path[i], b }));
+    // Longest first; of two as long, the one nearer the start of the line.
+    const ranked = segments.map((sg, i) => ({ sg, i })).sort((p, q) => length(q.sg) - length(p.sg) || p.i - q.i).map(({ sg }) => sg);
+    const candidates = mine || anySegment ? ranked : ranked.slice(0, 1);
     let placed;
     for (const segment of candidates) {
       const flat = Math.abs(segment.a.y - segment.b.y) < 0.5;
@@ -2137,6 +2137,87 @@ function fanOffCentre(layout, { containers, nodes, edges, direction }) {
   return size === 0 ? { fan: 0, page: 0 } : { fan: off / size, page: page / size };
 }
 
+/** How far off the middle of a frame the main flow may run before the turned-over layout is tried: outside the middle half. */
+const FLOW_OFF_MIDDLE = 0.5;
+
+/**
+ * How far the main flow of a left-to-right or right-to-left diagram runs off the middle of
+ * the frames it passes through: 0 when it runs through the middle of each, 1 when it runs
+ * along an edge of one. The main flow is the longest chain of connections in the direction
+ * they are laid out (of two as long, the one that starts first in the IR, going on by the
+ * first connection); in each frame that holds a component of it, its place is the middle of
+ * those components across the flow, at the figure where a component is drawn as one,
+ * measured from the top of the frame, its header included. Of all those frames the one the
+ * flow runs furthest off the middle of counts. A diagram without frames, or that runs top
+ * down or bottom up, gives 0.
+ */
+function flowOffMiddle(layout, { containers, nodes, edges, direction }) {
+  if (!acrossIsVertical(direction) || containers.length === 0) return 0;
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const placed = new Set(nodes.filter((n) => layout.nodes.has(n.id)).map((n) => n.id));
+  const next = new Map([...placed].map((id) => [id, []]));
+  for (const e of edges) {
+    const [from, to] = e.layoutReversed ? [e.to, e.from] : [e.from, e.to];
+    if (from !== to && placed.has(from) && placed.has(to)) next.get(from).push(to);
+  }
+  // The number of connections in the longest chain that starts at each component.
+  const reach = new Map();
+  const longest = (id, open = new Set()) => {
+    if (reach.has(id)) return reach.get(id);
+    if (open.has(id)) return 0;
+    open.add(id);
+    const d = Math.max(0, ...next.get(id).map((to) => 1 + longest(to, open)));
+    open.delete(id);
+    reach.set(id, d);
+    return d;
+  };
+  const order = nodes.map((n) => n.id).filter((id) => placed.has(id));
+  let at = order.reduce((best, id) => (longest(id) > longest(best) ? id : best), order[0]);
+  if (at === undefined || longest(at) === 0) return 0;
+  const flow = [at];
+  while (longest(at) > 0) {
+    at = next.get(at).find((to) => longest(to) === longest(at) - 1 && !flow.includes(to));
+    if (at === undefined) break;
+    flow.push(at);
+  }
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const middle = (id) => { const b = drawBox(byId.get(id), absoluteBox(id, layout, parentOf)); return b.y + b.height / 2; };
+  const inside = (id, frame) => { for (let p = parentOf.get(id); p; p = parentOf.get(p)) if (p === frame) return true; return false; };
+  let off = 0;
+  for (const c of containers) {
+    if (!layout.containers.has(c.id)) continue;
+    const members = flow.filter((id) => inside(id, c.id));
+    if (members.length === 0) continue;
+    const box = absoluteBox(c.id, layout, parentOf);
+    const y = members.reduce((sum, id) => sum + middle(id), 0) / members.length;
+    off = Math.max(off, Math.abs((y - box.y) / box.height - 0.5) * 2);
+  }
+  return off;
+}
+
+/** The places where two connections cross: a horizontal stretch of one through a vertical stretch of another. */
+function lineCrossings(layout, edges) {
+  const stretches = [];
+  for (const e of edges) {
+    const r = layout.edges.get(e.id);
+    if (!r?.start || !r?.end || e.from === e.to) continue;
+    const path = [r.start, ...(r.points ?? []), r.end];
+    for (let i = 1; i < path.length; i++) stretches.push({ id: e.id, a: path[i - 1], b: path[i] });
+  }
+  const flat = stretches.filter((s) => Math.abs(s.a.y - s.b.y) < 0.5 && Math.abs(s.a.x - s.b.x) >= 0.5);
+  const upright = stretches.filter((s) => Math.abs(s.a.x - s.b.x) < 0.5 && Math.abs(s.a.y - s.b.y) >= 0.5);
+  let count = 0;
+  for (const h of flat) {
+    for (const v of upright) {
+      if (h.id === v.id) continue;
+      const x = v.a.x;
+      const y = h.a.y;
+      if (x > Math.min(h.a.x, h.b.x) + 0.5 && x < Math.max(h.a.x, h.b.x) - 0.5 && y > Math.min(v.a.y, v.b.y) + 0.5 && y < Math.max(v.a.y, v.b.y) - 0.5) count++;
+    }
+  }
+  return count;
+}
+
 /**
  * An architecture diagram, laid out. The main flow belongs in the middle of the picture, with
  * what it uses on both sides of it. Inside a frame the layout engine keeps the members close
@@ -2147,6 +2228,18 @@ function fanOffCentre(layout, { containers, nodes, edges, direction }) {
  * part of the picture and move its middle), and the one whose hubs stand nearest the middle
  * of their fans and of the picture is kept, if it is clearly better. A diagram whose hubs
  * already stand near the middle keeps the usual, compact form.
+ *
+ * Across a left-to-right flow the frames are not alike above and below: their headers are at
+ * the top. A frame whose members off the main flow the engine put above it has the flow along
+ * its bottom edge, while turned over, with them below, the flow runs under the header, through
+ * the middle. So when the flow of the kept arrangement runs outside the middle half of a frame
+ * it passes (`flowOffMiddle`), the same arrangement is laid out turned over (`mirror` in
+ * `layoutGraph`), and kept when its flow runs clearly nearer the middle of the frames, it has
+ * no more crossings of lines, no more warnings, and its hubs stand no further off the middle
+ * or still near enough to it that no other arrangement would be tried.
+ * Laying out again to make room for a label can undo the turn, so there a label tries every
+ * segment of its line before it goes back to the layout engine. A diagram with a connection
+ * from a component to itself is not turned: its loops belong above the components.
  */
 async function emitArchitecture(ir, cid, refs, warnings) {
   const usual = await arrangeArchitecture(ir, refs, ARRANGEMENTS[0]);
@@ -2158,11 +2251,16 @@ async function emitArchitecture(ir, cid, refs, warnings) {
     }
     if (best.off.sum >= usual.off.sum - 0.2) best = usual;
   }
+  if (best.flow > FLOW_OFF_MIDDLE && !ir.connections.some((c) => c.from === c.to)) {
+    const turned = await arrangeArchitecture(ir, refs, { ...best.how, mirror: true });
+    const centred = turned.off.sum <= best.off.sum + 0.05 || (turned.off.fan <= FAN_OFF_CENTRE && turned.off.page <= PAGE_OFF_CENTRE);
+    if (turned.flow < best.flow - 0.05 && turned.crossings <= best.crossings && turned.warnings.length <= best.warnings.length && centred) best = turned;
+  }
   warnings.push(...best.warnings);
   return graphCells(cid, best.layout, { containers: best.containers, nodes: best.nodes, edges: best.edges, direction: ir.direction });
 }
 
-/** One arrangement of an architecture diagram (see `ARRANGEMENTS`), with how far its hubs stand off the middle. */
+/** One arrangement of an architecture diagram (see `ARRANGEMENTS`), turned over with `mirror`, with how far its hubs and its main flow stand off the middle and how often its lines cross. */
 async function arrangeArchitecture(ir, refs, how) {
   const warnings = [];
   const parent = parentMap(ir.boundaries ?? []);
@@ -2238,7 +2336,7 @@ async function arrangeArchitecture(ir, refs, how) {
       straightenSteps(base, { containers, nodes, edges, direction: ir.direction });
       // A label with no free place beside its line goes back to the layout engine.
       const own = new Set(edges.filter((e) => e.labelPlacedByCaller && !aside.has(e.to) && !stores.has(e.to)).map((e) => e.id));
-      const crowded = placeLineLabels(base, own, { containers, nodes, edges });
+      const crowded = placeLineLabels(base, own, { containers, nodes, edges }, { anySegment: how.mirror === true });
       if (crowded === undefined) return base;
       // The line to a system in a row is not the layout engine's: the system goes back into the flow.
       const line = edges.find((e) => e.id === crowded);
@@ -2289,7 +2387,8 @@ async function arrangeArchitecture(ir, refs, how) {
   // whole, with the systems placed beside the frames and in a row along them.
   const fan = fanOffCentre(layout, { containers, ...laidOut(), direction: ir.direction }).fan;
   const page = fanOffCentre(layout, { containers, nodes, edges, direction: ir.direction }).page;
-  return { layout, containers, nodes, edges, warnings, off: { fan, page, sum: fan + page } };
+  const flow = flowOffMiddle(layout, { containers, nodes, edges, direction: ir.direction });
+  return { layout, containers, nodes, edges, warnings, how, flow, crossings: lineCrossings(layout, edges), off: { fan, page, sum: fan + page } };
 }
 
 /**

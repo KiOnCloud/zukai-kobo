@@ -1158,8 +1158,16 @@ describe('a connection through the header bar of a plain frame', () => {
     ],
   });
 
-  it('is reported as a layout warning that names the connection and the frame', async () => {
+  // A queue that redrives its own messages: a diagram with a connection from a component to
+  // itself is never turned over, so the worker stays above the flow, under the header.
+  const withRedrive = () => {
     const ir = deployment();
+    ir.connections.push({ id: 'e10', from: 'sqs', to: 'sqs', label: 'redrive' });
+    return ir;
+  };
+
+  it('is reported as a layout warning that names the connection and the frame', async () => {
+    const ir = withRedrive();
     const { r, abs, paths } = await drawn(ir);
     // The line to Twilio leaves the cluster upwards, through the strip that holds its title.
     const frame = abs.get('a:ecs');
@@ -1173,10 +1181,40 @@ describe('a connection through the header bar of a plain frame', () => {
       message: 'layout: connection "e9" runs through the header bar of frame "ECS cluster", beside its title',
     })]);
     // Without that connection nothing runs through the header.
-    const quiet = deployment();
+    const quiet = withRedrive();
     quiet.components = quiet.components.filter((c) => c.id !== 'tw');
     quiet.connections = quiet.connections.filter((c) => c.id !== 'e9');
     expect((await emit(quiet, 'drawio')).warnings.filter((w) => /header bar/.test(w.message))).toEqual([]);
+  });
+
+  it('is gone when the layout is turned over to run the main flow through the middle of the frames', async () => {
+    // The worker stands beside the flow in the cluster. Above the flow it put the flow along the
+    // bottom edge of every frame and sent the line to Twilio up through the cluster's header;
+    // below it, the flow runs under the headers, through the middle of each frame.
+    const ir = deployment();
+    const { r, abs, paths } = await drawn(ir);
+    const run = ['e3', 'e4'].map((id) => paths.get(`a:${id}`));
+    for (const line of run) expect(line.every((p) => Math.abs(p.y - line[0].y) < 0.5)).toBe(true);
+    const y = run[0][0].y;
+    expect(run[1][0].y).toBeCloseTo(y, 5);
+    for (const id of ['ecs', 'private-subnet', 'public-subnet', 'region']) {
+      const frame = abs.get(`a:${id}`);
+      const at = (y - frame.y) / frame.height;
+      expect(at, id).toBeGreaterThanOrEqual(0.25);
+      expect(at, id).toBeLessThanOrEqual(0.75);
+    }
+    // The worker is below the flow and Twilio below the frames, its line clear of every header.
+    expect(r.warnings).toEqual([]);
+    expect(abs.get('a:wrk').y).toBeGreaterThan(abs.get('a:api').y + abs.get('a:api').height);
+    expect(abs.get('a:tw').y).toBeGreaterThan(abs.get('a:region').y + abs.get('a:region').height);
+    // No two lines cross.
+    const stretches = [...paths].filter(([id]) => /^a:e\d+$/.test(id)).flatMap(([id, path]) => path.slice(1).map((b, i) => ({ id, a: path[i], b })));
+    const flat = stretches.filter((s) => Math.abs(s.a.y - s.b.y) < 0.5);
+    const upright = stretches.filter((s) => Math.abs(s.a.x - s.b.x) < 0.5 && Math.abs(s.a.y - s.b.y) >= 0.5);
+    const crossing = flat.flatMap((h) => upright.filter((v) => v.id !== h.id
+      && v.a.x > Math.min(h.a.x, h.b.x) + 0.5 && v.a.x < Math.max(h.a.x, h.b.x) - 0.5
+      && h.a.y > Math.min(v.a.y, v.b.y) + 0.5 && h.a.y < Math.max(v.a.y, v.b.y) - 0.5).map((v) => `${h.id} x ${v.id}`));
+    expect(crossing).toEqual([]);
   });
 
   it('is no warning for a line that enters a frame from above by the flow of a top-down diagram', async () => {
