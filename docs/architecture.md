@@ -592,7 +592,7 @@ hints on a run, `drift.test.mjs` re-emits every fixture without drift and finds 
 reworded, copied and deleted cells (also on compressed pages and inside a bundle), and
 `revisions.test.mjs` covers rotation, multi-file restore, undoing an undo, the undo and redo
 line, kept extras and an interrupted snapshot. `fixes-e2e.test.mjs` runs the committed bundle
-as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that the four skills are installed side by side. For recook,
+as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that the four skills are installed side by side, and `install-ps1.test.mjs` runs `install.ps1` through the same cases and more when PowerShell 7 is found (`pwsh` on PATH or `ZUKAI_PWSH`), comparing on macOS and Linux the tree it leaves with the one `install.sh` leaves, file by file. For recook,
 `extract-drawio.test.mjs` extracts every fixture emitted to draw.io and asserts its kind hint
 and full coverage against its own IR, and reads hand-drawn files (compressed, SVG, PNG,
 several pages, loose edges, lanes); `extract-mermaid.test.mjs` does the same for Mermaid;
@@ -612,7 +612,11 @@ in every language and to escaping whatever Markdown would read as markup, and
 `doc-e2e.test.mjs` writes the tables of a run with the bundle. `export-svg.test.mjs` checks
 what needs no renderer (the pages of a file, the file names, the standalone SVG and the
 read-back of the embedded diagram) and `export-e2e.test.mjs` exports with whichever
-renderer is installed and is skipped without one. `usecase.test.mjs` covers the schema, the
+renderer is installed and is skipped without one. `drawio-desktop.test.mjs` holds draw.io
+desktop to how it behaves: the failure text taken from what draw.io 26 prints, stand-ins
+for draw.io and `xvfb-run` for a missing display, an export that fails with exit code 0
+and an image an earlier preview left; with a draw.io desktop installed it also previews
+and exports a run with it. `usecase.test.mjs` covers the schema, the
 reference and model checks and the geometry of the layout, and `usecase-e2e.test.mjs` takes
 the kind through the bundle: validate, emit, a run with a linked part, the revise commands
 and a recook of its own file. `gcp-icons.test.mjs` runs the catalog generator on palette
