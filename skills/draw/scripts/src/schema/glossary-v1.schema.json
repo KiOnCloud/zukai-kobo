@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/KiOnCloud/zukai/schema/glossary-v1.schema.json",
+  "title": "Zukai project glossary, version 1",
+  "description": "Preferred terms per language for the labels of a project's diagrams. Entries are symmetric: no language is the source of another. Only a confirmed entry is applied.",
+  "type": "object",
+  "required": ["schemaVersion", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "entries": { "type": "array", "items": { "$ref": "#/$defs/entry" } }
+  },
+  "$defs": {
+    "lang": { "type": "string", "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$" },
+    "term": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028\\u2029\\u202A-\\u202E\\u2066-\\u2069]+$"
+    },
+    "entry": {
+      "type": "object",
+      "required": ["id", "terms", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^g-[0-9a-f]{8}$" },
+        "terms": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/lang" },
+          "additionalProperties": { "$ref": "#/$defs/term" }
+        },
+        "avoid": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/lang" },
+          "additionalProperties": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/term" } }
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280,
+          "pattern": "^[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028\\u2029\\u202A-\\u202E\\u2066-\\u2069]+$"
+        },
+        "status": { "enum": ["suggested", "confirmed", "rejected"] }
+      }
+    }
+  }
+}

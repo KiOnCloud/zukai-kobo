@@ -1,0 +1,7 @@
+{
+  "login-flow:title": "Luồng đăng nhập",
+  "office": "Cơ quan",
+  "login-flow:stock": "Kiểm kho",
+  "verify": "Xác minh mật khẩu",
+  "$keep": ["Order"]
+}

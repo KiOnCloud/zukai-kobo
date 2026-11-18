@@ -10,7 +10,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '.
 const installer = join(repoRoot, 'install.ps1');
 const shInstaller = join(repoRoot, 'install.sh');
 const version = JSON.parse(readFileSync(join(repoRoot, '.claude-plugin', 'plugin.json'), 'utf8')).version;
-const NAMES = ['zukai', 'zukai-recook', 'zukai-revise', 'zukai-sync'];
+const NAMES = ['zukai', 'zukai-labs', 'zukai-recook', 'zukai-revise', 'zukai-sync'];
 
 /**
  * PowerShell 7 to run the installer with: the executable `ZUKAI_PWSH` names, else `pwsh` on
@@ -84,7 +84,7 @@ const projects = {
     put(join(dest, '.agents/skills/zukai/.zukai-version'), '1.0.0\n');
     put(join(dest, '.agents/skills/zukai/SKILL.md'), '---\nname: zukai\n---\n');
   },
-  'an older install of all four, with a marker that ends in CRLF': (dest) => {
+  'an older install of all five, with a marker that ends in CRLF': (dest) => {
     for (const name of NAMES) {
       put(join(dest, `.agents/skills/${name}/.${name}-version`), '2.2.2\r\n');
       put(join(dest, `.agents/skills/${name}/SKILL.md`), `---\nname: ${name}\n---\n`);
@@ -120,7 +120,7 @@ const projects = {
 
 describe.skipIf(!pwsh)('install.ps1', () => {
   for (const [target, subdir] of [['codex', '.agents/skills'], ['claude-project', '.claude/skills']]) {
-    it(`installs the ${target} copies as zukai, zukai-revise, zukai-recook and zukai-sync, in folder and in name`, () => {
+    it(`installs the ${target} copies as zukai, zukai-revise, zukai-recook, zukai-sync and zukai-labs, in folder and in name`, () => {
       const dest = tempDir();
       const r = install(target, dest);
       const skills = join(dest, subdir);
@@ -138,6 +138,10 @@ describe.skipIf(!pwsh)('install.ps1', () => {
       const syncText = readFileSync(join(skills, 'zukai-sync', 'SKILL.md'), 'utf8');
       expect(syncText).toContain('<sync-dir>/../zukai');
       expect(syncText).toContain('<sync-dir>/../zukai-revise');
+      // labs is instructions only and reaches the CLI and the four skills it follows through its siblings.
+      expect(readdirSync(join(skills, 'zukai-labs')).sort()).toEqual(['.zukai-labs-version', 'SKILL.md']);
+      const labsText = readFileSync(join(skills, 'zukai-labs', 'SKILL.md'), 'utf8');
+      for (const sibling of ['zukai', 'zukai-revise', 'zukai-sync', 'zukai-recook']) expect(labsText).toContain(`<labs-dir>/../${sibling}`);
       // The installed CLI answers, from another working directory.
       const help = execFileSync(process.execPath, [join(skills, 'zukai', 'scripts', 'bin', 'cli.mjs'), 'help'], { cwd: dest, encoding: 'utf8' });
       expect(help).toContain('cli.mjs stale <run-dir>...');
@@ -246,17 +250,20 @@ describe.skipIf(!pwsh)('install.ps1', () => {
     expect(existsSync(join(dest, '.agents/zukai-backups'))).toBe(false);
   });
 
-  it('installs only the missing skill and leaves a same-version copy alone', () => {
-    const dest = tempDir();
-    install('codex', dest);
-    rmSync(join(dest, '.agents/skills/zukai-sync'), { recursive: true });
-    const out = install('codex', dest).stdout;
-    expect(out).toMatch(/Installing zukai-sync/);
-    expect(out).not.toMatch(/Previous install of/);
-    expect(out).not.toMatch(/Installed zukai \d/);
-    expect(existsSync(join(dest, '.agents/skills/zukai-sync/SKILL.md'))).toBe(true);
-    expect(existsSync(join(dest, '.agents/zukai-backups'))).toBe(false);
-  });
+  for (const added of ['zukai-sync', 'zukai-labs']) {
+    it(`installs only the missing ${added} and leaves a same-version copy alone`, () => {
+      const dest = tempDir();
+      install('codex', dest);
+      rmSync(join(dest, '.agents/skills', added), { recursive: true });
+      const out = install('codex', dest).stdout;
+      expect(out).toMatch(new RegExp(`Installing ${added} `));
+      expect(out).not.toMatch(/Previous install of/);
+      expect(out).not.toMatch(/Installed zukai \d/);
+      expect(existsSync(join(dest, '.agents/skills', added, 'SKILL.md'))).toBe(true);
+      expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(NAMES);
+      expect(existsSync(join(dest, '.agents/zukai-backups'))).toBe(false);
+    });
+  }
 
   it('drops the temporary folder of a run that was killed and leaves none of its own', () => {
     const dest = tempDir();

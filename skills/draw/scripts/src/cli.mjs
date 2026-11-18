@@ -26,10 +26,13 @@
  *   node cli.mjs restore <run-dir> <rNNN|undo|redo> [--keep <n>] [--request <text>] [--extra <file>]... [--bundle <json>|@<file>]   (snapshot the current state, then put a revision back)
  *   node cli.mjs sources <run-dir> [--root <project>] [--only <id,id,...>]   (record a hash of every source file the diagrams of a run were drawn from)
  *   node cli.mjs stale <run-dir>... [--root <project>]   (the recorded source files that changed or are gone; exit 2 when there are any)
+ *   node cli.mjs glossary list|add|set|pairs|check ...   (the project glossary in .zukai/glossary.json; check exits 2 on a blocking finding)
+ *   node cli.mjs labs start|status|stop ...   (the labs console of a project on 127.0.0.1)
+ *   node cli.mjs labs wait|progress|ask|done|holds ...   (the agent's side of the console's jobs; holds exits 2 when a job holds the run)
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { validateIr } from './validate-ir.mjs';
 import { emit, bundle, inspect, EMIT_TARGETS, DOC_TARGET, DOC_LANGS } from './pipeline.mjs';
 import { combineNative } from './figjam-native.mjs';
@@ -45,6 +48,10 @@ import { extractFacts, extractBoards } from './extract.mjs';
 import { figjamReaderScript } from './extract-figjam.mjs';
 import { cover } from './cover.mjs';
 import { recordSources, staleRun } from './sources.mjs';
+import { startServer, serverStatus, stopServer, serve, readServerFile } from './labs-lifecycle.mjs';
+import { agentCall } from './labs-client.mjs';
+import { projectRoot } from './glossary.mjs';
+import { STATUSES, readGlossary, addEntries, setStatus, readRun, pairsOf, redactedPairs, checkRuns } from './glossary.mjs';
 
 const USAGE = `usage:
   cli.mjs validate <ir.json>
@@ -64,6 +71,20 @@ const USAGE = `usage:
   cli.mjs cover <facts.json> <ir.json|run-dir>...
   cli.mjs sources <run-dir> [--root <project>] [--only <id,id,...>]
   cli.mjs stale <run-dir>... [--root <project>]
+  cli.mjs glossary list [--root <project>] [--status <${STATUSES.join('|')}>]
+  cli.mjs glossary add --entries <file.json> [--status <suggested|confirmed>] [--root <project>]
+  cli.mjs glossary set <id> --status <${STATUSES.join('|')}> [--root <project>]
+  cli.mjs glossary pairs <run-dir>... [--root <project>]
+  cli.mjs glossary check <run-dir>... [--root <project>]
+  cli.mjs labs start [--root <project>] [--port <n>] [--idle-minutes <n>] [--skip-cloud-check]
+  cli.mjs labs status [--root <project>]
+  cli.mjs labs stop [--root <project>] [--force]
+  cli.mjs labs serve [--root <project>] [--port <n>] [--idle-minutes <n>]   (what start runs as a child; not for users)
+  cli.mjs labs wait --session <id> [--timeout <s>] [--root <project>]
+  cli.mjs labs progress <job> --session <id> --message <text> [--root <project>]
+  cli.mjs labs ask <job> --session <id> --question @<file.json> [--timeout <s>] [--root <project>]
+  cli.mjs labs done <job> --session <id> --result <done|failed> [--report @<file>] [--root <project>]
+  cli.mjs labs holds <run> [--root <project>]
   cli.mjs help
 
 A run folder (diagrams/<yyyymmdd>_<run-slug>) stands for the IR files in its source/ folder,
@@ -119,6 +140,38 @@ stdout; exit 0 when no recorded file changed, exit 2 when one changed or is gone
 run and per diagram) or a diagram names sources the record does not hold, exit 1 when a run
 has no record. Without --root it uses the root the record was taken with, which is stored
 relative to the run folder. It needs no network and no git, so it can run in CI.
+glossary works on .zukai/glossary.json under the project root (--root, else the working
+directory): preferred terms per language, each entry suggested, confirmed or rejected. Only a
+confirmed entry is applied. list prints the entries; add takes {"entries": [{terms, avoid?,
+note?}]} from a file, as suggestions unless --status confirmed, skips an entry that is already
+there (a rejected one included) and reports one that contradicts a confirmed entry under
+conflicts without writing it; set changes the status of one entry. A term or an avoided term
+is one line of at most 80 characters, a note at most 280, and nothing the secret scan finds is
+taken. pairs prints the label of each original IR beside its translation, from the translated
+IRs under source/<lang>/ and from the keys of a label map that name one label (the rest are
+counted under unpaired), with secret values redacted. check holds the labels of the runs to the
+confirmed entries and prints the findings; exit 2 when one is blocking (a label that equals an
+avoided term, or a translated IR that does not carry the confirmed term of a label), exit 1
+when the project has no glossary or it does not match its schema.
+labs start serves the console of the project (--root, else the working directory) on
+127.0.0.1, on a port that is the same for the project every time (--port or ZUKAI_LABS_PORT
+replace it; a busy port is reported, never replaced by the next one). A second start reuses
+the running server. The server reads the runs under diagrams/ and never writes there; it
+writes .zukai/labs/ and, from the console's Glossary section, .zukai/glossary.json, and
+ends itself after --idle-minutes (default 30) with nothing to do, or on labs stop (--force
+when a job is open). start and status print the console URL with
+its token; in a cloud session start refuses, unless --skip-cloud-check is given for a browser
+on the same machine. Each prints one JSON object; an error is {"ok": false, "error": {code,
+message}} on stderr with exit 1. start prints a fresh session id each time.
+labs wait, progress, ask and done are the agent's side of the console's jobs. wait takes the
+next job ({"session", "job"}), or prints "job": null when the time is up (nine minutes at most;
+--timeout shortens it): call it again. ask shows the questions of a file (id, body, one to four
+questions as AskUserQuestion takes them, attachments) in the console and prints the answers,
+or "answers": null when the time is up: call it again with the same file, since that is never
+an answer. done closes the job with done or failed and the report. Error codes: no-server,
+not-this-project, session-refused, session-replaced, transport, bad-request. labs holds <run>
+prints whether a console job is working on a run: exit 2 when one is, exit 0 when none is or
+no console runs. Before changing a run, a session outside the console asks holds.
 Exit codes: 0 success, 1 usage or I/O error, 2 validation errors.`;
 
 function fail(code, payload) {
@@ -127,8 +180,8 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang' };
-const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang', '--entries': 'entries', '--status': 'status', '--port': 'port', '--idle-minutes': 'idleMinutes', '--session': 'session', '--message': 'message', '--question': 'question', '--result': 'result', '--report': 'report', '--timeout': 'timeout' };
+const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable', '--skip-cloud-check': 'skipCloudCheck', '--force': 'force' };
 
 /**
  * The options each command takes. One that a command does not take is refused: an option that
@@ -150,7 +203,24 @@ const COMMAND_OPTIONS = {
   cover: [],
   sources: ['--root', '--only'],
   stale: ['--root'],
+  'glossary list': ['--root', '--status'],
+  'glossary add': ['--entries', '--status', '--root'],
+  'glossary set': ['--status', '--root'],
+  'glossary pairs': ['--root'],
+  'glossary check': ['--root'],
+  'labs start': ['--root', '--port', '--idle-minutes', '--skip-cloud-check'],
+  'labs status': ['--root'],
+  'labs stop': ['--root', '--force'],
+  'labs serve': ['--root', '--port', '--idle-minutes'],
+  'labs wait': ['--session', '--timeout', '--root'],
+  'labs progress': ['--session', '--message', '--root'],
+  'labs ask': ['--session', '--question', '--timeout', '--root'],
+  'labs done': ['--session', '--result', '--report', '--root'],
+  'labs holds': ['--root'],
 };
+
+/** Commands of two words: the first word names a group, the second the command in it. */
+const GROUPS = new Set(Object.keys(COMMAND_OPTIONS).filter((c) => c.includes(' ')).map((c) => c.split(' ')[0]));
 
 /**
  * Options a command reads only to refuse them with a message of its own that says where they
@@ -159,8 +229,18 @@ const COMMAND_OPTIONS = {
 const REFUSED_WITH_REASON = { stale: ['--only'] };
 
 function parseArgs(argv) {
-  const [command, ...rest] = argv;
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined };
+  let [command, ...rest] = argv;
+  // The second word of a grouped command is read before any option, so an option of one
+  // subcommand is still refused on another.
+  if (GROUPS.has(command)) {
+    const sub = rest[0];
+    const subs = Object.keys(COMMAND_OPTIONS).filter((c) => c.startsWith(`${command} `)).map((c) => c.split(' ')[1]);
+    if (sub === undefined || sub.startsWith('-')) return { error: `${command} needs a command: ${subs.join(', ')}` };
+    if (!subs.includes(sub)) return { error: `unknown command "${command} ${sub}"`, hint: `${command} takes ${subs.join(', ')}` };
+    command = `${command} ${sub}`;
+    rest = rest.slice(1);
+  }
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined, entries: undefined, status: undefined, port: undefined, idleMinutes: undefined, skipCloudCheck: false, force: false, session: undefined, message: undefined, question: undefined, result: undefined, report: undefined, timeout: undefined };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -683,7 +763,149 @@ export async function main(argv) {
     if (errors.length > 0) return fail(1, { ok: false, errors });
     return stale ? 2 : 0;
   }
+  if (opts.command.startsWith('glossary ')) return glossaryCommand(opts);
+  if (opts.command.startsWith('labs ')) return labsCommand(opts);
   return fail(1, { ok: false, errors: [{ path: '/', message: `unknown command "${opts.command ?? ''}"` }], usage: USAGE });
+}
+
+/** `labs start|status|stop|serve`: one JSON object on stdout, or an error on stderr with exit 1. */
+async function labsCommand(opts) {
+  const sub = opts.command.split(' ')[1];
+  if (['wait', 'progress', 'ask', 'done', 'holds'].includes(sub)) return labsAgentCommand(sub, opts);
+  if (opts.positional.length !== 0) return fail(1, { ok: false, errors: [{ path: '/', message: `labs ${sub} takes no file` }], usage: USAGE });
+  if (sub === 'serve') return serve({ root: opts.root, port: opts.port, idleMinutes: opts.idleMinutes });
+  const result = sub === 'start'
+    ? await startServer({ root: opts.root, port: opts.port, idleMinutes: opts.idleMinutes, skipCloudCheck: opts.skipCloudCheck })
+    : sub === 'status' ? await serverStatus({ root: opts.root }) : await stopServer({ root: opts.root, force: opts.force });
+  if (result.error) return fail(result.code, { ok: false, error: result.error });
+  // Each start names a fresh agent session: the agent passes it to every call of the bridge.
+  const out = sub === 'start' ? { ...result.out, session: `s-${randomBytes(12).toString('base64url')}` } : result.out;
+  process.stdout.write(JSON.stringify(out) + '\n');
+  return result.code;
+}
+
+/** `labs wait|progress|ask|done|holds`: the agent's calls to the console of its project. */
+async function labsAgentCommand(sub, opts) {
+  const bad = (message, hint) => fail(1, { ok: false, error: { code: 'bad-request', message, ...(hint ? { hint } : {}) } });
+  let file = readServerFile(projectRoot(opts.root));
+  if (sub === 'holds') {
+    if (opts.positional.length !== 1) return bad('labs holds takes one run folder');
+    const run = basename(resolve(opts.positional[0]));
+    // Without --root, a run folder given by its path names its own project: diagrams/<run> lies directly under it.
+    const parent = dirname(resolve(opts.positional[0]));
+    const runRoot = opts.root === undefined && basename(parent) === 'diagrams' ? dirname(parent) : undefined;
+    if (runRoot) file = readServerFile(runRoot);
+    if (!file) { process.stdout.write(JSON.stringify({ held: false }) + '\n'); return 0; }
+    const r = await agentCall(file, { method: 'GET', path: `/agent/holds?run=${encodeURIComponent(run)}` });
+    if (!r.ok) {
+      if (r.error.code === 'no-server') { process.stdout.write(JSON.stringify({ held: false }) + '\n'); return 0; }
+      return fail(1, { ok: false, error: r.error });
+    }
+    process.stdout.write(JSON.stringify(r.body) + '\n');
+    return r.body.held ? 2 : 0;
+  }
+  if (!opts.session) return bad(`labs ${sub} needs --session <id>, the id labs start printed`);
+  const timeout = opts.timeout === undefined ? undefined : Number(opts.timeout);
+  if (opts.timeout !== undefined && !(Number.isFinite(timeout) && timeout > 0)) return bad('--timeout takes a number of seconds above 0');
+  const readText = (value, what) => {
+    try {
+      return { text: readFileSync(resolve(value.startsWith('@') ? value.slice(1) : value), 'utf8') };
+    } catch (e) {
+      return { error: bad(`cannot read the ${what} file: ${e.code ?? 'error'}`) };
+    }
+  };
+  let call;
+  if (sub === 'wait') {
+    if (opts.positional.length !== 0) return bad('labs wait takes no job');
+    call = { path: '/agent/wait', body: { session: opts.session, ...(timeout ? { timeout } : {}) } };
+  } else {
+    if (opts.positional.length !== 1) return bad(`labs ${sub} takes one job id`);
+    const job = encodeURIComponent(opts.positional[0]);
+    if (sub === 'progress') {
+      if (opts.message === undefined) return bad('labs progress needs --message <text>');
+      call = { path: `/agent/jobs/${job}/progress`, body: { session: opts.session, message: opts.message } };
+    } else if (sub === 'ask') {
+      if (opts.question === undefined) return bad('labs ask needs --question @<file.json>');
+      const read = readText(opts.question, 'question');
+      if (read.error) return read.error;
+      let question;
+      try { question = JSON.parse(read.text); } catch { return bad('the question file is not valid JSON'); }
+      call = { path: `/agent/jobs/${job}/ask`, body: { session: opts.session, question, ...(timeout ? { timeout } : {}) } };
+    } else {
+      if (opts.result !== 'done' && opts.result !== 'failed') return bad('labs done needs --result done or --result failed');
+      let report;
+      if (opts.report !== undefined) {
+        const read = readText(opts.report, 'report');
+        if (read.error) return read.error;
+        report = read.text;
+      }
+      call = { path: `/agent/jobs/${job}/done`, body: { session: opts.session, result: opts.result, ...(report !== undefined ? { report } : {}) } };
+    }
+  }
+  const r = await agentCall(file, call);
+  if (!r.ok) return fail(1, { ok: false, error: r.error });
+  process.stdout.write(JSON.stringify(r.body) + '\n');
+  return 0;
+}
+
+/** `glossary list|add|set|pairs|check`. */
+function glossaryCommand(opts) {
+  const sub = opts.command.split(' ')[1];
+  const usage = (message, hint) => fail(1, { ok: false, errors: [{ path: '/', message, ...(hint ? { hint } : {}) }], usage: USAGE });
+  if (opts.status !== undefined && !STATUSES.includes(opts.status)) return usage(`unknown status "${opts.status}"`, `--status takes one of: ${STATUSES.join(', ')}`);
+  if (sub === 'list') {
+    if (opts.positional.length !== 0) return usage('glossary list takes no file');
+    const read = readGlossary(opts.root);
+    if (!read.ok) return fail(1, { ok: false, path: read.path, errors: read.errors });
+    const entries = read.glossary.entries.filter((e) => opts.status === undefined || e.status === opts.status);
+    const counts = Object.fromEntries(STATUSES.map((s) => [s, read.glossary.entries.filter((e) => e.status === s).length]));
+    process.stdout.write(JSON.stringify({ ok: true, path: read.path, exists: read.exists, rev: read.rev, counts, entries }) + '\n');
+    return 0;
+  }
+  if (sub === 'add') {
+    if (opts.positional.length !== 0 || opts.entries === undefined) return usage('glossary add needs --entries <file.json> and no other file');
+    if (opts.status === 'rejected') return usage('glossary add writes suggested or confirmed entries', 'reject an entry with glossary set <id> --status rejected');
+    let input;
+    try {
+      input = JSON.parse(readFileSync(resolve(opts.entries), 'utf8'));
+    } catch (e) {
+      return fail(1, { ok: false, errors: [{ path: opts.entries, message: `cannot read the entries: ${e instanceof SyntaxError ? 'not valid JSON' : e.code ?? 'error'}`, hint: 'a JSON object {"entries": [{"terms": {"en": "...", "vi": "..."}}]}' }] });
+    }
+    if (input === null || typeof input !== 'object' || !Array.isArray(input.entries) || input.entries.length === 0) return fail(1, { ok: false, errors: [{ path: opts.entries, message: 'the file must hold {"entries": [...]} with at least one entry' }] });
+    const result = addEntries(opts.root, input.entries, { status: opts.status ?? 'suggested' });
+    if (!result.ok) return fail(1, { ok: false, errors: result.errors });
+    process.stdout.write(JSON.stringify({ ok: true, rev: result.rev, written: result.written, added: result.added, skipped: result.skipped, conflicts: result.conflicts }) + '\n');
+    return 0;
+  }
+  if (sub === 'set') {
+    if (opts.positional.length !== 1 || opts.status === undefined) return usage('glossary set takes one entry id and --status <status>');
+    const read = readGlossary(opts.root);
+    if (!read.ok) return fail(1, { ok: false, path: read.path, errors: read.errors });
+    if (!read.exists) return fail(1, { ok: false, errors: [{ path: read.path, message: 'the project has no glossary', hint: 'write one with glossary add, or pass --root <project>' }] });
+    const result = setStatus(opts.root, opts.positional[0], opts.status, { expectedRev: read.rev });
+    if (!result.ok) return fail(1, { ok: false, errors: result.errors });
+    if (result.missing) return fail(1, { ok: false, errors: [{ path: '/', message: `no entry ${opts.positional[0]} in the glossary`, hint: 'glossary list prints the ids' }] });
+    process.stdout.write(JSON.stringify({ ok: true, rev: result.rev, written: result.written, id: result.id, status: result.status }) + '\n');
+    return 0;
+  }
+  if (opts.positional.length === 0) return usage(`glossary ${sub} takes at least one run folder`);
+  if (sub === 'pairs') {
+    const pairs = [];
+    const unpaired = {};
+    for (const dir of opts.positional) {
+      const run = readRun(dir);
+      if (!run.ok) return fail(1, { ok: false, errors: run.errors });
+      const found = pairsOf(run);
+      pairs.push(...redactedPairs(found.pairs));
+      for (const [form, n] of Object.entries(found.unpaired)) unpaired[form] = (unpaired[form] ?? 0) + n;
+    }
+    process.stdout.write(JSON.stringify({ ok: true, pairs, unpaired }) + '\n');
+    return 0;
+  }
+  const result = checkRuns(opts.root, opts.positional);
+  if (!result.ok) return fail(1, { ok: false, errors: result.errors });
+  process.stdout.write(JSON.stringify(result.report) + '\n');
+  return result.report.blocking > 0 ? 2 : 0;
 }
 
 process.exitCode = await main(process.argv.slice(2));

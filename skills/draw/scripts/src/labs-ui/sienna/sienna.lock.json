@@ -1,0 +1,12 @@
+{
+  "designSystem": "Sienna",
+  "artifact": "https://claude.ai/artifact/55DKftKN3BUoEdBsahWXQL",
+  "version": "1794980790-4acd",
+  "copiedAt": "2026-11-18",
+  "files": {
+    "bundle.css": { "from": "project/components/bundle.css", "sha256": "748882d18b47ea93cba4bb3b1c7c51558625144f32cafad2ab1bb12f5df75d29" },
+    "bundle.js": { "from": "project/components/bundle.js", "sha256": "ce457bbde49fe1e5c73ead32c8b4c7a52604f2d575a8c7a9fd2b4b34009f9447" },
+    "index.d.ts": { "from": "project/components/index.d.ts", "sha256": "2c6b4fc82bc004015eadde0c1b64dc5039e678814721fd98b881bb146cef83f2" },
+    "tokens.json": { "from": "project/tokens.json", "sha256": "e7890f6701350087685e1a2c6baf29c9a8f09297a8fd555c8a85538fdd789713" }
+  }
+}

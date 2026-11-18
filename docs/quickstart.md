@@ -57,6 +57,11 @@ diagrams/20261109_login-flow/
 
 Open the `.drawio` file in draw.io desktop or at app.diagrams.net; every shape is editable.
 
+To see every run of the project in your browser, run `/zukai:labs` in the same session: it
+gives you the address of a console on `127.0.0.1` where you can look at each diagram and
+queue changes, which the session then makes. The console is described in
+[the README](../README.md#the-labs-console).
+
 ## 4. Useful options
 
 Put them after the mode:

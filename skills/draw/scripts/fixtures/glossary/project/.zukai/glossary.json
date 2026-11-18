@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "g-10d0c6dc",
+      "terms": {
+        "en": "stock check",
+        "ja": "在庫確認",
+        "vi": "kiểm tra tồn kho"
+      },
+      "status": "confirmed"
+    },
+    {
+      "id": "g-1da217c3",
+      "terms": {
+        "en": "office",
+        "ja": "オフィス",
+        "vi": "văn phòng"
+      },
+      "avoid": {
+        "vi": [
+          "cơ quan"
+        ]
+      },
+      "note": "The place of work, not the organisation.",
+      "status": "confirmed"
+    },
+    {
+      "id": "g-7e0b7e28",
+      "terms": {
+        "en": "order",
+        "ja": "オーダー",
+        "vi": "đơn hàng"
+      },
+      "status": "suggested"
+    },
+    {
+      "id": "g-e68e003a",
+      "terms": {
+        "en": "sign in",
+        "ja": "ログオン"
+      },
+      "status": "rejected"
+    }
+  ]
+}

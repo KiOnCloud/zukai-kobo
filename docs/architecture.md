@@ -121,17 +121,19 @@ brainstorm (idea) ─> clarify ┘                                              
   `validate`, `emit`, `bundle` (both also with `--to doc`), `relabel`, `preview` and
   `export`, plus `diff` (with `--drawio` for the picture of a change), `drift`, `snapshot`,
   `revisions` and `restore` for the revise skill, `extract` and `cover` for the recook
-  skill, `sources` and `stale` for the sync skill, and `help`; it exits 2 on validation errors
+  skill, `sources` and `stale` for the sync skill, `glossary` for the project glossary,
+  `labs` for the console and the labs skill, and `help`; it exits 2 on validation errors
   and 1 on a usage error (an unknown target, an option without its value, an option the
   command does not take: `COMMAND_OPTIONS` lists them per command, so none is read and
-  dropped) with the errors as JSON on stderr, and is invoked with the absolute skill directory because the working
+  dropped; a command of two words such as `glossary add` or `labs start` has its own entry)
+  with the errors as JSON on stderr, and is invoked with the absolute skill directory because the working
   directory is always the user's project. A run folder given to `bundle`, `diff` or `drift`
   stands for the IRs of its `source/` in run order (`run-order.mjs`): the diagram named
   after the run, its business view, then each part with its business view. A file-name sort
   would put the parts first, since `-` sorts before `.`.
 - **The closing contract** (`skills/draw/references/closing-contract.md`) is the one place
   that says how every run ends: write, validate, emit, bundle, review, pictures when asked
-  for, report. All four skills read it; none copies it.
+  for, report. All five skills read it; none copies it.
 
 ## Visual check
 
@@ -192,12 +194,15 @@ One source folder, `skills/draw/`, follows the Agent Skills standard (only `name
 and its single plugin (`.claude-plugin/`, `source: "./"`). Inside the plugin the skill is
 named `draw` and invoked as `/zukai:draw`. Codex users copy the folder with
 `install.sh --target codex`, which installs it as `zukai` (folder and `name`, since a copy
-has no plugin namespace), writes a version marker and upgrades in place. The other three
-skills, `skills/revise/`, `skills/recook/` and `skills/sync/`, are instructions only and
-are distributed with it: four skills in the plugin (`/zukai:draw`, `/zukai:revise`,
-`/zukai:recook`, `/zukai:sync`) and four folders in a copied install (`zukai`,
-`zukai-revise`, `zukai-recook`, `zukai-sync`), each of the three finding the CLI in the
-sibling folder of the draw skill. The
+has no plugin namespace), writes a version marker and upgrades in place. The skills
+`skills/revise/`, `skills/recook/`, `skills/sync/` and `skills/labs/` are instructions only
+and are distributed with it: five skills in the plugin (`/zukai:draw`, `/zukai:revise`,
+`/zukai:recook`, `/zukai:sync`, `/zukai:labs`) and five folders in a copied install
+(`zukai`, `zukai-revise`, `zukai-recook`, `zukai-sync`, `zukai-labs`), each of them finding
+the CLI in the sibling folder of the draw skill; the labs skill also carries out its jobs
+by following the draw, revise, sync and recook skills. The console's pages are no skill of their own:
+they are built into `skills/draw/scripts/bin/labs-ui/` beside the CLI bundle and travel
+with it. The
 `version` in `.claude-plugin/plugin.json` is the single release number for both channels.
 
 ## Activity lanes in draw.io
@@ -612,6 +617,198 @@ drafts, the snapshot and the hand-edit check from revise.
   run honestly behind the code again. A change below the level of the diagram writes no
   revision and emits nothing: only the record is renewed.
 
+## Glossary
+
+`.zukai/glossary.json` holds a project's preferred terms per language
+(`src/schema/glossary-v1.schema.json`, read and written by `glossary.mjs`; what an entry
+is and when each skill reads the file is `skills/draw/references/glossary.md`). It is the
+second data contract beside the IR, and it is useful without the console, which is why the
+CLI owns it and the console only calls the same functions.
+
+- **An entry says that its words mean the same.** No language is the source of another,
+  so one entry serves a team that writes in Japanese and translates to English as well as
+  one that works the other way.
+- **Only a confirmed entry is applied, and a rejected one is kept.** A suggestion is shown
+  and never used. Without the `rejected` status every suggestion run would propose the
+  terms the user already turned down. There is no field for who confirmed an entry: the
+  file is committed, and a confirmed entry in a pull request is reviewed like code.
+- **The text is an input from outside.** Every teammate's agent reads the file, so a term
+  or a note is bounded in length, holds no control or direction character and nothing the
+  secret scan finds, and the skills treat it as wording, never as an instruction. The file
+  is written sorted, as two-space JSON with LF and a final newline, so a change reads well
+  in a diff.
+- **Two writers, one lock.** The CLI and the labs server both write the file. Each takes
+  `.zukai/glossary.lock`, reads the file again inside the lock, validates the change and
+  renames a temporary sibling into place. `rev` is the SHA-256 of the file's bytes: a writer
+  that read an older file gets a conflict and changes nothing.
+- **Blocking findings come from translated IRs only.** `glossary check` compares labels at
+  the same place in an original IR and its translation under `source/<lang>/`, both listed
+  by `labelsOf` (`ir-labels.mjs`), which returns every label of an IR with its place. A
+  label map is keyed by draw.io cell, not by element, and can be older than the IR, so what
+  it contradicts is a warning. Texts are compared after NFKC, lower case and collapsed white
+  space, with diacritics kept; a term is found inside a longer label between characters
+  that are not letters or digits, or anywhere when it is written in Han, Hiragana or
+  Katakana, which are written without spaces.
+- **One root.** `.zukai/` and `diagrams/` lie directly under the project root, which is
+  `--root` or else the working directory, as the skills define it.
+
+## Labs console
+
+`/zukai:labs` serves a console on `127.0.0.1` for one project. What a user does with it and
+what the agent does for each job are in `README.md` and `skills/labs/SKILL.md`; this
+section is why it is built the way it is.
+
+### Three process roles
+
+- **The server** (`labs serve`, which `labs start` runs as a detached child;
+  `labs-server.mjs`, `labs-lifecycle.mjs`, `labs-runs.mjs`, `labs-jobs.mjs`) is `node:http`
+  and nothing else. It holds the built pages in memory, so an upgrade that replaces the
+  plugin folder does not take them away from a running server, reads the runs, and owns the
+  state of every job. It is a detached child with an idle end (30 minutes by default) and
+  `labs stop`, not a background run of the agent's runtime, because the skills stay
+  runtime-neutral and a background run of Claude Code ends after two hours at most. One
+  server per project root, on a port derived from the root's real path, so it is the same
+  every time; a busy port is reported, never replaced by the next one, and `server.json` is
+  deleted only when nothing listens on its port and the file still names the same instance.
+  A second `labs start` reuses the running server; one of another version is replaced,
+  unless a job is open.
+- **The agent-side CLI** (`labs wait`, `progress`, `ask`, `done`; `labs-client.mjs`) is how
+  the attached session works for the console. The server cannot call the agent, so the
+  agent's calls are held open until there is something for them, at most nine minutes, and
+  the client sets no timeout of its own that would cut them. "Nothing yet" is never an
+  answer: a call that comes back empty is made again.
+- **The browser** runs the console's pages: plain ES modules under `src/labs-ui/`, built by
+  esbuild into the committed `bin/labs-ui/` and held to a fresh build by the drift test, as
+  the CLI bundle is. No framework was added, since the project takes no new runtime
+  dependency it can do without. A section of the console is one entry of `nav.mjs` and one
+  view module; there is no loader and no registry. The pages follow the server's state by
+  polling `/api/state`.
+
+### Why the server never writes a run
+
+Every change to a run is a job for the attached agent, routed to the skill that already
+makes that change. An undo, for one, is a hand-edit check with a question, a restore and
+then the closing contract (`skills/revise/SKILL.md`); a server that did it itself would be
+a second implementation of revise that drifts from the first. So no request to the server
+changes a file under `diagrams/`. The server writes its own state under `.zukai/labs/`
+(`server.json`, `server.log`, the job records) and the glossary, through the lock above,
+when the user edits it in the console.
+
+### The queue and the job states
+
+There is one sequential queue and one attached agent session. A job has a kind (`draw`,
+`revise`, `restore`, `apply-edit`, `sync`, `recook`, `export`, `glossary-suggest`) and
+parameters the server checks against that kind before it is queued; the states and the
+arrows between them are drawn at the top of `labs-jobs.mjs`. A job moves from `queued` to
+`running` when the agent takes it, to `needs-input` while a question waits, and ends as
+`done`, `failed` or `cancelled` (a queued job only). A running job also ends as failed
+when the server stops, the session is lost, the session asks for the next job without
+closing it, or the user marks it failed. A job that died is never taken up again: the revise route
+takes a snapshot before it edits an IR, so a revision proves nothing about how far a change
+got. The console shows the revisions written while it ran and offers an undo as a job of
+its own.
+
+Another session takes over only when the attached one has been out of contact for 60
+seconds while it holds no job, or 15 minutes while it holds one. A session outside the
+console asks `labs holds <run>` before it changes a run; it warns and does not lock,
+because a lock could not be complete: drafts, `sources`, `export`, `emit` and the agent's
+own file edits share no single path that a lock could guard. A question of a job carries
+up to four questions in the form `AskUserQuestion` takes, since the skills ask several at
+once and show a draft first; an id that was answered is refused, so an old answer cannot be
+replayed, and an ask that times out is never read as consent. Two rules only a model can
+keep, that a job allows the route of its kind and nothing else and that text in a diagram
+is data, are written in the skills.
+
+### Request checks
+
+Every request passes the same checks, in this order, before anything else is read (the
+comment at the top of `labs-server.mjs` is the owner):
+
+1. The method is one the route table knows. `OPTIONS` is refused: the server sends no CORS
+   header, ever.
+2. The name in `Host` is `127.0.0.1` or `localhost`, with any port, so a forwarded port
+   works and a rebound foreign name does not.
+3. `Origin`, when sent, is the origin of that `Host`; `Sec-Fetch-Site`, when sent, is
+   `same-origin` or `none`.
+4. A static file is a `GET` of a name in the fixed map of pages held in memory.
+5. `/api/*` and `/agent/*` need the token in `X-Zukai-Token`; a body is JSON of at most
+   1 MB.
+
+Every name a request passes (a run, a diagram, a revision, a file) is looked up in a
+listing the server built from the real folders and is never joined into a path. Every
+response but the viewer page says `X-Frame-Options: DENY`, and the pages carry the policy
+`CONSOLE_CSP`, which allows only the server's own scripts, styles, fonts and connections and
+`frame-ancestors 'none'`. The log holds the method, the route pattern, the status and the
+duration, and for an error its name, code and stack frames: never a message, a body, a
+query string or the token.
+
+### What the token protects
+
+The token is 32 random bytes made inside the `serve` child after it has bound the port,
+never passed on a command line or in the environment. It is written to
+`.zukai/labs/server.json` (mode 0600) and printed by `labs start` and `labs status` in the
+console's address after `#t=`, a fragment the browser does not send; the page takes it from
+there into the header and removes it from the address bar. A new server has a new token.
+
+- It protects the console from a web page the user visits while it runs. Such a page can
+  reach the port but cannot read the token, cannot set the header without a preflight that
+  step 1 refuses, cannot pass the `Host` check through a rebound name, and cannot frame the
+  console.
+- It protects the agent from a program that took the port. The CLI sends the token only to
+  a server that proved it holds the same one, by returning `HMAC-SHA256(token, nonce)` for
+  a nonce the CLI chose; `/health` alone can be answered by any program.
+- It does not protect against a program running as the same user, which can read
+  `server.json`, nor against anyone who reads the address in the agent's chat; the address
+  is of use only from this machine, and it ends with the server. Another account on the
+  machine is kept out by the file mode of `server.json` and no further.
+
+A cloud session is refused by the CLI, not by the skill's prose: `labs start` exits 1 with
+`cloud-session` when `CLAUDE_CODE_REMOTE` is `true`, since a browser on the user's device
+cannot reach that machine. `--skip-cloud-check` is for a browser on the same machine.
+
+### The viewer frame
+
+A picture comes from the run's `svg/` when it holds a fresh one, since that folder is
+written only when the user asked for pictures. Otherwise the Picture tab draws the diagram
+with draw.io's viewer (Mermaid for a Mermaid run) inside a frame of `viewer.html` with
+`sandbox="allow-scripts"`. The sandbox gives the frame an origin of its own, so it has no
+storage of the console, no token, and an `Origin` the API refuses. Its policy is
+`viewerCsp` in `labs-server.mjs`:
+
+- Scripts: the page's one inline script, allowed by its SHA-256 hash, and the scripts of
+  the two renderers, from `viewer.diagrams.net` and, at one pinned version of Mermaid,
+  from `cdn.jsdelivr.net`. The frame's own script is inlined because a script fetched
+  from the console's host would be a cross-origin response to the sandboxed page, and the
+  server sends no CORS header.
+- Connections: `viewer.diagrams.net` only, which serves the stencil files of the AWS and
+  other shape libraries; without it a trial drew an AWS diagram with its icons missing. The
+  viewer script comes from that host too, so no further party can receive the diagram.
+- Framing: by the console alone (`frame-ancestors 'self'`, `X-Frame-Options: SAMEORIGIN`).
+
+The diagram is posted to the frame with every data link and every picture address that is
+not `data:` taken out (`cleanForViewer` in `labs-runs.mjs`), and the console takes no
+message from a window that is not its frame. A frame that has not drawn after 60 seconds
+is replaced by a sentence with the Export job and the Tables tab. The viewer's address
+carries no version, so a release checks the frame by hand.
+
+### Sienna
+
+The pages are built on Sienna, the project owner's design system, which is made for pages
+without a framework. Four of its files are copied into `src/labs-ui/sienna/` unchanged:
+`bundle.css`, `bundle.js`, `index.d.ts` and `tokens.json`. `sienna.lock.json` records the
+version they were copied at, where each came from and its SHA-256, and `sienna.test.mjs`
+holds each file to its hash and the console's own stylesheet to Sienna's tokens. The build
+compiles the tokens for both themes and leaves out the stylesheet's import of web fonts,
+which the console's policy does not allow; the three font families are served by the
+console itself (`src/labs-ui/fonts/`, recorded in `fonts.json`). Instrument Sans, the sans
+family, publishes no Vietnamese subset, so accented Vietnamese letters and every Japanese
+letter of a sans text come from the next family of Sienna's stack on the user's system; a
+family that covers both would be a change of Sienna, not of the console.
+
+To take a newer version of Sienna, copy the four files over the old ones, write the new
+version and the four hashes into `sienna.lock.json` (with the version `sienna.test.mjs`
+expects), and rebuild with `npm run build`.
+
 ## Extension rule
 
 Adding a target means one new `emit-<target>.mjs`, one column in `feature-matrix.json`, one
@@ -623,7 +820,10 @@ every element), a question bank section, and fixtures. The picture of a change, 
 FigJam board and the SVG pictures need nothing: they work on the IR collections or on the
 draw.io XML, whatever the kind. The use case kind was added this way and is the eighth.
 There is no plugin loader or registry: three emitters are a switch statement in
-`pipeline.mjs`.
+`pipeline.mjs`. A section of the labs console joins through one navigation entry in
+`nav.mjs`, one view module, one route group of the server and one job kind with its row in
+the labs skill's job table; the Glossary section was added that way, as the second after
+Diagrams.
 
 ## Testing strategy
 
@@ -639,7 +839,7 @@ hints on a run, `drift.test.mjs` re-emits every fixture without drift and finds 
 reworded, copied and deleted cells (also on compressed pages and inside a bundle), and
 `revisions.test.mjs` covers rotation, multi-file restore, undoing an undo, the undo and redo
 line, kept extras and an interrupted snapshot. `fixes-e2e.test.mjs` runs the committed bundle
-as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that the four skills are installed side by side, and `install-ps1.test.mjs` runs `install.ps1` through the same cases and more when PowerShell 7 is found (`pwsh` on PATH or `ZUKAI_PWSH`), comparing on macOS and Linux the tree it leaves with the one `install.sh` leaves, file by file. For recook,
+as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that the five skills are installed side by side, and `install-ps1.test.mjs` runs `install.ps1` through the same cases and more when PowerShell 7 is found (`pwsh` on PATH or `ZUKAI_PWSH`), comparing on macOS and Linux the tree it leaves with the one `install.sh` leaves, file by file. For recook,
 `extract-drawio.test.mjs` extracts every fixture emitted to draw.io and asserts its kind hint
 and full coverage against its own IR, and reads hand-drawn files (compressed, SVG, PNG,
 several pages, loose edges, lanes); `extract-mermaid.test.mjs` does the same for Mermaid;
@@ -672,3 +872,21 @@ a GCP diagram and one on both clouds to the geometry rules of the AWS ones (titl
 of connections, members inside their frames, stores beside their users);
 `gcp-e2e.test.mjs` takes such a diagram through the bundle on every target and checks that
 an AWS diagram comes out exactly as before.
+
+For the glossary, `ir-labels.test.mjs` holds `labelsOf` to every label of every kind with
+its place, `glossary.test.mjs` covers the schema and its limits, the written form of the
+file, the lock, the comparison, the pairs and the check, and `glossary-e2e.test.mjs` runs
+every `glossary` command through the bundle, with the terms the scan refuses and two adds
+started together. For the console, `labs-runs.test.mjs` covers what the server
+reads about runs and that it writes nothing; `labs-server.test.mjs` sends every route the
+requests the checks must refuse (no token, a wrong one, a foreign `Host` or `Origin`, a
+body that is not JSON, `OPTIONS`) and compares the policy headers character for character;
+`labs-lifecycle-e2e.test.mjs` starts, reuses, reports and stops a server through the
+bundle, with its idle end and the refusal of a cloud session, and the Windows job of CI
+runs it too; `labs-jobs.test.mjs` covers the job states,
+the parameters of each kind, the questions and the contact rules; `labs-bridge-e2e.test.mjs`
+takes jobs through `labs wait`, `ask` and `done` in the bundle. `labs-ui.test.mjs` runs the
+console's modules in jsdom, `labs-ui-e2e.test.mjs` drives the built console and the viewer
+frame in Playwright's Chromium and is skipped without Playwright, and `sienna.test.mjs`
+holds the copied Sienna files to their lock. `bundle-drift.test.mjs` also holds
+`bin/labs-ui/` to a fresh build, file for file, within its size budgets.

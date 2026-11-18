@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "flowchart",
+  "title": "Login flow",
+  "direction": "TB",
+  "nodes": [
+    { "id": "start", "label": "Open the office portal", "shape": "terminal" },
+    { "id": "office", "label": "Office" },
+    { "id": "backoffice", "label": "Back-office system" },
+    { "id": "stock", "label": "Stock check" },
+    { "id": "order", "label": "Order" },
+    { "id": "done", "label": "Signed in", "shape": "terminal" }
+  ],
+  "edges": [
+    { "id": "e1", "from": "start", "to": "office" },
+    { "id": "e2", "from": "office", "to": "backoffice" },
+    { "id": "e3", "from": "backoffice", "to": "stock" },
+    { "id": "e4", "from": "stock", "to": "order" },
+    { "id": "e5", "from": "order", "to": "done" }
+  ]
+}

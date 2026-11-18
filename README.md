@@ -237,6 +237,79 @@ given in one call.
 /zukai:sync diagrams/20261109_login-flow
 ```
 
+### The project glossary
+
+A project can keep its preferred terms per language in `.zukai/glossary.json`, so that one
+word comes out the same way in every run and every translation, whoever's agent writes the
+labels. An entry holds one term per language (no language is the source of another), the
+words to avoid for it, a note and a status: `suggested`, `confirmed` or `rejected`. Only a
+confirmed entry is applied. The skills use its term when they write, reword or translate a
+label, and every run of a project with a glossary ends with `glossary check`, which blocks
+a label that equals an avoided word and a translated label that does not carry the
+confirmed term of its language. Recook copies labels as the source writes them and only
+reports what the check finds.
+
+Entries come from you, or as suggestions from the agent, which reads the pairs of original
+and translated labels in runs that already have a language variant. A suggestion is shown
+and never used until you confirm it, in the console or with `glossary set`; a rejected entry
+is kept so that it is not suggested again. The file is committed, so a confirmed entry
+reaches every teammate's agent: review it as you would review code, and keep the names of
+people out of it. The same check runs without an agent:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs glossary check diagrams/20261109_login-flow
+```
+
+It exits 2 on a blocking finding and 1 when the project has no glossary or the file does
+not match its schema. The entry format, the five `glossary` commands and when each skill
+reads the file are in
+[skills/draw/references/glossary.md](skills/draw/references/glossary.md).
+
+### The labs console
+
+```text
+/zukai:labs [status|stop]
+```
+
+`labs` serves a page on `127.0.0.1` for the project the session runs in. It lists the runs
+under `diagrams/` and shows each one (its picture, its model, its description tables, its
+history with what changed since each revision, and its files), and it holds the Glossary,
+where entries are added, edited, confirmed or rejected and a run is checked. The agent gives
+the address in the chat, in the form `http://127.0.0.1:<port>/#t=<token>`. The token is the
+console's key for that one server: do not paste the address anywhere else. The port is the
+same for the project every time.
+
+The console reads the runs and never writes one. Everything that changes a diagram is a
+**job**: a new diagram, a change, an undo or a return to an earlier revision, a label edit
+made in the console's model editor, a sync, a recook, an export of pictures or tables, and
+glossary suggestions drawn from the runs. A job is queued in the console and carried out by
+the agent session that ran `/zukai:labs`, with the skill you would call in the chat
+(`draw`, `revise`, `sync` or `recook`) and all of its rules. Jobs run one at a time in the
+order they were queued; you follow each step in the console, answer its questions there,
+and read its report when it closes. A job does only what its kind stands for: a request
+that asks for anything else (a shell command, git, a file outside the run) is not carried
+out.
+
+Jobs need an attached agent session, and that session has to stay open while you use the
+console. Without one the console says "No agent attached" and queued jobs wait. A job whose
+session has not been heard from for 15 minutes is shown as silent, and you can mark it
+failed. A job that was never closed (the session ended, the server stopped) ends as failed
+with its reason and is never taken up again, since nothing shows how far it got; the
+console lists the revisions it wrote, and an undo is a job of its own.
+
+One agent session per run is the rule. A second `/zukai:labs` reuses the running server
+and is refused while the first session is attached and in contact. A session outside the
+console (a `/zukai:revise` in another terminal) asks `labs holds <run>` before it changes a
+run and stops when a console job is working on it. That check only warns; it is not a lock,
+so do not change one run from two sessions at once.
+
+The console's own words (menus, buttons, states) are English; labels, the questions of a
+job and its report are in the language they were written in. `/zukai:labs status` says
+whether the console runs and gives its address again, `/zukai:labs stop` stops it, and it
+ends by itself after 30 minutes with nothing to do. How a job is routed, how its questions
+reach the console and what each error means are in
+[skills/labs/SKILL.md](skills/labs/SKILL.md).
+
 ## Diagram kinds and targets
 
 | Kind | Shows |
@@ -342,6 +415,20 @@ diagrams/20261109_login-flow/
 To change a diagram, ask `/zukai:revise`, or edit the `.ir.json` file and emit again. The XML
 is an output, not a source.
 
+Beside `diagrams/`, the project root gets a `.zukai/` folder once the glossary or the
+console is used:
+
+```text
+.zukai/
+  glossary.json   the project glossary, committed with the project
+  .gitignore      written with the folder: keeps labs/ and glossary.lock out of git
+  glossary.lock   held for a moment while the glossary is written
+  labs/           the console's state on this machine: server.json (port, token, process), server.log, jobs/
+```
+
+Commit `glossary.json`. `labs/` belongs to one machine and holds the console's token, which
+is why `.zukai/.gitignore` keeps it out of git.
+
 ## Requirements
 
 - Node 22.13 or newer. The CLI is a committed single-file bundle, so using Zukai never
@@ -350,17 +437,26 @@ is an output, not a source.
   for the SVG pictures of `export`, which uses the same renderers. `preview` and `export`
   are the two commands that may reach the network, and only to fetch the renderer.
 - Optional: the Figma MCP server, for the FigJam target.
+- For the labs console: a browser on the same machine as the agent. The server listens on
+  `127.0.0.1` only (over SSH, forward its port), and in a cloud session `/zukai:labs` is
+  refused, because a browser on your device cannot reach that machine. The console's pages,
+  scripts and fonts come from the server. When a run has no picture under `svg/`, the
+  browser fetches draw.io's viewer (and Mermaid, for a Mermaid run) into a sandboxed frame,
+  as the renderer of `preview` is fetched, and draws the diagram there. The frame can open
+  no connection except to `viewer.diagrams.net`, which serves draw.io's shape files; the
+  viewer script that holds the diagram comes from that host, so a diagram you would not send
+  there belongs under `svg/` (Export pictures) rather than in the live frame.
 
 ## Other runtimes
 
 The same skill folders run outside the Claude Code plugin. `install.sh` (and `install.ps1`
-on Windows) copies all four into a project:
+on Windows) copies all five into a project:
 
 | Runtime | Install | Invoke |
 |---|---|---|
-| Claude Code plugin | `claude plugin install zukai@zukai` | `/zukai:draw`, `/zukai:revise`, `/zukai:recook`, `/zukai:sync` |
-| OpenAI Codex | `install.sh --target codex --dest <project>` | `$zukai`, `$zukai-revise`, `$zukai-recook`, `$zukai-sync` |
-| Claude Code without the plugin | `install.sh --target claude-project --dest <project>` | `/zukai`, `/zukai-revise`, `/zukai-recook`, `/zukai-sync` |
+| Claude Code plugin | `claude plugin install zukai@zukai` | `/zukai:draw`, `/zukai:revise`, `/zukai:recook`, `/zukai:sync`, `/zukai:labs` |
+| OpenAI Codex | `install.sh --target codex --dest <project>` | `$zukai`, `$zukai-revise`, `$zukai-recook`, `$zukai-sync`, `$zukai-labs` |
+| Claude Code without the plugin | `install.sh --target claude-project --dest <project>` | `/zukai`, `/zukai-revise`, `/zukai-recook`, `/zukai-sync`, `/zukai-labs` |
 
 Use one channel per machine. Details, uninstall, update and private-fork credentials are in
 [docs/install.md](docs/install.md).
@@ -380,6 +476,8 @@ working; see [Upgrading from it-diagrams](docs/install.md#upgrading-from-it-diag
 | [skills/revise/SKILL.md](skills/revise/SKILL.md) | The revise skill's own contract, as the agent reads it |
 | [skills/recook/SKILL.md](skills/recook/SKILL.md) | The recook skill's own contract, as the agent reads it |
 | [skills/sync/SKILL.md](skills/sync/SKILL.md) | The sync skill's own contract, as the agent reads it |
+| [skills/labs/SKILL.md](skills/labs/SKILL.md) | The labs skill's own contract: the console, its jobs and its questions |
+| [skills/draw/references/glossary.md](skills/draw/references/glossary.md) | The project glossary: entries, commands, and when each skill reads it |
 
 ## Development
 
@@ -393,12 +491,14 @@ sources.
 
 ## Status
 
-Version 2.3.3 is the open beta; it says how to finish a FigJam board a call limit stopped
+Version 2.4.0 is the open beta; it adds the labs console, `/zukai:labs`, and the project
+glossary. Version 2.3.3 says how to finish a FigJam board a call limit stopped
 midway, and version 2.3.2 states the FigJam call budget more exactly. Version 2.3.1 drew an architecture whose main flow ran along the bottom of its frames through their
 middle. Version 2.3.0 added `/zukai:sync`, the use case kind, the SVG pictures,
 the description tables, the picture of a change, the PlantUML reader and Google Cloud icons
 for architecture diagrams; version 2.2.0 added
 `/zukai:recook` and version 2.0.0 added `/zukai:revise`. Forks of the skill should read
+[Upgrading to 2.4.0](docs/install.md#upgrading-to-240),
 [Upgrading to 2.3.3](docs/install.md#upgrading-to-233),
 [Upgrading to 2.3.2](docs/install.md#upgrading-to-232),
 [Upgrading to 2.3.1](docs/install.md#upgrading-to-231),
@@ -415,5 +515,6 @@ Report a wrong or ugly diagram at
 
 ## License
 
-[MIT](LICENSE). The committed CLI bundle also carries elkjs (EPL-2.0) and ajv (MIT); see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE). The committed CLI bundle also carries elkjs (EPL-2.0) and ajv (MIT), and the
+console's pages carry three font families under the SIL Open Font License 1.1 and the files
+of the Sienna design system; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

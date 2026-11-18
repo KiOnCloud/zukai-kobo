@@ -42,7 +42,9 @@ against the IR: the report names it once, with the offer of `--to drawio`.
    a message names the call or the reply. Two lines at most; long explanations go to
    `meta.notes`. Exception: in a `business` diagram an action or decision that states a
    business rule with its values may take up to four lines, because splitting the rule into
-   several elements would make the simpler view larger than the technical one.
+   several elements would make the simpler view larger than the technical one. When the
+   project has a glossary, consistent labels use its confirmed terms and none of its
+   avoided words (`glossary.md`); a finding of `glossary check` is reported here.
 6. Names are consistent: the same system, actor or entity has the same label everywhere;
    stereotypes and lane names match the vocabulary of the project. An AWS or GCP `icon` is the
    service its label names, and a `group` is the construct its label names (a subnet is not

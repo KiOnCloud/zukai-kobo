@@ -168,6 +168,13 @@ run, `snapshot` does not copy them, and `sources` and `stale` never see them. A 
 The translated IRs are derived files: after a revision changes a label, change the same
 label in them and write their outputs again.
 
+With a project glossary (`glossary.md`), a label map and a translated IR take the confirmed
+term of their language first, and none of its avoided words. Run `glossary check
+<run-folder>` after either is written: a blocking finding is a translated label that does
+not carry the confirmed term, and is fixed before the variant is delivered; a contradiction
+found through a label map is a warning, since a map is keyed by cell and can be older than
+the IR.
+
 The description tables of a run (`<run-slug>.doc.md`, closing contract) take their labels
 from the IRs, so a relabelled draw.io file does not change them. Two different things are
 asked for as "the tables in Japanese":

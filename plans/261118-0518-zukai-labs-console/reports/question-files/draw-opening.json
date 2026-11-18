@@ -1,0 +1,45 @@
+{
+  "id": "opening",
+  "body": "Yêu cầu: \"vẽ luồng đăng nhập bằng mã OTP\". Chưa có mode, kind, scope và audience trong job, nên hỏi cả bốn trong một lượt.",
+  "questions": [
+    {
+      "header": "Đầu vào",
+      "question": "Bạn có đầu vào nào?",
+      "multiSelect": false,
+      "options": [
+        { "label": "Làm rõ yêu cầu (clarify)", "description": "Bạn mô tả luồng bằng lời, tôi hỏi thêm cho đến khi rõ rồi vẽ" },
+        { "label": "Đọc code (scout)", "description": "Diagram phản ánh code có sẵn trong thư mục dự án" },
+        { "label": "Ý tưởng thô (brainstorm)", "description": "Bạn có ý tưởng và chưa biết diagram nào giúp được" }
+      ]
+    },
+    {
+      "header": "Loại diagram",
+      "question": "Loại diagram? Loại khác: state, er, class, architecture, usecase (chọn Other và gõ tên)",
+      "multiSelect": false,
+      "options": [
+        { "label": "Trình tự (sequence) – gợi ý", "description": "Ai gọi ai, theo thứ tự nào, với phản hồi và nhánh lỗi" },
+        { "label": "Lưu đồ (flowchart)", "description": "Các bước và quyết định của một quy trình từ đầu đến cuối" },
+        { "label": "Swimlane (activity)", "description": "Mỗi actor hoặc hệ thống một làn, ai làm bước nào, bàn giao và việc song song" }
+      ]
+    },
+    {
+      "header": "Mức chi tiết",
+      "question": "Mức chi tiết?",
+      "multiSelect": false,
+      "options": [
+        { "label": "Tổng quan (overview) – gợi ý", "description": "Chỉ diagram chính, khoảng 15 phần tử, mỗi luồng con gộp thành một bước" },
+        { "label": "Chi tiết (detailed)", "description": "Diagram chính cộng một diagram con cho mỗi luồng con đáng vẽ riêng, nối bằng ref" }
+      ]
+    },
+    {
+      "header": "Góc nhìn",
+      "question": "Góc nhìn của diagram?",
+      "multiSelect": false,
+      "options": [
+        { "label": "Kỹ thuật (technical) – gợi ý", "description": "Developer, reviewer; giữ tên component, endpoint, bảng dữ liệu" },
+        { "label": "Nghiệp vụ (business)", "description": "PM, khách hàng, vận hành; chỉ luồng và quy tắc nghiệp vụ" },
+        { "label": "Cả hai (both)", "description": "Hai bản cho mỗi diagram trong cùng thư mục run" }
+      ]
+    }
+  ]
+}
