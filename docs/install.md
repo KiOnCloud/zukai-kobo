@@ -704,6 +704,43 @@ again from part 1 is the safe choice when in doubt. The bundle written to save c
 only the diagrams none of whose parts ran, and it goes into the run folder of the first of
 them. A Starter plan allows 20 Figma MCP calls a month.
 
+## Upgrading to 2.5.1
+
+Version 2.5.1 opens a run's diagram in draw.io from the chat and from the labs console.
+Existing `.ir.json` files, run folders, CLI commands, options and exit codes keep working
+unchanged, no exit code was added, and a diagram emitted again comes out as 2.5.0 drew it.
+
+- **`open`.** `cli.mjs open <run-folder|file.drawio|file.drawio.svg>` starts draw.io
+  desktop when it is found and a display is there, and otherwise opens draw.io on the web
+  in the default browser. `--web` skips draw.io desktop, `--desktop` refuses without it,
+  and `open --check` says whether and how a file can be opened here and opens nothing. A
+  run folder stands for its combined `<run-slug>.drawio`. `cli.mjs help` gives the refusals
+  and their codes.
+- **The closing question.** Every run of draw, revise, recook and sync that wrote a
+  draw.io file ends with "Open it in draw.io?" (closing contract, step 8), asked only where
+  `open --check` says it can open and never answered in the user's place; inside a labs job
+  it is a card of the console, asked before the job is closed. A FigJam run gives its board
+  link, a Mermaid run ends as before.
+- **The console** offers Open in draw.io in a run's header, on each `.drawio` row of Files
+  and in Picture. It opens a popup: a browser that blocks pop-ups needs them allowed for
+  the console's address.
+
+What changes for a project you already have:
+
+- Nothing breaks, and nothing is written into a run. On the web route the diagram is held
+  for 24 hours in a page of its own under `zukai-open/` in the system temp folder (the
+  folder 0700, the page 0600), removed by the next `open` after that; the page hands the
+  diagram to `embed.diagrams.net` by `postMessage`, so diagrams.net receives it and no
+  address carries it. Save on the web downloads the file; changing the run with it stays
+  your step.
+- On Linux, a browser installed as a snap or a flatpak (Ubuntu's Firefox and Chromium) has a
+  `/tmp` of its own and shows "file not found" for the page; draw.io desktop, or a default
+  browser that is not confined, opens it.
+- Forks and wrappers: the closing contract gained step 8, `skills/draw/SKILL.md` the
+  `open` line, and the labs skill the closing card before `labs done`. Tests point
+  `ZUKAI_DRAWIO_EMBED` at a stand-in of the embed page and `ZUKAI_OPENER` at a stand-in of
+  the browser opener; neither is for users.
+
 ## Upgrading to 2.5.0
 
 Version 2.5.0 redesigns the pages of the labs console. The server, its API, the job kinds,

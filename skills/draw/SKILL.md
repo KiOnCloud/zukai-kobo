@@ -25,6 +25,7 @@ node "<skill-dir>/scripts/bin/cli.mjs" bundle --to <drawio|mermaid|doc> --out <f
 node "<skill-dir>/scripts/bin/cli.mjs" bundle --to figjam --native <file.js> <run-folder>
 node "<skill-dir>/scripts/bin/cli.mjs" preview <file.drawio|file.drawio.svg|file.mmd|run.md> [--page <id|name>] [--max-px <n>]
 node "<skill-dir>/scripts/bin/cli.mjs" export <run-folder|file.drawio> [--page <id|name>[,...]]
+node "<skill-dir>/scripts/bin/cli.mjs" open [--check] <run-folder|file.drawio|file.drawio.svg>
 ```
 
 `--lang` goes with `--to doc` only, `--overlay` and `--native` with `--to figjam` only (`bundle
@@ -37,7 +38,9 @@ dropped.
 Node 22.13 or newer is required; the CLI has no other dependency. Two commands reach the
 network: `preview`, the optional review image, and `export`, the optional SVG pictures, fetch
 their renderer when draw.io desktop is not installed (the diagram itself is rendered
-locally). Every other command works offline.
+locally). `open`, run only on the user's yes (closing contract, step 8), starts draw.io
+desktop, or else opens draw.io on the web in the browser, which then receives the diagram.
+Every other command works offline.
 `cli.mjs help` prints every command.
 
 ## Arguments and modes

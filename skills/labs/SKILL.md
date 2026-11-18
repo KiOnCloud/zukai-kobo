@@ -42,6 +42,7 @@ node "<draw-dir>/scripts/bin/cli.mjs" labs wait --session <id> [--timeout <s>]
 node "<draw-dir>/scripts/bin/cli.mjs" labs progress <job> --session <id> --message "<text>"
 node "<draw-dir>/scripts/bin/cli.mjs" labs ask <job> --session <id> --question @<file.json> [--timeout <s>]
 node "<draw-dir>/scripts/bin/cli.mjs" labs done <job> --session <id> --result done|failed [--report @<file>]
+node "<draw-dir>/scripts/bin/cli.mjs" open [--check] <run-folder>
 ```
 
 Each prints one JSON object on stdout; an error is `{"ok": false, "error": {"code",
@@ -218,7 +219,15 @@ at most 500 characters, in the user's language.
 ## 6. Close the job
 
 When the followed skill reaches its report, write that report in the user's language to a
-file in the job's folder and run
+file in the job's folder. When the job wrote or rewrote a draw.io file, the report names the
+console's Open in draw.io (in the run's header, on each `.drawio` row of Files and in the
+Picture of a diagram), and the closing question of the closing contract (step 8) is asked
+here, while the job is still open: run `node "<draw-dir>/scripts/bin/cli.mjs" open --check <run-folder>`; when `can` is true, ask
+it as a card with the id `open-drawio`, the body "Open <run-slug>.drawio in draw.io?" (with
+"diagrams.net receives the diagram" when `via` is `web`) and one question whose options are
+"Open it" and "Not now". On "Open it", run `node "<draw-dir>/scripts/bin/cli.mjs" open --desktop <run-folder>` when
+`via` was `desktop` and `open --web <run-folder>` when it was `web`, and add its result to the
+report in one line; on "Not now", or `can` false, open nothing. Then run
 `labs done <job> --session <id> --result done --report @<folder>/report.md`. When the job
 cannot be finished (the skill stopped, the user chose to stop, the request left the route
 of its kind), close it with `--result failed` and the reason as the report, saying in which

@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import { loadPlaywright } from '../src/preview.mjs';
 import { scriptsDir } from './helpers.mjs';
 import { labsProject } from './labs-project.mjs';
+import { embedStandIn } from './embed-stand-in.mjs';
 
 const pw = loadPlaywright();
 const cliPath = join(scriptsDir, 'bin', 'cli.mjs');
@@ -38,19 +39,22 @@ describe.skipIf(pw === null)('the console in a browser', () => {
   let started;
   let browser;
   let foreign;
+  let embed;
   beforeAll(async () => {
+    embed = await embedStandIn();
     p = labsProject();
     const dir = join(p.root, 'diagrams', '20261115_markup', 'source');
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, 'markup.ir.json'), JSON.stringify({ schemaVersion: 1, kind: 'flowchart', title: MARKUP, nodes: [{ id: 'a', label: MARKUP }, { id: 'b', label: 'End' }], edges: [{ id: 'e', from: 'a', to: 'b' }] }));
     const port = await freePort();
-    started = spawnSync(process.execPath, [cliPath, 'labs', 'start', '--root', p.root, '--port', String(port)], { env, encoding: 'utf8' });
+    started = spawnSync(process.execPath, [cliPath, 'labs', 'start', '--root', p.root, '--port', String(port)], { env: { ...env, ZUKAI_DRAWIO_EMBED: embed.host }, encoding: 'utf8' });
     started = parse(started.stdout);
     browser = await pw.chromium.launch();
   }, 60_000);
   afterAll(async () => {
     await browser?.close();
     foreign?.close();
+    await embed?.close();
     spawnSync(process.execPath, [cliPath, 'labs', 'stop', '--root', p.root, '--force'], { env });
   });
 
@@ -107,6 +111,27 @@ describe.skipIf(pw === null)('the console in a browser', () => {
     await page.locator('summary', { hasText: 'Draft A applied as r003.' }).waitFor({ timeout: 10_000 });
     await page.close();
   }, 120_000);
+
+  it('opens a run file in draw.io from the click, and Save downloads it; the popup cannot reach the console', async () => {
+    const context = await browser.newContext({ acceptDownloads: true });
+    const page = await context.newPage();
+    const violations = [];
+    page.on('console', (m) => { if (/Content Security Policy/i.test(m.text())) violations.push(m.text()); });
+    await page.goto(started.url);
+    await page.goto(`${new URL(started.url).origin}/#/diagrams/${p.runs.checkout}/files`);
+    await page.getByRole('button', { name: 'Open checkout.drawio in draw.io' }).first().waitFor({ timeout: 10_000 });
+    const [popup] = await Promise.all([page.waitForEvent('popup'), page.locator('header').getByRole('button', { name: 'Open in draw.io' }).click()]);
+    expect(popup.url().startsWith(`${embed.host}/?embed=1`)).toBe(true);
+    await expect.poll(() => popup.locator('.tab').allTextContents(), { timeout: 10_000 }).toEqual(['Checkout']);
+    expect(await popup.locator('#title').textContent()).toBe('checkout.drawio');
+    const [download] = await Promise.all([page.waitForEvent('download'), popup.locator('#save').click()]);
+    expect(download.suggestedFilename()).toBe('checkout.drawio');
+    await expect.poll(() => popup.locator('body').getAttribute('data-modified')).toBe('false');
+    await page.getByText('checkout.drawio was downloaded').waitFor({ timeout: 5000 });
+    expect(await popup.evaluate(() => { try { return window.opener.sessionStorage.getItem('zukai-labs-token'); } catch { return 'cross-origin'; } })).toBe('cross-origin');
+    expect(violations).toEqual([]);
+    await context.close();
+  }, 60_000);
 
   it('asks for the URL and calls nothing without the token', async () => {
     const context = await browser.newContext();

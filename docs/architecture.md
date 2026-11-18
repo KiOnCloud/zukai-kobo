@@ -813,6 +813,53 @@ To take a newer version of Sienna, copy the four files over the old ones, write 
 version and the four hashes into `sienna.lock.json` (with the version `sienna.test.mjs`
 expects), and rebuild with `npm run build`.
 
+## Opening a diagram in draw.io
+
+`cli.mjs open` (`open-drawio.mjs`) and the console's Open in draw.io show a run's draw.io
+file in draw.io. What the user sees is in `README.md`; this section is why it works this way.
+
+- **Routes, in order.** A cloud session is refused (`cloud-session`): a browser on the
+  user's device cannot reach its machine. Linux without `DISPLAY` or `WAYLAND_DISPLAY` is
+  refused (`no-display`): draw.io desktop would run under `xvfb-run`, which `drawioCommand`
+  uses for exports, in a window nobody sees. Then draw.io desktop, found by
+  `findDrawioBinary` and started detached with the run's own file, so a save there lands in
+  the run and the next revise reads it as a hand edit (`drift`). Last, the web: an opener
+  page in the default browser, started with an argument list (`/usr/bin/open`, `xdg-open`,
+  `%SystemRoot%\explorer.exe`), never a shell string. `cmd /c start` was the first choice and
+  was dropped: cmd reads `&`, `^` and `%` in a temp path that holds such a user name, and a
+  bare `cmd` is looked up in the working directory before PATH. draw.io desktop is started
+  without the `--no-sandbox` of a headless export, since this is the window the user edits in.
+- **The diagram never travels in an address.** A `#R` fragment would carry it, but a run of
+  five diagrams already passes the 8,191 characters of a Windows command line once it is
+  handed to `cmd /c start`, and the whole diagram would sit in the browser's history.
+  draw.io's embed protocol (`drawio-embed.mjs`) posts it instead: the embed page sends
+  `init`, the host answers `load` with the XML, Save comes back as `save` and is answered
+  with `status` to clear the unsaved mark. A file of 872 KB and 74 pages loads this way
+  behind an address of 79 characters. A message is taken only from the embed window and
+  only from the embed origin, the same rule as the viewer frame's.
+- **The host is `embed.diagrams.net`**, which sets no `frame-ancestors`: embed mode on
+  `app.diagrams.net` shows a notice that it will stop working there.
+- **The chat's opener page** frames the embed page, because a page the OS opener started has
+  no user gesture and a popup would be blocked. A trial on 2026-11-18 loaded the real host
+  in a frame of a `file://` page and saved through it. Should the host stop answering in a
+  frame, the page shows, after 20 seconds, a button that opens it as a popup (the click is
+  the gesture) and a download of the file. The page holds the diagram in a JSON block of
+  its own (`<` written as `\u003c`), allows its one script by hash, frames of the embed host
+  only and no connection, and lives under `zukai-open/` in the temp folder (0700, the page
+  0600, checked to be the user's own folder and no link) until an `open` a day later
+  removes it. A browser confined by snap or flatpak (Firefox and Chromium as Ubuntu ships
+  them) has a `/tmp` of its own and cannot read the page; `open` cannot see that and reports
+  `opened: web`. `--desktop`, or a browser that is not confined, is the way there.
+- **The console opens a popup from the click** and fetches the file meanwhile; the bridge
+  waits for it before it answers `init`. Its own page and `CONSOLE_CSP` are unchanged: a
+  popup is a navigation of a new window, which the policy does not govern, and the popup,
+  of another origin, cannot read the console's storage. The server names the embed origin
+  in `/api/state` (`drawio.embed`), so the console opens the same host as the CLI.
+- **What is not done.** Save on the web downloads the file; writing it back into the run
+  would be a job, left for later. Mermaid is not opened: a later resolver can map a `.mmd`
+  to a page that renders it, without changing `open`, `--check` or the closing question.
+  The embed page is unversioned, so a release opens one run on the web by hand.
+
 ## Extension rule
 
 Adding a target means one new `emit-<target>.mjs`, one column in `feature-matrix.json`, one
@@ -893,5 +940,13 @@ the parameters of each kind, the questions and the contact rules; `labs-bridge-e
 takes jobs through `labs wait`, `ask` and `done` in the bundle. `labs-ui.test.mjs` runs the
 console's modules in jsdom, `labs-ui-e2e.test.mjs` drives the built console and the viewer
 frame in Playwright's Chromium and is skipped without Playwright, and `sienna.test.mjs`
-holds the copied Sienna files to their lock. `bundle-drift.test.mjs` also holds
+holds the copied Sienna files to their lock. For `open`, `open-drawio.test.mjs` covers the
+bridge (a message from another window or origin is ignored), the opener page and its policy,
+the file each run shape stands for, the route on each platform, the private folder and its
+cleanup, and a `--check` that writes nothing; `open-drawio-e2e.test.mjs` runs `open` through
+the bundle with stand-ins for draw.io desktop and the browser opener, and in Playwright loads
+a file of every fixture through the opener page against `embed-stand-in.mjs`, a local page
+that speaks the embed protocol (the real host refuses headless browsers), with Save and the
+popup route; `labs-ui-e2e.test.mjs` takes the console's button through the same stand-in.
+`bundle-drift.test.mjs` also holds
 `bin/labs-ui/` to a fresh build, file for file, within its size budgets.

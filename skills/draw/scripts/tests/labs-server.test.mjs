@@ -22,11 +22,11 @@ const logPath = join(logDir, 'server.log');
 let labs;
 let port;
 
-function raw({ method = 'GET', path, headers = {}, body, token = TOKEN, host }) {
+function raw({ method = 'GET', path, headers = {}, body, token = TOKEN, host, port: at = port }) {
   return new Promise((done, failed) => {
     const payload = body === undefined ? undefined : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body));
-    const req = httpRequest({ host: '127.0.0.1', port, method, path, agent: false, headers: {
-      Host: host ?? `127.0.0.1:${port}`,
+    const req = httpRequest({ host: '127.0.0.1', port: at, method, path, agent: false, headers: {
+      Host: host ?? `127.0.0.1:${at}`,
       ...(token ? { 'X-Zukai-Token': token } : {}),
       ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': payload.length } : {}),
       ...headers,
@@ -99,6 +99,19 @@ describe('request checks', () => {
     expect(ok.headers['x-content-type-options']).toBe('nosniff');
     expect(ok.headers['referrer-policy']).toBe('no-referrer');
     expect(ok.headers['cache-control']).toBe('no-store');
+  });
+
+  it('names the embed host of draw.io in the state, so the console opens the same one as the CLI', async () => {
+    const state = await raw({ path: '/api/state' });
+    expect(state.json.drawio).toEqual({ embed: process.env.ZUKAI_DRAWIO_EMBED ? new URL(process.env.ZUKAI_DRAWIO_EMBED).origin : 'https://embed.diagrams.net' });
+    const other = createLabsServer({ root: p.root, token: TOKEN, pages: new Map(), version: '0.0.0-test', instance: 'test', drawioEmbed: 'http://127.0.0.1:4100' });
+    await new Promise((r) => other.server.listen(0, '127.0.0.1', r));
+    try {
+      const r = await raw({ path: '/api/state', port: other.server.address().port });
+      expect(r.json.drawio).toEqual({ embed: 'http://127.0.0.1:4100' });
+    } finally {
+      await new Promise((r) => other.server.close(r));
+    }
   });
 
   it('takes localhost and any port in Host, and the origin of that Host', async () => {

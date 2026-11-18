@@ -45,6 +45,7 @@ beforeAll(async () => {
     glossary: await import('../src/labs-ui/views/glossary.mjs'),
     frame: await import('../src/labs-ui/viewer/frame.mjs'),
     nav: await import('../src/labs-ui/nav.mjs'),
+    open: await import('../src/labs-ui/views/open-drawio.mjs'),
     create: await import('../src/labs-ui/views/new-diagram.mjs'),
     jobs: await import('../src/labs-ui/views/jobs.mjs'),
     overview: await import('../src/labs-ui/views/overview.mjs'),
@@ -204,6 +205,90 @@ describe('views', () => {
     const page = mods.main.noTokenPage();
     expect(page.textContent).toContain('Open the console with its URL');
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('Open in draw.io', () => {
+  const EMBED = 'http://127.0.0.1:4100';
+  const XML = '<mxfile><diagram id="checkout" name="Checkout"></diagram></mxfile>';
+  const file = (name) => ({ name, size: 10, modified: '2026-11-18T00:00:00Z' });
+  const row = { run: '20261110_checkout', date: '2026-11-10', slug: 'checkout', title: 'Checkout', origin: 'scout', diagrams: [{ id: 'checkout', kind: 'flowchart', title: 'Checkout' }], targets: ['drawio'], variants: [], scouted: false, revisions: [], undo: null, redo: null, stale: null };
+  const withFiles = (files) => [['GET', /\/api\/runs\/20261110_checkout$/, () => respond(200, { ...row, files })], ['GET', /\/api\/runs\/20261110_checkout\/files\//, () => new Response(XML, { status: 200 })]];
+  const buttons = (el, name) => [...el.querySelectorAll('button')].filter((b) => (b.getAttribute('aria-label') ?? b.textContent).trim() === name);
+  const header = (el) => el.querySelector('header');
+  let opened;
+  let popup;
+  beforeEach(() => {
+    opened = [];
+    popup = { posted: [], closed: false, postMessage(data, origin) { this.posted.push({ data: JSON.parse(data), origin }); }, close() { this.closed = true; } };
+    window.open = (url, target) => { opened.push({ url, target }); return popup; };
+  });
+
+  it('is offered where a draw.io file is, and nowhere else', async () => {
+    routes = withFiles([file('checkout.drawio'), file('drawio/checkout.drawio'), file('svg/old.drawio.svg'), file('source/checkout.ir.json'), file('drafts/a/changes.diff.drawio')]);
+    const store = mods.store.createStore({ state: { drawio: { embed: EMBED } }, asking: false });
+    const view = mods.detail.runDetail({ store, run: '20261110_checkout' });
+    await flush();
+    // One button per name: the header opens the run's combined file, Picture the diagram's own.
+    expect(buttons(header(view.element), 'Open in draw.io')).toHaveLength(1);
+    expect(buttons(view.element, 'Open in draw.io')).toHaveLength(1);
+    const own = buttons(view.element.querySelector('[role="tabpanel"]'), 'Open this diagram in draw.io');
+    expect(own).toHaveLength(1);
+    expect(own[0].classList.contains('sn-btn-ghost')).toBe(true);
+    // Secondary is Sienna's default variant: no class of its own, and not ghost.
+    expect(buttons(header(view.element), 'Open in draw.io')[0].classList.contains('sn-btn-ghost')).toBe(false);
+    const files = mods.detail.runDetail({ store, run: '20261110_checkout', tab: 'files' });
+    await flush();
+    expect(buttons(files.element, 'Open checkout.drawio in draw.io')).toHaveLength(2);
+    expect(buttons(files.element, 'Open changes.diff.drawio in draw.io')).toHaveLength(1);
+    expect(buttons(files.element, 'Open old.drawio.svg in draw.io')).toHaveLength(0);
+
+    routes = withFiles([file('source/checkout.ir.json'), file('figjam/checkout.mmd')]);
+    const none = mods.detail.runDetail({ store, run: '20261110_checkout' });
+    await flush();
+    expect(buttons(none.element, 'Open in draw.io')).toHaveLength(0);
+    expect(buttons(none.element, 'Open this diagram in draw.io')).toHaveLength(0);
+  });
+
+  it('opens the embed page from the click, loads the file only for that window and origin, and downloads a save', async () => {
+    routes = withFiles([file('checkout.drawio')]);
+    const store = mods.store.createStore({ state: { drawio: { embed: EMBED } }, asking: false });
+    const view = mods.detail.runDetail({ store, run: '20261110_checkout' });
+    await flush();
+    buttons(header(view.element), 'Open in draw.io')[0].click();
+    expect(opened).toEqual([{ url: `${EMBED}/?embed=1&proto=json&spin=1&noExitBtn=1&saveAndExit=0`, target: '_blank' }]);
+    const deliver = (data, { source = popup, origin = EMBED } = {}) => window.dispatchEvent(new window.MessageEvent('message', { data: JSON.stringify(data), origin, source }));
+    deliver({ event: 'init' }, { source: window });
+    deliver({ event: 'init' }, { origin: 'https://evil.example' });
+    await flush();
+    expect(popup.posted).toEqual([]);
+    deliver({ event: 'init' });
+    await flush();
+    expect(popup.posted).toEqual([{ data: { action: 'load', xml: XML, title: 'checkout.drawio', autosave: 0 }, origin: EMBED }]);
+    expect(calls.some((c) => c.path === '/api/runs/20261110_checkout/files/checkout.drawio')).toBe(true);
+    deliver({ event: 'save', xml: '<mxfile id="edited"/>' }, { origin: 'https://evil.example' });
+    expect(popup.posted).toHaveLength(1);
+    deliver({ event: 'save', xml: '<mxfile id="edited"/>' });
+    expect(popup.posted.at(-1)).toEqual({ data: { action: 'status', modified: false }, origin: EMBED });
+    expect(header(view.element).textContent).toContain('checkout.drawio was downloaded');
+    expect(header(view.element).textContent).toContain('diagrams/20261110_checkout/checkout.drawio');
+  });
+
+  it('says how to allow a blocked window, and that draw.io did not answer', async () => {
+    const notice = document.createElement('div');
+    window.open = () => null;
+    expect(mods.open.openInDrawio({ run: '20261110_checkout', name: 'checkout.drawio', embed: EMBED, notice })).toBeNull();
+    expect(notice.textContent).toContain('blocked the draw.io window');
+    window.open = () => popup;
+    routes = withFiles([file('checkout.drawio')]);
+    mods.open.openInDrawio({ run: '20261110_checkout', name: 'checkout.drawio', embed: EMBED, notice, wait: 50 });
+    await new Promise((r) => setTimeout(r, 120));
+    expect(notice.textContent).toContain('draw.io did not answer');
+  });
+
+  it('falls back to embed.diagrams.net before the state has come', () => {
+    expect(mods.open.embedOf(mods.store.createStore({ state: null }))).toBe('https://embed.diagrams.net');
+    expect(mods.open.embedOf(mods.store.createStore({ state: { drawio: { embed: EMBED } } }))).toBe(EMBED);
   });
 });
 

@@ -27,6 +27,8 @@
  *   node cli.mjs sources <run-dir> [--root <project>] [--only <id,id,...>]   (record a hash of every source file the diagrams of a run were drawn from)
  *   node cli.mjs stale <run-dir>... [--root <project>]   (the recorded source files that changed or are gone; exit 2 when there are any)
  *   node cli.mjs glossary list|add|set|pairs|check ...   (the project glossary in .zukai/glossary.json; check exits 2 on a blocking finding)
+ *   node cli.mjs open <run-dir|file.drawio|file.drawio.svg> [--web|--desktop]   (the run's draw.io file in draw.io desktop, else draw.io on the web)
+ *   node cli.mjs open --check <run-dir|file.drawio|file.drawio.svg>   (whether and how it can be opened here; changes nothing)
  *   node cli.mjs labs start|status|stop ...   (the labs console of a project on 127.0.0.1)
  *   node cli.mjs labs wait|progress|ask|done|holds ...   (the agent's side of the console's jobs; holds exits 2 when a job holds the run)
  */
@@ -50,6 +52,7 @@ import { cover } from './cover.mjs';
 import { recordSources, staleRun } from './sources.mjs';
 import { startServer, serverStatus, stopServer, serve, readServerFile } from './labs-lifecycle.mjs';
 import { agentCall } from './labs-client.mjs';
+import { openDrawio, checkOpen } from './open-drawio.mjs';
 import { projectRoot } from './glossary.mjs';
 import { STATUSES, readGlossary, addEntries, setStatus, readRun, pairsOf, redactedPairs, checkRuns } from './glossary.mjs';
 
@@ -76,6 +79,8 @@ const USAGE = `usage:
   cli.mjs glossary set <id> --status <${STATUSES.join('|')}> [--root <project>]
   cli.mjs glossary pairs <run-dir>... [--root <project>]
   cli.mjs glossary check <run-dir>... [--root <project>]
+  cli.mjs open <run-dir|file.drawio|file.drawio.svg> [--web|--desktop]
+  cli.mjs open --check <run-dir|file.drawio|file.drawio.svg>
   cli.mjs labs start [--root <project>] [--port <n>] [--idle-minutes <n>] [--skip-cloud-check]
   cli.mjs labs status [--root <project>]
   cli.mjs labs stop [--root <project>] [--force]
@@ -153,6 +158,18 @@ counted under unpaired), with secret values redacted. check holds the labels of 
 confirmed entries and prints the findings; exit 2 when one is blocking (a label that equals an
 avoided term, or a translated IR that does not carry the confirmed term of a label), exit 1
 when the project has no glossary or it does not match its schema.
+open shows a run's draw.io file in draw.io: a run folder stands for its combined
+<run-slug>.drawio (else its only drawio/*.drawio), and a .drawio.svg for the diagram it holds.
+It starts draw.io desktop when it is found and a display is there; otherwise it writes a page
+into zukai-open/ under the temp folder (private to the user; the next open removes pages
+older than 24 hours) and opens
+it in the default browser, where draw.io on the web (embed.diagrams.net) receives the diagram
+by postMessage, never in an address. --web skips draw.io desktop; --desktop refuses without it.
+It prints {"ok": true, "opened": "desktop"|"web", "file", "page"?}. Refused, with exit 1:
+cloud-session, no-display (Linux without DISPLAY or WAYLAND_DISPLAY), no-browser,
+not-supported (Mermaid text, a FigJam board), not-found, bad-request. open --check prints
+{"ok": true, "can", "via": "desktop"|"web"|null, "reason"?, "message"?, "file"?} with exit 0
+and opens nothing.
 labs start serves the console of the project (--root, else the working directory) on
 127.0.0.1, on a port that is the same for the project every time (--port or ZUKAI_LABS_PORT
 replace it; a busy port is reported, never replaced by the next one). A second start reuses
@@ -181,7 +198,7 @@ function fail(code, payload) {
 
 /** Options that take a value, and the field each one fills. */
 const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang', '--entries': 'entries', '--status': 'status', '--port': 'port', '--idle-minutes': 'idleMinutes', '--session': 'session', '--message': 'message', '--question': 'question', '--result': 'result', '--report': 'report', '--timeout': 'timeout' };
-const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable', '--skip-cloud-check': 'skipCloudCheck', '--force': 'force' };
+const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable', '--skip-cloud-check': 'skipCloudCheck', '--force': 'force', '--check': 'check', '--web': 'web', '--desktop': 'desktop' };
 
 /**
  * The options each command takes. One that a command does not take is refused: an option that
@@ -203,6 +220,7 @@ const COMMAND_OPTIONS = {
   cover: [],
   sources: ['--root', '--only'],
   stale: ['--root'],
+  open: ['--check', '--web', '--desktop'],
   'glossary list': ['--root', '--status'],
   'glossary add': ['--entries', '--status', '--root'],
   'glossary set': ['--status', '--root'],
@@ -240,7 +258,7 @@ function parseArgs(argv) {
     command = `${command} ${sub}`;
     rest = rest.slice(1);
   }
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined, entries: undefined, status: undefined, port: undefined, idleMinutes: undefined, skipCloudCheck: false, force: false, session: undefined, message: undefined, question: undefined, result: undefined, report: undefined, timeout: undefined };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined, entries: undefined, status: undefined, port: undefined, idleMinutes: undefined, skipCloudCheck: false, force: false, check: false, web: false, desktop: false, session: undefined, message: undefined, question: undefined, result: undefined, report: undefined, timeout: undefined };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -763,9 +781,25 @@ export async function main(argv) {
     if (errors.length > 0) return fail(1, { ok: false, errors });
     return stale ? 2 : 0;
   }
+  if (opts.command === 'open') return openCommand(opts);
   if (opts.command.startsWith('glossary ')) return glossaryCommand(opts);
   if (opts.command.startsWith('labs ')) return labsCommand(opts);
   return fail(1, { ok: false, errors: [{ path: '/', message: `unknown command "${opts.command ?? ''}"` }], usage: USAGE });
+}
+
+/** `open` and `open --check`: one JSON object on stdout, or an error on stderr with exit 1. */
+async function openCommand(opts) {
+  const bad = (message) => fail(1, { ok: false, error: { code: 'bad-request', message }, usage: USAGE });
+  if (opts.positional.length !== 1) return bad('open takes one run folder, .drawio file or .drawio.svg file');
+  if (opts.web && opts.desktop) return bad('--web and --desktop exclude each other');
+  if (opts.check) {
+    process.stdout.write(JSON.stringify(checkOpen(opts.positional[0], { web: opts.web, desktop: opts.desktop })) + '\n');
+    return 0;
+  }
+  const result = await openDrawio(opts.positional[0], { web: opts.web, desktop: opts.desktop });
+  if (!result.ok) return fail(1, { ok: false, error: { code: result.code, message: result.message, ...(result.hint ? { hint: result.hint } : {}) } });
+  process.stdout.write(JSON.stringify(result) + '\n');
+  return 0;
 }
 
 /** `labs start|status|stop|serve`: one JSON object on stdout, or an error on stderr with exit 1. */
