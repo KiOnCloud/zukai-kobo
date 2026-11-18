@@ -107,7 +107,8 @@ describe('an option a command does not take', () => {
     expect(lines.find((l) => l.includes('cli.mjs preview'))).toContain('[--page <id|name>]');
     expect(lines.find((l) => l.includes('cli.mjs export'))).toContain('[--page <id|name>[,...]]');
     expect(lines.find((l) => l.includes('cli.mjs preview'))).toContain('file.drawio.svg');
-  });
+    // One CLI process per option of the help, run one after another: about 40 of them.
+  }, 60_000);
 
   it('writes a Mermaid bundle in the stable form when asked', () => {
     const run = makeRun('stable', { stable: loadFixture('activity', 'valid-business-fulfilment') });
