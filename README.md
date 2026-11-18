@@ -393,10 +393,12 @@ sources.
 
 ## Status
 
-Version 2.3.0 is the open beta. It added `/zukai:sync`, the use case kind, the SVG pictures,
+Version 2.3.1 is the open beta; it draws an architecture whose main flow ran along the
+bottom of its frames through their middle. Version 2.3.0 added `/zukai:sync`, the use case kind, the SVG pictures,
 the description tables, the picture of a change, the PlantUML reader and Google Cloud icons
 for architecture diagrams; version 2.2.0 added
 `/zukai:recook` and version 2.0.0 added `/zukai:revise`. Forks of the skill should read
+[Upgrading to 2.3.1](docs/install.md#upgrading-to-231),
 [Upgrading to 2.3.0](docs/install.md#upgrading-to-230),
 [Upgrading to 2.2.0](docs/install.md#upgrading-to-220),
 [Upgrading to 2.0.0](docs/install.md#upgrading-to-200) and

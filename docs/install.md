@@ -540,13 +540,6 @@ What changes for a run you already have:
   filled circle back as the start node.
 - An architecture connection that runs through the header bar of a plain frame, beside its
   title, is reported as a `layout:` warning on every emit to draw.io. Nothing is refused.
-- A left-to-right or right-to-left architecture diagram with frames whose main flow ran along
-  the bottom edge of a frame, with what stands beside it above (a worker in a cluster beside
-  the services the requests pass), is drawn turned over when that brings the flow under the
-  headers, through the middle of the frames, with no more crossings or warnings: what stood
-  above the flow stands below it, and a system called from there stands below the frames.
-  `drift` reports such a file delivered by an older version as moved; emit it again for the
-  new drawing. Every other diagram is drawn as before.
 - In the picture of a change, a boundary, a group or a composite state that only gained or
   lost a member is no longer coloured amber: the member that came or went is coloured.
 - The description tables: the Condition column says what a block means (`If …`,
@@ -638,6 +631,20 @@ project that holds a folder copy of the skill:
 The step fails with exit code 2 and prints, per diagram, the files that changed or are
 gone; name every scouted run folder in the one call. The answer to a failure is
 `/zukai:sync` on that run, which records the sources again once the diagrams match.
+
+
+## Upgrading to 2.3.1
+
+Version 2.3.1 changes one drawing and nothing else: no IR field, command, option, exit
+code or file of a run differs from 2.3.0.
+
+- A left-to-right or right-to-left architecture diagram with frames whose main flow ran along
+  the bottom edge of a frame, with what stands beside it above (a worker in a cluster beside
+  the services the requests pass), is drawn turned over when that brings the flow under the
+  headers, through the middle of the frames, with no more crossings or warnings: what stood
+  above the flow stands below it, and a system called from there stands below the frames.
+  `drift` reports such a file delivered by an older version as moved; emit it again for the
+  new drawing. Every other diagram is drawn as before.
 
 ## Upgrading from it-diagrams
 
