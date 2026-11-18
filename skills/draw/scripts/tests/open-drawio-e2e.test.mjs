@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -94,9 +94,11 @@ describe('open through the bundle', () => {
     expect(cli(['open', '--check', run()], env)).toMatchObject({ code: 0, out: { can: true, via: 'desktop', file: runFile() } });
     const r = cli(['open', run()], env);
     expect(r).toMatchObject({ code: 0, out: { ok: true, opened: 'desktop', file: runFile() } });
-    await until(() => existsSync(join(bin, 'drawio.args.json')));
+    // The stand-in writes the file after creating it: wait until it holds the whole JSON.
+    const parsed = () => { try { return JSON.parse(readFileSync(join(bin, 'drawio.args.json'), 'utf8')); } catch { return undefined; } };
+    await until(() => parsed() !== undefined);
     // The window the user edits in: the file alone, none of the headless flags (--no-sandbox).
-    expect(JSON.parse(readFileSync(join(bin, 'drawio.args.json'), 'utf8'))).toEqual([runFile()]);
+    expect(parsed()).toEqual([runFile()]);
   }, 60_000);
 
   it.skipIf(!posix)('writes a private opener page and hands the opener its path alone', async () => {
@@ -104,8 +106,9 @@ describe('open through the bundle', () => {
     const opener = recorder(bin, 'opener');
     const r = cli(['open', '--web', run()], { ZUKAI_OPENER: opener, DISPLAY: ':0', ZUKAI_DRAWIO_EMBED: 'http://127.0.0.1:4100' });
     expect(r).toMatchObject({ code: 0, out: { ok: true, opened: 'web', file: runFile() } });
-    await until(() => existsSync(join(bin, 'opener.args.json')));
-    expect(JSON.parse(readFileSync(join(bin, 'opener.args.json'), 'utf8'))).toEqual([r.out.page]);
+    const parsed = () => { try { return JSON.parse(readFileSync(join(bin, 'opener.args.json'), 'utf8')); } catch { return undefined; } };
+    await until(() => parsed() !== undefined);
+    expect(parsed()).toEqual([r.out.page]);
     expect(statSync(r.out.page).mode & 0o777).toBe(0o600);
     expect(statSync(join(r.out.page, '..')).mode & 0o777).toBe(0o700);
     expect(readFileSync(r.out.page, 'utf8')).toContain('src="http://127.0.0.1:4100/?embed=1&amp;proto=json');

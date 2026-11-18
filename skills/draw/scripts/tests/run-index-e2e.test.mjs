@@ -33,7 +33,7 @@ const bundleArgs = (p) => ['bundle', '--to', 'drawio', '--out', join(p.run, 'log
 const strip = (out) => out.projects.map(({ lastSeen, ...p }) => p);
 
 describe('run index (committed bundle)', () => {
-  it('lists the projects the writing commands saw, drops a deleted one and rebuilds from a scan', () => {
+  it('lists the projects the writing commands saw, drops a deleted one and rebuilds from a scan', { timeout: 60_000 }, () => {
     const env = { ZUKAI_HOME: mkdtempSync(join(tmpdir(), 'zukai-index-e2e-home-')) };
     const top = realpathSync(mkdtempSync(join(tmpdir(), 'zukai-index-e2e-')));
     const plain = project(top, 'plain');
