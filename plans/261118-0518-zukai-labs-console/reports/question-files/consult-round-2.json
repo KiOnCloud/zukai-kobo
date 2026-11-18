@@ -1,0 +1,20 @@
+{
+  "id": "consult-2",
+  "body": "Draft B after your change (\"the limit is 1000, and a rejected order goes back to the cart\"):\n\nB: approval only above a limit\n- added: decision \"Total above 1000?\", \"Approve order\" on its yes branch\n- added: \"Return to cart\" on the rejected branch of \"Approve order\"\n- touched: checkout\n\nDraft A is still on disk; ask for it to see it again.",
+  "questions": [
+    {
+      "header": "Draft B",
+      "question": "Confirm draft B, change it again, or drop the drafts?",
+      "multiSelect": false,
+      "options": [
+        { "label": "Confirm draft B", "description": "A revision is saved, draft B is written to the run and every output is rebuilt and reviewed" },
+        { "label": "Show draft A again", "description": "The other draft, as it was presented" },
+        { "label": "Drop all drafts", "description": "The run stays as it is" }
+      ]
+    }
+  ],
+  "attachments": [
+    "drafts/b/checkout.drawio",
+    "drafts/b/changes.diff.drawio"
+  ]
+}
