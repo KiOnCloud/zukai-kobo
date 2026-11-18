@@ -9,6 +9,7 @@ import { S } from '../sienna.mjs';
 import { h, replace } from '../dom.mjs';
 import { api, path } from '../api.mjs';
 import { EMBED_HOST, embedUrl, embedBridge } from '../../drawio-embed.mjs';
+import { runsDirOf } from '../words.mjs';
 
 const WAIT_MS = 60_000;
 
@@ -29,7 +30,7 @@ function downloadText(text, name) {
  * `notice`. Returns the function that stops listening, or null when nothing was opened.
  * @param {{ run: string, name: string, embed: string, notice: HTMLElement, wait?: number, win?: Window }} options
  */
-export function openInDrawio({ run, name, embed, notice, wait = WAIT_MS, win = window }) {
+export function openInDrawio({ run, name, embed, notice, runsDir = 'diagrams', wait = WAIT_MS, win = window }) {
   const title = name.split('/').pop();
   const popup = win.open(embedUrl(embed), '_blank');
   if (!popup) {
@@ -62,7 +63,7 @@ export function openInDrawio({ run, name, embed, notice, wait = WAIT_MS, win = w
     onInit: () => { started = true; clearTimeout(timer); },
     onSave: (xml) => {
       downloadText(xml, title);
-      replace(notice, S().Alert({ tone: 'info', title: `${title} was downloaded`, body: `To change the run with it, put it in place of diagrams/${run}/${name}; the next revise reads the difference as a hand edit.` }));
+      replace(notice, S().Alert({ tone: 'info', title: `${title} was downloaded`, body: `To change the run with it, put it in place of ${runsDir}/${run}/${name}; the next revise reads the difference as a hand edit.` }));
     },
   });
   watch = setInterval(() => { if (popup.closed) { clearTimeout(timer); stop(); } }, 2000);
@@ -78,7 +79,7 @@ export function openInDrawio({ run, name, embed, notice, wait = WAIT_MS, win = w
  */
 export function openButton({ run, name, store, notice, place = 'header' }) {
   const title = name.split('/').pop();
-  const onClick = () => openInDrawio({ run, name, embed: embedOf(store), notice });
+  const onClick = () => openInDrawio({ run, name, embed: embedOf(store), notice, runsDir: runsDirOf(store) });
   if (place === 'row') return S().Button({ label: `Open ${title} in draw.io`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'external', onClick });
   if (place === 'diagram') return S().Button({ label: 'Open this diagram in draw.io', variant: 'ghost', size: 'sm', icon: 'external', onClick });
   return S().Button({ label: 'Open in draw.io', variant: 'secondary', size: 'sm', icon: 'external', onClick });

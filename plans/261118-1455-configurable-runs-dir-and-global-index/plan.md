@@ -1,7 +1,7 @@
 ---
 title: "Configurable runs folder and a global run index"
 description: "Runs stay in the project under diagrams/ by default; .zukai/config.json runsDir moves them and every skill, the CLI and the labs console follow it; ~/.zukai/index.json lists the projects that hold runs as a rebuildable cache."
-status: pending
+status: in-progress
 priority: P2
 effort: 3.5d
 branch: claude/upbeat-wright-llans1
@@ -49,10 +49,10 @@ and a central store is not the default (runs would leave git and the team).
 
 | # | Phase | Effort | Depends on | Status |
 |---|-------|--------|------------|--------|
-| 1 | [Runs folder contract and CLI](./phase-01-runs-dir-contract-and-cli.md) | 1d | none | Pending |
-| 2 | [Global run index](./phase-02-global-run-index.md) | 1d | 1 | Pending |
-| 3 | [Skills and console follow the runs folder](./phase-03-skills-and-console-follow-runs-dir.md) | 1d | 1 | Pending |
-| 4 | [Docs, tests and release](./phase-04-docs-tests-and-release.md) | 0.5d | 1, 2, 3 | Pending |
+| 1 | [Runs folder contract and CLI](./phase-01-runs-dir-contract-and-cli.md) | 1d | none | Completed |
+| 2 | [Global run index](./phase-02-global-run-index.md) | 1d | 1 | Completed |
+| 3 | [Skills and console follow the runs folder](./phase-03-skills-and-console-follow-runs-dir.md) | 1d | 1 | Completed |
+| 4 | [Docs, tests and release](./phase-04-docs-tests-and-release.md) | 0.5d | 1, 2, 3 | Completed |
 
 ## Acceptance criteria
 

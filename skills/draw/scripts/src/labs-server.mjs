@@ -1,7 +1,7 @@
 /**
  * The labs console's server: `node:http` on 127.0.0.1, nothing else. It serves the console's
  * pages from memory and an API over the runs of one project, and it never writes under
- * `diagrams/`: every change to a run is a job for the attached agent (`labs-jobs.mjs`).
+ * the project's runs folder (`diagrams/` by default): every change to a run is a job for the attached agent (`labs-jobs.mjs`).
  *
  * Every request passes the same checks, in this order, before anything else is read:
  *
@@ -27,7 +27,8 @@ import { inspect, DOC_LANGS } from './pipeline.mjs';
 import { labelsOf } from './ir-labels.mjs';
 import { readGlossary, writeGlossary, addEntries, checkRuns, checkGlossary, STATUSES, newEntryErrors, projectRoot } from './glossary.mjs';
 import { embedHostOf } from './drawio-embed.mjs';
-import { listRuns, runNames, runPath, runDetail, diagramIds, diagramDetail, runDoc, revisionNames, changesSince, filePath, diagramsDir, diagramPicture, fileView } from './labs-runs.mjs';
+import { listRuns, runNames, runPath, runDetail, diagramIds, diagramDetail, runDoc, revisionNames, changesSince, filePath, diagramPicture, fileView } from './labs-runs.mjs';
+import { readProjectConfig, runsPath } from './project-config.mjs';
 
 export const APP = 'zukai-labs';
 export const MAX_BODY = 1024 * 1024;
@@ -187,8 +188,10 @@ export function createLabsServer(options) {
   /** A cheap stamp of the runs on disk: names and the dates of their folders, so the console reloads after the agent wrote. */
   const runsStamp = () => {
     const h = createHash('sha256');
-    for (const n of runNames(root)) {
-      const dir = join(diagramsDir(root), n);
+    const config = readProjectConfig(root);
+    h.update(config.ok ? config.runsDir : 'bad-config');
+    for (const n of config.ok ? runNames(root) : []) {
+      const dir = join(runsPath(root), n);
       h.update(n);
       for (const sub of ['', 'source', 'history', 'svg']) { try { h.update(String(statSync(join(dir, sub)).mtimeMs)); } catch { /* absent */ } }
     }
@@ -215,10 +218,15 @@ export function createLabsServer(options) {
   const revParam = (value) => (value === undefined ? undefined : value === '' || value === 'null' ? null : value);
 
   const routes = [
-    ['GET', '/api/state', () => ({ body: {
-      app: APP, version, project: basename(root), runs: runNames(root).length,
-      glossary: glossaryState(), drawio: { embed: drawioEmbed }, change: `${counter}-${runsStamp()}`, ...(jobs ? jobs.state() : { agent: { attached: false, waiting: false, lastContact: null }, jobs: { queued: 0, open: null } }),
-    } })],
+    ['GET', '/api/state', () => {
+      // A bad setting is shown, not answered with an error: the console says what to fix.
+      const config = readProjectConfig(root);
+      return { body: {
+        app: APP, version, project: basename(root), runs: config.ok ? runNames(root).length : 0,
+        runsDir: config.ok ? config.runsDir : null, ...(config.ok ? {} : { configError: { message: config.error.message, hint: config.error.hint } }),
+        glossary: glossaryState(), drawio: { embed: drawioEmbed }, change: `${counter}-${runsStamp()}`, ...(jobs ? jobs.state() : { agent: { attached: false, waiting: false, lastContact: null }, jobs: { queued: 0, open: null } }),
+      } };
+    }],
     ['GET', '/api/runs', () => ({ body: { runs: listRuns(root) } })],
     ['GET', '/api/runs/:run', ({ params }) => ({ body: runDetail(root, runOf(params)) })],
     ['GET', '/api/runs/:run/diagrams/:id', ({ params }) => {
@@ -405,6 +413,7 @@ export function createLabsServer(options) {
       out?.after?.();
     } catch (error) {
       if (error instanceof HttpError) { refuse(res, error.status, error.code, error.message, error.extra); return done(error.status); }
+      if (error?.name === 'ConfigError') { refuse(res, 409, 'bad-config', error.message, { hint: error.hint }); return done(409); }
       log({ method: req.method, route: pattern, error: errorFacts(error) });
       refuse(res, 500, 'internal', 'the server could not answer; see .zukai/labs/server.log');
       return done(500);

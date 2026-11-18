@@ -314,7 +314,9 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
     waiter.settle({ job: forAgent(next) });
   }
 
-  const forAgent = (job) => ({ ...job, folder: folderOf(job.id), ...(job.kind === 'apply-edit' ? { irFile: join(folderOf(job.id), 'ir.json') } : {}) });
+  // The run's folder is given whole, so the agent needs not know the project's runs folder.
+  const runDirOf = (job) => { try { return job.run ? runPath(root, job.run) : undefined; } catch { return undefined; } };
+  const forAgent = (job) => ({ ...job, folder: folderOf(job.id), ...(runDirOf(job) ? { runDir: runDirOf(job) } : {}), ...(job.kind === 'apply-edit' ? { irFile: join(folderOf(job.id), 'ir.json') } : {}) });
 
   /** Hold a call until `settle` is called, the cap or the client's timeout passes, or the client goes. */
   function hold(id, { timeoutMs, signal }, onTimeout, register) {

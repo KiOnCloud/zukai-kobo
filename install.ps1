@@ -69,7 +69,7 @@ $skills = @(
 $legacyName = 'it-diagrams'
 $legacyMarker = '.it-diagrams-version'
 # What only a rebuild or a test of the CLI needs; it stays in the repository.
-$devOnly = @('src', 'tests', 'fixtures', 'tools', 'build.mjs', 'package-lock.json')
+$devOnly = @('src', 'tests', 'fixtures', 'tools', 'build.mjs', 'vitest.config.mjs', 'package-lock.json')
 
 if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { Stop-Install "Manifest not found at $manifest" }
 foreach ($s in $skills) {

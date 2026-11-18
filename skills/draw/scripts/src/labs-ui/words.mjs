@@ -1,5 +1,11 @@
 /** The console's own words: what each job kind, state, reason and option is called. */
 
+/**
+ * The project's runs folder as the console names it, from the server's state: the folder the
+ * project setting names, `diagrams` by default (and before the first state arrives).
+ */
+export const runsDirOf = (store) => store?.get().state?.runsDir ?? 'diagrams';
+
 export const KIND_LABEL = {
   draw: 'New diagram', revise: 'Revise', restore: 'Restore', 'apply-edit': 'Save model edit', sync: 'Sync', recook: 'Recook', export: 'Export pictures', 'glossary-suggest': 'Suggest glossary terms',
 };

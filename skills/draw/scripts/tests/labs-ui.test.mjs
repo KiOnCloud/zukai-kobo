@@ -450,3 +450,38 @@ describe('the screens of the redesign', () => {
   });
 });
 
+
+describe('the runs folder', () => {
+  const runRow = { run: '20261110_checkout', date: '2026-11-10', slug: 'checkout', title: 'Checkout', origin: 'scout', diagrams: [{ id: 'checkout', kind: 'flowchart', title: 'Checkout' }], targets: ['drawio'], revisions: 0, variants: [], scouted: false };
+  const detailRoutes = () => [
+    ['GET', /\/api\/runs$/, () => respond(200, { runs: [runRow] })],
+    ['GET', /\/api\/jobs$/, () => respond(200, { jobs: [] })],
+    ['GET', /\/api\/runs\/20261110_checkout$/, () => respond(200, { ...runRow, files: [{ name: 'checkout.drawio', size: 10, modified: '2026-11-18T00:00:00Z' }], revisions: [], undo: null, redo: null, stale: null })],
+  ];
+
+  it.each([[undefined, 'diagrams'], ['docs/diagrams', 'docs/diagrams']])('shows %s as %s in every place that names it', async (runsDir, shown) => {
+    routes = detailRoutes();
+    const store = mods.store.createStore({ state: { project: 'p', ...(runsDir ? { runsDir } : {}), drawio: { embed: 'https://embed.diagrams.net' } }, asking: false });
+    const list = mods.runs.runsList({ store });
+    const overview = mods.overview.overviewSection({ store });
+    const detail = mods.detail.runDetail({ store, run: '20261110_checkout' });
+    const files = mods.detail.runDetail({ store, run: '20261110_checkout', tab: 'files' });
+    const recook = mods.create.newDiagram({ store, recook: true });
+    await flush();
+    expect(list.element.textContent).toContain(`1 run under ${shown}/, newest first.`);
+    expect(overview.element.textContent).toContain(`Diagrams under ${shown}/`);
+    expect(detail.element.querySelector('header').textContent).toContain(`${shown}/20261110_checkout`);
+    expect(files.element.textContent).toContain(`Files of ${shown}/20261110_checkout`);
+    expect(recook.element.textContent).toContain(`the run is written under ${shown}/`);
+    if (runsDir) expect(`${list.element.textContent}${overview.element.textContent}${detail.element.textContent}`).not.toMatch(/(^|[^/])diagrams\/20261110/);
+  });
+
+  it('says on the overview that the project setting cannot be used', async () => {
+    routes = detailRoutes();
+    const store = mods.store.createStore({ state: { project: 'p', runsDir: null, configError: { message: 'config.json: runsDir "../x" has a "." or ".." part', hint: 'runsDir takes a folder inside the project' } } });
+    const view = mods.overview.overviewSection({ store });
+    await flush();
+    expect(view.element.textContent).toContain('The project setting cannot be used');
+    expect(view.element.textContent).toContain('runsDir takes a folder inside the project');
+  });
+});

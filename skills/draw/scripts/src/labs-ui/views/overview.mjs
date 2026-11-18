@@ -6,7 +6,7 @@
 import { S } from '../sienna.mjs';
 import { h, replace, ago, day } from '../dom.mjs';
 import { api } from '../api.mjs';
-import { KIND_LABEL, STATE_BADGE, MODES, kindLabel, targetLabel, agentBadge } from '../words.mjs';
+import { KIND_LABEL, STATE_BADGE, MODES, kindLabel, targetLabel, agentBadge, runsDirOf } from '../words.mjs';
 import { badge } from './badge.mjs';
 import { glyph } from './glyphs.mjs';
 import { attachBlock } from './job-panel.mjs';
@@ -46,7 +46,7 @@ export function overviewSection({ store }) {
   const header = h('header', { class: 'zl-page-header' },
     h('div', { class: 'eyebrow' }, 'Project'),
     h('h1', { class: 'display-md zl-project-title' }, store.get().state?.project ?? 'This project'),
-    h('p', { class: 'body zl-muted' }, 'Diagrams under diagrams/, the jobs the agent carries out for them, and the terms they use.'));
+    h('p', { class: 'body zl-muted' }, `Diagrams under ${runsDirOf(store)}/, the jobs the agent carries out for them, and the terms they use.`));
 
   const startGrid = h('div', { class: 'zl-start' }, START.map((s) => h('a', { class: 'zl-start-card', href: s.href },
     h('span', { class: 'zl-start-glyph' }, glyph(s.glyph, { size: 'lg' })),
@@ -64,6 +64,7 @@ export function overviewSection({ store }) {
     if (stale.length) items.push({ tone: 'warning', title: `${stale.length} run${stale.length === 1 ? ' is' : 's are'} behind the code`, body: stale.map((r) => r.title).join(', '), href: stale.length === 1 ? `#/diagrams/${encodeURIComponent(stale[0].run)}` : '#/diagrams', action: 'Review' });
     const suggested = state?.glossary?.counts?.suggested ?? 0;
     if (suggested) items.push({ tone: 'neutral', title: `${suggested} glossary suggestion${suggested === 1 ? '' : 's'} to review`, body: 'A suggestion changes no label until you confirm it.', href: '#/glossary/review', action: 'Review' });
+    if (state?.configError) items.push({ tone: 'danger', title: 'The project setting cannot be used', body: `${state.configError.message}. ${state.configError.hint}`, href: '#/diagrams', action: 'Open' });
     if (state?.glossary && !state.glossary.ok) items.push({ tone: 'danger', title: 'The glossary does not match its schema', body: 'Fix .zukai/glossary.json or take it back from git.', href: '#/glossary', action: 'Open' });
     return items;
   }
@@ -97,7 +98,7 @@ export function overviewSection({ store }) {
 
   function drawRuns() {
     if (!runs) return;
-    if (runs.length === 0) { replace(recentRuns, h('div', { class: 'zl-empty' }, h('p', { class: 'body zl-muted' }, 'No runs yet. Start one above; the agent writes it under diagrams/.'))); return; }
+    if (runs.length === 0) { replace(recentRuns, h('div', { class: 'zl-empty' }, h('p', { class: 'body zl-muted' }, `No runs yet. Start one above; the agent writes it under ${runsDirOf(store)}/.`))); return; }
     replace(recentRuns, [...runs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4).map(runCard));
   }
 

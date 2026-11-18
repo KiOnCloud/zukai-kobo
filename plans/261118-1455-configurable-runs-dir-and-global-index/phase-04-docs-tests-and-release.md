@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Phase 4: Docs, tests and release"
-status: pending
+status: completed
 priority: P2
 effort: "0.5d"
 dependencies: [1, 2, 3]
@@ -26,12 +26,12 @@ ships with every test green.
 
 ## Tasks & Steps
 
-1. [ ] Docs above, each claim checked against the code of phases 1 to 3.
-2. [ ] Full `npm test`; install tests (`install.test.mjs`, `install-ps1.test.mjs`) unchanged.
+1. [x] Docs above, each claim checked against the code of phases 1 to 3.
+2. [x] Full `npm test`; install tests (`install.test.mjs`, `install-ps1.test.mjs`) unchanged.
 <!-- Updated: Validation Session 1 - version 2.6.0 -->
-3. [ ] Version bump to 2.6.0 in `.claude-plugin/plugin.json` and
+3. [x] Version bump to 2.6.0 in `.claude-plugin/plugin.json` and
    `skills/draw/scripts/package.json`, and a changelog entry in the same form as 2.5.1.
-4. [ ] Commit on `claude/upbeat-wright-llans1`, conventional message, no plan ids.
+4. [x] Commit on `claude/upbeat-wright-llans1`, conventional message, no plan ids.
 
 ## Verification
 

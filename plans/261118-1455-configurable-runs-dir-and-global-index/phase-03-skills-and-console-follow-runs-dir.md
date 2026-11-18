@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Phase 3: Skills and console follow the runs folder"
-status: pending
+status: completed
 priority: P2
 effort: "1d"
 dependencies: [1]
@@ -44,14 +44,14 @@ and stay.
 
 ## Tasks & Steps
 
-1. [ ] Closing contract: the run folder is `<runs-dir>/<yyyymmdd>_<run-slug>/`, `<runs-dir>`
+1. [x] Closing contract: the run folder is `<runs-dir>/<yyyymmdd>_<run-slug>/`, `<runs-dir>`
    from `runs-dir`.
-2. [ ] Draw, revise, sync, recook, labs: resolve `<runs-dir>` at the start; replace the
+2. [x] Draw, revise, sync, recook, labs: resolve `<runs-dir>` at the start; replace the
    listed mentions; `bad-config` stops with the CLI's message.
-3. [ ] `/api/state` adds `runsDir`; views use it; jsdom and e2e tests run once with
+3. [x] `/api/state` adds `runsDir`; views use it; jsdom and e2e tests run once with
    `docs/diagrams`.
-4. [ ] `check-references` test still passes (every referenced file and section exists).
-5. [ ] Rebuild `bin/labs-ui/`.
+4. [x] `check-references` test still passes (every referenced file and section exists).
+5. [x] Rebuild `bin/labs-ui/`.
 
 ## Verification
 

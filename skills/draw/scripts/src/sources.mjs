@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { orderIrFiles, runSlugOf } from './run-order.mjs';
+import { runFolderPattern } from './project-config.mjs';
 
 /**
  * The source files a run was drawn from, and whether they changed since.
@@ -108,9 +109,9 @@ function pathsInNotes(notes, root) {
 }
 
 function checkRun(run, given) {
-  if (!existsSync(run)) return fail(1, given, `no such folder: ${run}`, 'pass the run folder, diagrams/<yyyymmdd>_<run-slug>');
+  if (!existsSync(run)) return fail(1, given, `no such folder: ${run}`, `pass the run folder, ${runFolderPattern()}`);
   const source = join(run, 'source');
-  if (!existsSync(source) || !statSync(source).isDirectory()) return fail(1, given, `no source/ folder in ${run}`, 'pass the run folder, diagrams/<yyyymmdd>_<run-slug>');
+  if (!existsSync(source) || !statSync(source).isDirectory()) return fail(1, given, `no source/ folder in ${run}`, `pass the run folder, ${runFolderPattern()}`);
   return null;
 }
 

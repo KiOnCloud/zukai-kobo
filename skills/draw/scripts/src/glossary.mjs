@@ -15,8 +15,8 @@
  * sibling and renamed. `rev` is the SHA-256 of the file's bytes: a writer that read an older
  * file gets a conflict and changes nothing.
  *
- * The project root is `--root`, else the working directory; `.zukai/` and `diagrams/` lie
- * directly under it.
+ * The project root is `--root`, else the working directory; `.zukai/` lies directly under it,
+ * and so does the runs folder unless `.zukai/config.json` names another (`project-config.mjs`).
  */
 import { closeSync, existsSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
@@ -26,6 +26,7 @@ import schema from './schema/glossary-v1.schema.json' with { type: 'json' };
 import { scanSecrets, redactText } from './scan-secrets.mjs';
 import { labelsOf, textAt } from './ir-labels.mjs';
 import { orderIrFiles, runSlugOf } from './run-order.mjs';
+import { runFolderPattern } from './project-config.mjs';
 
 export const STATUSES = ['suggested', 'confirmed', 'rejected'];
 export const GLOSSARY_FILE = 'glossary.json';
@@ -352,7 +353,7 @@ export function readRun(runDir) {
   try {
     names = readdirSync(source);
   } catch {
-    return { ok: false, errors: [{ path: runDir, message: 'not a run folder: it has no source/ folder', hint: 'pass diagrams/<yyyymmdd>_<run-slug>' }] };
+    return { ok: false, errors: [{ path: runDir, message: 'not a run folder: it has no source/ folder', hint: `pass the run folder, ${runFolderPattern()}` }] };
   }
   const originals = [];
   const variants = [];

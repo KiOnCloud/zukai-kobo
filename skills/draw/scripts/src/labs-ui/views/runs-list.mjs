@@ -1,11 +1,11 @@
 /**
- * The runs under diagrams/: cards or a table, a search, filters by kind and by state, and the
+ * The runs under the project's runs folder: cards or a table, a search, filters by kind and by state, and the
  * doors to a new diagram and a recook. The chosen layout is kept for the tab.
  */
 import { S } from '../sienna.mjs';
 import { h, replace, day } from '../dom.mjs';
 import { api } from '../api.mjs';
-import { ORIGIN, kindLabel, targetLabel } from '../words.mjs';
+import { ORIGIN, kindLabel, targetLabel, runsDirOf } from '../words.mjs';
 import { badge } from './badge.mjs';
 import { runCard } from './overview.mjs';
 
@@ -30,7 +30,7 @@ export function runsList({ store }) {
     h('div', { class: 'zl-stack-tight' },
       h('div', { class: 'eyebrow' }, 'Diagrams'),
       h('h1', { class: 'display-md' }, 'Runs of this project'),
-      runs ? h('p', { class: 'body zl-muted' }, `${runs.length} run${runs.length === 1 ? '' : 's'} under diagrams/, newest first.`) : null),
+      runs ? h('p', { class: 'body zl-muted' }, `${runs.length} run${runs.length === 1 ? '' : 's'} under ${runsDirOf(store)}/, newest first.`) : null),
     h('div', { class: 'zl-row' },
       S().Button({ label: 'Recook a diagram', variant: 'secondary', href: '#/diagrams/recook' }),
       S().Button({ label: 'New diagram', variant: 'primary', icon: 'plus', href: '#/diagrams/new' })));
@@ -54,7 +54,7 @@ export function runsList({ store }) {
       { key: 'state', label: 'State', render: (r) => (r.stale ? badge({ label: 'Behind the code', tone: 'warning' }) : '') },
       { key: 'revisions', label: 'Revisions', numeric: true, render: (r) => String(r.revisions) },
     ];
-    return S().Table({ columns, rows, caption: 'Runs under diagrams/' });
+    return S().Table({ columns, rows, caption: `Runs under ${runsDirOf(store)}/` });
   }
 
   function results() {
@@ -86,7 +86,7 @@ export function runsList({ store }) {
     if (runs.length === 0) {
       replace(element, header(), h('div', { class: 'zl-empty zl-empty-hero' },
         h('p', { class: 'display-sm' }, 'No runs yet'),
-        h('p', { class: 'body zl-muted' }, 'A run is a folder under diagrams/ with the models, the files and the history of one subject. Queue a new diagram and the agent writes the first one.'),
+        h('p', { class: 'body zl-muted' }, `A run is a folder under ${runsDirOf(store)}/ with the models, the files and the history of one subject. Queue a new diagram and the agent writes the first one.`),
         S().Button({ label: 'New diagram', variant: 'primary', icon: 'plus', href: '#/diagrams/new' })));
       return;
     }

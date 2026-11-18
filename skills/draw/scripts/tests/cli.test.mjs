@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { scriptsDir, fixturesDir } from './helpers.mjs';
@@ -109,5 +109,69 @@ describe('cli (committed bundle, run from a different working directory)', () =>
     expect(run(['frobnicate']).code).toBe(1);
     expect(run(['validate', join(scriptsDir, 'package.json')]).code).toBe(2);
     expect(run(['validate', join(scriptsDir, 'build.mjs')]).code).toBe(1);
+  });
+});
+
+describe('runs-dir (committed bundle)', () => {
+  const project = () => mkdtempSync(join(tmpdir(), 'zukai-runs-dir-'));
+
+  it('prints the default folder and where it came from', () => {
+    const root = project();
+    const r = run(['runs-dir', '--root', root]);
+    expect(r.code).toBe(0);
+    expect(JSON.parse(r.stdout)).toEqual({ ok: true, root, runsDir: 'diagrams', path: join(root, 'diagrams'), from: 'default' });
+  });
+
+  it('reads the working directory without --root', () => {
+    const root = project();
+    expect(JSON.parse(run(['runs-dir'], root).stdout)).toMatchObject({ root, runsDir: 'diagrams' });
+  });
+
+  it('sets the folder, warns about runs left in the old one and never moves them', () => {
+    const root = project();
+    mkdirSync(join(root, 'diagrams', '20261117_old', 'source'), { recursive: true });
+    const set = run(['runs-dir', 'set', 'docs/diagrams', '--root', root]);
+    expect(set.code).toBe(0);
+    expect(JSON.parse(set.stdout)).toMatchObject({ ok: true, root, runsDir: 'docs/diagrams', previous: 'diagrams', runsLeftIn: { runsDir: 'diagrams', runs: 1 } });
+    expect(existsSync(join(root, 'diagrams', '20261117_old'))).toBe(true);
+    expect(JSON.parse(readFileSync(join(root, '.zukai', 'config.json'), 'utf8'))).toEqual({ config: 1, runsDir: 'docs/diagrams' });
+    expect(JSON.parse(run(['runs-dir', '--root', root]).stdout)).toMatchObject({ runsDir: 'docs/diagrams', path: join(root, 'docs', 'diagrams'), from: 'config' });
+  });
+
+  it('refuses a folder outside the project with bad-config and exit 1', () => {
+    const root = project();
+    for (const value of ['../x', '/abs', '.zukai/runs', '.git']) {
+      const r = run(['runs-dir', 'set', value, '--root', root]);
+      expect(r.code, value).toBe(1);
+      expect(parseStderr(r.stderr).error).toMatchObject({ code: 'bad-config' });
+    }
+    expect(existsSync(join(root, '.zukai', 'config.json'))).toBe(false);
+  });
+
+  it('stops on a setting it cannot use, here and in the commands that read runs', () => {
+    const root = project();
+    mkdirSync(join(root, '.zukai'));
+    writeFileSync(join(root, '.zukai', 'config.json'), '{ broken');
+    const r = run(['runs-dir', '--root', root]);
+    expect(r.code).toBe(1);
+    expect(parseStderr(r.stderr).error).toMatchObject({ code: 'bad-config', path: join(root, '.zukai', 'config.json') });
+    const status = run(['labs', 'status', '--root', root]);
+    expect(status.code).toBe(1);
+    expect(parseStderr(status.stderr).error).toMatchObject({ code: 'bad-config' });
+  });
+
+  it('refuses an unknown word and a missing folder', () => {
+    expect(run(['runs-dir', 'move', 'x']).code).toBe(1);
+    expect(run(['runs-dir', 'set']).code).toBe(1);
+    expect(parseStderr(run(['runs-dir', '--to', 'x']).stderr).errors[0].message).toMatch(/does not take --to/);
+  });
+
+  it('names the resolved folder in the hint of a run folder that has no IR', () => {
+    const root = project();
+    run(['runs-dir', 'set', 'docs/diagrams', '--root', root]);
+    mkdirSync(join(root, 'empty'));
+    const r = run(['bundle', '--to', 'drawio', '--out', join(root, 'x.drawio'), join(root, 'empty')], root);
+    expect(r.code).toBe(1);
+    expect(parseStderr(r.stderr).errors[0].hint).toContain('docs/diagrams/<yyyymmdd>_<run-slug>');
   });
 });

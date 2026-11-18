@@ -43,6 +43,12 @@ desktop, or else opens draw.io on the web in the browser, which then receives th
 Every other command works offline.
 `cli.mjs help` prints every command.
 
+Before anything else, from the project root, run `node "<skill-dir>/scripts/bin/cli.mjs"
+runs-dir` once: its `runsDir` is `<runs-dir>`, the folder this run is written under
+(`diagrams` unless the project's `.zukai/config.json` names another). On exit 1 with
+`bad-config`, show its message and hint and stop. `references/closing-contract.md` has the
+rule.
+
 ## Arguments and modes
 
 The invocation arguments select the mode and target. Claude Code appends them as
@@ -340,7 +346,8 @@ or of the code, nothing more.
 ## Closing contract (every mode ends here, with no shortcut)
 
 Read `references/closing-contract.md` and run it in full before reporting anything: write
-every IR into the run folder, validate, emit, bundle, review until it passes, then report.
+every IR into the run folder (under the project's runs folder, `<runs-dir>`, which the
+contract resolves with `runs-dir` at the start of the run; `diagrams/` by default), validate, emit, bundle, review until it passes, then report.
 It also says when and how the description tables of a run are written, and it holds the rules that hold in every mode (no hand-written diagram syntax, no secrets
 in labels, stable ids, labels in the user's language). The revise skill ends with the same
 file, so it is the only copy.

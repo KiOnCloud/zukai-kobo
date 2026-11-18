@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Phase 1: Runs folder contract and CLI"
-status: pending
+status: completed
 priority: P2
 effort: "1d"
 dependencies: []
@@ -65,14 +65,14 @@ One resolver decides where a project's runs live, every piece of code that hard-
 
 ## Tasks & Steps
 
-1. [ ] Write `project-config.mjs` and its unit tests first: default, config, each invalid
+1. [x] Write `project-config.mjs` and its unit tests first: default, config, each invalid
    value, a link leading out of the project, broken JSON giving `bad-config`.
-2. [ ] Replace `diagramsDir` with `runsPath` in `labs-runs.mjs` and `labs-server.mjs`.
-3. [ ] Replace the `diagrams` name check of `labs holds` with `projectOfRun`.
-4. [ ] Update the hints and usage text listed above.
-5. [ ] Add `runs-dir` and `runs-dir set` to `COMMAND_OPTIONS`, the usage text and `help`.
-6. [ ] Check `.zukai/.gitignore` (written by `ensureZukaiDir`) keeps `config.json` tracked.
-7. [ ] Rebuild `bin/cli.mjs`.
+2. [x] Replace `diagramsDir` with `runsPath` in `labs-runs.mjs` and `labs-server.mjs`.
+3. [x] Replace the `diagrams` name check of `labs holds` with `projectOfRun`.
+4. [x] Update the hints and usage text listed above.
+5. [x] Add `runs-dir` and `runs-dir set` to `COMMAND_OPTIONS`, the usage text and `help`.
+6. [x] Check `.zukai/.gitignore` (written by `ensureZukaiDir`) keeps `config.json` tracked.
+7. [x] Rebuild `bin/cli.mjs`.
 
 ## Verification
 

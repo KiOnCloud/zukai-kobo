@@ -287,7 +287,7 @@ reads the file are in
 `labs` serves a page on `127.0.0.1` for the project the session runs in. Its **Overview**
 says what needs you (the agent's question, a failed job, runs behind their code, glossary
 suggestions) and offers the ways to start a diagram. **Diagrams** lists the runs under
-`diagrams/` as cards or a table and shows each one: the source files that changed since it
+the project's runs folder (`diagrams/` by default) as cards or a table and shows each one: the source files that changed since it
 was drawn, its diagrams, and their picture, model, description tables, history with what
 changed since each revision, files and glossary check. A new diagram is a form of choices
 shown as what they are (the input, the kind with a drawing of it, the level of detail, the
@@ -424,7 +424,8 @@ layout are in [docs/architecture.md](docs/architecture.md).
 
 ## Output
 
-Every run writes into one folder of your project:
+Every run writes into one folder of your project, under `diagrams/` unless the project
+names another runs folder (see "Where the runs live" below):
 
 ```text
 diagrams/20261109_login-flow/
@@ -457,6 +458,31 @@ console is used:
 
 Commit `glossary.json`. `labs/` belongs to one machine and holds the console's token, which
 is why `.zukai/.gitignore` keeps it out of git.
+
+### Where the runs live
+
+To keep the runs somewhere else in the project, say `docs/diagrams/`, set the project's runs
+folder once from the project root; it is written to `.zukai/config.json`, which is committed
+like the glossary, so every teammate's agent, the CLI and the console use the same folder:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs runs-dir set docs/diagrams
+node <skill-dir>/scripts/bin/cli.mjs runs-dir        # prints the folder and where it came from
+```
+
+The folder stays inside the project (no absolute path, no `..`, not `.zukai/` or `.git/`).
+Runs already in the old folder are not moved: `runs-dir set` says how many are left there.
+
+To see which diagrams you have across projects, `index list` prints every project the CLI
+has written runs in, with its runs folder and its runs, read from disk each time:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs index list
+```
+
+The list is a per-user cache in `~/.zukai/index.json` (`%LOCALAPPDATA%\zukai\` on Windows)
+that holds project folders only, never diagram content. `index rebuild --scan <folder>`
+rebuilds it, and `ZUKAI_INDEX=off` turns it off ([docs/install.md](docs/install.md#where-the-runs-live-and-the-run-index)).
 
 ## Requirements
 

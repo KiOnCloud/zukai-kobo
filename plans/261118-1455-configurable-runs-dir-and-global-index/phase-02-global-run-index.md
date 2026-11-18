@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Phase 2: Global run index"
-status: pending
+status: completed
 priority: P2
 effort: "1d"
 dependencies: [1]
@@ -55,15 +55,15 @@ folders on read, so the index is a cache that can be deleted and rebuilt at any 
 
 ## Tasks & Steps
 
-1. [ ] Write `run-index.mjs` with location, read, register, prune, rebuild and forget, and
+1. [x] Write `run-index.mjs` with location, read, register, prune, rebuild and forget, and
    unit tests: register twice keeps one entry, a deleted root is dead and pruned on write,
    corrupt file reads as empty, `ZUKAI_INDEX=off`, Windows location from `LOCALAPPDATA`.
-2. [ ] Call `registerProject` after the six commands; never let it change their output.
-3. [ ] Add `index list|rebuild|forget` to the CLI, usage and `help`.
-4. [ ] E2E through the bundle with `ZUKAI_HOME` in a temp folder: two projects, one with a
+2. [x] Call `registerProject` after the six commands; never let it change their output.
+3. [x] Add `index list|rebuild|forget` to the CLI, usage and `help`.
+4. [x] E2E through the bundle with `ZUKAI_HOME` in a temp folder: two projects, one with a
    custom `runsDir`, a `bundle` in each, `index list`, delete one, `index list`, delete
    `index.json`, `index rebuild --scan`, compare with the first list.
-5. [ ] Rebuild `bin/cli.mjs`.
+5. [x] Rebuild `bin/cli.mjs`.
 
 ## Verification
 

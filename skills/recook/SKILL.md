@@ -125,7 +125,8 @@ The facts are what the run keeps of it, with such values already replaced by pla
 4. On exit 1, quote the error and stop; never fall back to reading the XML or the board
    yourself. The one exception is `--page` naming a page the source does not have: its hint
    lists the pages, so choose from that list (or ask) and extract again.
-5. Make the run folder as the closing contract names it, `diagrams/<yyyymmdd>_<run-slug>/`,
+5. Make the run folder as the closing contract names it, `<runs-dir>/<yyyymmdd>_<run-slug>/`
+   (`<runs-dir>` from `runs-dir`, resolved at the start as the contract says; `diagrams` by default),
    with a short English kebab-case slug of what the source shows (`order-system`,
    `refund-gateway-call`). A facts page without a name (a diagram on a board page outside
    any section) gets its title from what it shows, in the user's language, recorded as an

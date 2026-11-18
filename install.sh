@@ -179,7 +179,7 @@ for spec in $TODO; do
   # The feature matrix is the one source file the skill text points at.
   if [ -d "$TMP/$name/scripts/src" ]; then
     mv "$TMP/$name/scripts/src/feature-matrix.json" "$TMP/$name/scripts/feature-matrix.json.keep"
-    for dev in src tests fixtures tools build.mjs package-lock.json; do
+    for dev in src tests fixtures tools build.mjs vitest.config.mjs package-lock.json; do
       rm -rf "$TMP/$name/scripts/$dev"
     done
     mkdir -p "$TMP/$name/scripts/src"

@@ -6,7 +6,7 @@
 import { S } from '../sienna.mjs';
 import { h, replace, when, ago, size, day, copyText } from '../dom.mjs';
 import { api, path } from '../api.mjs';
-import { ORIGIN, DOC_LANGS, kindLabel, targetLabel, KIND_LABEL } from '../words.mjs';
+import { ORIGIN, DOC_LANGS, kindLabel, targetLabel, KIND_LABEL, runsDirOf } from '../words.mjs';
 import { badge, textBlock } from './badge.mjs';
 import { glyph } from './glyphs.mjs';
 import { fileView } from './file-view.mjs';
@@ -170,12 +170,12 @@ export function runDetail({ store, run, tab = 'picture', diagram: startDiagram, 
       { key: 'modified', label: 'Changed', muted: true, render: (f) => ago(f.modified) },
       { key: 'actions', label: 'Actions', render: (f) => h('div', { class: 'zl-row zl-row-tight' },
         S().Button({ label: `Preview ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'search', onClick: () => { replace(preview, h('div', { class: 'zl-row zl-spread' }, h('h3', { class: 'heading-sm' }, h('span', { class: 'code' }, f.name)), S().Button({ label: 'Close the preview', variant: 'ghost', size: 'sm', onClick: () => replace(preview) })), fileView({ run, name: f.name })); preview.scrollIntoView?.({ block: 'nearest' }); } }),
-        S().Button({ label: 'Copy path', variant: 'ghost', size: 'sm', onClick: () => copyText(`diagrams/${run}/${f.name}`, (t) => say('warning', `The browser did not allow copying. The path is ${t}.`)).then((ok) => { if (ok) say('success', `Copied diagrams/${run}/${f.name}`); }) }),
+        S().Button({ label: 'Copy path', variant: 'ghost', size: 'sm', onClick: () => copyText(`${runsDirOf(store)}/${run}/${f.name}`, (t) => say('warning', `The browser did not allow copying. The path is ${t}.`)).then((ok) => { if (ok) say('success', `Copied ${runsDirOf(store)}/${run}/${f.name}`); }) }),
         S().Button({ label: `Download ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'download', onClick: () => download(f.name) }),
         f.name.endsWith('.drawio') ? openIn(f.name, 'row') : null) },
     ];
     if (detail.files.length === 0) { replace(panel, h('p', { class: 'body zl-muted' }, 'This run has no files yet.')); return; }
-    replace(panel, keys.map((k) => h('section', { class: 'zl-stack' }, h('h3', { class: 'eyebrow' }, `${k} · ${groups.get(k).length}`), S().Table({ columns, rows: groups.get(k), caption: `Files of diagrams/${run}${k === 'Run folder' ? '' : `/${k}`}`, dense: true }))), preview);
+    replace(panel, keys.map((k) => h('section', { class: 'zl-stack' }, h('h3', { class: 'eyebrow' }, `${k} · ${groups.get(k).length}`), S().Table({ columns, rows: groups.get(k), caption: `Files of ${runsDirOf(store)}/${run}${k === 'Run folder' ? '' : `/${k}`}`, dense: true }))), preview);
   }
 
   // ---------------------------------------------------------------- glossary
@@ -236,8 +236,8 @@ export function runDetail({ store, run, tab = 'picture', diagram: startDiagram, 
           S().Button({ label: 'Export pictures', variant: 'secondary', size: 'sm', icon: 'download', onClick: exportPictures }),
           hasFile(combinedName()) ? openIn(combinedName()) : null)),
       h('div', { class: 'zl-row zl-meta' },
-        h('span', { class: 'code zl-muted' }, `diagrams/${run}`),
-        S().Button({ label: 'Copy path', variant: 'ghost', size: 'sm', onClick: () => copyText(`diagrams/${run}`, (t) => say('warning', `The browser did not allow copying. The path is ${t}.`)).then((ok) => { if (ok) say('success', `Copied diagrams/${run}`); }) }),
+        h('span', { class: 'code zl-muted' }, `${runsDirOf(store)}/${run}`),
+        S().Button({ label: 'Copy path', variant: 'ghost', size: 'sm', onClick: () => copyText(`${runsDirOf(store)}/${run}`, (t) => say('warning', `The browser did not allow copying. The path is ${t}.`)).then((ok) => { if (ok) say('success', `Copied ${runsDirOf(store)}/${run}`); }) }),
         h('span', { class: 'caption zl-muted' }, `${detail.diagrams.length} diagram${detail.diagrams.length === 1 ? '' : 's'} · ${detail.revisions.length} revision${detail.revisions.length === 1 ? '' : 's'}`),
         detail.targets.map((t) => badge({ label: targetLabel(t), outline: true })),
         langs.length ? badge({ label: `Also in ${langs.join(', ')}`, outline: true }) : null,
@@ -267,7 +267,7 @@ export function runDetail({ store, run, tab = 'picture', diagram: startDiagram, 
     if (!r.ok) {
       replace(element, h('div', { class: 'zl-empty zl-empty-hero' },
         h('p', { class: 'display-sm' }, r.status === 404 ? 'No such run' : 'This run could not be read'),
-        h('p', { class: 'body zl-muted' }, r.status === 404 ? `Nothing named ${run} is under diagrams/. It may have been renamed or removed.` : r.error.message),
+        h('p', { class: 'body zl-muted' }, r.status === 404 ? `Nothing named ${run} is under ${runsDirOf(store)}/. It may have been renamed or removed.` : r.error.message),
         S().Button({ label: 'All runs', variant: 'secondary', href: '#/diagrams' })));
       return;
     }
