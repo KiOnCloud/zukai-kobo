@@ -12,7 +12,7 @@ export function livePicture({ run, diagram, onExport, onTables }) {
     h('div', { class: 'zl-row' }, S().Button({ label: 'Export pictures', variant: 'secondary', onClick: onExport }), S().Button({ label: 'Show the tables', variant: 'ghost', onClick: onTables })));
   api.get(path`/api/runs/${run}/diagrams/${diagram}/picture`).then((r) => {
     if (!r.ok) { replace(holder, fallback()); return; }
-    replace(holder, viewerFrame({ kind: r.data.kind, text: r.data.text, fallback }), h('p', { class: 'caption zl-muted' }, 'Drawn in this page by the draw.io viewer or Mermaid, loaded from their sites; the diagram does not leave this machine.'));
+    replace(holder, viewerFrame({ kind: r.data.kind, text: r.data.text, fallback }), h('p', { class: 'caption zl-muted' }, 'Drawn in a sealed frame by the draw.io viewer or Mermaid, loaded from their sites. The frame can reach no other site; the draw.io viewer may fetch its shape files from viewer.diagrams.net.'));
   });
   return holder;
 }

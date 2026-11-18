@@ -173,3 +173,19 @@ describe('labs start, status and stop through the bundle', () => {
     expect(cli(['labs', 'restart']).err.errors[0].message).toBe('unknown command "labs restart"');
   });
 });
+
+describe('a stale server.json whose port another program took', () => {
+  it('lets a port the user names start the console anyway', async () => {
+    const { root } = labsProject();
+    const impostor = createHttpServer((req, res) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"app":"other"}'); });
+    await new Promise((r) => impostor.listen(0, '127.0.0.1', r));
+    mkdirSync(join(root, '.zukai', 'labs'), { recursive: true });
+    writeFileSync(serverJson(root), JSON.stringify({ pid: 1, port: impostor.address().port, instance: 'old', version: '0', token: 'old-token' }));
+    const port = await freePort();
+    const r = await cliAsync(['labs', 'start', '--root', root, '--port', String(port)]);
+    started.push({ root });
+    expect(r.code).toBe(0);
+    expect(r.out.port).toBe(port);
+    impostor.close();
+  }, 30_000);
+});

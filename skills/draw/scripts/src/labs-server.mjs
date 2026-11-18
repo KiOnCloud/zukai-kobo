@@ -112,8 +112,13 @@ export function makeLogger(file) {
     const line = `${JSON.stringify({ t: new Date().toISOString(), ...entry })}\n`;
     try {
       mkdirSync(dirname(file), { recursive: true });
-      try { if (statSync(file).size + line.length > LOG_CAP) truncateSync(file, 0); } catch { /* no file yet */ }
-      appendFileSync(file, line);
+      // `.zukai/` can come with a clone: a log that is not a plain file (a link to a file of the
+      // user) is never written, truncated or followed.
+      let st;
+      try { st = lstatSync(file); } catch { /* no file yet */ }
+      if (st && !st.isFile()) return;
+      if (st && st.size + line.length > LOG_CAP) truncateSync(file, 0);
+      appendFileSync(file, line, { flag: st ? 'a' : 'ax' });
     } catch {
       // a log that cannot be written must not stop the server
     }

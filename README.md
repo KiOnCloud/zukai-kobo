@@ -442,8 +442,10 @@ is why `.zukai/.gitignore` keeps it out of git.
   refused, because a browser on your device cannot reach that machine. The console's pages,
   scripts and fonts come from the server. When a run has no picture under `svg/`, the
   browser fetches draw.io's viewer (and Mermaid, for a Mermaid run) into a sandboxed frame,
-  as the renderer of `preview` is fetched, and draws the diagram there; the diagram does
-  not leave the machine.
+  as the renderer of `preview` is fetched, and draws the diagram there. The frame can open
+  no connection except to `viewer.diagrams.net`, which serves draw.io's shape files; the
+  viewer script that holds the diagram comes from that host, so a diagram you would not send
+  there belongs under `svg/` (Export pictures) rather than in the live frame.
 
 ## Other runtimes
 

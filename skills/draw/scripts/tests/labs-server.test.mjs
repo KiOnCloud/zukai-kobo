@@ -231,3 +231,16 @@ describe('the viewer frame', () => {
     expect(cleaned).toContain('image=data:image/png,AAA;');
   });
 });
+
+describe('files of .zukai that came with a clone', () => {
+  it('never writes, truncates or follows a log that is a link', async () => {
+    const { mkdtempSync: md, writeFileSync, symlinkSync, statSync } = await import('node:fs');
+    const dir = md(join(tmpdir(), 'zukai-log-link-'));
+    const target = join(dir, 'user-file.txt');
+    writeFileSync(target, 'x'.repeat(1024 * 1024 + 10));
+    const link = join(dir, 'server.log');
+    try { symlinkSync(target, link); } catch { return; }
+    makeLogger(link)({ event: 'started' });
+    expect(statSync(target).size).toBe(1024 * 1024 + 10);
+  });
+});

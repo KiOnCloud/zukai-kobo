@@ -249,3 +249,29 @@ describe('persistence', () => {
     expect(existsSync(join(p.root, '.zukai', 'labs', 'jobs', first.id))).toBe(false);
   });
 });
+
+describe('records that came with a clone', () => {
+  it('takes no record whose id is not its own form, and deletes or writes nothing outside the jobs folder', async () => {
+    const { mkdirSync, writeFileSync, existsSync: exists } = await import('node:fs');
+    const { p } = setup();
+    const dir = join(p.root, '.zukai', 'labs', 'jobs');
+    mkdirSync(dir, { recursive: true });
+    const victim = join(p.root, 'victim');
+    mkdirSync(victim);
+    writeFileSync(join(victim, 'keep.txt'), 'keep');
+    const base = { kind: 'sync', run: null, params: {}, progress: [], asked: [], ask: null };
+    for (let i = 0; i < 52; i++) {
+      const id = `j20261118-0600${String(i).padStart(2, '0')}-abcd`;
+      writeFileSync(join(dir, `${id}.json`), JSON.stringify({ ...base, id, state: 'done', finishedAt: `2026-11-18T06:00:${String(i).padStart(2, '0')}Z` }));
+    }
+    writeFileSync(join(dir, 'forged.json'), JSON.stringify({ ...base, id: '../../../victim', state: 'done', finishedAt: '2000-01-01T00:00:00Z' }));
+    writeFileSync(join(dir, 'written.json'), JSON.stringify({ ...base, id: '../../../written', state: 'running' }));
+    writeFileSync(join(dir, 'j20261118-070000-abcd.json'), JSON.stringify({ id: 'j20261118-070000-abcd', state: 'done', kind: 'sync' }));
+    const jobs = createJobs({ root: p.root });
+    jobs.started();
+    expect(exists(join(victim, 'keep.txt'))).toBe(true);
+    expect(exists(join(p.root, 'written.json'))).toBe(false);
+    expect(jobs.list()).toHaveLength(50);
+    expect(() => jobs.state()).not.toThrow();
+  });
+});

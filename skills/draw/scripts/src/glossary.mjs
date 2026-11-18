@@ -18,7 +18,7 @@
  * The project root is `--root`, else the working directory; `.zukai/` and `diagrams/` lie
  * directly under it.
  */
-import { closeSync, existsSync, linkSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import Ajv2020 from 'ajv/dist/2020.js';
@@ -201,27 +201,30 @@ const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 
  */
 function takeLock(dir) {
   const lock = join(dir, LOCK_FILE);
+  const mark = `${process.pid} ${randomBytes(8).toString('hex')}\n`;
   const until = Date.now() + LOCK_WAIT_MS;
   for (;;) {
     try {
       const fd = openSync(lock, 'wx');
-      writeSync(fd, `${process.pid} ${new Date().toISOString()}\n`);
+      writeSync(fd, mark);
       closeSync(fd);
-      return lock;
+      return { lock, mark };
     } catch (e) {
       if (e.code !== 'EEXIST') throw e;
     }
-    let age = 0;
+    if (Date.now() > until) return undefined;
+    let st;
     try {
-      age = Date.now() - statSync(lock).mtimeMs;
+      st = lstatSync(lock);
     } catch {
       continue; // released in between: try again at once
     }
-    if (age > LOCK_STALE_MS) {
+    // A link is never a lock this code made; it is left alone and the wait ends at the deadline.
+    if (st.isFile() && Date.now() - st.mtimeMs > LOCK_STALE_MS) {
       const mine = `${lock}.${process.pid}-${randomBytes(4).toString('hex')}`;
       try {
         renameSync(lock, mine);
-        if (Date.now() - statSync(mine).mtimeMs <= LOCK_STALE_MS) {
+        if (Date.now() - lstatSync(mine).mtimeMs <= LOCK_STALE_MS) {
           try { linkSync(mine, lock); } catch { /* a third taker holds it now */ }
         }
         unlinkSync(mine);
@@ -230,9 +233,15 @@ function takeLock(dir) {
       }
       continue;
     }
-    if (Date.now() > until) return undefined;
     sleep(25 + Math.floor(Math.random() * 25));
   }
+}
+
+/** Release the lock only while it is still the one this writer made. */
+function releaseLock({ lock, mark }) {
+  try {
+    if (readFileSync(lock, 'utf8') === mark) unlinkSync(lock);
+  } catch { /* already gone */ }
 }
 
 /**
@@ -243,8 +252,8 @@ function takeLock(dir) {
  */
 export function writeGlossary(root, mutate, { expectedRev } = {}) {
   const dir = ensureZukaiDir(root);
-  const lock = takeLock(dir);
-  if (!lock) return { ok: false, code: 'locked', errors: [{ path: '/', message: 'the glossary is locked by another writer', hint: 'try again in a few seconds' }] };
+  const held = takeLock(dir);
+  if (!held) return { ok: false, code: 'locked', errors: [{ path: '/', message: 'the glossary is locked by another writer', hint: 'try again in a few seconds' }] };
   try {
     const current = readGlossary(root);
     if (!current.ok) return current;
@@ -260,7 +269,7 @@ export function writeGlossary(root, mutate, { expectedRev } = {}) {
     renameSync(tmp, path);
     return { ok: true, written: true, rev: revOf(Buffer.from(text)), glossary: JSON.parse(text), ...result };
   } finally {
-    try { unlinkSync(lock); } catch { /* already gone */ }
+    releaseLock(held);
   }
 }
 
@@ -348,16 +357,18 @@ export function readRun(runDir) {
   const originals = [];
   const variants = [];
   const maps = [];
+  // A link inside a run is never followed: what it points at is not part of the run.
+  const plain = (path, kind) => { try { const st = lstatSync(path); return kind === 'dir' ? st.isDirectory() : st.isFile(); } catch { return false; } };
   try {
-    for (const name of orderIrFiles(names.filter((n) => n.endsWith('.ir.json')), runSlugOf(source))) {
+    for (const name of orderIrFiles(names.filter((n) => n.endsWith('.ir.json') && plain(join(source, n), 'file')), runSlugOf(source))) {
       originals.push({ id: diagramIdOf(name), file: join(source, name), ir: readJson(join(source, name)) });
     }
     for (const name of names.sort()) {
       const path = join(source, name);
       const m = /^labels\.(.+)\.json$/.exec(name);
-      if (m && LANG_RE.test(m[1])) { maps.push({ lang: m[1], file: path, map: readJson(path) }); continue; }
-      if (!LANG_RE.test(name) || !statSync(path).isDirectory()) continue;
-      for (const f of readdirSync(path).filter((n) => n.endsWith('.ir.json')).sort()) {
+      if (m && LANG_RE.test(m[1]) && plain(path, 'file')) { maps.push({ lang: m[1], file: path, map: readJson(path) }); continue; }
+      if (!LANG_RE.test(name) || !plain(path, 'dir')) continue;
+      for (const f of readdirSync(path).filter((n) => n.endsWith('.ir.json') && plain(join(path, n), 'file')).sort()) {
         if (!originals.some((o) => o.id === diagramIdOf(f))) continue;
         variants.push({ lang: name, id: diagramIdOf(f), file: join(path, f), ir: readJson(join(path, f)) });
       }

@@ -131,3 +131,13 @@ describe('the job bridge through the bundle', () => {
     expect(runSync(['labs', 'done', 'j1', '--session', 's-abcdefghijkl', '--result', 'maybe', '--root', root]).code).toBe(1);
   });
 });
+
+describe('the end of the server', () => {
+  it('answers a held wait with no-server when the console stops', async () => {
+    const c = await console_();
+    const waiting = run(['labs', 'wait', '--session', c.session, '--root', c.root]);
+    await new Promise((r) => setTimeout(r, 400));
+    expect(runSync(['labs', 'stop', '--root', c.root, '--force']).code).toBe(0);
+    expect((await waiting).err.error.code).toBe('no-server');
+  }, 30_000);
+});

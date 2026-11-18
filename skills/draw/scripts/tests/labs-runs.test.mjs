@@ -64,3 +64,18 @@ describe('labs runs', () => {
     expect(runPath(p.root, '..')).toBeUndefined();
   });
 });
+
+describe('links inside a run', () => {
+  it('lists no IR file that is a link, and the glossary check reads none', async () => {
+    const { writeFileSync, symlinkSync, mkdtempSync: md } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { readRun } = await import('../src/glossary.mjs');
+    const q = labsProject();
+    const outside = join(md(join(tmpdir(), 'zukai-outside-')), 'secret.ir.json');
+    writeFileSync(outside, JSON.stringify({ schemaVersion: 1, kind: 'flowchart', title: 'OUTSIDE', nodes: [], edges: [] }));
+    try { symlinkSync(outside, join(q.root, 'diagrams', q.runs.checkout, 'source', 'linked.ir.json')); } catch { return; }
+    expect(diagramDetail(q.root, q.runs.checkout, 'linked')).toBeUndefined();
+    expect(listRuns(q.root).find((r) => r.run === q.runs.checkout).diagrams.map((d) => d.id)).not.toContain('linked');
+    expect(readRun(join(q.root, 'diagrams', q.runs.checkout)).originals.map((o) => o.id)).not.toContain('linked');
+  });
+});

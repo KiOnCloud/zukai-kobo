@@ -105,6 +105,8 @@ export async function startServer({ root: rootOption, port: portOption, idleMinu
   if (!(Number.isFinite(idle) && idle > 0)) return { code: 1, error: { code: 'bad-request', message: '--idle-minutes takes a number of minutes above 0' } };
   const ssh = env.SSH_CONNECTION ? { note: 'this session runs over SSH: forward the port to open the console on your computer, for example ssh -L <port>:127.0.0.1:<port>' } : {};
 
+  // A port the user named wins over a stale server.json whose port another program took.
+  const explicit = portOption !== undefined || Boolean(env.ZUKAI_LABS_PORT);
   const file = readServerFile(root);
   if (file) {
     const state = await probePort(file.port);
@@ -120,12 +122,15 @@ export async function startServer({ root: rootOption, port: portOption, idleMinu
         }
         await request(file.port, { method: 'POST', path: '/agent/shutdown', token: file.token, timeout: 5000 }).catch(() => {});
         await waitPortClosed(file.port);
+      } else if (proof.state === 'mismatch' && explicit && chosen.port !== file.port) {
+        // The program on the file's port proved it is not this console: the new server on the
+        // named port replaces the file once it has bound.
       } else if (proof.state !== 'refused') {
         return { code: 1, error: { code: 'not-this-project', message: proof.state === 'timeout' ? `the server on port ${file.port} did not answer in time` : `the program on port ${file.port} is not this project's console`, ...ownerHint(file.port) } };
       }
     }
   }
-  const port = readServerFile(root)?.port ?? chosen.port;
+  const port = explicit ? chosen.port : (readServerFile(root)?.port ?? chosen.port);
   if ((await probePort(port)) === 'open') {
     return { code: 1, error: { code: 'not-this-project', message: `port ${port} is taken by another program`, ...ownerHint(port) } };
   }
@@ -210,7 +215,8 @@ export async function serve({ root: rootOption, port: portOption, idleMinutes, p
     labs.beginClose();
     removeServerFile(root, instance);
     labs.server.close(() => process.exit(0));
-    labs.server.closeAllConnections?.();
+    // The released held calls answer "no-server" first; then the idle sockets go.
+    setTimeout(() => labs.server.closeAllConnections?.(), 300).unref();
     setTimeout(() => process.exit(0), 2000).unref();
   };
 

@@ -233,3 +233,14 @@ describe('check', () => {
     expect(report(root).findings).toEqual(before);
   });
 });
+
+describe('a lock that came with a clone', () => {
+  it('gives up after the wait on a dangling lock link instead of spinning', async () => {
+    const { symlinkSync } = await import('node:fs');
+    const root = copyProject();
+    try { symlinkSync(join(root, 'nowhere'), join(root, '.zukai', 'glossary.lock')); } catch { return; }
+    const started = Date.now();
+    expect(addEntries(root, [{ terms: { en: 'desk' } }])).toMatchObject({ ok: false, code: 'locked' });
+    expect(Date.now() - started).toBeLessThan(8000);
+  }, 15_000);
+});

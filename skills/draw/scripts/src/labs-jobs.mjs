@@ -140,6 +140,13 @@ export function answerErrors(ask, answers) {
   return errors;
 }
 
+export const JOB_ID = /^j\d{8}-\d{6}-[0-9a-f]{4}$/;
+const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+/** A record in the shape this module writes; anything else on disk is left out. */
+export const wellFormed = (job) => isObject(job) && typeof job.id === 'string' && JOB_ID.test(job.id) && STATES.includes(job.state)
+  && typeof job.kind === 'string' && isObject(job.params) && Array.isArray(job.progress) && Array.isArray(job.asked)
+  && (job.run === null || typeof job.run === 'string') && (job.ask === null || isObject(job.ask));
+
 const stamp = (d) => d.toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
 
 /**
@@ -159,6 +166,8 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
   const iso = () => new Date(now()).toISOString();
   const folderOf = (id) => join(dir, id);
   const save = (job) => {
+    if (!JOB_ID.test(job.id)) throw new Error('a job id of an unknown form');
+    if (!realFolder(dir)) throw new Error('the jobs folder is a link');
     mkdirSync(dir, { recursive: true });
     const file = join(dir, `${job.id}.json`);
     const tmp = `${file}.${process.pid}.tmp`;
@@ -198,13 +207,20 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
   };
 
   /** Read the records; close a job that was open when the server stopped; prune. */
+  /**
+   * Read the records; close a job that was open when the server stopped; prune. `.zukai/` can
+   * come with a clone, so a record is taken only in the shape this module writes: a regular
+   * file named after an id of its own form, never a link, with the fields the console reads.
+   */
   function started() {
     let names = [];
+    if (!realFolder(dir)) return;
     try { names = readdirSync(dir).filter((n) => n.endsWith('.json')); } catch { /* no jobs yet */ }
     for (const n of names) {
       try {
+        if (!lstatSync(join(dir, n)).isFile()) continue;
         const job = JSON.parse(readFileSync(join(dir, n), 'utf8'));
-        if (job && typeof job.id === 'string' && STATES.includes(job.state)) jobs.set(job.id, job);
+        if (wellFormed(job) && n === `${job.id}.json`) jobs.set(job.id, job);
       } catch { /* a broken record is left out */ }
     }
     seq = Math.max(0, ...[...jobs.values()].map((j) => j.seq ?? 0));
@@ -218,9 +234,15 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
     prune();
   }
 
+  /** True when the path is a folder and no link, or does not exist yet. */
+  function realFolder(path) {
+    try { return lstatSync(path).isDirectory(); } catch (e) { return e.code === 'ENOENT'; }
+  }
+
   function prune() {
     const finished = [...jobs.values()].filter((j) => FINISHED_STATES.has(j.state)).sort((a, b) => (a.finishedAt < b.finishedAt ? 1 : -1));
     for (const job of finished.slice(KEEP_FINISHED)) {
+      if (!JOB_ID.test(job.id)) continue;
       jobs.delete(job.id);
       rmSync(join(dir, `${job.id}.json`), { force: true });
       rmSync(folderOf(job.id), { recursive: true, force: true });

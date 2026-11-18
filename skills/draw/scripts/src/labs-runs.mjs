@@ -29,6 +29,7 @@ const HIDDEN_TOP = new Set(['history']);
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const isRealDir = (path) => { try { return lstatSync(path).isDirectory(); } catch { return false; } };
+const isRealFile = (path) => { try { return lstatSync(path).isFile(); } catch { return false; } };
 const readJson = (file) => { try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return undefined; } };
 
 export const diagramsDir = (root) => join(projectRoot(root), 'diagrams');
@@ -54,7 +55,7 @@ export function runPath(root, name) {
 function irNames(runDir) {
   const source = join(runDir, 'source');
   if (!isRealDir(source)) return [];
-  return orderIrFiles(readdirSync(source).filter((f) => f.endsWith('.ir.json')), runSlugOf(source));
+  return orderIrFiles(readdirSync(source).filter((f) => f.endsWith('.ir.json') && isRealFile(join(source, f))), runSlugOf(source));
 }
 
 /** The diagrams of a run as the console lists them. */
@@ -193,7 +194,7 @@ export function diagramDetail(root, run, id) {
 /** The IR entries of a folder (a run's `source/` or a revision's), in run order. */
 function entriesOf(folder) {
   if (!isRealDir(folder)) return [];
-  return orderIrFiles(readdirSync(folder).filter((f) => f.endsWith('.ir.json')), runSlugOf(folder))
+  return orderIrFiles(readdirSync(folder).filter((f) => f.endsWith('.ir.json') && isRealFile(join(folder, f))), runSlugOf(folder))
     .map((f) => ({ id: f.slice(0, -'.ir.json'.length), ir: readJson(join(folder, f)) }))
     .filter((e) => e.ir !== undefined);
 }
