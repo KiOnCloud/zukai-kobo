@@ -11,10 +11,10 @@ const EXTRA_TABS = {
   model: { tab: { value: 'model', label: 'Model' }, render: modelEditor },
 };
 
-export function diagramsSection({ store, parts }) {
-  const [first, tab] = parts;
+export function diagramsSection({ store, parts, setCrumbs }) {
+  const [first, second] = parts;
   if (!first) return runsList({ store });
-  if (first === 'new') return newDiagram({ store });
-  if (first === 'recook') return newDiagram({ store, recook: true });
-  return runDetail({ store, run: first, tab, extraTabs: EXTRA_TABS });
+  if (first === 'new') { setCrumbs?.([{ label: 'New diagram' }]); return newDiagram({ store, mode: second }); }
+  if (first === 'recook') { setCrumbs?.([{ label: 'Recook' }]); return newDiagram({ store, recook: true }); }
+  return runDetail({ store, run: first, tab: second, diagram: parts[2], extraTabs: EXTRA_TABS, setCrumbs });
 }

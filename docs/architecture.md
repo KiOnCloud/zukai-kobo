@@ -682,7 +682,11 @@ section is why it is built the way it is.
   the CLI bundle is. No framework was added, since the project takes no new runtime
   dependency it can do without. A section of the console is one entry of `nav.mjs` and one
   view module; there is no loader and no registry. The pages follow the server's state by
-  polling `/api/state`.
+  polling `/api/state`. The page layouts follow the width of the content (container
+  queries), not of the window, because the agent panel takes its share beside them; the few
+  controls Sienna has no helper for (choice tiles, segments, toggle chips) are native radios
+  and checkboxes laid over their whole tile (`views/choice.mjs`), and the drawings of the
+  diagram kinds are written in `views/glyphs.mjs`, never taken from the server.
 
 ### Why the server never writes a run
 
@@ -870,7 +874,8 @@ There is no plugin loader or registry: three emitters are a switch statement in
 `pipeline.mjs`. A section of the labs console joins through one navigation entry in
 `nav.mjs`, one view module, one route group of the server and one job kind with its row in
 the labs skill's job table; the Glossary section was added that way, as the second after
-Diagrams.
+Diagrams. Overview and Jobs joined the same way and needed no route or job kind of their own:
+they read `/api/state`, `/api/runs` and `/api/jobs`, which the server already had.
 
 ## Testing strategy
 

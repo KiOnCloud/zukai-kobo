@@ -75,5 +75,5 @@ export function openButton({ run, name, store, notice, compact = false }) {
   const onClick = () => openInDrawio({ run, name, embed: embedOf(store), notice });
   return compact
     ? S().Button({ label: `Open ${title} in draw.io`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'external', onClick })
-    : S().Button({ label: 'Open in draw.io', variant: 'secondary', icon: 'external', onClick });
+    : S().Button({ label: 'Open in draw.io', variant: 'secondary', size: 'sm', icon: 'external', onClick });
 }

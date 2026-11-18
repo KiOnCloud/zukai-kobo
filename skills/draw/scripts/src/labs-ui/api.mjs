@@ -16,7 +16,7 @@ export function readToken(win = window) {
   if (m) {
     token = m[1];
     try { storage()?.setItem(KEY, token); } catch { /* storage refused */ }
-    win.history.replaceState(null, '', `${win.location.pathname}#/diagrams`);
+    win.history.replaceState(null, '', `${win.location.pathname}#/overview`);
     return token;
   }
   try { token = storage()?.getItem(KEY) ?? null; } catch { token = null; }

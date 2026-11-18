@@ -704,6 +704,77 @@ again from part 1 is the safe choice when in doubt. The bundle written to save c
 only the diagrams none of whose parts ran, and it goes into the run folder of the first of
 them. A Starter plan allows 20 Figma MCP calls a month.
 
+## Upgrading to 2.5.1
+
+Version 2.5.1 opens a run's diagram in draw.io from the chat and from the labs console.
+Existing `.ir.json` files, run folders, CLI commands, options and exit codes keep working
+unchanged, no exit code was added, and a diagram emitted again comes out as 2.5.0 drew it.
+
+- **`open`.** `cli.mjs open <run-folder|file.drawio|file.drawio.svg>` starts draw.io
+  desktop when it is found and a display is there, and otherwise opens draw.io on the web
+  in the default browser. `--web` skips draw.io desktop, `--desktop` refuses without it,
+  and `open --check` says whether and how a file can be opened here and opens nothing. A
+  run folder stands for its combined `<run-slug>.drawio`. `cli.mjs help` gives the refusals
+  and their codes.
+- **The closing question.** Every run of draw, revise, recook and sync that wrote a
+  draw.io file ends with "Open it in draw.io?" (closing contract, step 8), asked only where
+  `open --check` says it can open and never answered in the user's place; inside a labs job
+  it is a card of the console, asked before the job is closed. A FigJam run gives its board
+  link, a Mermaid run ends as before.
+- **The console** offers Open in draw.io in a run's header, on each `.drawio` row of Files
+  and in Picture. It opens a popup: a browser that blocks pop-ups needs them allowed for
+  the console's address.
+
+What changes for a project you already have:
+
+- Nothing breaks, and nothing is written into a run. On the web route the diagram is held
+  for 24 hours in a page of its own under `zukai-open/` in the system temp folder (the
+  folder 0700, the page 0600), removed by the next `open` after that; the page hands the
+  diagram to `embed.diagrams.net` by `postMessage`, so diagrams.net receives it and no
+  address carries it. Save on the web downloads the file; changing the run with it stays
+  your step.
+- On Linux, a browser installed as a snap or a flatpak (Ubuntu's Firefox and Chromium) has a
+  `/tmp` of its own and shows "file not found" for the page; draw.io desktop, or a default
+  browser that is not confined, opens it.
+- Forks and wrappers: the closing contract gained step 8, `skills/draw/SKILL.md` the
+  `open` line, and the labs skill the closing card before `labs done`. Tests point
+  `ZUKAI_DRAWIO_EMBED` at a stand-in of the embed page and `ZUKAI_OPENER` at a stand-in of
+  the browser opener; neither is for users.
+
+## Upgrading to 2.5.0
+
+Version 2.5.0 redesigns the pages of the labs console. The server, its API, the job kinds,
+the `labs` and `glossary` commands, their options and exit codes are unchanged, and no
+skill, IR, run folder or emitted file differs from 2.4.0.
+
+- **Overview** is the console's first page: what needs you (the agent's question, a failed
+  job, runs behind their code, glossary suggestions), the ways to start a diagram, and the
+  runs and jobs of late. The address with the token now opens it instead of Diagrams.
+- **New diagram and recook** show each choice as what it is: the input, the kind (with a
+  drawing of it) and the target as tiles, the level of detail and the view as segments,
+  the description tables as toggles. "Ask me later" replaces "Let the agent ask" and is
+  drawn apart; a summary beside the form says what is set, what the agent will ask and
+  whether an agent is attached, and a target that loses part of a kind says so.
+- **Jobs** lists every job the server keeps, and each job has a page: its request, its
+  question answered full width, the questions already answered, every step, its report,
+  and for a failed job why and the undo.
+- **A run** shows the source files that changed since it was drawn, the list of its
+  diagrams, its history as a timeline with marked changes, its files by folder with a
+  preview, and a Glossary tab with its check. Runs are listed as cards or a table, with
+  filters by kind and state.
+- **Glossary** has three tabs: the entries, a review of the suggestions one by one, and the
+  check of a run. Deleting an entry asks first.
+- **The agent panel** can be closed; a question of the agent is then announced in the page.
+  It shows the agent's state with the command to attach one, the open job's steps, the
+  queue and the jobs closed last. The navigation gained a choice of theme.
+
+What changes for a project you already have: nothing. A console started by 2.4.0 keeps
+serving the old pages until it stops; `/zukai:labs` replaces a server of another version
+unless a job is open, so run `/zukai:labs stop` first if one is. Maintainers: the console's
+modules gained `views/overview.mjs`, `jobs.mjs`, `question-card.mjs`, `choice.mjs` and
+`glyphs.mjs`, and `nav.mjs` lists four sections; rebuild with `npm run build` after a change
+under `src/labs-ui/`.
+
 ## Upgrading to 2.4.0
 
 Version 2.4.0 adds a fifth skill, the labs console, and the project glossary. Existing
@@ -752,43 +823,6 @@ What changes for a project you already have:
   `bundle-drift.test.mjs` holds both to a fresh build, so commit both after a change under
   `src/`. The console is built on the Sienna design system; how a newer version of it is
   taken is in the section "Labs console" of `docs/architecture.md`.
-
-## Upgrading to 2.4.1
-
-Version 2.4.1 opens a run's diagram in draw.io from the chat and from the labs console.
-Existing `.ir.json` files, run folders, CLI commands, options and exit codes keep working
-unchanged, no exit code was added, and a diagram emitted again comes out as 2.4.0 drew it.
-
-- **`open`.** `cli.mjs open <run-folder|file.drawio|file.drawio.svg>` starts draw.io
-  desktop when it is found and a display is there, and otherwise opens draw.io on the web
-  in the default browser. `--web` skips draw.io desktop, `--desktop` refuses without it,
-  and `open --check` says whether and how a file can be opened here and opens nothing. A
-  run folder stands for its combined `<run-slug>.drawio`. `cli.mjs help` gives the refusals
-  and their codes.
-- **The closing question.** Every run of draw, revise, recook and sync that wrote a
-  draw.io file ends with "Open it in draw.io?" (closing contract, step 8), asked only where
-  `open --check` says it can open and never answered in the user's place; inside a labs job
-  it is a card of the console, asked before the job is closed. A FigJam run gives its board
-  link, a Mermaid run ends as before.
-- **The console** offers Open in draw.io in a run's header, on each `.drawio` row of Files
-  and in Picture. It opens a popup: a browser that blocks pop-ups needs them allowed for
-  the console's address.
-
-What changes for a project you already have:
-
-- Nothing breaks, and nothing is written into a run. On the web route the diagram is held
-  for 24 hours in a page of its own under `zukai-open/` in the system temp folder (the
-  folder 0700, the page 0600), removed by the next `open` after that; the page hands the
-  diagram to `embed.diagrams.net` by `postMessage`, so diagrams.net receives it and no
-  address carries it. Save on the web downloads the file; changing the run with it stays
-  your step.
-- On Linux, a browser installed as a snap or a flatpak (Ubuntu's Firefox and Chromium) has a
-  `/tmp` of its own and shows "file not found" for the page; draw.io desktop, or a default
-  browser that is not confined, opens it.
-- Forks and wrappers: the closing contract gained step 8, `skills/draw/SKILL.md` the
-  `open` line, and the labs skill the closing card before `labs done`. Tests point
-  `ZUKAI_DRAWIO_EMBED` at a stand-in of the embed page and `ZUKAI_OPENER` at a stand-in of
-  the browser opener; neither is for users.
 
 ## Upgrading from it-diagrams
 
