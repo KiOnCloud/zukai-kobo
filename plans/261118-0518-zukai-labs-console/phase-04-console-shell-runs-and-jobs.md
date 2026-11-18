@@ -288,3 +288,33 @@ once (phase 2); tests pass the folder in.
   never taken from a diagram.
 - Downloads are sent as attachments with `nosniff`; an SVG is shown as an image, where a
   script inside it does not run.
+
+## Font check (2026-11-18)
+
+Measured in Chromium with `CSS.getPlatformFontsForNode` on the built console, with the
+console's own font files and the system fonts of the container:
+
+| Sample | Drawn by |
+|---|---|
+| sans, English "Stock check before ordering" | Instrument Sans (console file), 27 glyphs |
+| sans, Vietnamese "Kiểm tra tồn kho trước khi đặt hàng" | Instrument Sans (console file) 30 glyphs, and a system sans (Inter) 5 glyphs: the accented letters inside the words |
+| sans, Japanese "在庫確認のあとで注文する" | a system CJK font (WenQuanYi Zen Hei), every glyph |
+| serif, Vietnamese "Luồng đăng nhập của nhân viên" | Newsreader (console file), every glyph |
+| mono, Vietnamese "đơn_hàng_mới" | JetBrains Mono (console file), every glyph |
+
+Taken in: Newsreader, Instrument Sans and JetBrains Mono from the Fontsource variable
+packages 5.3.0 on npm, each under the SIL Open Font License 1.1 with no Reserved Font Name;
+Newsreader and JetBrains Mono with their `vietnamese` subset, Instrument Sans with `latin`
+and `latin-ext` only (it publishes no other). The axes were cut to what Sienna uses
+(Newsreader wght 400 with opsz kept, Instrument Sans wght 400 to 600, JetBrains Mono wght
+400 to 500), which brings the eleven files to 308 KB. The record is
+`src/labs-ui/fonts/fonts.json`.
+
+As the risk table foresaw, a Vietnamese label in the sans family is drawn in two families
+inside one word, and a Japanese label wholly in a system font. The fix is a family in
+Sienna's `sans` stack that covers both scripts, a change of the design system; the console
+keeps Sienna's stack until the user decides.
+
+Also found: Sienna's `.sn-scrim` sets `display: grid` and its stylesheet has no rule for the
+`hidden` attribute, so a Dialog would show before `open()`. The console's `app.css` adds a
+generic `[hidden] { display: none !important; }`; the rule belongs in Sienna.

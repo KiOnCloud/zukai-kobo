@@ -1,0 +1,107 @@
+/* Zukai Labs: the layout of the console. Every colour, length, radius and shadow is a Sienna
+   token; controls are Sienna's own classes, so this file adds layout and nothing else.
+   The one written number is the width below which the job panel moves under the content:
+   a media query cannot read a custom property. */
+
+[hidden] { display: none !important; }
+
+.zl-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar) minmax(0, 1fr) var(--sidebar);
+  min-height: 100vh;
+  background: var(--surface-100);
+}
+
+.zl-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-4);
+  background: var(--surface-200);
+  border-right: 1px solid var(--border);
+}
+.zl-brand { color: var(--ink); padding: 0 var(--space-3); }
+.zl-nav .sn-menu { min-width: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.zl-nav-foot { margin-top: auto; padding: 0 var(--space-3); }
+
+.zl-main { min-width: 0; padding: var(--space-10) var(--space-8); }
+.zl-content { max-width: var(--container); outline: none; }
+/* Focus moves to the content on a change of route, for a screen reader; a ring around the whole page would only be noise. */
+.zl-content:focus-visible { box-shadow: none; }
+.zl-notices:not(:empty) { max-width: var(--container); margin-bottom: var(--space-6); }
+
+.zl-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-4);
+  background: var(--surface-000);
+  border-left: 1px solid var(--border);
+  min-width: 0;
+}
+.zl-rail-section { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.zl-page { display: flex; flex-direction: column; gap: var(--space-6); }
+.zl-page-header { display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+.zl-alone { max-width: var(--prose-measure); margin: 0 auto; padding: var(--space-16) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+
+.zl-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.zl-stack { display: flex; flex-direction: column; gap: var(--space-3); }
+.zl-muted { color: var(--ink-muted); }
+.zl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.zl-progress { margin: 0; padding-left: var(--space-4); color: var(--ink-soft); }
+.zl-closed { display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+
+.zl-empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); padding: var(--space-8) 0; }
+
+.zl-block {
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--surface-200);
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: var(--prose-measure);
+  overflow: auto;
+}
+
+.zl-panel { display: flex; flex-direction: column; gap: var(--space-4); }
+.zl-picture {
+  margin: 0;
+  padding: var(--space-6);
+  /* A diagram is drawn for a white page, in both themes. */
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  overflow: auto;
+}
+.zl-picture-img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+
+.zl-form { display: flex; flex-direction: column; gap: var(--space-4); max-width: var(--prose-measure); }
+.zl-actions { display: flex; justify-content: flex-end; gap: var(--space-2); padding-top: var(--space-2); }
+.zl-question { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.zl-question legend { padding: 0; margin-bottom: var(--space-2); }
+
+.zl-composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface-000);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  max-width: var(--prose-measure);
+}
+.zl-composer .zl-row { justify-content: space-between; }
+
+@media (max-width: 1100px) {
+  .zl-shell { grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+  .zl-rail { grid-column: 2; border-left: 0; border-top: 1px solid var(--border); }
+}
+@media (max-width: 760px) {
+  .zl-shell { grid-template-columns: minmax(0, 1fr); }
+  .zl-sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
+  .zl-rail { grid-column: 1; }
+  .zl-main { padding: var(--space-6) var(--space-4); }
+}
