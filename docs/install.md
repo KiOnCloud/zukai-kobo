@@ -540,6 +540,13 @@ What changes for a run you already have:
   filled circle back as the start node.
 - An architecture connection that runs through the header bar of a plain frame, beside its
   title, is reported as a `layout:` warning on every emit to draw.io. Nothing is refused.
+- A left-to-right or right-to-left architecture diagram with frames whose main flow ran along
+  the bottom edge of a frame, with what stands beside it above (a worker in a cluster beside
+  the services the requests pass), is drawn turned over when that brings the flow under the
+  headers, through the middle of the frames, with no more crossings or warnings: what stood
+  above the flow stands below it, and a system called from there stands below the frames.
+  `drift` reports such a file delivered by an older version as moved; emit it again for the
+  new drawing. Every other diagram is drawn as before.
 - In the picture of a change, a boundary, a group or a composite state that only gained or
   lost a member is no longer coloured amber: the member that came or went is coloured.
 - The description tables: the Condition column says what a block means (`If …`,
