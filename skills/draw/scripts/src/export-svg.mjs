@@ -20,11 +20,10 @@
  *     the file cannot work there: the picture has no such link (the label and its "↳" line
  *     stay), while the embedded diagram keeps the cell as it is in the source file.
  */
-import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, existsSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { findDrawioBinary, loadPlaywright, playwrightMissing, drawioDesktopFlags, DRAWIO_VIEWER_SCRIPT } from './preview.mjs';
+import { findDrawioBinary, drawioMissing, drawioHint, runDrawio, drawioFailure, loadPlaywright, playwrightMissing, DRAWIO_VIEWER_SCRIPT } from './preview.mjs';
 import { inflatePages, parseAttrs } from './relabel.mjs';
 import { drawioXmlOf } from './extract-drawio.mjs';
 import { xmlAttr } from './drawio-xml.mjs';
@@ -382,8 +381,9 @@ function renderDesktop(bin, pages) {
       const source = join(work, `page-${i + 1}.drawio`);
       const target = join(work, `page-${i + 1}.svg`);
       writeFileSync(source, withoutDataLinks(p.xml), 'utf8');
-      const r = spawnSync(bin, ['-x', '-f', 'svg', '-b', String(BORDER), '-o', target, source, ...drawioDesktopFlags()], { encoding: 'utf8', timeout: 120_000 });
-      if (r.error || r.status !== 0 || !existsSync(target)) return { ok: false, message: (r.stderr || r.error?.message || 'draw.io export failed').trim().slice(0, 300) };
+      // draw.io exits 0 when an export fails: the file it writes is the only sign of success.
+      const r = runDrawio(bin, ['-x', '-f', 'svg', '-b', String(BORDER), '-o', target, source]);
+      if (r.error || r.status !== 0 || !existsSync(target)) return { ok: false, message: `page "${p.title}": ${drawioFailure(r)}` };
       out.push(readFileSync(target, 'utf8'));
     }
     return { ok: true, svgs: out };
@@ -481,8 +481,10 @@ export async function exportSvg(target, options = {}) {
   let renderer;
   let rendered; // per page: { svg, converted, kept }
   let pw;
+  let found = { bin: null, tried: [], broken: [] };
   if (options.renderer !== 'drawio-web') {
-    const { bin, tried } = findDrawioBinary();
+    found = findDrawioBinary();
+    const { bin } = found;
     if (bin) {
       const r = renderDesktop(bin, jobs);
       if (r.ok) {
@@ -505,7 +507,7 @@ export async function exportSvg(target, options = {}) {
         attempts.push(`draw.io desktop (${bin}): ${r.message}`);
       }
     } else {
-      attempts.push(`draw.io desktop not found; looked for ${tried.join(', ')}`);
+      attempts.push(drawioMissing(found));
     }
     if (!rendered && options.renderer === 'drawio-desktop') return fail({ path: target, message: `draw.io desktop could not render the file (${attempts.join('; ')})` });
   }
@@ -514,7 +516,7 @@ export async function exportSvg(target, options = {}) {
     if (!pw) {
       const missing = playwrightMissing(cwd);
       attempts.push(missing.attempt);
-      return fail({ path: target, message: `no renderer available (${attempts.join('; ')})`, hint: `install draw.io desktop in one of the places above or put its executable on PATH, or ${missing.install}; no picture was written, and the .drawio file itself is complete without one` });
+      return fail({ path: target, message: `no renderer available (${attempts.join('; ')})`, hint: `${drawioHint(found)}, or ${missing.install}; no picture was written, and the .drawio file itself is complete without one` });
     }
     try {
       rendered = await renderWeb(pw, jobs);

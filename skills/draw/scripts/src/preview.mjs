@@ -12,8 +12,8 @@
  */
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, rmSync } from 'node:fs';
-import { basename, dirname, extname, join, resolve } from 'node:path';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, rmSync, accessSync, constants } from 'node:fs';
+import { basename, delimiter, dirname, extname, join, resolve } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { pngSize, decodePng, cropPng, encodePng } from './png.mjs';
@@ -108,7 +108,64 @@ export function playwrightMissing(cwd = process.cwd()) {
 }
 
 /** Arguments draw.io desktop needs after its own on Linux, where it runs without a display server's sandbox. */
-export const drawioDesktopFlags = () => (process.platform === 'linux' ? ['--no-sandbox', '--disable-gpu'] : []);
+export const drawioDesktopFlags = (platform = process.platform) => (platform === 'linux' ? ['--no-sandbox', '--disable-gpu'] : []);
+
+/** The executable `name` on the PATH of `env`, or null. */
+function onPath(name, env) {
+  for (const dir of (env.PATH ?? '').split(delimiter)) {
+    if (!dir) continue;
+    try {
+      accessSync(join(dir, name), constants.X_OK);
+      return join(dir, name);
+    } catch {
+      // not in this folder
+    }
+  }
+  return null;
+}
+
+/**
+ * How to start draw.io desktop with `args`. draw.io is an Electron app: even `--version` and
+ * an export need a display. On Linux without one (no DISPLAY, no WAYLAND_DISPLAY) it is
+ * started under `xvfb-run -a`, which lends it a virtual display for the one call, when
+ * xvfb-run is on PATH; without xvfb-run the call is made as it is and `noDisplay` is set, so
+ * the failure can say what is missing.
+ */
+export function drawioCommand(bin, args, platform = process.platform, env = process.env) {
+  const all = [...args, ...drawioDesktopFlags(platform)];
+  if (platform !== 'linux' || env.DISPLAY || env.WAYLAND_DISPLAY) return { cmd: bin, args: all };
+  const xvfb = onPath('xvfb-run', env);
+  return xvfb ? { cmd: xvfb, args: ['-a', bin, ...all] } : { cmd: bin, args: all, noDisplay: true };
+}
+
+/** Run draw.io desktop; the result of spawnSync, with `noDisplay` from `drawioCommand`. */
+export function runDrawio(bin, args, timeout = 120_000) {
+  const c = drawioCommand(bin, args);
+  return { ...spawnSync(c.cmd, c.args, { encoding: 'utf8', timeout }), noDisplay: c.noDisplay === true };
+}
+
+// A log line of Chromium inside draw.io: "[pid:date/time:LEVEL:file(line)] text".
+const CHROMIUM_LOG = /^\[(?:\d+:)*\d+\/[\d.]+:([A-Z0-9_]+):[^\]]*\]\s*/;
+// Lines draw.io and Xvfb print on every start, whether the export works or not.
+const STARTUP_NOISE = /^(Checking for beta autoupdate|Found package-type|XIO:|after \d+ requests|X connection to )/;
+
+/**
+ * Why a draw.io desktop call failed, in draw.io's own words: its `Error:` lines (an export
+ * that fails still exits 0 and only says so), else the fatal lines of Chromium (no display,
+ * root without a sandbox), else what remains once the log of every start is taken out, else
+ * the exit code or signal. Without a display and without xvfb-run, it says what to install.
+ */
+export function drawioFailure(r) {
+  if (r.error) return r.error.code === 'ETIMEDOUT' ? 'draw.io did not finish in time' : r.error.message;
+  const lines = `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((l) => l.trim()).filter(Boolean);
+  const own = lines.filter((l) => /^Error:/.test(l));
+  const fatal = lines.filter((l) => CHROMIUM_LOG.test(l) && (l.match(CHROMIUM_LOG)[1] === 'FATAL' || /Missing X server|platform failed to initialize/.test(l))).map((l) => l.replace(CHROMIUM_LOG, ''));
+  let why = [...own, ...fatal].join('; ') || lines.filter((l) => !CHROMIUM_LOG.test(l) && !STARTUP_NOISE.test(l)).join('; ');
+  if (!why) why = r.signal ? `draw.io stopped on signal ${r.signal}` : r.status ? `draw.io exited with code ${r.status}` : 'draw.io wrote no file';
+  why = why.slice(0, 300);
+  if (r.noDisplay) why += '; draw.io desktop needs a display: no DISPLAY is set and xvfb-run is not on PATH (install the xvfb package, or run the CLI under xvfb-run -a)';
+  return why;
+}
 
 /**
  * Where the draw.io desktop app installs its executable when it adds nothing to PATH: the
@@ -128,20 +185,37 @@ export function drawioInstallPaths(platform = process.platform, env = process.en
 
 /**
  * The draw.io desktop executable: `drawio` or `draw.io` on PATH, else the first default
- * install path that exists. Returns the command and the list of places tried.
+ * install path that exists. Returns the command, the list of places tried, and under `broken`
+ * each command on PATH that is there but does not start (`--version` fails), with the reason.
  */
 export function findDrawioBinary() {
   const tried = [];
+  const broken = [];
   for (const bin of ['drawio', 'draw.io']) {
     tried.push(`${bin} on PATH`);
-    const r = spawnSync(bin, ['--version'], { encoding: 'utf8', timeout: 10_000 });
-    if (!r.error && r.status === 0) return { bin, tried };
+    const r = runDrawio(bin, ['--version'], 30_000);
+    if (!r.error && r.status === 0) return { bin, tried, broken };
+    if (r.error?.code !== 'ENOENT') broken.push(`${bin} on PATH did not start: ${drawioFailure(r)}`);
   }
   for (const candidate of drawioInstallPaths()) {
     tried.push(candidate);
-    if (existsSync(candidate)) return { bin: candidate, tried };
+    if (existsSync(candidate)) return { bin: candidate, tried, broken };
   }
-  return { bin: null, tried };
+  return { bin: null, tried, broken };
+}
+
+/** What `preview` and `export` say when `findDrawioBinary` gave no command to run. */
+export function drawioMissing(found) {
+  return found.broken.length > 0
+    ? `draw.io desktop found but it did not start (${found.broken.join('; ')}); looked for ${found.tried.join(', ')}`
+    : `draw.io desktop not found; looked for ${found.tried.join(', ')}`;
+}
+
+/** The first words of the hint when no renderer worked: what to do about draw.io desktop. */
+export function drawioHint(found) {
+  if (found.bin) return 'the message says why draw.io desktop drew nothing (on Linux without a display it needs xvfb-run, from the xvfb package)';
+  if (found.broken.length > 0) return 'make draw.io desktop start (on Linux without a display it needs xvfb-run, from the xvfb package)';
+  return 'install draw.io desktop in one of the places above or put its executable on PATH';
 }
 
 /** Frame draw.io desktop draws around an export, in output pixels, whatever the scale. */
@@ -180,9 +254,11 @@ export function tileFrames(width, height, maxLen, overlap = 0) {
  */
 function renderDrawioDesktop(bin, file, xml, out, maxPx) {
   const run = (scale) => {
-    const args = ['-x', '-f', 'png', '-s', String(scale), '-b', String(BORDER), '-o', out, file, ...drawioDesktopFlags()];
-    const r = spawnSync(bin, args, { encoding: 'utf8', timeout: 120_000 });
-    if (r.error || r.status !== 0) return { ok: false, message: (r.stderr || r.error?.message || 'draw.io export failed').trim().slice(0, 300) };
+    // draw.io exits 0 when an export fails and writes nothing: only a file written by this
+    // call counts, never an image an earlier preview left at the same path.
+    rmSync(out, { force: true });
+    const r = runDrawio(bin, ['-x', '-f', 'png', '-s', String(scale), '-b', String(BORDER), '-o', out, file]);
+    if (r.error || r.status !== 0 || !existsSync(out)) return { ok: false, message: drawioFailure(r) };
     return { ok: true, scale, files: [out] };
   };
   let r = run(2);
@@ -555,8 +631,10 @@ export async function preview(file, options = {}) {
   mkdirSync(dirname(out), { recursive: true });
   if (ext === '.md') return previewMarkdown(file, text, out, cwd, options.maxPx);
   const attempts = [];
+  let found = { bin: null, tried: [], broken: [] };
   if (drawio && options.renderer !== 'drawio-web') {
-    const { bin, tried } = findDrawioBinary();
+    found = findDrawioBinary();
+    const { bin } = found;
     if (bin) {
       try {
         if (picture || options.page !== undefined) {
@@ -572,7 +650,7 @@ export async function preview(file, options = {}) {
         if (work) rmSync(work, { recursive: true, force: true });
       }
     } else {
-      attempts.push(`draw.io desktop not found; looked for ${tried.join(', ')}`);
+      attempts.push(drawioMissing(found));
     }
     if (options.renderer === 'drawio-desktop') return { ok: false, errors: [{ path: file, message: `draw.io desktop could not render the file (${attempts.join('; ')})` }] };
   }
@@ -582,7 +660,7 @@ export async function preview(file, options = {}) {
     attempts.push(missing.attempt);
     const playwright = missing.install;
     const hint = drawio
-      ? `install draw.io desktop in one of the places above or put its executable on PATH, or ${playwright}; the preview step is optional, and a review without an image must say so`
+      ? `${drawioHint(found)}, or ${playwright}; the preview step is optional, and a review without an image must say so`
       : `Mermaid previews need Playwright: ${playwright}; the preview step is optional, and a review without an image must say so`;
     return { ok: false, errors: [{ path: file, message: `no renderer available (${attempts.join('; ')})`, hint }] };
   }
