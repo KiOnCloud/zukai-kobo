@@ -163,3 +163,18 @@ describe('run index', () => {
     expect(rebuildIndex({ scan: [join(top, 'nope')], env })).toMatchObject({ ok: false, error: { code: 'bad-request' } });
   });
 });
+
+describe('reports in the index', () => {
+  it('registers a project that holds only reports, and a scan counts a reports folder only with a valid report.json', () => {
+    const env = home();
+    const top = realpathSync(mkdtempSync(join(tmpdir(), 'zukai-index-reports-')));
+    const withReport = join(top, 'with-report');
+    const stray = join(top, 'stray');
+    mkdirSync(join(withReport, 'reports', '20261119_x'), { recursive: true });
+    writeFileSync(join(withReport, 'reports', '20261119_x', 'report.json'), JSON.stringify({ report: 1, title: 'X', kind: 'feature', template: { id: 'feature', scope: 'built-in', version: '1' }, lang: 'en', runs: [], sources: [], created: '2026-11-19T00:00:00.000Z', updated: '2026-11-19T00:00:00.000Z' }));
+    mkdirSync(join(stray, 'reports', '20240101_x'), { recursive: true });
+    expect(scanProjects(top)).toEqual([withReport]);
+    expect(registerProject(withReport, { env })).toBe(true);
+    expect(listIndex({ env }).projects.map((p) => p.root)).toEqual([withReport]);
+  });
+});

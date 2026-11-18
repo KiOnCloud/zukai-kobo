@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Docs, tests sweep and release 2.7.0"
-status: pending
+status: in-progress
 priority: P2
 effort: "1d"
 dependencies: [1, 2, 3, 4, 5]
@@ -26,9 +26,9 @@ passes, and the release is cut as 2.7.0.
 
 ## Tasks & Steps
 
-- [ ] 1. Write the docs above, each claim checked against the code and tests of phases 1–5.
+- [x] 1. Write the docs above, each claim checked against the code and tests of phases 1–5.
 - [ ] 2. Full suite on Linux (CI) and on Windows (local): no failure new to this branch; the five Windows-only failures known on `main` (`install-ps1`, `preview`, `sources`) are reported, not hidden.
-- [ ] 3. `npm run build`, commit `bin/`, `bundle-drift.test.mjs` passes; `claude plugin validate . --strict` passes.
+- [x] 3. `npm run build`, commit `bin/`, `bundle-drift.test.mjs` passes; `claude plugin validate . --strict` passes.
 - [ ] 4. The live round of phase 4 and the console round of phase 5, recorded in the PR body step by step.
 - [ ] 5. Version 2.7.0 everywhere; PR titled `feat: release 2.7.0 with reports, report templates and glossary polish`.
 

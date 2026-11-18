@@ -1,7 +1,8 @@
 /**
  * The Overview section: what needs the reader now (the agent's question, runs behind their
- * code, glossary suggestions, a failed job), the ways to start a diagram, the runs changed last
- * and the jobs closed last. Every number is counted from what the server lists.
+ * code, reports with findings to fix or a polish draft to review, glossary suggestions, a
+ * failed job), the ways to start a diagram, the runs changed last and the jobs closed last.
+ * Every number is counted from what the server lists.
  */
 import { S } from '../sienna.mjs';
 import { h, replace, ago, day } from '../dom.mjs';
@@ -42,6 +43,8 @@ export function overviewSection({ store }) {
   const agentCard = h('div', {});
   let runs = null;
   let jobs = [];
+  let reports = null;
+  let templates = null;
 
   const header = h('header', { class: 'zl-page-header' },
     h('div', { class: 'eyebrow' }, 'Project'),
@@ -62,6 +65,11 @@ export function overviewSection({ store }) {
     if (failed) items.push({ tone: 'danger', title: 'A job failed', body: `${KIND_LABEL[failed.kind] ?? failed.kind}${failed.run ? ` · ${failed.run}` : ''} · ${ago(failed.finishedAt)}`, href: `#/jobs/${encodeURIComponent(failed.id)}`, action: 'See why' });
     const stale = (runs ?? []).filter((r) => r.stale);
     if (stale.length) items.push({ tone: 'warning', title: `${stale.length} run${stale.length === 1 ? ' is' : 's are'} behind the code`, body: stale.map((r) => r.title).join(', '), href: stale.length === 1 ? `#/diagrams/${encodeURIComponent(stale[0].run)}` : '#/diagrams', action: 'Review' });
+    const toFix = (reports ?? []).filter((r) => r.findings?.blocking);
+    if (toFix.length) items.push({ tone: 'warning', title: `${toFix.length} report${toFix.length === 1 ? ' has' : 's have'} findings to fix`, body: toFix.map((r) => r.title).join(', '), href: toFix.length === 1 ? `#/reports/${encodeURIComponent(toFix[0].name)}/glossary` : '#/reports', action: 'Review' });
+    const drafted = (reports ?? []).filter((r) => r.drafts);
+    if (drafted.length) items.push({ tone: 'clay', title: `${drafted.length} polish draft${drafted.length === 1 ? '' : 's'} to review`, body: drafted.map((r) => r.title).join(', '), href: `#/reports/${encodeURIComponent(drafted[0].name)}`, action: 'Review' });
+    if (state?.reportsConfigError) items.push({ tone: 'danger', title: 'The reports folder setting cannot be used', body: `${state.reportsConfigError.message}. ${state.reportsConfigError.hint}`, href: '#/reports', action: 'Open' });
     const suggested = state?.glossary?.counts?.suggested ?? 0;
     if (suggested) items.push({ tone: 'neutral', title: `${suggested} glossary suggestion${suggested === 1 ? '' : 's'} to review`, body: 'A suggestion changes no label until you confirm it.', href: '#/glossary/review', action: 'Review' });
     if (state?.configError) items.push({ tone: 'danger', title: 'The project setting cannot be used', body: `${state.configError.message}. ${state.configError.hint}`, href: '#/diagrams', action: 'Open' });
@@ -84,6 +92,8 @@ export function overviewSection({ store }) {
       ['Runs', runs ? String(runs.length) : '…'],
       ['Diagrams', runs ? String(diagrams) : '…'],
       ['Revisions', runs ? String(revisions) : '…'],
+      ['Reports', reports ? String(reports.length) : String(state?.reports ?? '…')],
+      ['Templates', templates ? String(templates) : '…'],
       ['Confirmed terms', counts ? String(counts.confirmed) : '0'],
     ].map(([k, v]) => h('div', { class: 'zl-stat' }, h('dt', { class: 'caption zl-muted' }, k), h('dd', { class: 'display-sm' }, v))));
     const b = agentBadge(state);
@@ -112,7 +122,9 @@ export function overviewSection({ store }) {
   }
 
   async function load() {
-    const [r, j] = await Promise.all([api.get('/api/runs'), api.get('/api/jobs')]);
+    const [r, j, rep, tpl] = await Promise.all([api.get('/api/runs'), api.get('/api/jobs'), api.get('/api/reports'), api.get('/api/report-templates')]);
+    reports = rep.ok ? rep.data.reports : [];
+    templates = tpl.ok ? new Set(tpl.data.templates.filter((t) => t.used).map((t) => t.id)).size : 0;
     if (r.ok) {
       const scouted = r.data.runs.filter((x) => x.scouted);
       const details = await Promise.all(scouted.map((x) => api.get(`/api/runs/${encodeURIComponent(x.run)}`)));

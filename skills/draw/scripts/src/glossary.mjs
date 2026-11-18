@@ -81,6 +81,150 @@ export function containsText(label, term) {
   return false;
 }
 
+// ---------------------------------------------------------------- prose
+
+const isCjk = (ch) => ch !== '' && CJK.test(ch);
+
+/**
+ * Whether the character beside a match ends it as a word, in prose: it is no letter or digit,
+ * or the script changes there (Latin next to Han, Hiragana or Katakana), since Japanese prose
+ * writes a Latin word straight against the kana around it (`officeを使う`).
+ */
+const proseEdge = (neighbour, edge) => !neighbour || !WORD.test(neighbour) || isCjk(neighbour) !== isCjk(edge);
+
+/**
+ * The spans `[start, end)` of a term in a normalised prose text: anywhere for a term written in
+ * Han, Hiragana or Katakana, else between prose word edges.
+ */
+function proseSpans(text, term) {
+  const spans = [];
+  if (term === '') return spans;
+  const cjk = CJK.test(term);
+  for (let at = text.indexOf(term); at >= 0; at = text.indexOf(term, at + 1)) {
+    if (!cjk) {
+      const before = at === 0 ? '' : [...text.slice(0, at)].at(-1);
+      const after = [...text.slice(at + term.length)][0] ?? '';
+      if (!proseEdge(before, [...term][0]) || !proseEdge(after, [...term].at(-1))) continue;
+    }
+    spans.push([at, at + term.length]);
+  }
+  return spans;
+}
+
+/** The term stands in a text of prose (see `proseEdge`), compared as `normalText` compares. */
+export function containsProse(text, term) {
+  return proseSpans(normalText(text), normalText(term)).length > 0;
+}
+
+/** A normalised text with the spans of some terms blanked out, so a word inside them is never matched. */
+function masked(text, terms) {
+  let out = text;
+  for (const term of terms) {
+    for (const [a, b] of proseSpans(out, normalText(term))) out = `${out.slice(0, a)}${' '.repeat(b - a)}${out.slice(b)}`;
+  }
+  return out;
+}
+
+const termOf = (entry, lang) => Object.entries(entry.terms).find(([k]) => k.toLowerCase() === String(lang).toLowerCase())?.[1];
+const avoidOf = (entry, lang) => Object.entries(entry.avoid ?? {}).find(([k]) => k.toLowerCase() === String(lang).toLowerCase())?.[1] ?? [];
+
+/**
+ * Entries whose avoided word is part of their own term in the same language: refused for a
+ * new entry, listed as a warning for one written before the rule existed.
+ */
+export function selfAvoided(entry) {
+  const out = [];
+  for (const [lang, words] of Object.entries(entry.avoid ?? {})) {
+    const term = termOf(entry, lang);
+    if (term === undefined) continue;
+    for (const word of words) if (sameText(term, word) || containsProse(term, word)) out.push({ lang, word, term });
+  }
+  return out;
+}
+
+/**
+ * Check the prose of a report against the confirmed entries of a glossary. `prose` is what
+ * `proseOf` returns: `meta.lang` is the language of `report.md`, `files` the original and each
+ * translation with its language, `blocks` every checkable block with its file, section, line,
+ * language and text.
+ *
+ * - `avoided-term` (blocking): a block holds a confirmed entry's avoided word for its language,
+ *   outside the entry's own term (`サーバー` never matches the avoided `サーバ`).
+ * - `untranslated-term` (warning): a block in language L holds an entry's term of another
+ *   language whose term for L is different text. A term that is the same text in both
+ *   languages (the keep rule) never raises it.
+ * - `translation-mismatch` (warning): a section of a translation whose original section holds
+ *   an entry's term lacks the entry's term for the translation's language.
+ * - `kept-term-changed` (blocking): an entry whose term is the same text in the original's
+ *   and the translation's language stands in the original section and not in the
+ *   translation's section: the term was translated where it had to be kept.
+ * - `sections-differ` (blocking): a translation whose section ids differ from the original's;
+ *   that file then gets no finding per term.
+ */
+export function checkProse(glossary, prose) {
+  const confirmed = glossary.entries.filter((e) => e.status === 'confirmed');
+  const findings = [];
+  const add = (f) => findings.push({ report: prose.report ?? prose.blocks[0]?.report, ...f });
+  const original = prose.files[0];
+  const bySection = (file) => {
+    const map = new Map();
+    for (const b of prose.blocks.filter((x) => x.file === file)) map.set(b.section, [...(map.get(b.section) ?? []), b]);
+    return map;
+  };
+  const skipped = new Set();
+  const originalSections = prose.sections?.[original.file] ?? [];
+  for (const t of prose.files.slice(1)) {
+    const ids = prose.sections?.[t.file] ?? [];
+    const missing = originalSections.filter((id) => !ids.includes(id));
+    const extra = ids.filter((id) => !originalSections.includes(id));
+    if (missing.length || extra.length || ids.join('\n') !== originalSections.join('\n')) {
+      skipped.add(t.file);
+      add({ kind: 'sections-differ', level: 'blocking', file: t.file, lang: t.lang, section: null, line: null, missing, extra, text: `sections of ${t.file} differ from ${original.file}` });
+    }
+  }
+  for (const b of prose.blocks) {
+    if (skipped.has(b.file)) continue;
+    const text = normalText(b.text);
+    for (const entry of confirmed) {
+      const own = termOf(entry, b.lang);
+      const free = masked(text, own === undefined ? [] : [own]);
+      for (const word of avoidOf(entry, b.lang)) {
+        if (proseSpans(free, normalText(word)).length === 0) continue;
+        add({ kind: 'avoided-term', level: 'blocking', file: b.file, section: b.section, line: b.line, lang: b.lang, text: b.text, entry: entry.id, avoided: word, expected: own ?? null });
+      }
+      if (own === undefined) continue;
+      for (const [other, term] of Object.entries(entry.terms)) {
+        if (other.toLowerCase() === String(b.lang).toLowerCase() || sameText(term, own)) continue;
+        if (proseSpans(free, normalText(term)).length === 0) continue;
+        add({ kind: 'untranslated-term', level: 'warning', file: b.file, section: b.section, line: b.line, lang: b.lang, text: b.text, entry: entry.id, term, termLang: other, expected: own });
+      }
+    }
+  }
+  const origin = bySection(original.file);
+  for (const t of prose.files.slice(1)) {
+    if (skipped.has(t.file)) continue;
+    const target = bySection(t.file);
+    for (const [section, blocks] of origin) {
+      const sourceText = blocks.map((b) => b.text).join('\n');
+      const targetBlocks = target.get(section) ?? [];
+      const targetText = targetBlocks.map((b) => b.text).join('\n');
+      const line = targetBlocks[0]?.line ?? null;
+      for (const entry of confirmed) {
+        const from = termOf(entry, original.lang);
+        const to = termOf(entry, t.lang);
+        if (from === undefined || to === undefined || !containsProse(sourceText, from)) continue;
+        if (sameText(from, to)) {
+          if (!containsProse(targetText, from)) add({ kind: 'kept-term-changed', level: 'blocking', file: t.file, section, line, lang: t.lang, text: targetText.split('\n')[0] ?? '', entry: entry.id, expected: from });
+        } else if (!containsProse(targetText, to)) {
+          add({ kind: 'translation-mismatch', level: 'warning', file: t.file, section, line, lang: t.lang, text: targetText.split('\n')[0] ?? '', entry: entry.id, source: from, expected: to });
+        }
+      }
+    }
+  }
+  const blocking = findings.filter((f) => f.level === 'blocking').length;
+  return { ok: blocking === 0, blocking, warnings: findings.length - blocking, findings };
+}
+
 /** The id of an entry: `g-` and eight hex digits of the SHA-256 of its normalised terms. */
 export function entryIdOf(terms) {
   const text = Object.keys(terms).sort().map((lang) => `${lang.toLowerCase()}=${normalText(terms[lang])}`).join('\n');
@@ -200,8 +344,8 @@ const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 
  * and then creates the lock. When the lock it renamed turns out to be fresh (another taker
  * replaced the stale one in between), it is put back.
  */
-function takeLock(dir) {
-  const lock = join(dir, LOCK_FILE);
+export function takeLock(dir, name = LOCK_FILE) {
+  const lock = join(dir, name);
   const mark = `${process.pid} ${randomBytes(8).toString('hex')}\n`;
   const until = Date.now() + LOCK_WAIT_MS;
   for (;;) {
@@ -239,7 +383,7 @@ function takeLock(dir) {
 }
 
 /** Release the lock only while it is still the one this writer made. */
-function releaseLock({ lock, mark }) {
+export function releaseLock({ lock, mark }) {
   try {
     if (readFileSync(lock, 'utf8') === mark) unlinkSync(lock);
   } catch { /* already gone */ }
@@ -282,7 +426,10 @@ export function newEntryErrors(entry, base) {
   const extra = Object.keys(entry).filter((k) => !['terms', 'avoid', 'note'].includes(k));
   if (extra.length > 0) return [{ path: `${base}/${extra[0]}`, message: `unknown property "${extra[0]}"`, hint: 'an entry given to glossary add has terms, avoid and note; id and status are set by the command' }];
   const probe = { schemaVersion: 1, entries: [{ id: 'g-00000000', ...entry, status: 'suggested' }] };
-  return glossaryErrors(probe).map((e) => ({ ...e, path: e.path.replace(/^\/entries\/0/, base) }));
+  const errors = glossaryErrors(probe).map((e) => ({ ...e, path: e.path.replace(/^\/entries\/0/, base) }));
+  if (errors.length > 0) return errors;
+  // An avoided word inside the entry's own term would flag every correct use of the term.
+  return selfAvoided(entry).map((x) => ({ path: `${base}/avoid/${x.lang}`, message: `the avoided word "${x.word}" is part of the entry's own term "${x.term}"`, hint: 'avoid a word that differs from the term, or leave it out' }));
 }
 
 /** Languages two term maps share, and whether the terms of each shared language are the same text. */

@@ -12,19 +12,20 @@ const runnable = existsSync(installer) && process.platform !== 'win32';
 
 const run = (target, dest) => execFileSync('sh', [installer, '--target', target, '--dest', dest], { encoding: 'utf8', stdio: 'pipe' });
 const frontmatterName = (file) => readFileSync(file, 'utf8').match(/^name: (.+)$/m)?.[1];
-const NAMES = ['zukai', 'zukai-labs', 'zukai-recook', 'zukai-revise', 'zukai-sync'];
+const NAMES = ['zukai', 'zukai-labs', 'zukai-recook', 'zukai-report', 'zukai-revise', 'zukai-sync'];
 
 describe.skipIf(!runnable)('install.sh', () => {
-  it('keeps the plugin skills named draw, revise, recook, sync and labs in the source', () => {
+  it('keeps the plugin skills named draw, revise, recook, sync, labs and report in the source', () => {
     expect(frontmatterName(join(repoRoot, 'skills', 'draw', 'SKILL.md'))).toBe('draw');
     expect(frontmatterName(join(repoRoot, 'skills', 'revise', 'SKILL.md'))).toBe('revise');
     expect(frontmatterName(join(repoRoot, 'skills', 'recook', 'SKILL.md'))).toBe('recook');
     expect(frontmatterName(join(repoRoot, 'skills', 'sync', 'SKILL.md'))).toBe('sync');
     expect(frontmatterName(join(repoRoot, 'skills', 'labs', 'SKILL.md'))).toBe('labs');
+    expect(frontmatterName(join(repoRoot, 'skills', 'report', 'SKILL.md'))).toBe('report');
   });
 
   for (const [target, subdir] of [['codex', '.agents/skills'], ['claude-project', '.claude/skills']]) {
-    it(`installs the ${target} copies as zukai, zukai-revise, zukai-recook, zukai-sync and zukai-labs, in folder and in name`, () => {
+    it(`installs the ${target} copies as zukai, zukai-revise, zukai-recook, zukai-sync, zukai-labs and zukai-report, in folder and in name`, () => {
       const dest = mkdtempSync(join(tmpdir(), 'zukai-install-'));
       run(target, dest);
       const skill = join(dest, subdir, 'zukai');
@@ -66,6 +67,14 @@ describe.skipIf(!runnable)('install.sh', () => {
       expect(help).toContain('cli.mjs sources <run-dir>');
       expect(help).toContain('cli.mjs labs wait --session <id>');
       expect(help).toContain('cli.mjs labs holds <run>');
+      // report carries the built-in templates, which the installed CLI finds through its version marker.
+      const report = join(dest, subdir, 'zukai-report');
+      expect(frontmatterName(join(report, 'SKILL.md'))).toBe('zukai-report');
+      expect(readFileSync(join(report, '.zukai-report-version'), 'utf8').trim()).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(readdirSync(join(report, 'templates')).sort()).toEqual(['feature', 'issue-investigation', 'tech-research']);
+      expect(readFileSync(join(report, 'SKILL.md'), 'utf8')).toContain('<report-dir>/../zukai');
+      const list = JSON.parse(execFileSync(process.execPath, [join(skill, 'scripts', 'bin', 'cli.mjs'), 'template', 'list'], { cwd: dest, encoding: 'utf8' }));
+      expect(list.templates.filter((t) => t.scope === 'built-in' && t.valid).map((t) => t.id)).toEqual(['feature', 'issue-investigation', 'tech-research']);
     });
   }
 
@@ -144,7 +153,7 @@ describe.skipIf(!runnable)('install.sh', () => {
     expect(readdirSync(join(dest, '.agents/skills')).sort()).toEqual(['it-diagrams', ...NAMES]);
   });
 
-  for (const added of ['zukai-sync', 'zukai-labs']) {
+  for (const added of ['zukai-sync', 'zukai-labs', 'zukai-report']) {
     it(`adds ${added} next to an install of the same version that does not have it yet`, () => {
       const dest = mkdtempSync(join(tmpdir(), 'zukai-install-'));
       run('codex', dest);

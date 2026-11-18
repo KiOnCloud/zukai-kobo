@@ -10,7 +10,8 @@ It turns requirements, an existing codebase or a raw idea into sequence, flowcha
 state, ER, class, architecture and use case diagrams, and emits them as editable draw.io
 files, Mermaid text or FigJam boards. A diagram drawn from code can later be brought up to
 date with the code, and a run can also carry SVG pictures and description tables for a wiki
-or a design document.
+or a design document. Reports (an issue investigation, a tech research, a feature write-up)
+are written from templates as Markdown and HTML, held to the project glossary.
 
 The agent never writes diagram syntax. It writes one small JSON model per diagram; a bundled
 CLI validates that model and emits the output deterministically. A diagram is therefore
@@ -278,6 +279,46 @@ not match its schema. The entry format, the five `glossary` commands and when ea
 reads the file are in
 [skills/draw/references/glossary.md](skills/draw/references/glossary.md).
 
+### Reports
+
+```text
+/zukai:report [write] <kind or template> <subject>
+/zukai:report polish <report-folder>
+/zukai:report translate <report-folder> <lang>
+/zukai:report template new|customise|export|import ...
+```
+
+`report` writes a report of any kind from a template: an issue investigation, a tech research,
+a feature write-up, or a kind of your own. A report is a folder under the project's reports
+folder (`reports/` unless `.zukai/config.json` names another, `reports-dir set <folder>`):
+`report.md` (the source), `report.html` (the deliverable, which the browser prints to PDF),
+`report.json` (what the report is) and `history/` with its last 20 revisions. The agent
+fills the template's sections in your language with the glossary's confirmed terms, asks
+only what a section needs and you did not say, and can embed the diagrams and description
+tables of the runs you name. Raw HTML in the Markdown is shown as text, links keep only
+`http`, `https` or `#` targets, pictures come from the report's `assets/` only, and the HTML
+runs no script and fetches nothing.
+
+`polish` holds a report to the glossary: `report check` finds an avoided word (also a Latin
+word inside Japanese prose), a term left untranslated, and a term the glossary keeps the
+same in two languages that a translation changed; the agent rewrites those sentences into a
+draft, shows its diff, and applies it only when you say so and the report has not changed
+since. `translate` writes `<lang>/report.md` with the same sections, the target language's
+terms first, and kept terms verbatim. The same check runs without an agent:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs report check reports/20261119_checkout-fails
+```
+
+It exits 2 on a blocking finding (a credential, an avoided word, a kept term changed, a
+translation whose sections differ). Templates come in three scopes, nearest first: the
+project's (`.zukai/report-templates/`, committed), yours (beside the run index, never
+committed) and the three built-in ones. You create or customise one through the agent, which
+validates it, shows its preview and saves it to the scope you choose; `template export` and
+`template import` move one as a single file, and an import is checked in full (HTML that
+could run code or fetch anything is refused) before it is saved. The template contract is
+in [skills/report/references/templates.md](skills/report/references/templates.md).
+
 ### The labs console
 
 ```text
@@ -294,7 +335,11 @@ shown as what they are (the input, the kind with a drawing of it, the level of d
 view, the outputs); whatever you leave as "Ask me later" the agent asks while the job runs,
 and a summary beside the form says which. **Jobs** lists every job, and a job's page holds its
 request, its question, the questions already answered, every step, its report and, for a
-failed job, why and the undo. **Glossary** holds the entries, a review of the suggestions
+failed job, why and the undo. **Reports** lists the reports with their findings and shows
+each one: its HTML in a sealed frame (by language), its Markdown with a quick edit, its
+glossary findings with "Polish with glossary", its history with diffs and a restore, Export
+HTML, Export Markdown, Print to PDF and Translate, and a polish draft's diff with Apply and
+Discard; New report and Templates (preview, new, customise, export, import) sit beside it. **Glossary** holds the entries, a review of the suggestions
 one by one, and the check of a run. An agent panel beside the page shows the agent, its open
 job, the queue and the jobs closed last; it can be closed, and a question of the agent is
 then announced in the page. The agent gives
@@ -302,7 +347,9 @@ the address in the chat, in the form `http://127.0.0.1:<port>/#t=<token>`. The t
 console's key for that one server: do not paste the address anywhere else. The port is the
 same for the project every time.
 
-The console reads the runs and never writes one. Everything that changes a diagram is a
+The console reads the runs and never writes one. Under the reports folder it writes only
+a quick edit of a report's Markdown and a restore of one of its revisions, each after a
+snapshot and refused while a report job or a polish draft holds the report. Everything that changes a diagram is a
 **job**: a new diagram, a change, an undo or a return to an earlier revision, a label edit
 made in the console's model editor, a sync, a recook, an export of pictures or tables, and
 glossary suggestions drawn from the runs. A job is queued in the console and carried out by
@@ -533,6 +580,8 @@ working; see [Upgrading from it-diagrams](docs/install.md#upgrading-from-it-diag
 | [skills/sync/SKILL.md](skills/sync/SKILL.md) | The sync skill's own contract, as the agent reads it |
 | [skills/labs/SKILL.md](skills/labs/SKILL.md) | The labs skill's own contract: the console, its jobs and its questions |
 | [skills/draw/references/glossary.md](skills/draw/references/glossary.md) | The project glossary: entries, commands, and when each skill reads it |
+| [skills/report/SKILL.md](skills/report/SKILL.md) | The report skill's own contract: writing, polishing, translating, templates |
+| [skills/report/references/templates.md](skills/report/references/templates.md) | The report template contract: sections, layout, scopes, export file |
 
 ## Development
 
@@ -546,15 +595,19 @@ sources.
 
 ## Status
 
-Version 2.5.0 is the open beta; it redesigns the labs console with an overview, a page per
-job, the choices of a new diagram shown as what they are and an agent panel that can be
-closed. Version 2.4.0 added the labs console, `/zukai:labs`, and the project
+Version 2.7.0 is the open beta; it adds `/zukai:report`, report templates in three scopes,
+the glossary on prose (polish and translation) and the Reports section of the console.
+Version 2.6.0 added a configurable runs folder and the run index, and version 2.5.0
+redesigned the labs console with an overview, a page per job, the choices of a new diagram
+shown as what they are and an agent panel that can be closed. Version 2.4.0 added the labs console, `/zukai:labs`, and the project
 glossary. Version 2.3.3 says how to finish a FigJam board a call limit stopped
 midway, and version 2.3.2 states the FigJam call budget more exactly. Version 2.3.1 drew an architecture whose main flow ran along the bottom of its frames through their
 middle. Version 2.3.0 added `/zukai:sync`, the use case kind, the SVG pictures,
 the description tables, the picture of a change, the PlantUML reader and Google Cloud icons
 for architecture diagrams; version 2.2.0 added
 `/zukai:recook` and version 2.0.0 added `/zukai:revise`. Forks of the skill should read
+[Upgrading to 2.7.0](docs/install.md#upgrading-to-270),
+[Upgrading to 2.6.0](docs/install.md#upgrading-to-260),
 [Upgrading to 2.5.0](docs/install.md#upgrading-to-250),
 [Upgrading to 2.4.0](docs/install.md#upgrading-to-240),
 [Upgrading to 2.3.3](docs/install.md#upgrading-to-233),
@@ -573,6 +626,6 @@ Report a wrong or ugly diagram at
 
 ## License
 
-[MIT](LICENSE). The committed CLI bundle also carries elkjs (EPL-2.0) and ajv (MIT), and the
+[MIT](LICENSE). The committed CLI bundle also carries elkjs (EPL-2.0), ajv (MIT) and marked (MIT), and the
 console's pages carry three font families under the SIL Open Font License 1.1 and the files
 of the Sienna design system; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

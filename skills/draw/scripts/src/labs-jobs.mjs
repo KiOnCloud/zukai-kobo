@@ -30,6 +30,8 @@ import { DOC_LANGS, TARGETS } from './pipeline.mjs';
 import { listRevisions } from './revisions.mjs';
 import { projectRoot } from './glossary.mjs';
 import { runNames, runPath, diagramIds, revisionNames, listFiles } from './labs-runs.mjs';
+import { reportNames, reportPath, readReport, draftNames, LANG_RE } from './reports.mjs';
+import { listTemplates, scopeRoot, ID_RE as TEMPLATE_ID, SCOPES as TEMPLATE_SCOPES, WRITABLE_SCOPES } from './report-templates.mjs';
 
 export const STATES = ['queued', 'running', 'needs-input', 'done', 'failed', 'cancelled'];
 export const OPEN_STATES = new Set(['running', 'needs-input']);
@@ -64,6 +66,9 @@ function kindSpecs(ctx) {
   const oneOf = (list) => (v) => list.includes(v) || `is one of ${list.join(', ')}`;
   const langs = (v) => (Array.isArray(v) && v.length > 0 && v.every((x) => DOC_LANGS.includes(x)) && new Set(v).size === v.length) || `is a list of ${DOC_LANGS.join(', ')}`;
   const drawOptions = { to: oneOf(DRAW_TARGETS), kind: oneOf(KINDS), scope: oneOf(SCOPES), audience: oneOf(AUDIENCES), svg: bool, doc: langs };
+  const reportName = (v) => ctx.reports().includes(v) || 'is not a report of this project';
+  const line = (max) => (v) => (typeof v === 'string' && v.trim() !== '' && v.length <= max && !CONTROL.test(v)) || `is one line of 1 to ${max} characters`;
+  const tag = (v) => (typeof v === 'string' && LANG_RE.test(v)) || 'is a language tag such as en, ja, vi';
   return {
     draw: { required: { request }, optional: { mode: oneOf(MODES), ...drawOptions } },
     revise: { required: { run, request }, optional: { preview: bool, svg: bool, doc: langs } },
@@ -73,6 +78,19 @@ function kindSpecs(ctx) {
     recook: { required: { source: (v) => ctx.source(v) || 'is a file inside the project or a FigJam board link' }, optional: drawOptions },
     export: { required: { run }, optional: { svg: bool, doc: langs } },
     'glossary-suggest': { required: { runs: (v) => v === 'all' || (Array.isArray(v) && v.length > 0 && v.every((x) => ctx.runs().includes(x))) || 'is "all" or a list of runs of this project' } },
+    'report-write': {
+      required: { template: (v) => ctx.templates().includes(v) || 'is not a template of this project that can be used', title: line(200), lang: tag },
+      optional: { kind: (v) => (typeof v === 'string' && TEMPLATE_ID.test(v)) || 'is lower-case letters, digits and -', scope: oneOf(TEMPLATE_SCOPES), runs: (v) => (Array.isArray(v) && v.length <= 50 && v.every((x) => ctx.runs().includes(x)) && new Set(v).size === v.length) || 'is a list of runs of this project', notes: request },
+    },
+    'report-polish': {
+      required: { reportName },
+      optional: { apply: (v, p) => (v !== null && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).every((k) => ['draft', 'baseRev', 'draftRev'].includes(k)) && ctx.drafts(p.reportName).includes(v.draft) && HEX64.test(v.baseRev ?? '') && HEX64.test(v.draftRev ?? '')) || 'is { draft, baseRev, draftRev } of a pending draft of the report' },
+    },
+    'report-translate': { required: { reportName, lang: (v, p) => (typeof v === 'string' && LANG_RE.test(v) && v.toLowerCase() !== String(ctx.reportLang(p.reportName)).toLowerCase()) || 'is a language tag other than the language of the report' } },
+    'report-template': {
+      required: { mode: oneOf(['new', 'customise']), scope: oneOf(WRITABLE_SCOPES) },
+      optional: { from: (v) => ctx.templateIds().includes(v) || 'is not a template id of this project', description: request },
+    },
   };
 }
 
@@ -90,6 +108,10 @@ export function jobErrors(kind, params, ctx) {
     if (ok === true) continue;
     if (typeof ok === 'object') errors.push({ path: `/params/${key}`, message: ok.message, errors: ok.errors });
     else errors.push({ path: `/params/${key}`, message: `"${key}" ${ok}` });
+  }
+  if (kind === 'report-template' && errors.length === 0) {
+    if (params.mode === 'customise' && params.from === undefined) errors.push({ path: '/params/from', message: '"from" is needed to customise a template' });
+    if (params.mode === 'new' && params.description === undefined) errors.push({ path: '/params/description', message: '"description" is needed for a new template' });
   }
   return errors;
 }
@@ -145,7 +167,8 @@ const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 /** A record in the shape this module writes; anything else on disk is left out. */
 export const wellFormed = (job) => isObject(job) && typeof job.id === 'string' && JOB_ID.test(job.id) && STATES.includes(job.state)
   && typeof job.kind === 'string' && isObject(job.params) && Array.isArray(job.progress) && Array.isArray(job.asked)
-  && (job.run === null || typeof job.run === 'string') && (job.ask === null || isObject(job.ask));
+  && (job.run === null || typeof job.run === 'string') && (job.ask === null || isObject(job.ask))
+  && (job.reportName === undefined || job.reportName === null || typeof job.reportName === 'string');
 
 const stamp = (d) => d.toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
 
@@ -192,6 +215,11 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
     runs: () => runNames(root),
     diagrams: (run) => diagramIds(root, run),
     revisions: (run) => revisionNames(root, run),
+    reports: () => { try { return reportNames(root); } catch { return []; } },
+    reportLang: (name) => { const dir = reportPath(root, name); return dir ? readReport(dir).meta?.lang : undefined; },
+    drafts: (name) => { const dir = reportPath(root, name); return dir ? draftNames(dir) : []; },
+    templates: () => listTemplates(root).templates.filter((t) => t.used).map((t) => t.id),
+    templateIds: () => listTemplates(root).templates.filter((t) => t.valid).map((t) => t.id),
     source: (v) => {
       if (typeof v !== 'string' || v === '' || v.length > 1000) return false;
       if (BOARD_LINK.test(v)) return true;
@@ -259,7 +287,8 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
     do id = `j${stamp(at)}-${randomBytes(2).toString('hex')}`; while (jobs.has(id));
     const { ir, ...rest } = params;
     seq += 1;
-    const job = { id, seq, kind, run: params.run ?? null, params: rest, state: 'queued', createdAt: at.toISOString(), startedAt: null, finishedAt: null, session: null, progress: [], ask: null, asked: [], report: null, reason: null };
+    // A report job names its report in `reportName`; `report` is the agent's closing text, as for every job.
+    const job = { id, seq, kind, run: params.run ?? null, reportName: params.reportName ?? null, params: rest, state: 'queued', createdAt: at.toISOString(), startedAt: null, finishedAt: null, session: null, progress: [], ask: null, asked: [], report: null, reason: null };
     if (kind === 'apply-edit') {
       mkdirSync(folderOf(id), { recursive: true });
       writeFileSync(join(folderOf(id), 'ir.json'), `${JSON.stringify(ir, null, 2)}\n`);
@@ -316,7 +345,16 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
 
   // The run's folder is given whole, so the agent needs not know the project's runs folder.
   const runDirOf = (job) => { try { return job.run ? runPath(root, job.run) : undefined; } catch { return undefined; } };
-  const forAgent = (job) => ({ ...job, folder: folderOf(job.id), ...(runDirOf(job) ? { runDir: runDirOf(job) } : {}), ...(job.kind === 'apply-edit' ? { irFile: join(folderOf(job.id), 'ir.json') } : {}) });
+  // A report job gets its report folder whole, and a template job the folder of its scope.
+  const reportDirOf = (job) => { try { return job.reportName ? reportPath(root, job.reportName) : undefined; } catch { return undefined; } };
+  const forAgent = (job) => ({
+    ...job,
+    folder: folderOf(job.id),
+    ...(runDirOf(job) ? { runDir: runDirOf(job) } : {}),
+    ...(reportDirOf(job) ? { reportDir: reportDirOf(job) } : {}),
+    ...(job.kind === 'report-template' ? { scopeDir: scopeRoot(root, job.params.scope) } : {}),
+    ...(job.kind === 'apply-edit' ? { irFile: join(folderOf(job.id), 'ir.json') } : {}),
+  });
 
   /** Hold a call until `settle` is called, the cap or the client's timeout passes, or the client goes. */
   function hold(id, { timeoutMs, signal }, onTimeout, register) {
@@ -384,7 +422,8 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
         if (!path) fail(400, 'bad-request', `no file "${name}" in the job's folder`);
         return { kind: 'job', name };
       }
-      if (!job.run || !listFiles(runPath(root, job.run)).some((f) => f.name === a)) fail(400, 'bad-request', `"${a}" is not a file of the job's run`);
+      if (!job.run) fail(400, 'bad-request', `"${a}" is no file of the job's folder; a job without a run attaches its own files as @job/<name>`);
+      if (!listFiles(runPath(root, job.run)).some((f) => f.name === a)) fail(400, 'bad-request', `"${a}" is not a file of the job's run`);
       return { kind: 'run', name: a };
     });
   }
@@ -470,13 +509,21 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
     return { ok: true };
   }
 
-  /** The open job on a run, for `labs holds`. */
-  function holds(run) {
+  /** The open job on a run or a report, for `labs holds`. */
+  function holds(run, report) {
     const job = openJob();
-    return job && job.run === run ? { held: true, job: job.id, kind: job.kind, since: job.startedAt } : { held: false };
+    if (!job) return { held: false };
+    const hit = (run !== undefined && run !== null && job.run === run) || (report !== undefined && report !== null && job.reportName === report);
+    return hit ? { held: true, job: job.id, kind: job.kind, since: job.startedAt } : { held: false };
   }
 
-  const summary = (job) => ({ id: job.id, kind: job.kind, run: job.run, state: job.state, createdAt: job.createdAt, startedAt: job.startedAt, finishedAt: job.finishedAt, reason: job.reason, request: job.params.request ?? null });
+  /** A job queued or open for a report: the console's quick edit and restore wait for it. */
+  function reportBusy(name) {
+    const job = [...jobs.values()].find((j) => (j.state === 'queued' || OPEN_STATES.has(j.state)) && j.reportName === name);
+    return job ? { id: job.id, kind: job.kind, state: job.state } : undefined;
+  }
+
+  const summary = (job) => ({ id: job.id, kind: job.kind, run: job.run, reportName: job.reportName ?? null, state: job.state, createdAt: job.createdAt, startedAt: job.startedAt, finishedAt: job.finishedAt, reason: job.reason, request: job.params.request ?? job.params.title ?? job.params.description ?? job.params.notes ?? null });
 
   /** A job as the console reads it, with the revisions its run got while it ran. */
   function detail(jobId) {
@@ -522,7 +569,7 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
   const busy = () => waiters.length > 0 || askers.size > 0 || Boolean(openJob()) || (queued().length > 0 && session !== null && now() - session.lastContact < jobContactMs);
 
   const api = {
-    started, queue, wait, progress, ask, answer, done, cancel, markFailed, holds, detail, state, release, busy, jobFile,
+    started, queue, wait, progress, ask, answer, done, cancel, markFailed, holds, reportBusy, detail, state, release, busy, jobFile,
     list: () => [...jobs.values()].sort((a, b) => (b.seq ?? 0) - (a.seq ?? 0)).map(summary),
     open: () => Boolean(openJob()),
     touch,
@@ -566,7 +613,7 @@ export function jobRoutes(jobs, { bump, HttpError, notFound, body }) {
     ['POST', '/agent/jobs/:id/progress', ({ req, params }) => call(() => { const b = body(req); return jobs.progress(params.id, b.session, b.message); })],
     ['POST', '/agent/jobs/:id/ask', ({ req, params, signal }) => call(async () => { const b = body(req); const r = await jobs.ask(params.id, b.session, b.question, { timeoutMs: ms(b.timeout), signal }); return r.error || r.aborted ? r : { session: b.session, answers: r.answers }; })],
     ['POST', '/agent/jobs/:id/done', ({ req, params }) => call(() => { const b = body(req); return jobs.done(params.id, b.session, b.result, b.report); })],
-    ['GET', '/agent/holds', ({ query }) => ({ body: jobs.holds(query.get('run')) })],
+    ['GET', '/agent/holds', ({ query }) => ({ body: jobs.holds(query.get('run'), query.get('report')) })],
   ];
 }
 

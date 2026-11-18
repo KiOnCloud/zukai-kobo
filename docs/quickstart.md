@@ -155,7 +155,27 @@ diagrams. From PlantUML it reads sequence, class, state, activity (the new synta
 component, deployment, use case and ER diagrams; another type, such as a mind map or a
 Gantt chart, is named with the reason and left out, and an `!include` is not followed.
 
-## 8. Update the plugin
+## 8. Write a report
+
+```text
+/zukai:report issue investigation for the checkout timeouts this morning, with the login flow diagram
+```
+
+Zukai picks the template (here the built-in issue investigation), creates
+`reports/<yyyymmdd>_<slug>/`, asks only what the template needs and you did not say, writes
+`report.md` section by section with the glossary's confirmed terms, then renders
+`report.html`; open it in a browser and print it to PDF. Then:
+
+```text
+/zukai:report polish reports/20261119_checkout-timeouts
+/zukai:report translate reports/20261119_checkout-timeouts ja
+```
+
+A polish shows the sentences it rewrote as a diff and changes nothing until you say yes. The
+labs console's Reports section does the same from the page, and its Templates tab previews,
+creates, customises, exports and imports templates.
+
+## 9. Update the plugin
 
 ```bash
 claude plugin marketplace update zukai

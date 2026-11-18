@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { cpSync, existsSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { normalText, sameText, containsText, entryIdOf, readGlossary, writeGlossary, addEntries, setStatus, glossaryErrors, serialize, readRun, pairsOf, checkGlossary, ensureZukaiDir } from '../src/glossary.mjs';
+import { normalText, sameText, containsText, entryIdOf, readGlossary, writeGlossary, addEntries, setStatus, glossaryErrors, serialize, readRun, pairsOf, checkGlossary, ensureZukaiDir, containsProse, checkProse, selfAvoided, newEntryErrors } from '../src/glossary.mjs';
 import { fixturesDir } from './helpers.mjs';
 
 const fixtureProject = join(fixturesDir, 'glossary', 'project');
@@ -243,4 +243,79 @@ describe('a lock that came with a clone', () => {
     expect(addEntries(root, [{ terms: { en: 'desk' } }])).toMatchObject({ ok: false, code: 'locked' });
     expect(Date.now() - started).toBeLessThan(8000);
   }, 15_000);
+});
+
+describe('prose', () => {
+  const entry = (id, terms, avoid) => ({ id, terms, ...(avoid ? { avoid } : {}), status: 'confirmed' });
+  const glossary = (...entries) => ({ schemaVersion: 1, entries });
+  /** Prose of an original (and translations): files as [file, lang, markdown-ish blocks by section]. */
+  const prose = (files) => {
+    const blocks = [];
+    const sections = {};
+    for (const [file, lang, bySection] of files) {
+      sections[file] = Object.keys(bySection);
+      let line = 1;
+      for (const [section, texts] of Object.entries(bySection)) for (const text of texts) blocks.push({ report: 'r', file, lang, section, line: line++, text });
+    }
+    return { report: 'r', files: files.map(([file, lang]) => ({ file, lang })), blocks, sections };
+  };
+
+  it.each([
+    ['officeを使う', 'office', true],
+    ['officeの鍵', 'office', true],
+    ['offices', 'office', false],
+    ['use the user list', 'use', true],
+    ['the user list', 'use', false],
+    ['khách hàng mới', 'khách hàng', true],
+    ['khach hang moi', 'khách hàng', false],
+    ['サーバーを起動', 'サーバ', true],
+  ])('containsProse(%j, %j) is %s', (text, term, expected) => {
+    expect(containsProse(text, term)).toBe(expected);
+  });
+
+  it('blocks an avoided word for the block language, Latin inside Japanese prose included', () => {
+    const g = glossary(entry('g-00000001', { en: 'office', ja: 'オフィス' }, { ja: ['office'], en: ['bureau'] }));
+    const r = checkProse(g, prose([['report.md', 'ja', { summary: ['officeを使う', 'オフィスを使う'] }]]));
+    expect(r.findings.filter((f) => f.kind === 'avoided-term')).toEqual([expect.objectContaining({ level: 'blocking', file: 'report.md', section: 'summary', line: 1, avoided: 'office', expected: 'オフィス' })]);
+  });
+
+  it('never matches an avoided word inside the entry\'s own term', () => {
+    const g = glossary(entry('g-00000002', { ja: 'サーバー', en: 'server' }, { ja: ['サーバ'] }));
+    expect(checkProse(g, prose([['report.md', 'ja', { a: ['サーバーを起動する'] }]])).findings.filter((f) => f.kind === 'avoided-term')).toEqual([]);
+    expect(checkProse(g, prose([['report.md', 'ja', { a: ['サーバを起動する'] }]])).blocking).toBe(1);
+  });
+
+  it('holds Vietnamese diacritics apart', () => {
+    const g = glossary(entry('g-00000003', { vi: 'văn phòng', en: 'office' }, { vi: ['cơ quan'] }));
+    expect(checkProse(g, prose([['report.md', 'vi', { a: ['Mở co quan mới'] }]])).blocking).toBe(0);
+    expect(checkProse(g, prose([['report.md', 'vi', { a: ['Mở cơ quan mới'] }]])).blocking).toBe(1);
+  });
+
+  it('warns for an English term left in a Japanese original, never for a term kept the same', () => {
+    const g = glossary(entry('g-00000004', { en: 'stock check', ja: '在庫確認' }), entry('g-00000005', { en: 'office', ja: 'office' }));
+    const r = checkProse(g, prose([['report.md', 'ja', { a: ['毎朝 stock check を行う', 'office で作業する'] }]]));
+    expect(r.findings.map((f) => [f.kind, f.level, f.term, f.expected])).toEqual([['untranslated-term', 'warning', 'stock check', '在庫確認']]);
+  });
+
+  it('keeps a term the same across languages through a translation, and flags a changed one', () => {
+    const g = glossary(entry('g-00000005', { en: 'office', ja: 'office' }), entry('g-00000004', { en: 'stock check', ja: '在庫確認' }));
+    const original = ['report.md', 'en', { a: ['Open the office at nine.', 'Run the stock check.'] }];
+    const kept = checkProse(g, prose([original, ['ja/report.md', 'ja', { a: ['9時に office を開ける。', '在庫確認を行う。'] }]]));
+    expect(kept.findings).toEqual([]);
+    const changed = checkProse(g, prose([original, ['ja/report.md', 'ja', { a: ['9時にオフィスを開ける。', '棚卸しを行う。'] }]]));
+    expect(changed.findings.map((f) => [f.kind, f.level, f.expected])).toEqual([['kept-term-changed', 'blocking', 'office'], ['translation-mismatch', 'warning', '在庫確認']]);
+  });
+
+  it('reports a translation with a dropped section once, and nothing per term for it', () => {
+    const g = glossary(entry('g-00000005', { en: 'office', ja: 'office' }, { ja: ['オフィス'] }));
+    const r = checkProse(g, prose([['report.md', 'en', { a: ['office'], b: ['office'] }], ['ja/report.md', 'ja', { a: ['オフィス'] }]]));
+    expect(r.findings).toEqual([expect.objectContaining({ kind: 'sections-differ', level: 'blocking', file: 'ja/report.md', missing: ['b'], extra: [] })]);
+  });
+
+  it('refuses a new entry whose avoided word is part of its own term, and lists an old one', () => {
+    expect(newEntryErrors({ terms: { ja: 'サーバー' }, avoid: { ja: ['サーバ'] } }, '/entries/0')).toEqual([expect.objectContaining({ path: '/entries/0/avoid/ja' })]);
+    expect(newEntryErrors({ terms: { en: 'user account' }, avoid: { en: ['user'] } }, '/entries/0')).toHaveLength(1);
+    expect(newEntryErrors({ terms: { en: 'office' }, avoid: { en: ['bureau'] } }, '/entries/0')).toEqual([]);
+    expect(selfAvoided({ terms: { ja: 'サーバー' }, avoid: { ja: ['サーバ'] } })).toEqual([{ lang: 'ja', word: 'サーバ', term: 'サーバー' }]);
+  });
 });

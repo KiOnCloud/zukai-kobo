@@ -1,0 +1,16 @@
+{
+  "title": "Choosing a queue for order events",
+  "meta": {
+    "Decision by": "Architecture review"
+  },
+  "sections": {
+    "question": "Which message queue should carry order events from the shop to fulfilment and billing?",
+    "context": "Orders are written to PostgreSQL and polled by two services every minute. Polling delays fulfilment and loads the database. The team runs on one cloud provider and has no queue in production yet.",
+    "options": "- **Managed queue of the cloud provider**: no servers to run, pay per message.\n- **Kafka (managed)**: an ordered log with replay.\n- **Keep polling**: no new component.",
+    "criteria": "| Criterion | Why it matters |\n|---|---|\n| Delivery guarantee | an order event must not be lost |\n| Operations | the team has no dedicated platform engineer |\n| Replay | billing rebuilds its state after a bug |\n| Cost | at 50,000 events a day |",
+    "findings": "- The managed queue delivers at least once and keeps messages for 14 days; it has no replay.\n- Managed Kafka keeps the log for the configured time and supports replay; it needs topic and partition design.\n- Polling stays simple but every new consumer adds load.",
+    "comparison": "| | Managed queue | Kafka | Polling |\n|---|---|---|---|\n| Delivery | at least once | at least once | depends on code |\n| Operations | very low | medium | none |\n| Replay | no | yes | from the table |\n| Cost | lowest | highest | none |",
+    "recommendation": "Use **managed Kafka**: billing needs replay, and the operations cost is acceptable with the provider managing brokers. Revisit if the event volume stays below 10,000 a day for six months.",
+    "references": "- Provider documentation of both services (pricing and limits pages).\n- Internal incident report on billing state rebuilds."
+  }
+}

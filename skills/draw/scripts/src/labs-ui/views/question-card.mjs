@@ -7,7 +7,7 @@
 import { S } from '../sienna.mjs';
 import { h, replace } from '../dom.mjs';
 import { api, path } from '../api.mjs';
-import { KIND_LABEL } from '../words.mjs';
+import { KIND_LABEL, jobTarget } from '../words.mjs';
 import { textBlock } from './badge.mjs';
 import { showFileButton } from './file-view.mjs';
 
@@ -87,7 +87,7 @@ export function questionCard({ job, onSent, wide = false }) {
     h('header', { class: 'zl-ask-head' },
       h('span', { class: 'eyebrow zl-ask-eyebrow' }, 'The agent asks'),
       h('span', { class: 'heading-sm' }, KIND_LABEL[job.kind] ?? job.kind),
-      job.run ? h('a', { class: 'code body-sm', href: `#/diagrams/${encodeURIComponent(job.run)}` }, job.run) : null),
+      jobTarget(job) ? h('a', { class: 'code body-sm', href: jobTarget(job).href }, jobTarget(job).label) : null),
     ask.body ? h('p', { class: 'body zl-ask-body' }, ask.body) : null,
     ask.attachments.map((a) => attachmentBlock(job, a)),
     questions,

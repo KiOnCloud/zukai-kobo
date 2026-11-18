@@ -10,7 +10,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '.
 const installer = join(repoRoot, 'install.ps1');
 const shInstaller = join(repoRoot, 'install.sh');
 const version = JSON.parse(readFileSync(join(repoRoot, '.claude-plugin', 'plugin.json'), 'utf8')).version;
-const NAMES = ['zukai', 'zukai-labs', 'zukai-recook', 'zukai-revise', 'zukai-sync'];
+const NAMES = ['zukai', 'zukai-labs', 'zukai-recook', 'zukai-report', 'zukai-revise', 'zukai-sync'];
 
 /**
  * PowerShell 7 to run the installer with: the executable `ZUKAI_PWSH` names, else `pwsh` on
@@ -84,7 +84,7 @@ const projects = {
     put(join(dest, '.agents/skills/zukai/.zukai-version'), '1.0.0\n');
     put(join(dest, '.agents/skills/zukai/SKILL.md'), '---\nname: zukai\n---\n');
   },
-  'an older install of all five, with a marker that ends in CRLF': (dest) => {
+  'an older install of all six, with a marker that ends in CRLF': (dest) => {
     for (const name of NAMES) {
       put(join(dest, `.agents/skills/${name}/.${name}-version`), '2.2.2\r\n');
       put(join(dest, `.agents/skills/${name}/SKILL.md`), `---\nname: ${name}\n---\n`);
@@ -120,7 +120,7 @@ const projects = {
 
 describe.skipIf(!pwsh)('install.ps1', () => {
   for (const [target, subdir] of [['codex', '.agents/skills'], ['claude-project', '.claude/skills']]) {
-    it(`installs the ${target} copies as zukai, zukai-revise, zukai-recook, zukai-sync and zukai-labs, in folder and in name`, () => {
+    it(`installs the ${target} copies as zukai, zukai-revise, zukai-recook, zukai-sync, zukai-labs and zukai-report, in folder and in name`, () => {
       const dest = tempDir();
       const r = install(target, dest);
       const skills = join(dest, subdir);
@@ -146,6 +146,11 @@ describe.skipIf(!pwsh)('install.ps1', () => {
       const help = execFileSync(process.execPath, [join(skills, 'zukai', 'scripts', 'bin', 'cli.mjs'), 'help'], { cwd: dest, encoding: 'utf8' });
       expect(help).toContain('cli.mjs stale <run-dir>...');
       expect(help).toContain('cli.mjs sources <run-dir>');
+      // report carries the built-in templates, which the installed CLI finds through its version marker.
+      expect(readdirSync(join(skills, 'zukai-report', 'templates')).sort()).toEqual(['feature', 'issue-investigation', 'tech-research']);
+      expect(readFileSync(join(skills, 'zukai-report', 'SKILL.md'), 'utf8')).toContain('<report-dir>/../zukai');
+      const list = JSON.parse(execFileSync(process.execPath, [join(skills, 'zukai', 'scripts', 'bin', 'cli.mjs'), 'template', 'list'], { cwd: dest, encoding: 'utf8' }));
+      expect(list.templates.filter((t) => t.scope === 'built-in' && t.valid).map((t) => t.id)).toEqual(['feature', 'issue-investigation', 'tech-research']);
       // The warning about the fallback channel is no part of the list of what was done.
       expect(r.stdout).not.toMatch(/fallback channel/);
       if (target === 'claude-project') expect(r.stderr).toMatch(/fallback channel/);
@@ -250,7 +255,7 @@ describe.skipIf(!pwsh)('install.ps1', () => {
     expect(existsSync(join(dest, '.agents/zukai-backups'))).toBe(false);
   });
 
-  for (const added of ['zukai-sync', 'zukai-labs']) {
+  for (const added of ['zukai-sync', 'zukai-labs', 'zukai-report']) {
     it(`installs only the missing ${added} and leaves a same-version copy alone`, () => {
       const dest = tempDir();
       install('codex', dest);

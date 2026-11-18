@@ -1,7 +1,7 @@
 ---
 title: "Reports, report templates and glossary polish"
 description: "Write reports of any kind from templates with an HTML version, in the chat (/zukai:report) and in a new Reports section of the labs console, and finish them with the glossary: a polish job rewrites non-standard words with the confirmed terms behind a diff, and translation keeps the terms a language keeps."
-status: pending
+status: in-progress
 priority: P2
 effort: 10d
 branch: claude/reports-and-templates
@@ -31,12 +31,12 @@ Scope mode: HOLD SCOPE (no `--yagni`); everything the brainstorm accepted is pla
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Reports folder, report contract and revisions](./phase-01-reports-dir-and-report-folders.md) | Pending |
-| 2 | [Report templates: scopes, HTML layout, export and import](./phase-02-report-templates.md) | Pending |
-| 3 | [Glossary on prose: check, keep terms, translations](./phase-03-glossary-on-prose.md) | Pending |
-| 4 | [Report skill and its closing contract](./phase-04-report-skill.md) | Pending |
-| 5 | [Labs Reports section, routes and job kinds](./phase-05-labs-reports-section.md) | Pending |
-| 6 | [Docs, tests sweep and release 2.7.0](./phase-06-docs-tests-and-release.md) | Pending |
+| 1 | [Reports folder, report contract and revisions](./phase-01-reports-dir-and-report-folders.md) | Completed |
+| 2 | [Report templates: scopes, HTML layout, export and import](./phase-02-report-templates.md) | Completed |
+| 3 | [Glossary on prose: check, keep terms, translations](./phase-03-glossary-on-prose.md) | Completed |
+| 4 | [Report skill and its closing contract](./phase-04-report-skill.md) | Completed (live agent round not run) |
+| 5 | [Labs Reports section, routes and job kinds](./phase-05-labs-reports-section.md) | Completed (Playwright round not run locally; checked in headless Chrome) |
+| 6 | [Docs, tests sweep and release 2.7.0](./phase-06-docs-tests-and-release.md) | In progress (CI run, live rounds and PR pending) |
 
 Order: 1 → 2 → 3 → 4 → 5 → 6. Phases 2 and 3 both build on phase 1 and touch different
 modules (`report-templates.mjs`, `glossary.mjs`), so they may run in parallel; phase 4 needs
@@ -73,14 +73,14 @@ both; phase 5 needs 1–4; phase 6 closes.
 The nine acceptance criteria of the brainstorm contract, each mapped to the phase that
 proves it:
 
-- [ ] 1. `/zukai:report` writes each built-in kind into `reportsDir` with `report.md`, `report.html`, `report.json` — phases 1, 4
-- [ ] 2. Every template previews as HTML with its sample; `report.html` takes the template's layout — phases 2, 5
-- [ ] 3. Templates created or customised through Claude land in the named scope; nearer scope wins and is named — phases 2, 4, 5
-- [ ] 4. Export then import round-trips; unsafe HTML is refused; an existing id is kept unless `--replace` — phase 2
-- [ ] 5. The Reports section lists, previews, exports (HTML, Markdown, PDF), shows history and diffs, and queues the four job kinds — phase 5
-- [ ] 6. An avoided word is found by `report check`, rewritten by the polish job, shown as a diff and applied as a revision — phases 3, 4, 5
-- [ ] 7. A term kept across languages (`en`/`ja` "office") survives translation and a changed one is flagged — phases 3, 4
-- [ ] 8. An unusable `reportsDir` stops report commands with `bad-config` and writes nothing — phase 1
+- [ ] 1. `/zukai:report` writes each built-in kind into `reportsDir` with `report.md`, `report.html`, `report.json` — phases 1, 4 (CLI and console side proven by tests; the live agent round is pending)
+- [x] 2. Every template previews as HTML with its sample; `report.html` takes the template's layout — phases 2, 5
+- [ ] 3. Templates created or customised through Claude land in the named scope; nearer scope wins and is named — phases 2, 4, 5 (CLI and console side proven by tests; the live agent round is pending)
+- [x] 4. Export then import round-trips; unsafe HTML is refused; an existing id is kept unless `--replace` — phase 2
+- [x] 5. The Reports section lists, previews, exports (HTML, Markdown, PDF), shows history and diffs, and queues the four job kinds — phase 5
+- [ ] 6. An avoided word is found by `report check`, rewritten by the polish job, shown as a diff and applied as a revision — phases 3, 4, 5 (CLI and console side proven by tests; the live agent round is pending)
+- [ ] 7. A term kept across languages (`en`/`ja` "office") survives translation and a changed one is flagged — phases 3, 4 (CLI and console side proven by tests; the live agent round is pending)
+- [x] 8. An unusable `reportsDir` stops report commands with `bad-config` and writes nothing — phase 1
 - [ ] 9. Tests cover the modules, prose check, templates, console (unit and Playwright) and jobs; bundle drift passes — every phase, swept in 6
 
 ## Red Team Review
@@ -127,3 +127,22 @@ Propagated to phases 1, 2, 4, 5 and 6 with `<!-- Updated: ... -->` markers.
 - Decision deltas checked: 9 (`reportName`; `reports` config result; overlap both ways; `marked`; restore route; `template` command group with validate and save; id pattern and validation on read; per-page frame policy with `allow-modals`; drafts with `baseRev`/`draftRev`)
 - Reconciled stale references: 0 remaining (searched for the old renderer, `job.report`, three-word template commands, the old built-in path and the old job count)
 - Unresolved contradictions: 0
+
+## Code review
+
+### Session — 2026-11-19 (after implementation)
+A reviewer agent reproduced two High findings and one Medium; all fixed with regression tests.
+
+| # | Finding | Severity | Fix |
+|---|---------|----------|-----|
+| 1 | A validated template could redirect `report.html` (`http-equiv` with `>` in a quoted value) and push the CSP `<meta>` into a comment | High | CSP meta written right after the doctype; `http-equiv`, foreign `<meta>` attributes, backslashes, `image-set` and CSS character references refused |
+| 2 | Saving through a linked `.zukai/report-templates` could replace a folder outside the project | High | the scope folder and its base must be real folders at their expected real path |
+| 3 | A report folder without `report.md` broke the console's Reports list | Medium | listed as `broken`; source route answers 404 |
+| 4 | Links followed for `report.md`, `report.html` and history files | Low | real-file checks before each read |
+| 5 | Two `report new` at once could share a folder | Low | folder made exclusively, next name on EEXIST |
+| 6 | Device names accepted as language tags | Low | `LANG_RE` refuses `con`, `prn`, `aux`, `nul` |
+| 7 | Console import check never said the id exists | Low | the check sends the scope; the frame is disposed |
+| 8 | Entity references shown literally | Low | text keeps a character reference as one |
+| 9 | `runs-dir set reports` refused in every project | Low | kept: the plan's decision checks the overlap both ways against the effective reports folder |
+| 10 | Every state poll and listing reads all reports | Low | left as is for tens of reports; a cache by modification time is the next step if needed |
+

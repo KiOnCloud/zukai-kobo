@@ -38,7 +38,7 @@ jobs:
           node -e '
             const fs = require("fs");
             const allowed = new Set(["name", "description", "license", "compatibility", "metadata", "allowed-tools"]);
-            for (const name of ["draw", "revise", "recook", "sync", "labs"]) {
+            for (const name of ["draw", "revise", "recook", "sync", "labs", "report"]) {
               const text = fs.readFileSync("skills/" + name + "/SKILL.md", "utf8");
               const m = text.match(/^---\n([\s\S]*?)\n---/);
               if (!m) throw new Error(name + "/SKILL.md has no frontmatter");
@@ -65,7 +65,7 @@ jobs:
 
       - name: Assert the bundle and the console pages are committed
         if: ${{ hashFiles('skills/draw/scripts/package.json') != '' }}
-        run: git ls-files --error-unmatch skills/draw/scripts/bin/cli.mjs skills/draw/scripts/bin/labs-ui/index.html skills/draw/scripts/bin/labs-ui/app.js skills/draw/scripts/bin/labs-ui/app.css skills/draw/scripts/bin/labs-ui/viewer.html
+        run: git ls-files --error-unmatch skills/draw/scripts/bin/cli.mjs skills/draw/scripts/bin/labs-ui/index.html skills/draw/scripts/bin/labs-ui/app.js skills/draw/scripts/bin/labs-ui/app.css skills/draw/scripts/bin/labs-ui/viewer.html skills/draw/scripts/bin/labs-ui/report-frame.html
 
       - name: Install the Claude Code CLI for strict validation
         id: claude_cli
@@ -94,7 +94,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $version = (Get-Content -LiteralPath .claude-plugin/plugin.json -Raw | ConvertFrom-Json).version
-          $expected = 'zukai,zukai-labs,zukai-recook,zukai-revise,zukai-sync'
+          $expected = 'zukai,zukai-labs,zukai-recook,zukai-report,zukai-revise,zukai-sync'
           # Windows PowerShell 5.1 is what docs/install.md tells users to run; PowerShell 7 too.
           foreach ($shell in @('powershell', 'pwsh')) {
             foreach ($target in @('codex', 'claude-project')) {
@@ -119,6 +119,10 @@ jobs:
 
               $help = (& node (Join-Path $skills 'zukai\scripts\bin\cli.mjs') help) -join "`n"
               if ($LASTEXITCODE -ne 0 -or -not $help.Contains('cli.mjs stale <run-dir>...')) { throw "$shell/${target}: the installed CLI does not answer help" }
+              # The installed CLI finds the built-in report templates through the zukai-report marker.
+              $templates = ((& node (Join-Path $skills 'zukai\scripts\bin\cli.mjs') template list) -join "`n") | ConvertFrom-Json
+              $builtIn = @($templates.templates | Where-Object { $_.scope -eq 'built-in' -and $_.valid } | ForEach-Object { $_.id }) -join ','
+              if ($builtIn -cne 'feature,issue-investigation,tech-research') { throw "$shell/${target}: built-in templates found: '$builtIn'" }
 
               $again = (& $shell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\install.ps1 -Target $target -Dest $dest) -join "`n"
               if ($LASTEXITCODE -ne 0 -or -not $again.Contains('already up to date')) { throw "$shell/${target}: a second run did not leave the install alone: $again" }

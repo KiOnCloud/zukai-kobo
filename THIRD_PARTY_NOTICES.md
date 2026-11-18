@@ -7,9 +7,11 @@ third-party code. Licence texts are in each package's npm distribution.
 |---|---|---|---|
 | elkjs | 0.12.1 | EPL-2.0 OR GPL-3.0-or-later (used unmodified under EPL-2.0; licence text in the elkjs npm package, LICENSE.md) | Graph layout for the draw.io emitter |
 | ajv | 8.20.x | MIT | JSON Schema validation of the IR |
+| marked | 16.4.2 | MIT | Markdown to HTML for reports (raw HTML turned off) |
 
 Development-only dependencies (`esbuild`, `vitest`, `mermaid`, `jsdom`, `fast-xml-parser`) are
-not part of the bundle and are not redistributed.
+not part of the bundle and are not redistributed. `marked` is a development dependency that the
+build bundles into `bin/cli.mjs`, so users install nothing for reports.
 
 ## Labs console
 

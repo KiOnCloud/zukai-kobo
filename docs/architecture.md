@@ -133,7 +133,8 @@ brainstorm (idea) ─> clarify ┘                                              
   would put the parts first, since `-` sorts before `.`.
 - **The closing contract** (`skills/draw/references/closing-contract.md`) is the one place
   that says how every run ends: write, validate, emit, bundle, review, pictures when asked
-  for, report. All five skills read it; none copies it.
+  for, report. The five skills that work on runs read it; none copies it. A report ends with
+  the report skill's own closing contract (`skills/report/references/closing-contract.md`).
 
 ## Visual check
 
@@ -196,11 +197,12 @@ named `draw` and invoked as `/zukai:draw`. Codex users copy the folder with
 `install.sh --target codex`, which installs it as `zukai` (folder and `name`, since a copy
 has no plugin namespace), writes a version marker and upgrades in place. The skills
 `skills/revise/`, `skills/recook/`, `skills/sync/` and `skills/labs/` are instructions only
-and are distributed with it: five skills in the plugin (`/zukai:draw`, `/zukai:revise`,
-`/zukai:recook`, `/zukai:sync`, `/zukai:labs`) and five folders in a copied install
-(`zukai`, `zukai-revise`, `zukai-recook`, `zukai-sync`, `zukai-labs`), each of them finding
-the CLI in the sibling folder of the draw skill; the labs skill also carries out its jobs
-by following the draw, revise, sync and recook skills. The console's pages are no skill of their own:
+and are distributed with it, with `skills/report/` and its built-in templates: six skills
+in the plugin (`/zukai:draw`, `/zukai:revise`, `/zukai:recook`, `/zukai:sync`,
+`/zukai:labs`, `/zukai:report`) and six folders in a copied install (`zukai`,
+`zukai-revise`, `zukai-recook`, `zukai-sync`, `zukai-labs`, `zukai-report`), each of them
+finding the CLI in the sibling folder of the draw skill; the labs skill also carries out
+its jobs by following the draw, revise, sync, recook and report skills. The console's pages are no skill of their own:
 they are built into `skills/draw/scripts/bin/labs-ui/` beside the CLI bundle and travel
 with it. The
 `version` in `.claude-plugin/plugin.json` is the single release number for both channels.
@@ -909,6 +911,74 @@ by several projects (a docs repository) is the next likely variant: `runsPath` a
 index's project list would stay, the inside-the-project rule and the relative root of the
 sources record would change.
 
+## Reports and templates
+
+A report is a folder under the project's reports folder: `report.md`, `report.html`,
+`report.json` (validated against `report-v1`), `assets/`, `<lang>/report.md` translations,
+`drafts/` and `history/`. A folder is a report only when its `report.json` is valid. One
+owner module per contract, as `glossary.mjs` owns the glossary:
+
+- `reports.mjs`: listings, `newReport`, the record, revisions, drafts, the line diff, the
+  prose blocks, `checkReport` and `renderReport`.
+- `report-templates.mjs`: scopes, `validateTemplate`, resolution nearest first, save, export,
+  import, preview, and `renderWithTemplate`.
+- `report-markdown.mjs`: the bundled `marked` with raw HTML shown as text, links kept only
+  for `http`, `https` and `#`, pictures only from `data:` or the report's `assets/`, heading
+  ids, and the section markers split out and stripped.
+- `glossary.mjs`: `checkProse` beside `checkGlossary`; the prose boundary rule (a change of
+  script at a match's edge is a word boundary) and the masking of an entry's own term apply
+  to prose only, so label checks of runs are unchanged.
+
+**Configuration.** `readProjectConfig` keeps `ok`, `error` and `runsDir` with their 2.6.0
+meaning for its callers and adds `reports: { ok, dir, error }`; the two folders are checked
+for overlap both ways. A bad `reportsDir` stops the report commands and the report routes
+(409) and nothing else.
+
+**Revisions with two writers.** The CLI the agent calls and the console's server both write
+report revisions, so snapshot and restore run under `<report>/.revisions.lock` (the
+glossary's lock), a temporary folder of another writer is removed only when older than ten
+minutes, a report keeps 20 revisions, and a quick edit never rotates out the newest revision
+it did not make. A polish draft records `baseRev` (the SHA-256 of the `report.md` it was
+made from) and `draftRev`; `report apply` puts it in place only while both still hold.
+
+**Secrets.** Every line of `report.md`, each translation and each draft is scanned on its
+own, so one finding never hides another; a credential refuses every write the CLI or the
+server makes and is a blocking finding of `report check` and `report render`, which also
+scans the rendered HTML before writing it.
+
+**Templates are untrusted input.** A project template can come with a clone and an import
+from anyone, so every read and write validates it: the id pattern and no Windows device
+name, the front matter and the sample against `report-template-v1`, placeholders that name
+the template's own sections, an HTML layout without scripts, frames, forms, links,
+`http-equiv`, `on*` attributes, foreign URLs, `@import`, `image-set`, backslashes or
+character references in CSS, size caps and the secret scan. A scope folder (or `.zukai/`, or
+the Zukai home) that is a link is never written. Built-in
+templates are found only in the plugin layout or through a copied install's version marker.
+Guides and samples are data for the agent, never instructions.
+
+**The sealed report frame.** The console's policy (`style-src 'self'`) cannot show a
+template's styles, so a report is shown in `report-frame.html`, a page with a policy of its
+own: `sandbox allow-scripts allow-modals`, its one script by hash, inline styles and `data:`
+pictures, nothing fetched, framed by the console only. The server keeps a policy per framed
+page (the viewer and the report frame); every other page keeps the console's policy and
+`X-Frame-Options: DENY`. The console makes a fresh frame per document and posts the HTML only
+to that frame's window after its own `ready`; inside, links are inert and `print()` prints
+the report alone. Every `report.html` also carries `default-src 'none'; style-src
+'unsafe-inline'; img-src data:` in a `<meta>` written right after the doctype, before any
+markup of the layout, so no comment, `<title>` or `<style>` of a template can move it out of
+the head. A report folder whose `report.md` is missing or a link is listed as broken, and
+no read of a report follows a link.
+
+**The exceptions to "every change is a job".** The server writes a report's Markdown for a
+quick edit and a restore only, each after a snapshot, with a `rev` check, and refused while a
+report job is queued or open for that report or a polish draft waits. It also removes a draft
+the user discards and imports a template after validating the whole file. Writing,
+polishing, translating and template drafting are jobs: `report-write`, `report-polish`,
+`report-translate` and `report-template`, routed by the labs skill to the report skill. A
+report job names its report in `reportName`; `report` keeps its meaning, the agent's closing
+text. The change stamp of `/api/state` hashes the reports too, so the views reload when the
+agent writes.
+
 ## Extension rule
 
 Adding a target means one new `emit-<target>.mjs`, one column in `feature-matrix.json`, one
@@ -924,7 +994,11 @@ There is no plugin loader or registry: three emitters are a switch statement in
 `nav.mjs`, one view module, one route group of the server and one job kind with its row in
 the labs skill's job table; the Glossary section was added that way, as the second after
 Diagrams. Overview and Jobs joined the same way and needed no route or job kind of their own:
-they read `/api/state`, `/api/runs` and `/api/jobs`, which the server already had.
+they read `/api/state`, `/api/runs` and `/api/jobs`, which the server already had. Reports
+joined as the third with one entry, four view modules (list, report, new report,
+templates), one route group (`/api/reports`, `/api/report-templates`) and four job kinds
+with their rows in the labs skill. A report kind needs no code: a template (three files)
+is a new kind, in the project, user or built-in scope.
 
 ## Testing strategy
 
@@ -940,7 +1014,7 @@ hints on a run, `drift.test.mjs` re-emits every fixture without drift and finds 
 reworded, copied and deleted cells (also on compressed pages and inside a bundle), and
 `revisions.test.mjs` covers rotation, multi-file restore, undoing an undo, the undo and redo
 line, kept extras and an interrupted snapshot. `fixes-e2e.test.mjs` runs the committed bundle
-as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that the five skills are installed side by side, and `install-ps1.test.mjs` runs `install.ps1` through the same cases and more when PowerShell 7 is found (`pwsh` on PATH or `ZUKAI_PWSH`), comparing on macOS and Linux the tree it leaves with the one `install.sh` leaves, file by file. For recook,
+as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that the six skills are installed side by side, the CLI of the copy finding the built-in report templates, and `install-ps1.test.mjs` runs `install.ps1` through the same cases and more when PowerShell 7 is found (`pwsh` on PATH or `ZUKAI_PWSH`), comparing on macOS and Linux the tree it leaves with the one `install.sh` leaves, file by file. For recook,
 `extract-drawio.test.mjs` extracts every fixture emitted to draw.io and asserts its kind hint
 and full coverage against its own IR, and reads hand-drawn files (compressed, SVG, PNG,
 several pages, loose edges, lanes); `extract-mermaid.test.mjs` does the same for Mermaid;
@@ -1016,3 +1090,22 @@ checks that a failing write leaves the output of `bundle` byte for byte as it wa
 `tests/setup-index-home.mjs`, loaded by `vitest.config.mjs`, gives every test file a
 temporary `ZUKAI_HOME`, which the CLIs it spawns inherit, so no test writes the index of the
 person running it.
+
+For reports, `report-markdown.test.mjs` holds the renderer to its rules (raw HTML as text in
+a paragraph and a table cell, `//host` and `javascript:` refused, a `../../` picture not
+inlined, heading ids, markers in code left alone); `reports.test.mjs` covers the folder
+contract, the listing that counts only valid records, revisions (exact bytes back, the
+rotation guard after a storm of quick edits, the age rule of temporary folders), drafts and
+their conflicts, the diff sides looked up in listings, render with the policy first, embeds,
+and the per-line secret scan; `report-templates.test.mjs` covers the built-in templates,
+their discovery in the plugin and a copied install, every refusal of an untrusted template,
+the scopes, save with its link check, and export and import; `glossary.test.mjs` adds the
+prose cases (Vietnamese diacritics, Japanese without spaces, `サーバー` and `サーバ`, the
+keep rule, a dropped section). `reports-e2e.test.mjs`, `report-templates-e2e.test.mjs` and
+`report-check-e2e.test.mjs` run the commands through the bundle: a bad `reportsDir` beside
+working run commands, a 2.6.0 project with `runsDir: "reports"`, two snapshots at once, a
+report-only project in the index, installs by `install.sh` and `install.ps1`, and the exit
+codes of `report check`. `labs-reports.test.mjs` runs the report routes on a real listener
+(rev conflicts, held writes, query values looked up, the import dry run, the frame's policy,
+the change stamp, a bad `reportsDir` beside working run routes) and the four job kinds;
+`labs-ui.test.mjs` and `labs-ui-e2e.test.mjs` cover the Reports views and the sealed frame.

@@ -8,7 +8,26 @@ export const runsDirOf = (store) => store?.get().state?.runsDir ?? 'diagrams';
 
 export const KIND_LABEL = {
   draw: 'New diagram', revise: 'Revise', restore: 'Restore', 'apply-edit': 'Save model edit', sync: 'Sync', recook: 'Recook', export: 'Export pictures', 'glossary-suggest': 'Suggest glossary terms',
+  'report-write': 'New report', 'report-polish': 'Polish with glossary', 'report-translate': 'Translate report', 'report-template': 'Report template',
 };
+
+/** The project's reports folder as the console names it, `reports` by default. */
+export const reportsDirOf = (store) => store?.get().state?.reportsDir ?? 'reports';
+
+/** Where a job points: its run in Diagrams, or its report in Reports. */
+export function jobTarget(job) {
+  if (job?.run) return { label: job.run, href: `#/diagrams/${encodeURIComponent(job.run)}` };
+  if (job?.reportName) return { label: job.reportName, href: `#/reports/${encodeURIComponent(job.reportName)}` };
+  return undefined;
+}
+
+/** The report languages the console offers first; any BCP 47 tag can be typed. */
+export const REPORT_LANGS = [
+  { value: 'en', label: 'English' },
+  { value: 'ja', label: '日本語', lang: 'ja' },
+  { value: 'vi', label: 'Tiếng Việt', lang: 'vi' },
+];
+export const SCOPE_LABEL = { project: 'Project', user: 'Mine (this machine)', 'built-in': 'Built-in' };
 
 export const STATE_BADGE = {
   queued: { label: 'Queued', tone: 'neutral' },

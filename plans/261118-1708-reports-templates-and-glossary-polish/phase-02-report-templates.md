@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Report templates: scopes, HTML layout, export and import"
-status: pending
+status: completed
 priority: P1
 effort: "2d"
 dependencies: [1]
@@ -56,17 +56,17 @@ Export file `<id>.zukai-template.json`: `{ "zukaiTemplate": 1, "id", "name", "ve
 
 ## Tasks & Steps
 
-- [ ] 1. Scope roots: project `.zukai/report-templates/`, user `<indexHome()>/report-templates/`, built-in found from the CLI's location by the first of: `<draw-dir>/../report/templates` in the plugin layout (the plugin's `skills/report/`), or `<draw-dir>/../zukai-report/templates` when that folder holds `.zukai-report-version` with the CLI's own version. A folder that matches neither is never read as built-in. <!-- Updated: Red Team Session 1 - copied installs and version marker -->
-- [ ] 2. `validateTemplate(files)` runs on every read and every write (list, resolve, preview, render, save, import): front matter against the schema with the id pattern; the id in the export file equals the front-matter id and the folder name; section ids unique and matching the placeholders (unknown placeholders refused); `template.html` safety: refuse `<script`, `<iframe`, `<object`, `<embed`, `<base`, `<form`, `<link`, `<meta http-equiv`, any `on*=` attribute, `javascript:`/`vbscript:` URLs, `url(`/`src`/`href` that is not `data:` or `#`, `@import`; size caps (template.html 256 KB, each data URI 128 KB, export file 1 MB); `scanSecrets` per string; guide and sample text bounded and free of control or direction characters (the glossary's rules). An invalid template is listed with its reasons and is never used. <!-- Updated: Red Team Session 1 - validate on every read -->
-- [ ] 3. `resolveTemplate(root, id)` nearest-first (project, user, built-in). `listTemplates` marks for each id the one used and the ones it overrides; a project template that overrides a built-in one is flagged as such, so a template that came with a clone is visible. <!-- Updated: Red Team Session 1 - flag clone overrides -->
-- [ ] 4. `saveTemplate(root, scope, files, { replace })` (CLI `template save <folder> --scope user|project [--replace]`) validates, then writes through temp-and-rename under `report-templates.lock` in the scope root, after a real-path check that the target folder is a direct child of the scope root. A built-in template is never written; customising one saves a copy to user or project scope. `template validate <folder>` prints the result without writing. <!-- Updated: Red Team Session 1 - save and validate commands, path check -->
-- [ ] 5. `exportTemplate(root, id, { scope })` writes `<id>.zukai-template.json`; `importTemplate(root, file, { scope, replace, check })` validates the whole file before writing, refuses an existing id without `replace`, reports what it replaced, and with `check` writes nothing and returns the validation and the preview.
-- [ ] 6. `previewTemplate(root, id, { scope })` renders `sample.json` through `template.html` with phase 1's renderer (CLI `template preview <id> --out <file>`; the console uses the same function).
-- [ ] 7. Built-in templates, each with an HTML layout (cover, metadata block, table of contents, print styles with page breaks before level-one sections) and sample content:
+- [x] 1. Scope roots: project `.zukai/report-templates/`, user `<indexHome()>/report-templates/`, built-in found from the CLI's location by the first of: `<draw-dir>/../report/templates` in the plugin layout (the plugin's `skills/report/`), or `<draw-dir>/../zukai-report/templates` when that folder holds `.zukai-report-version` with the CLI's own version. A folder that matches neither is never read as built-in. <!-- Updated: Red Team Session 1 - copied installs and version marker -->
+- [x] 2. `validateTemplate(files)` runs on every read and every write (list, resolve, preview, render, save, import): front matter against the schema with the id pattern; the id in the export file equals the front-matter id and the folder name; section ids unique and matching the placeholders (unknown placeholders refused); `template.html` safety: refuse `<script`, `<iframe`, `<object`, `<embed`, `<base`, `<form`, `<link`, `<meta http-equiv`, any `on*=` attribute, `javascript:`/`vbscript:` URLs, `url(`/`src`/`href` that is not `data:` or `#`, `@import`; size caps (template.html 256 KB, each data URI 128 KB, export file 1 MB); `scanSecrets` per string; guide and sample text bounded and free of control or direction characters (the glossary's rules). An invalid template is listed with its reasons and is never used. <!-- Updated: Red Team Session 1 - validate on every read -->
+- [x] 3. `resolveTemplate(root, id)` nearest-first (project, user, built-in). `listTemplates` marks for each id the one used and the ones it overrides; a project template that overrides a built-in one is flagged as such, so a template that came with a clone is visible. <!-- Updated: Red Team Session 1 - flag clone overrides -->
+- [x] 4. `saveTemplate(root, scope, files, { replace })` (CLI `template save <folder> --scope user|project [--replace]`) validates, then writes through temp-and-rename under `report-templates.lock` in the scope root, after a real-path check that the target folder is a direct child of the scope root. A built-in template is never written; customising one saves a copy to user or project scope. `template validate <folder>` prints the result without writing. <!-- Updated: Red Team Session 1 - save and validate commands, path check -->
+- [x] 5. `exportTemplate(root, id, { scope })` writes `<id>.zukai-template.json`; `importTemplate(root, file, { scope, replace, check })` validates the whole file before writing, refuses an existing id without `replace`, reports what it replaced, and with `check` writes nothing and returns the validation and the preview.
+- [x] 6. `previewTemplate(root, id, { scope })` renders `sample.json` through `template.html` with phase 1's renderer (CLI `template preview <id> --out <file>`; the console uses the same function).
+- [x] 7. Built-in templates, each with an HTML layout (cover, metadata block, table of contents, print styles with page breaks before level-one sections) and sample content:
   - issue investigation: summary, symptoms, impact, timeline, root cause, evidence, fix, prevention, open questions
   - tech research: question, context, options, criteria, findings, comparison, recommendation, references
   - feature: background, requirements, design (`embed="diagram"`), data and description tables (`embed="tables"`), scope and non-goals, test plan, risks, rollout
-- [ ] 8. Document the template contract and the Markdown subset in `skills/report/references/templates.md` (used by phase 4).
+- [x] 8. Document the template contract and the Markdown subset in `skills/report/references/templates.md` (used by phase 4).
 
 ## Verification
 

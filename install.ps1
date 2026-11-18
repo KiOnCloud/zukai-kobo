@@ -3,15 +3,17 @@
 Copy the Zukai skills into a project for OpenAI Codex (.agents/skills) or, as a
 documented fallback, for Claude Code without the plugin (.claude/skills).
 
-Inside the plugin the skills are named "draw", "revise", "recook", "sync" and "labs"
-(/zukai:draw, /zukai:revise, /zukai:recook, /zukai:sync, /zukai:labs).
-A copied skill has no plugin namespace, so the copies are installed as "zukai",
-"zukai-revise", "zukai-recook", "zukai-sync" and "zukai-labs": the folder and the "name"
-line of each SKILL.md take that name ($zukai, $zukai-revise, $zukai-recook, $zukai-sync
-and $zukai-labs in Codex, /zukai, /zukai-revise, /zukai-recook, /zukai-sync and
-/zukai-labs in Claude Code). revise, recook, sync and labs find the draw skill's CLI in
-the sibling zukai folder, sync reads the draft rules of zukai-revise, and labs carries out
-its jobs with the other four, so the five are always installed together.
+Inside the plugin the skills are named "draw", "revise", "recook", "sync", "labs" and
+"report" (/zukai:draw, /zukai:revise, /zukai:recook, /zukai:sync, /zukai:labs,
+/zukai:report). A copied skill has no plugin namespace, so the copies are installed as
+"zukai", "zukai-revise", "zukai-recook", "zukai-sync", "zukai-labs" and "zukai-report":
+the folder and the "name" line of each SKILL.md take that name ($zukai, $zukai-revise,
+$zukai-recook, $zukai-sync, $zukai-labs and $zukai-report in Codex, /zukai,
+/zukai-revise, /zukai-recook, /zukai-sync, /zukai-labs and /zukai-report in Claude Code).
+revise, recook, sync, labs and report find the draw skill's CLI in the sibling zukai
+folder, sync reads the draft rules of zukai-revise, labs carries out its jobs with the
+other five, and the CLI reads the built-in report templates from zukai-report/templates,
+so the six are always installed together.
 
 .EXAMPLE
 powershell -ExecutionPolicy Bypass -File install.ps1 -Target codex -Dest C:\work\my-project
@@ -63,7 +65,8 @@ $skills = @(
   @{ Source = 'revise'; Name = 'zukai-revise'; Marker = '.zukai-revise-version' },
   @{ Source = 'recook'; Name = 'zukai-recook'; Marker = '.zukai-recook-version' },
   @{ Source = 'sync'; Name = 'zukai-sync'; Marker = '.zukai-sync-version' },
-  @{ Source = 'labs'; Name = 'zukai-labs'; Marker = '.zukai-labs-version' }
+  @{ Source = 'labs'; Name = 'zukai-labs'; Marker = '.zukai-labs-version' },
+  @{ Source = 'report'; Name = 'zukai-report'; Marker = '.zukai-report-version' }
 )
 # The name the draw skill was installed under before it was renamed.
 $legacyName = 'it-diagrams'
@@ -113,7 +116,7 @@ function Move-ToBackup([string]$Path, [string]$Name) {
 # (<name>.bak-<timestamp>) still carry a SKILL.md with the skill's name: move them out too.
 function Move-OldBackups {
   if (-not (Test-Path -LiteralPath $destDir -PathType Container)) { return }
-  foreach ($name in @('zukai', 'zukai-revise', 'zukai-recook', 'zukai-sync', 'zukai-labs', $legacyName)) {
+  foreach ($name in @('zukai', 'zukai-revise', 'zukai-recook', 'zukai-sync', 'zukai-labs', 'zukai-report', $legacyName)) {
     $prefix = "$name.bak-"
     Get-ChildItem -LiteralPath $destDir -Directory -Force | Where-Object { $_.Name.StartsWith($prefix, [System.StringComparison]::Ordinal) } | Sort-Object Name | ForEach-Object {
       $stamp = $_.Name.Substring($prefix.Length)
@@ -161,7 +164,7 @@ foreach ($s in $skills) {
 }
 if ($todo.Count -eq 0) {
   Move-OldBackups
-  Write-Output "zukai $srcVersion already up to date at $destDir (zukai, zukai-revise, zukai-recook, zukai-sync, zukai-labs)"
+  Write-Output "zukai $srcVersion already up to date at $destDir (zukai, zukai-revise, zukai-recook, zukai-sync, zukai-labs, zukai-report)"
   exit 0
 }
 

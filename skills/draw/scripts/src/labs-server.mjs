@@ -1,7 +1,11 @@
 /**
  * The labs console's server: `node:http` on 127.0.0.1, nothing else. It serves the console's
- * pages from memory and an API over the runs of one project, and it never writes under
- * the project's runs folder (`diagrams/` by default): every change to a run is a job for the attached agent (`labs-jobs.mjs`).
+ * pages from memory and an API over the runs and the reports of one project. It never writes
+ * under the project's runs folder (`diagrams/` by default): every change to a run is a job for
+ * the attached agent (`labs-jobs.mjs`). Under the reports folder it writes two things only, a
+ * quick edit of a report's Markdown and a restore of one of its revisions, each after a
+ * snapshot and refused while a report job or a pending draft holds the report; it also
+ * removes a draft the user discards, and imports a template after validating the whole file.
  *
  * Every request passes the same checks, in this order, before anything else is read:
  *
@@ -28,7 +32,10 @@ import { labelsOf } from './ir-labels.mjs';
 import { readGlossary, writeGlossary, addEntries, checkRuns, checkGlossary, STATUSES, newEntryErrors, projectRoot } from './glossary.mjs';
 import { embedHostOf } from './drawio-embed.mjs';
 import { listRuns, runNames, runPath, runDetail, diagramIds, diagramDetail, runDoc, revisionNames, changesSince, filePath, diagramPicture, fileView } from './labs-runs.mjs';
-import { readProjectConfig, runsPath, runFoldersIn } from './project-config.mjs';
+import { readProjectConfig, runsPath, runFoldersIn, reportsPath } from './project-config.mjs';
+import { reportFoldersIn, translationLangs, draftNames } from './reports.mjs';
+import { consoleReports, consoleReport, reportDirOf, langOf, consoleSource, consoleHtml, diffSides, consoleDiff, downloadOf, quickEdit, consoleRestore, discardDraft, consoleTemplates, scopeOf } from './labs-reports.mjs';
+import { previewTemplate, exportTemplate, importTemplate, ID_RE as TEMPLATE_ID, WRITABLE_SCOPES } from './report-templates.mjs';
 
 export const APP = 'zukai-labs';
 export const MAX_BODY = 1024 * 1024;
@@ -46,7 +53,15 @@ const API_CSP = "default-src 'none'; frame-ancestors 'none'";
  */
 export const viewerCsp = (scriptHash) => `sandbox allow-scripts; default-src 'none'; script-src 'sha256-${scriptHash}' https://viewer.diagrams.net https://cdn.jsdelivr.net/npm/mermaid@12.3.0/; style-src 'unsafe-inline'; img-src data: blob:; connect-src https://viewer.diagrams.net; frame-ancestors 'self'`;
 
-/** The SHA-256 (base64) of the one inline script of the viewer page, which its policy allows. */
+/**
+ * The page inside the report frame: sandboxed with an origin of its own (no token, no storage
+ * of the console, an Origin the API refuses), its one inline script by hash, inline styles and
+ * `data:` pictures only, nothing fetched, and modals allowed so its print button can print.
+ * It may be framed by the console alone.
+ */
+export const reportFrameCsp = (scriptHash) => `sandbox allow-scripts allow-modals; default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src 'sha256-${scriptHash}'; frame-ancestors 'self'`;
+
+/** The SHA-256 (base64) of the one inline script of a framed page (viewer, report frame), which its policy allows. */
 export function viewerScriptHash(html) {
   const m = /<script>([\s\S]*?)<\/script>/.exec(html ?? '');
   return m ? createHash('sha256').update(m[1], 'utf8').digest('base64') : 'none';
@@ -173,7 +188,12 @@ export function createLabsServer(options) {
   const idleMs = options.idleMs ?? 30 * 60_000;
   const jobs = options.jobs;
   const drawioEmbed = options.drawioEmbed ?? embedHostOf(process.env);
-  const viewerPolicy = viewerCsp(viewerScriptHash(pages.get('/viewer.html')?.bytes.toString('utf8')));
+  // Every static page gets the console's policy and is never framed, except the two framed
+  // pages: each its own policy, framed by the console only.
+  const pagePolicies = new Map([
+    ['/viewer.html', { csp: viewerCsp(viewerScriptHash(pages.get('/viewer.html')?.bytes.toString('utf8'))), frame: 'SAMEORIGIN' }],
+    ['/report-frame.html', { csp: reportFrameCsp(viewerScriptHash(pages.get('/report-frame.html')?.bytes.toString('utf8'))), frame: 'SAMEORIGIN' }],
+  ]);
   let counter = 0;
   let lastActivity = now();
   let closing = false;
@@ -197,6 +217,15 @@ export function createLabsServer(options) {
       for (const sub of ['', 'source', 'history', 'svg']) { try { h.update(String(statSync(join(dir, sub)).mtimeMs)); } catch { /* absent */ } }
     }
     try { h.update(String(statSync(join(root, '.zukai', 'glossary.json')).mtimeMs)); } catch { /* none */ }
+    // The reports: what the agent writes into a report folder reloads the views too.
+    h.update(config.reports?.ok ? config.reports.dir : 'bad-reports-config');
+    const reports = config.reports?.ok ? reportsPath(root) : undefined;
+    for (const n of reports ? reportFoldersIn(reports) : []) {
+      const dir = join(reports, n);
+      h.update(n);
+      for (const sub of ['report.md', 'report.json', 'report.html', 'drafts', 'history', ...translationLangs(dir).flatMap((l) => [l, `${l}/report.md`])]) { try { h.update(String(statSync(join(dir, sub)).mtimeMs)); } catch { /* absent */ } }
+    }
+    for (const scope of [join(root, '.zukai', 'report-templates')]) { try { h.update(String(statSync(scope).mtimeMs)); } catch { /* none */ } }
     return h.digest('hex').slice(0, 12);
   };
 
@@ -205,6 +234,28 @@ export function createLabsServer(options) {
     return req.body;
   };
   const runOf = (params) => { if (!runPath(root, params.run)) throw notFound(); return params.run; };
+  /** A report of the listing; a bad reportsDir throws its ConfigError (409), a name not listed 404. */
+  const reportOf = (params) => { const dir = reportDirOf(root, params.name); if (!dir) throw notFound(); return dir; };
+  const langParam = (dir, query) => { const l = langOf(dir, query.get('lang')); if (!l.ok) throw notFound(); return l.lang; };
+  /** The quick edit and a restore wait for a report job and for a pending draft. */
+  const notHeld = (name, dir) => {
+    const busy = jobs?.reportBusy(name);
+    if (busy) throw new HttpError(409, 'held', `a ${busy.kind} job is ${busy.state} for this report; wait until it is closed`, { job: busy.id });
+    if (draftNames(dir).length > 0) throw new HttpError(409, 'held', 'a polish draft of this report waits to be applied or discarded', { drafts: draftNames(dir) });
+  };
+  const reportWrite = (result) => {
+    if (result.ok) { bump(); return { body: result }; }
+    if (result.code === 'conflict') throw new HttpError(409, 'conflict', 'the report changed on disk since it was read', { rev: result.rev });
+    if (result.code === 'locked') throw new HttpError(503, 'locked', 'the report is locked by another writer; try again');
+    if (result.code === 'secret') throw new HttpError(422, 'secret', 'the text holds a credential; nothing was written', { errors: result.errors });
+    throw new HttpError(422, 'invalid', result.errors?.[0]?.message ?? 'the change was not taken', { errors: result.errors });
+  };
+  const viewerBaseOf = (req) => `http://${req.headers.host}/`;
+  const templateOf = (params, query) => {
+    const sc = scopeOf(query.get('scope'));
+    if (!sc.ok || !TEMPLATE_ID.test(params.id) || !consoleTemplates(root).templates.some((t) => t.id === params.id && (sc.scope === undefined || t.scope === sc.scope))) throw notFound();
+    return { id: params.id, scope: sc.scope };
+  };
   const entryOf = (id) => {
     const read = readGlossary(root);
     if (!read.ok || !read.glossary.entries.some((e) => e.id === id)) throw notFound();
@@ -222,9 +273,12 @@ export function createLabsServer(options) {
     ['GET', '/api/state', () => {
       // A bad setting is shown, not answered with an error: the console says what to fix.
       const config = readProjectConfig(root);
+      const reportsOk = config.reports?.ok === true;
       return { body: {
         app: APP, version, project: basename(root), runs: config.ok ? runNames(root).length : 0,
         runsDir: config.ok ? config.runsDir : null, ...(config.ok ? {} : { configError: { message: config.error.message, hint: config.error.hint } }),
+        reports: reportsOk ? reportFoldersIn(reportsPath(root)).length : 0,
+        reportsDir: reportsOk ? config.reports.dir : null, ...(reportsOk ? {} : { reportsConfigError: { message: config.reports.error.message, hint: config.reports.error.hint } }),
         glossary: glossaryState(), drawio: { embed: drawioEmbed }, change: `${counter}-${runsStamp()}`, ...(jobs ? jobs.state() : { agent: { attached: false, waiting: false, lastContact: null }, jobs: { queued: 0, open: null } }),
       } };
     }],
@@ -319,6 +373,85 @@ export function createLabsServer(options) {
       if (!result.ok) return { body: { ok: false, code: result.code, errors: result.errors } };
       return { body: { ok: true, report: result.report } };
     }],
+    ['GET', '/api/reports', () => ({ body: { reports: consoleReports(root) } })],
+    ['GET', '/api/reports/:name', ({ params }) => { reportOf(params); return { body: consoleReport(root, params.name) }; }],
+    ['GET', '/api/reports/:name/source', ({ params, query }) => {
+      const dir = reportOf(params);
+      const source = consoleSource(dir, langParam(dir, query));
+      if (!source) throw notFound();
+      return { body: source };
+    }],
+    ['PUT', '/api/reports/:name/source', ({ req, params, query }) => {
+      const dir = reportOf(params);
+      const lang = langParam(dir, query);
+      const b = body(req);
+      if (typeof b.text !== 'string' || typeof b.rev !== 'string') throw new HttpError(400, 'bad-request', 'the body is { text, rev }');
+      notHeld(params.name, dir);
+      return reportWrite(quickEdit(root, dir, { lang, text: b.text, rev: b.rev }, viewerBaseOf(req)));
+    }],
+    ['POST', '/api/reports/:name/restore', ({ req, params }) => {
+      const dir = reportOf(params);
+      const b = body(req);
+      if (typeof b.revision !== 'string' || !diffSides(dir).includes(b.revision) || !/^r\d{3,}$/.test(b.revision)) throw notFound();
+      notHeld(params.name, dir);
+      const current = consoleSource(dir, null)?.rev;
+      if (b.rev !== undefined && b.rev !== current) throw new HttpError(409, 'conflict', 'the report changed on disk since it was read', { rev: current });
+      return reportWrite(consoleRestore(root, dir, b.revision, viewerBaseOf(req)));
+    }],
+    ['POST', '/api/reports/:name/drafts/:draft/discard', ({ params }) => {
+      const dir = reportOf(params);
+      if (!draftNames(dir).includes(params.draft)) throw notFound();
+      if (jobs?.reportBusy(params.name)) throw new HttpError(409, 'held', 'a job is queued or open for this report; wait until it is closed');
+      return reportWrite(discardDraft(dir, params.draft));
+    }],
+    ['GET', '/api/reports/:name/html', ({ params, query }) => {
+      const dir = reportOf(params);
+      const html = consoleHtml(dir, langParam(dir, query));
+      if (!html) throw new HttpError(404, 'not-rendered', 'this report has no HTML yet; render it (report render) or save it once');
+      return { body: html };
+    }],
+    ['GET', '/api/reports/:name/diff', ({ params, query }) => {
+      const dir = reportOf(params);
+      const lang = langParam(dir, query);
+      const sides = diffSides(dir);
+      const from = query.get('from');
+      const to = query.get('to');
+      if (!sides.includes(from) || !sides.includes(to)) throw notFound();
+      const d = consoleDiff(dir, from, to, lang);
+      if (!d.ok) throw notFound();
+      return { body: d };
+    }],
+    ['GET', '/api/reports/:name/download', ({ params, query }) => {
+      const dir = reportOf(params);
+      const lang = langParam(dir, query);
+      const file = downloadOf(dir, query.get('format'), lang);
+      if (!file) throw notFound();
+      return { raw: file.raw, type: typeOf(file.name), name: file.name };
+    }],
+    ['GET', '/api/report-templates', () => ({ body: consoleTemplates(root) })],
+    ['GET', '/api/report-templates/:id/preview', ({ params, query }) => {
+      const t = templateOf(params, query);
+      const r = previewTemplate(root, t.id, { scope: t.scope });
+      if (!r.ok) throw new HttpError(422, 'invalid-template', 'this template cannot be used', { errors: r.errors });
+      return { body: { id: r.id, scope: r.scope, html: r.html } };
+    }],
+    ['GET', '/api/report-templates/:id/export', ({ params, query }) => {
+      const t = templateOf(params, query);
+      const r = exportTemplate(root, t.id, { scope: t.scope });
+      if (!r.ok) throw new HttpError(422, 'invalid-template', 'this template cannot be exported', { errors: r.errors });
+      return { raw: Buffer.from(r.text), type: 'application/json; charset=utf-8', name: r.fileName };
+    }],
+    ['POST', '/api/report-templates/import', ({ req, query }) => {
+      const b = body(req);
+      const check = query.get('check') === '1';
+      if (typeof b.file !== 'string') throw new HttpError(400, 'bad-request', 'the body is { file, scope, replace }, with the export file as text');
+      if (!WRITABLE_SCOPES.includes(b.scope)) throw new HttpError(400, 'bad-request', `scope is ${WRITABLE_SCOPES.join(' or ')}`);
+      const r = importTemplate(root, b.file, { scope: b.scope, replace: b.replace === true, check });
+      if (!r.ok && r.code === 'exists') throw new HttpError(409, 'exists', r.errors[0].message);
+      if (!r.ok) throw new HttpError(422, r.code ?? 'invalid-template', 'the template was not imported', { errors: r.errors });
+      if (!check) bump();
+      return { body: r };
+    }],
     ['POST', '/agent/shutdown', () => ({ body: { ok: true }, after: () => options.onShutdown?.() })],
     ...(jobs ? jobs.routes({ root, bump, HttpError, notFound, body }) : []),
   ].map(([method, pattern, handler]) => ({ method, pattern, handler, ...compile(pattern) }));
@@ -375,8 +508,8 @@ export function createLabsServer(options) {
       if (req.method !== 'GET') { refuse(res, 405, 'method', 'method not allowed'); return done(405); }
       const page = pages.get(path) ?? (path === '/' && pages.size === 0 ? { type: TYPES['.html'], bytes: NO_PAGES } : undefined);
       if (!page) { refuse(res, 404, 'not-found', 'no such page'); return done(404); }
-      const viewer = path === '/viewer.html';
-      send(res, 200, page.bytes, { 'Content-Type': page.type, 'Content-Security-Policy': viewer ? viewerPolicy : CONSOLE_CSP, ...(viewer ? { 'X-Frame-Options': 'SAMEORIGIN' } : {}) });
+      const policy = pagePolicies.get(path);
+      send(res, 200, page.bytes, { 'Content-Type': page.type, 'Content-Security-Policy': policy ? policy.csp : CONSOLE_CSP, ...(policy ? { 'X-Frame-Options': policy.frame } : {}) });
       return done(200);
     }
     if (!sameToken(req.headers['x-zukai-token'], tokenOf())) { refuse(res, 403, 'forbidden', 'the token is missing or wrong', { hint: 'open the URL that labs status prints' }); return done(403); }
