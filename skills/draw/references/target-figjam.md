@@ -288,8 +288,13 @@ change faster than this text. At the time of writing they were:
   take one. One session serves the whole run.
 - Skills before tools: load `figma-use` and `figma-use-figjam` before the first `use_figma`
   call, `figma-generate-diagram` before `generate_diagram`, and any further skill the server
-  names for the step (it asks for one when content is created, such as
-  `figma-generate-design`). Read through the server as a resource, a skill is
+  names for the step. `figma-use` makes `figma-generate-design` mandatory before the first
+  `use_figma` call that changes the board, so load it too before drawing (the overlay
+  script and every native script change the board; the reader script does not). It is one
+  more call to count in the budget below. Its design-system workflow (searching libraries,
+  building from components, assembling step by step) does not apply to Zukai's scripts:
+  loading it satisfies the server, and the scripts still run unchanged, as they are. Read
+  through the server as a resource, a skill is
   `skill://figma/<name>/SKILL.md`. A tool that has a `skillNames` field wants the names of
   the skills loaded for the call; fill it with those names (with the `resource:` form the
   server gives when they were read as resources).
@@ -299,7 +304,7 @@ Starter plan the server refuses calls after about twenty in a period, with "You'
 the Figma MCP tool call limit on the Starter plan". A board costs one `use_figma` call per
 script (the `calls` the CLI prints: one per diagram unless a drawing is very large, or one
 for several diagrams with `bundle --to figjam --native`), plus `create_session`, the skill
-reads that are calls, `create_new_file` when a board is made, one `get_screenshot` per look
+reads that are calls (`figma-generate-design` included), `create_new_file` when a board is made, one `get_screenshot` per look
 and, for a sequence diagram on the route of sections 2 to 5, `generate_diagram`, the overlay
 script and its read-back. Reading a board back with the recook skill is one call per part
 the reader returns.

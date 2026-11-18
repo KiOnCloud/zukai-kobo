@@ -598,6 +598,9 @@ What changes for a run you already have:
   again into a new section; delete the old one by hand.
 - `bundle --to figjam --native` prints `created` per diagram, as each script returns it: for
   each script a list with one number per diagram in it (`[[88, 108]]`), no longer one sum.
+- `target-figjam.md` section 8 says that `figma-generate-design`, which the Figma server
+  makes mandatory before a `use_figma` call that changes the board, is one more call to
+  count, and that its design-system workflow does not apply to Zukai's scripts.
 - A board drawn by `emit --native` from 2.3.0 on names the group of a line after its own
   label and tags client screens (`[client]`) and the Google Cloud mark (`[part]`). Recook
   reads use case, GCP and multi-cloud boards back completely, boards drawn by earlier
