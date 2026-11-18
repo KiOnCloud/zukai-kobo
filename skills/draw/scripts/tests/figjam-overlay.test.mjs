@@ -196,6 +196,20 @@ describe('figjam overlay script', () => {
     await expect(runOn(r.overlay, fewer.figma)).rejects.toThrow('Nothing was changed');
   });
 
+  it('changes nothing when the copy passed to use_figma lost or changed a character of its data', async () => {
+    const ir = loadFixture('sequence', 'valid');
+    const r = await emit(ir, 'figjam');
+    // A note is drawn, not matched against the board: without the check a changed one would be drawn as it came.
+    expect(r.overlay).toContain('Rate limited per IP');
+    for (const copy of [r.overlay.replace('Rate limited per IP', 'Rate limited per IQ'), r.overlay.replace('Rate limited per IP', 'Rate limited perIP')]) {
+      const board = fakeBoard(r.output, ir.title);
+      const count = board.section.children.length;
+      await expect(runOn(copy, board.figma)).rejects.toThrow(/^zukai overlay: .*Nothing was changed\. .*again from its file/);
+      expect(board.section.children).toHaveLength(count);
+    }
+    expect((await runOn(r.overlay, fakeBoard(r.output, ir.title).figma)).createdNodeIds.length).toBeGreaterThan(0);
+  });
+
   it('runs on the board of every sequence fixture and stays under the size use_figma takes', async () => {
     for (const { name, ir } of sequenceFixtures()) {
       const r = await emit(ir, 'figjam', { allowSensitive: true });

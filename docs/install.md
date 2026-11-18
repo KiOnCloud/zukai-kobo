@@ -574,6 +574,10 @@ What changes for a run you already have:
 - A `gcp:` name that is not in the catalog is now reported as an unknown GCP icon. The
   product logos (`gcp:firebase` and the like) keep their names, and an AWS diagram with a
   logo is drawn as before.
+- The scripts for `use_figma` (`--native`, `--overlay`, `extract --figjam-script`) write
+  their data over lines of at most 200 characters and check its length and hash before they
+  touch the board: a copy that lost or changed a character throws and changes nothing; pass
+  the script again from its file.
 - On a board drawn by `emit --to figjam --native`, the title of a frame without a header
   strip (an Availability Zone, a GCP frame) now stands at the top of the frame, so such a
   board comes out differently when it is drawn again.

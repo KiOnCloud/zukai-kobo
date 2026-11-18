@@ -12,7 +12,7 @@ import { extractDrawio } from '../src/extract-drawio.mjs';
 import { figjamNative } from '../src/figjam-native.mjs';
 import { measureLabelBelow } from '../src/layout-graph.mjs';
 import { checkDrawioStructure, absoluteBounds, edgePaths } from './drawio-structure.mjs';
-import { loadFixture, scriptsDir } from './helpers.mjs';
+import { loadFixture, scriptsDir, scriptData } from './helpers.mjs';
 
 // A short excerpt in the layout of draw.io's Sidebar-GCP2.js: the zones palette with a zone, a
 // white zone, the nested frames of the project legend and the project frame with the mark; a
@@ -895,7 +895,7 @@ describe('a GCP diagram on the native FigJam board', () => {
     const xml = (await emit(ir, 'drawio', { diagramId: 'a' })).output;
     const { parts } = figjamNative(xml, { title: ir.title });
     expect(parts.length).toBe(1);
-    const D = JSON.parse(/^const D = (.*);$/m.exec(parts[0])[1]);
+    const D = scriptData(parts[0]);
     const pictures = D.items.filter((i) => i[0] === 'g').map((i) => i[1].split('#')[0]);
     for (const c of ir.components.filter((x) => x.icon)) expect(pictures, c.id).toContain(`mxgraph.gcp2.${c.icon.slice(4)}`);
     expect(pictures).toContain('mxgraph.gcp2.google_cloud_platform');

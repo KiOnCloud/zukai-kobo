@@ -1,3 +1,4 @@
+import { dataBlock } from './figma-script-data.mjs';
 import { figjamLabel } from './mermaid-text.mjs';
 import { layoutSequence } from './layout-sequence.mjs';
 
@@ -174,7 +175,7 @@ export function figjamOverlay(ir) {
       sections: b.sections.map((s) => ({ label: s.label === undefined ? '' : text(s.label), row: firstRowOf(s.first) })),
     })),
   };
-  return `${RUNTIME_HEAD}const D = ${JSON.stringify(data)};\n${RUNTIME}`;
+  return `${RUNTIME_HEAD}${dataBlock(data, 'zukai overlay')}${RUNTIME}`;
 }
 
 const RUNTIME_HEAD = `// Zukai: completes the FigJam board of a sequence diagram (block frames, self-messages, notes,

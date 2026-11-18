@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emit } from '../src/pipeline.mjs';
 import { figjamNative, parseCells, plainLabel, richLabel, NATIVE_TAG, SCRIPT_LIMIT } from '../src/figjam-native.mjs';
 import { checkDrawioStructure } from './drawio-structure.mjs';
-import { loadFixture, validFixtures } from './helpers.mjs';
+import { loadFixture, validFixtures, scriptData } from './helpers.mjs';
 
 /**
  * A stand-in for a FigJam page: nodes keep what the script sets, a text measures itself by
@@ -191,7 +191,7 @@ describe('figjam native script', () => {
     // coordinates of the file. A line has the viewer's points when each lies within 0.06 px.
     const linesOf = async (kind, name) => {
       const ir = loadFixture(kind, name);
-      const D = JSON.parse(/^const D = (.*);$/m.exec(figjamNative(await drawioOf(ir), { title: ir.title }).parts[0])[1]);
+      const D = scriptData(figjamNative(await drawioOf(ir), { title: ir.title }).parts[0]);
       return D.items.filter((i) => i[0] === 'p' && !i[2] && / L /.test(i[1])).map((i) => {
         let isX = true;
         return i[1].split(' ').map((t) => {
@@ -368,7 +368,7 @@ describe('figjam native script', () => {
     const xml = await drawioOf(ir);
     const { parts } = figjamNative(xml, { title: ir.title });
     expect(parts.length).toBe(1);
-    const D = JSON.parse(/^const D = (.*);$/m.exec(parts[0])[1]);
+    const D = scriptData(parts[0]);
     // Two S3 buckets, one path.
     expect(D.items.filter((i) => i[0] === 'g' && i[1] === 'mxgraph.aws4.s3#0').length).toBe(2);
     expect(Object.keys(D.stencils).filter((k) => k.startsWith('mxgraph.aws4.s3#')).length).toBe(1);
@@ -376,7 +376,7 @@ describe('figjam native script', () => {
     expect(Object.keys(D.stencils).sort()).toEqual([...new Set(D.items.filter((i) => i[0] === 'g').map((i) => i[1]))].sort());
     expect(Object.keys(D.stencils).length).toBeLessThan(25);
     const plain = figjamNative(await drawioOf(loadFixture('flowchart', 'valid')), { title: 'x' }).parts[0];
-    expect(plain).toContain('"stencils":{}');
+    expect(scriptData(plain).stencils).toEqual({});
     // A logo keeps the shades its stencil names; a figure of one colour takes the colour of its cell.
     const { figma, page } = fakeBoard();
     await runAll(parts, figma);
@@ -433,7 +433,7 @@ describe('figjam native script', () => {
     const across = 'exitX=1;exitY=0.5;entryX=0;entryY=0.5;';
     const down = 'exitX=0.5;exitY=1;entryX=0.5;entryY=0;';
     const xml = (edges) => `<mxfile><diagram id="p" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>${box('a', 0, 100)}${box('b', 300, 100)}${box('c', 150, 0)}${box('d', 150, 200)}${box('e', 12, 0)}${box('f', 12, 200)}${edges}</root></mxGraphModel></diagram></mxfile>`;
-    const linesOf = (edges) => JSON.parse(/^const D = (.*);$/m.exec(figjamNative(xml(edges), { title: 't' }).parts[0])[1]).items.filter((i) => i[0] === 'p' && !i[2]).map((i) => i[1]);
+    const linesOf = (edges) => scriptData(figjamNative(xml(edges), { title: 't' }).parts[0]).items.filter((i) => i[0] === 'p' && !i[2]).map((i) => i[1]);
     const jump = 'jumpStyle=arc;jumpSize=8;';
     // Level first, upright second: the upright one jumps, to the right.
     expect(linesOf(line('h', 'a', 'b', across + jump) + line('v', 'c', 'd', down + jump))).toEqual(['M 60 150 L 340 150', 'M 200 60 L 200 146 C 205.2 146 205.2 154 200 154 L 200 240']);
@@ -466,7 +466,7 @@ describe('figjam native script', () => {
     expect(graded[0].fills[0].gradientTransform).toEqual([[0, 1, 0], [-1, 0, 1]]);
     // The other directions of draw.io, on a plain cell style.
     const cell = (dir) => `<mxfile><diagram id="p" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="i" value="" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#112233;gradientColor=#445566;${dir}strokeColor=#ffffff;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="78" height="78" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;
-    const fillOf = (dir) => JSON.parse(/^const D = (.*);$/m.exec(figjamNative(cell(dir), { title: 't' }).parts[0])[1]).items.find((i) => i[0] === 'r')[5];
+    const fillOf = (dir) => scriptData(figjamNative(cell(dir), { title: 't' }).parts[0]).items.find((i) => i[0] === 'r')[5];
     expect(fillOf('')).toBe('112233>445566');
     expect(fillOf('gradientDirection=south;')).toBe('112233>445566');
     expect(fillOf('gradientDirection=north;')).toBe('445566>112233');
@@ -521,7 +521,7 @@ describe('figjam native script', () => {
     expect(plain.figma.loaded.every((f) => f.startsWith('Arimo '))).toBe(true);
     // In a bold label the arrow is bold too.
     const bold = `<mxfile><diagram id="p" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="a" value="Pay&lt;br&gt;↳ pay-flow" style="rounded=0;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="120" height="40" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;
-    expect(JSON.parse(/^const D = (.*);$/m.exec(figjamNative(bold, { title: 't' }).parts[0])[1]).items.find((i) => i[0] === 't')[6]).toEqual({ b: 1, s: [[4, 5, '~b']] });
+    expect(scriptData(figjamNative(bold, { title: 't' }).parts[0]).items.find((i) => i[0] === 't')[6]).toEqual({ b: 1, s: [[4, 5, '~b']] });
     // The shadow of a logo that draw.io fills at a fifth of full strength is a vector of that opacity.
     const logo = `<mxfile><diagram id="p" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="g" value="" style="shape=mxgraph.gcp2.google_play_game_service;fillColor=#5184F3;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="78" height="54" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;
     const board = fakeBoard();
@@ -622,9 +622,9 @@ describe('figjam native script', () => {
     const xml = await drawioOf(ir);
     const whole = figjamNative(xml, { title: ir.title });
     expect(whole.parts.length).toBe(1);
-    const split = figjamNative(xml, { title: ir.title, limit: 9000 });
+    const split = figjamNative(xml, { title: ir.title, limit: 11000 });
     expect(split.parts.length).toBeGreaterThan(2);
-    for (const p of split.parts) expect(p.length).toBeLessThanOrEqual(9000);
+    for (const p of split.parts) expect(p.length).toBeLessThanOrEqual(11000);
     const one = fakeBoard();
     await runAll(whole.parts, one.figma);
     const many = fakeBoard();
@@ -633,7 +633,7 @@ describe('figjam native script', () => {
     // The parts make the groups the whole script makes: a group that a part leaves open goes on in the next.
     const whole1 = JSON.stringify(treeOf(one.page.children[0]));
     expect(JSON.stringify(treeOf(many.page.children[0]))).toBe(whole1);
-    expect(split.parts.some((p) => /\["\[","[^"]*",1\]/.test(p))).toBe(true);
+    expect(split.parts.some((p) => /\["\[","[^"]*",1\]/.test(JSON.stringify(scriptData(p))))).toBe(true);
     expect(results.reduce((sum, r) => sum + r.created, 0)).toBe(leaves(one.page.children[0]).length);
     expect(results.map((r) => r.part)).toEqual(split.parts.map((_, i) => i + 1));
     expect(new Set(results.map((r) => r.section)).size).toBe(1);
@@ -643,7 +643,7 @@ describe('figjam native script', () => {
     await runAll(split.parts, many.figma);
     expect(JSON.stringify(treeOf(many.page.children[0]))).toBe(whole1);
     // A part that goes on in a group does not run without the part that began the group.
-    const later = split.parts.findIndex((p) => /"items":\[\["\[","[^"]*",1\]/.test(p));
+    const later = split.parts.findIndex((p) => /"items":\[\["\[","[^"]*",1\]/.test(JSON.stringify(scriptData(p))));
     const bare = fakeBoard();
     await runOn(split.parts[0], bare.figma);
     bare.page.children[0].children = [{ type: 'RECTANGLE', name: NATIVE_TAG, x: 0, y: 0, width: 1, height: 1 }];

@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { scriptsDir, fixturesDir, loadFixture } from './helpers.mjs';
+import { scriptsDir, fixturesDir, loadFixture, scriptData } from './helpers.mjs';
 import { checkDrawioStructure } from './drawio-structure.mjs';
 import { loadPlaywright } from '../src/preview.mjs';
 
@@ -94,7 +94,7 @@ describe('a GCP architecture diagram through the bundle', () => {
     expect(existsSync(script)).toBe(true);
     const text = readFileSync(script, 'utf8');
     expect(text.length).toBeLessThanOrEqual(50000);
-    const D = JSON.parse(/^const D = (.*);$/m.exec(text)[1]);
+    const D = scriptData(text);
     expect(Object.keys(D.stencils).some((k) => k.startsWith('mxgraph.gcp2.cloud_sql#'))).toBe(true);
     expect(Object.keys(D.stencils).some((k) => k.startsWith('mxgraph.gcp2.google_cloud_platform#'))).toBe(true);
     expect(text).toContain('Cloud SQL for PostgreSQL [gcp:cloud_sql]');

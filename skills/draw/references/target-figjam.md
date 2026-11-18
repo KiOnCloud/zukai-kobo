@@ -139,7 +139,10 @@ stray arrow beside the diagram for each of those rows.
    yellow box, the figure above an actor, the `«kind»` line of a boundary, control, entity
    or database participant, and the activation bars the draw.io file has. It removes the
    stray arrows. Running it again replaces what it drew.
-4. If it throws `zukai overlay: ...`, nothing was changed. The message says what on the
+4. If it throws `zukai overlay: ...`, nothing was changed. When the message says that this
+   copy of the script is not the one the CLI wrote, the copy lost or changed a character on
+   its way into the call: pass the script again from its file, unchanged. Otherwise the
+   message says what on the
    board differs from the model (another title, a message edited by hand, a layout Figma
    has changed since). Relay it, deliver the board as `generate_diagram` left it, and list
    the warnings that name the overlay script as what the board lacks.
@@ -213,9 +216,14 @@ leave the machine, and the secret scan gates this emit like the other.
    the FigJam text; show those for the text, not as something the board lacks.
 2. Load the Figma skills the server names (section 8).
 3. Call `use_figma` with the file key of the board and, as `code`, the content of the file,
-   unchanged. Do not edit the script and do not write one by hand. With several parts, run
-   them in order, one call each, and not in parallel: part 1 makes the section, the others
-   draw into it. Compare the `created` each call returns with the number the CLI printed for
+   unchanged. Do not edit the script and do not write one by hand. No line of the file is
+   longer than 200 characters, so read it whole, not in slices joined by hand. The script
+   checks itself before it touches the board: it carries the length and a short hash of its
+   data, and when the copy lost or changed a character (inside a label too) it throws
+   `zukai native: this copy of the script is not the one the CLI wrote ...` and changes
+   nothing. Then pass it again from the file, unchanged; never mend the copy. With several
+   parts, run them in order, one call each, and not in parallel: part 1 makes the section,
+   the others draw into it. Compare the `created` each call returns with the number the CLI printed for
    that script. A script of `bundle` that holds several diagrams returns a list of results,
    one per diagram: compare the `created` of each result with the number at the same place
    in the CLI's list for that script (the first result with the first number, and so on); a

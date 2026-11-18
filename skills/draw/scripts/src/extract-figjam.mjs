@@ -1,4 +1,5 @@
 import { kindHints, markLanes } from './extract-drawio.mjs';
+import { dataBlock } from './figma-script-data.mjs';
 
 /**
  * The facts of a FigJam board, read in two steps because only the Figma MCP tool `use_figma`
@@ -25,9 +26,10 @@ export const READ_LIMIT = 45000;
 /** Script for `use_figma`: read the current page, or one section of it (by name or node id), from node `from` on, and return it as JSON. */
 export function figjamReaderScript({ section, from = 0 } = {}) {
   return `// Zukai recook: reads the board and returns it as JSON. Changes nothing on the board.
-const SECTION = ${JSON.stringify(section ?? null)};
-const FROM = ${Number(from) || 0};
-const LIMIT = ${READ_LIMIT};
+// Pass this text unchanged to the Figma MCP tool use_figma, with the file key of the board.
+${dataBlock({ section: section ?? null, from: Number(from) || 0, limit: READ_LIMIT }, 'zukai recook')}const SECTION = D.section;
+const FROM = D.from;
+const LIMIT = D.limit;
 const page = figma.currentPage;
 let root = page;
 if (SECTION !== null) {

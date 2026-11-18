@@ -2,6 +2,7 @@ import { parseAttrs } from './relabel.mjs';
 import stencilData from './stencil-paths.json' with { type: 'json' };
 import { boardTag } from './extract-drawio.mjs';
 import { unpackStencils } from './stencil-pack.mjs';
+import { dataBlock } from './figma-script-data.mjs';
 
 /**
  * A FigJam board drawn at the coordinates of the draw.io file, as scripts for the Figma MCP
@@ -1022,42 +1023,54 @@ export function figjamNative(drawioXml, { title, run, limit = SCRIPT_LIMIT }) {
   const dataOf = (chunk, part, parts) => ({ title, run, part, parts, width, height, offset: [offset.x, offset.y], stencils: stencilsOf(chunk), items: chunk });
   const script = (chunk, part, parts) => scriptOf(dataOf(chunk, part, parts));
   // Every part carries the whole runtime and the stencil paths its own drawings use, so each
-  // one runs on its own; the room left is for the drawings.
-  const room = limit - script([], 99, 99).length;
-  const chunks = [[]];
-  let used = 0;
-  let carried = new Set();
-  /** Characters an item adds to the part being filled: itself, and its stencil path when the part does not carry it yet. */
-  const cost = (item) => JSON.stringify(item).length + 1 + (item[0] === 'g' && !carried.has(item[1]) ? JSON.stringify(item[1]).length + JSON.stringify(stencilPath(item[1])).length + 2 : 0);
-  // The groups that are open where a part ends are closed there and opened again in the next
-  // part; one that has drawings on the board already is marked so that the script goes on in it.
-  const open = [];
-  const size = (list) => list.reduce((sum, item) => sum + JSON.stringify(item).length + 1, 0);
-  const closeSize = JSON.stringify([']']).length + 1;
-  for (const item of items) {
-    if (item[0] === ']') { open.pop(); used += closeSize; chunks.at(-1).push(item); continue; }
-    const drawsHere = chunks.at(-1).some((i) => i[0] !== '[' && i[0] !== ']');
-    // Room is kept for closing every group that is open, the one this item opens included.
-    const closing = (open.length + (item[0] === '[' ? 1 : 0)) * closeSize;
-    if (used + cost(item) + closing > room && drawsHere) {
-      chunks.at(-1).push(...open.map(() => [']']));
-      const again = open.map((g) => (g.drawn ? ['[', g.name, 1] : ['[', g.name]));
-      chunks.push([...again]);
-      used = size(again);
-      carried = new Set();
-    }
-    used += cost(item);
-    chunks.at(-1).push(item);
-    if (item[0] === '[') open.push({ name: item[1], drawn: false });
-    else for (const g of open) g.drawn = true;
-    if (item[0] === 'g') carried.add(item[1]);
+  // one runs on its own; the room left is for the drawings. The room is counted in the JSON of
+  // the drawings, and the lines the data is written over take a little more: when a part comes
+  // out too long, the parts are made again with the room made smaller by what it lacked.
+  let room = limit - script([], 99, 99).length;
+  for (;;) {
+    const data = pack(room).map((chunk, i, all) => dataOf(chunk, i + 1, all.length));
+    const parts = data.map(scriptOf);
+    const over = Math.max(...parts.map((p) => p.length)) - limit;
+    if (over <= 0 || room <= over) return { parts, data, created: data.map(createdBy), offset, width, height };
+    room -= over;
   }
-  const data = chunks.map((chunk, i) => dataOf(chunk, i + 1, chunks.length));
-  return { parts: data.map(scriptOf), data, created: data.map(createdBy), offset, width, height };
+
+  /** The drawings cut into parts whose JSON takes at most `room` characters each. */
+  function pack(room) {
+    const chunks = [[]];
+    let used = 0;
+    let carried = new Set();
+    /** Characters an item adds to the part being filled: itself, and its stencil path when the part does not carry it yet. */
+    const cost = (item) => JSON.stringify(item).length + 1 + (item[0] === 'g' && !carried.has(item[1]) ? JSON.stringify(item[1]).length + JSON.stringify(stencilPath(item[1])).length + 2 : 0);
+    // The groups that are open where a part ends are closed there and opened again in the next
+    // part; one that has drawings on the board already is marked so that the script goes on in it.
+    const open = [];
+    const size = (list) => list.reduce((sum, item) => sum + JSON.stringify(item).length + 1, 0);
+    const closeSize = JSON.stringify([']']).length + 1;
+    for (const item of items) {
+      if (item[0] === ']') { open.pop(); used += closeSize; chunks.at(-1).push(item); continue; }
+      const drawsHere = chunks.at(-1).some((i) => i[0] !== '[' && i[0] !== ']');
+      // Room is kept for closing every group that is open, the one this item opens included.
+      const closing = (open.length + (item[0] === '[' ? 1 : 0)) * closeSize;
+      if (used + cost(item) + closing > room && drawsHere) {
+        chunks.at(-1).push(...open.map(() => [']']));
+        const again = open.map((g) => (g.drawn ? ['[', g.name, 1] : ['[', g.name]));
+        chunks.push([...again]);
+        used = size(again);
+        carried = new Set();
+      }
+      used += cost(item);
+      chunks.at(-1).push(item);
+      if (item[0] === '[') open.push({ name: item[1], drawn: false });
+      else for (const g of open) g.drawn = true;
+      if (item[0] === 'g') carried.add(item[1]);
+    }
+    return chunks;
+  }
 }
 
 /** The script that draws one drawing, or several one after the other (a list). */
-const scriptOf = (data) => `${RUNTIME_HEAD}const D = ${JSON.stringify(data)};\n${RUNTIME}`;
+const scriptOf = (data) => `${RUNTIME_HEAD}${dataBlock(data, 'zukai native')}${RUNTIME}`;
 
 /** How many shapes, lines and texts a drawing creates: one per item, and one more behind a label with a background. */
 function createdBy(data) {
@@ -1144,7 +1157,9 @@ const paint = (hex) => {
   if (!hex) return [];
   if (hex.length === 6) return [{ type: 'SOLID', color: rgb(hex) }];
   const down = hex[6] === '>';
-  return [{ type: 'GRADIENT_LINEAR', gradientTransform: down ? [[0, 1, 0], [-1, 0, 1]] : [[1, 0, 0], [0, 1, 0]], gradientStops: [{ position: 0, color: { ...rgb(hex), a: 1 } }, { position: 1, color: { ...rgb(hex.slice(7)), a: 1 } }] }];
+  const gradientTransform = down ? [[0, 1, 0], [-1, 0, 1]] : [[1, 0, 0], [0, 1, 0]];
+  const gradientStops = [{ position: 0, color: { ...rgb(hex), a: 1 } }, { position: 1, color: { ...rgb(hex.slice(7)), a: 1 } }];
+  return [{ type: 'GRADIENT_LINEAR', gradientTransform, gradientStops }];
 };
 let created = 0;
 // The drawings of one cell of the draw.io file are one group, and the group of a cell in a

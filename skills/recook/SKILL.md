@@ -99,7 +99,9 @@ The facts are what the run keeps of it, with such values already replaced by pla
    bytes, so a large board comes back in parts: while the saved JSON has `next` set, write
    the script again with `--from <next>`, read again and save `board-2.json`, and so on.
    Then `extract <tmp>/board-1.json <tmp>/board-2.json ... --out <tmp>/facts.json`. The script
-   only reads; never edit it or write one by hand. Without `use_figma`, stop: say that the
+   only reads; never edit it or write one by hand. When it throws `zukai recook: this copy of
+   the script is not the one the CLI wrote ...`, the copy lost or changed a character on its
+   way into the call: run it again from the file, unchanged. Without `use_figma`, stop: say that the
    board cannot be read without the Figma connector, and offer an export of the board as an
    alternative source only if FigJam can give one of the formats above.
    Without a section the whole page is read, and every diagram on it becomes a page of the

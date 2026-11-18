@@ -99,7 +99,12 @@ brainstorm (idea) ─> clarify ┘                                              
   Each script is one `use_figma` call, and a Figma plan may limit calls (the Starter plan
   stops after about twenty), so the CLI prints what a board costs: `calls`, and for each
   script the number of shapes, lines and texts its call must report as `created`, and its
-  size in `bytes`, so the agent can tell a script that arrived whole from one that did not.
+  size in `bytes`. Every script for `use_figma` (native, overlay, reader) takes its data
+  block from `figma-script-data.mjs`: the data over lines of at most 200 characters, since
+  an agent copies the script into the call and tool output cuts long lines, and the length
+  and a short hash of that data, which the script computes again and compares before it
+  reads or changes the board, so a copy that lost or changed a character throws instead of
+  drawing.
   `combineNative` packs the drawings of several diagrams into as few scripts as one call
   takes (`bundle --to figjam --native`); each drawing still goes into its own section, and
   `created` then lists, for each script, the count of each drawing in the order the script
