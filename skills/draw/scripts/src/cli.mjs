@@ -27,6 +27,7 @@
  *   node cli.mjs sources <run-dir> [--root <project>] [--only <id,id,...>]   (record a hash of every source file the diagrams of a run were drawn from)
  *   node cli.mjs stale <run-dir>... [--root <project>]   (the recorded source files that changed or are gone; exit 2 when there are any)
  *   node cli.mjs glossary list|add|set|pairs|check ...   (the project glossary in .zukai/glossary.json; check exits 2 on a blocking finding)
+ *   node cli.mjs labs start|status|stop ...   (the labs console of a project on 127.0.0.1)
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
@@ -46,6 +47,7 @@ import { extractFacts, extractBoards } from './extract.mjs';
 import { figjamReaderScript } from './extract-figjam.mjs';
 import { cover } from './cover.mjs';
 import { recordSources, staleRun } from './sources.mjs';
+import { startServer, serverStatus, stopServer, serve } from './labs-lifecycle.mjs';
 import { STATUSES, readGlossary, addEntries, setStatus, readRun, pairsOf, redactedPairs, checkRuns } from './glossary.mjs';
 
 const USAGE = `usage:
@@ -71,6 +73,10 @@ const USAGE = `usage:
   cli.mjs glossary set <id> --status <${STATUSES.join('|')}> [--root <project>]
   cli.mjs glossary pairs <run-dir>... [--root <project>]
   cli.mjs glossary check <run-dir>... [--root <project>]
+  cli.mjs labs start [--root <project>] [--port <n>] [--idle-minutes <n>] [--skip-cloud-check]
+  cli.mjs labs status [--root <project>]
+  cli.mjs labs stop [--root <project>] [--force]
+  cli.mjs labs serve [--root <project>] [--port <n>] [--idle-minutes <n>]   (what start runs as a child; not for users)
   cli.mjs help
 
 A run folder (diagrams/<yyyymmdd>_<run-slug>) stands for the IR files in its source/ folder,
@@ -139,6 +145,15 @@ counted under unpaired), with secret values redacted. check holds the labels of 
 confirmed entries and prints the findings; exit 2 when one is blocking (a label that equals an
 avoided term, or a translated IR that does not carry the confirmed term of a label), exit 1
 when the project has no glossary or it does not match its schema.
+labs start serves the console of the project (--root, else the working directory) on
+127.0.0.1, on a port that is the same for the project every time (--port or ZUKAI_LABS_PORT
+replace it; a busy port is reported, never replaced by the next one). A second start reuses
+the running server. The server reads the runs under diagrams/ and never writes there; it
+writes .zukai/labs/ only, and ends itself after --idle-minutes (default 30) with nothing to
+do, or on labs stop (--force when a job is open). start and status print the console URL with
+its token; in a cloud session start refuses, unless --skip-cloud-check is given for a browser
+on the same machine. Each prints one JSON object; an error is {"ok": false, "error": {code,
+message}} on stderr with exit 1.
 Exit codes: 0 success, 1 usage or I/O error, 2 validation errors.`;
 
 function fail(code, payload) {
@@ -147,8 +162,8 @@ function fail(code, payload) {
 }
 
 /** Options that take a value, and the field each one fills. */
-const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang', '--entries': 'entries', '--status': 'status' };
-const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable' };
+const VALUE_OPTIONS = { '--to': 'to', '--out': 'out', '--title': 'title', '--canvas': 'canvas', '--gap': 'gap', '--map': 'map', '--max-px': 'maxPx', '--keep': 'keep', '--request': 'request', '--bundle': 'bundleJson', '--extra': 'extras', '--overlay': 'overlay', '--native': 'native', '--figjam-script': 'figjamScript', '--section': 'section', '--from': 'from', '--page': 'page', '--root': 'root', '--only': 'only', '--drawio': 'drawio', '--lang': 'lang', '--entries': 'entries', '--status': 'status', '--port': 'port', '--idle-minutes': 'idleMinutes' };
+const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'mermaidStable', '--skip-cloud-check': 'skipCloudCheck', '--force': 'force' };
 
 /**
  * The options each command takes. One that a command does not take is refused: an option that
@@ -175,6 +190,10 @@ const COMMAND_OPTIONS = {
   'glossary set': ['--status', '--root'],
   'glossary pairs': ['--root'],
   'glossary check': ['--root'],
+  'labs start': ['--root', '--port', '--idle-minutes', '--skip-cloud-check'],
+  'labs status': ['--root'],
+  'labs stop': ['--root', '--force'],
+  'labs serve': ['--root', '--port', '--idle-minutes'],
 };
 
 /** Commands of two words: the first word names a group, the second the command in it. */
@@ -198,7 +217,7 @@ function parseArgs(argv) {
     command = `${command} ${sub}`;
     rest = rest.slice(1);
   }
-  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined, entries: undefined, status: undefined };
+  const opts = { command, positional: [], to: undefined, out: undefined, title: undefined, canvas: undefined, gap: undefined, map: undefined, maxPx: undefined, keep: undefined, overlay: undefined, native: undefined, figjamScript: undefined, section: undefined, from: undefined, page: undefined, root: undefined, only: undefined, request: undefined, extras: [], bundleJson: undefined, allowSensitive: false, mermaidStable: false, help: false, drawio: undefined, lang: undefined, entries: undefined, status: undefined, port: undefined, idleMinutes: undefined, skipCloudCheck: false, force: false };
   if (command === 'help' || command === '--help' || command === '-h') return { ...opts, help: true };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -722,7 +741,21 @@ export async function main(argv) {
     return stale ? 2 : 0;
   }
   if (opts.command.startsWith('glossary ')) return glossaryCommand(opts);
+  if (opts.command.startsWith('labs ')) return labsCommand(opts);
   return fail(1, { ok: false, errors: [{ path: '/', message: `unknown command "${opts.command ?? ''}"` }], usage: USAGE });
+}
+
+/** `labs start|status|stop|serve`: one JSON object on stdout, or an error on stderr with exit 1. */
+async function labsCommand(opts) {
+  const sub = opts.command.split(' ')[1];
+  if (opts.positional.length !== 0) return fail(1, { ok: false, errors: [{ path: '/', message: `labs ${sub} takes no file` }], usage: USAGE });
+  if (sub === 'serve') return serve({ root: opts.root, port: opts.port, idleMinutes: opts.idleMinutes });
+  const result = sub === 'start'
+    ? await startServer({ root: opts.root, port: opts.port, idleMinutes: opts.idleMinutes, skipCloudCheck: opts.skipCloudCheck })
+    : sub === 'status' ? await serverStatus({ root: opts.root }) : await stopServer({ root: opts.root, force: opts.force });
+  if (result.error) return fail(result.code, { ok: false, error: result.error });
+  process.stdout.write(JSON.stringify(result.out) + '\n');
+  return result.code;
 }
 
 /** `glossary list|add|set|pairs|check`. */

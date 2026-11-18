@@ -125,3 +125,11 @@ jobs:
               Write-Output "ok: $shell $target"
             }
           }
+
+      - name: Install dev dependencies for the labs lifecycle test
+        working-directory: skills/draw/scripts
+        run: npm ci
+
+      - name: Run the labs server lifecycle through the bundle on Windows
+        working-directory: skills/draw/scripts
+        run: npx vitest run tests/labs-lifecycle-e2e.test.mjs
