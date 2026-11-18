@@ -42,7 +42,8 @@ brainstorm (idea) ─> clarify ┘                                              
   it, so those IRs are no further diagrams of the run and the sources record never sees
   them.
 - **The model check** (`check-model.mjs`) reports what a valid IR can still get wrong, on
-  `validate` and on every emit: a decision with fewer than two ways out, a step connected to
+  `validate` and on every emit for a target (the description tables are written from IRs
+  whose emit has just reported it, so `--to doc` does not say it again): a decision with fewer than two ways out, a step connected to
   nothing, a repeated edge, a state diagram without an initial state or with a state it never
   reaches, an initial or final state with a label (those are markers, and no target draws a
   name on them: the warning names the state and says how to keep the name), a boundary or
@@ -51,7 +52,7 @@ brainstorm (idea) ─> clarify ┘                                              
   without a use case, and (as `size:`) more than 40 elements in one diagram. They are warnings: each has an honest
   exception, which the author records in `meta.omitted`.
 - **The level of detail** (`check-detail.mjs`) is checked on every emit of an architecture
-  diagram: several stores of one kind used by one component alone (a database drawn table
+  diagram for a target, as the model is: several stores of one kind used by one component alone (a database drawn table
   by table; a store is known by its `kind` or by a database or storage icon), a plain
   boundary that holds only components of one icon, connection labels that start with step
   numbers, and a connection label that reads as an endpoint path, a job or data path or a
@@ -140,7 +141,9 @@ reference).
 `cli.mjs export` (`export-svg.mjs`) is the same rendering kept as a deliverable: each page of
 a draw.io file, or each page `--page` names, becomes `<name>.drawio.svg`, a picture that GitHub, a browser or a wiki shows
 and that draw.io opens for editing. A run folder stands for its combined file, since only
-there a step with `ref` shows the title of its part, and its pictures go to `svg/`. The
+there a step with `ref` shows the title of its part, and its pictures go to `svg/`. Such a
+picture given back to `export` stands for the diagram in its `content` attribute, as it
+does for `preview` and `extract`, and is drawn again from it. The
 page is drawn by one of the two renderers of `preview`, draw.io desktop first, and what
 comes back is made a file that stands on its own by one piece of code for both. draw.io
 writes a label as HTML in a `foreignObject`, which only a browser draws; a PDF converter or
@@ -427,7 +430,11 @@ choices.
   and reordered per top-level collection, each changed element with the old and the new
   value of every field under `values`. A block of a sequence diagram lists every message it
   spans, those of the blocks inside it included, so its lists are compared without the
-  messages that came or went: the message is the change, not every frame around it, plus hints for a `ref` part or a business view that did
+  messages that came or went: the message is the change, not every frame around it. The
+  `children` of a boundary, a group or a composite state are compared the same way, so a
+  container that gained a new member or lost one that is gone is not listed and not drawn
+  amber, while a member both versions have that moved into it still is a change of the
+  container. The list also carries hints for a `ref` part or a business view that did
   not follow, for references left on a removed element, and for an added diagram that no
   element links to or that is a second architecture diagram of the run). The run is written
   only after the user confirms one draft, so dropping all drafts needs no undo.
@@ -529,6 +536,9 @@ drafts, the snapshot and the hand-edit check from revise.
   means the same on every machine.
 - **The record is a statement, not a cache.** `sources` (`sources.mjs`) writes
   `source/<run-slug>.sources.json`: per diagram, each file with a SHA-256 of its content.
+  A run has one record, so in a run folder that was renamed or copied under another name
+  the one `*.sources.json` its `source/` holds is the record, whatever slug it carries;
+  with several and none named after the run, `sources` and `stale` refuse to pick one.
   It is taken only when the diagrams were just read from the code, at the end of a scout
   run and of a sync, because it says "the diagrams match these files"; a revision by revise
   does not read the code and leaves it alone, and `--only` records a single scouted diagram

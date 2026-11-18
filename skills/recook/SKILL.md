@@ -172,7 +172,12 @@ facts alone:
     main flow does not depend on; collapsed into one step, it takes the title the source gives
     that sub-flow; with no title, the new label is an
     `added:` note. The texts of the steps it hides go into `meta.omitted`: `"Lấy lịch sử hoàn
-    tiền", "Chấm điểm rủi ro": collapsed into "Kiểm tra gian lận"`.
+    tiền", "Chấm điểm rủi ro": collapsed into "Kiểm tra gian lận"`. The blocks of a
+    sequence diagram (`alt`, `opt`, `loop`, `par`, `critical`, `break`) are frames only in
+    how they are drawn, not sub-flows: they are the branching and the repetition of the
+    call order itself, which is the main flow of that kind. They stay as blocks under
+    either scope, with every message and every condition: `overview` collapses nothing in
+    a sequence diagram.
 - **Nothing is invented.** Add only what the kind needs to be valid and the source shows by
   shape alone (a start node where an arrow starts from nothing), and record each in
   `meta.notes` as `added: <what> (<why>)`. A missing branch, outcome or reply stays missing:

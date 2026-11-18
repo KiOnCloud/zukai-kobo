@@ -180,9 +180,15 @@ that changed for no reason is a false entry in that list.
   and never apply a review finding of an earlier round on the way.
 - An element is added where the code now does the thing: in the place in the array that
   matches the order of execution, with an id made from its name (`check-lockout`), never a
-  counter alone, and never an id the diagram used before for something else. An element
-  that has no place in an order of execution (a participant, a lane, a class, an entity, a
-  component, an actor) is appended to its array, so nothing that was there moves.
+  counter alone, and never an id the diagram used before for something else. Only the
+  arrays that are read as an order have such a place: the messages of a sequence diagram,
+  the steps and flows of a flowchart or an activity diagram, the rows of a class or an
+  entity. Everything else is appended to the end of its array, so nothing that was there
+  moves: a participant (its lifeline is the last one, also when its first message comes
+  early), a lane, a state, a class, an entity, a component, an actor, a use case, a
+  boundary or group, a note, and every transition, relation and connection, which no
+  diagram reads in an order. A new element that stands in a container is appended to the
+  `children` of that container the same way.
 - An element is removed when the code no longer does it. Its edges, messages, block
   entries and `ref` go with it.
 - An element is changed when the code changed what its label says (a threshold, a status
@@ -253,7 +259,9 @@ One block per changed diagram, main diagram first:
   changed (with what the label or field was and is: each `changed` entry carries `values`,
   per field its `from` and its `to`), reordered; after each entry the file that caused it
   (`src/auth/login-handler.ts: the lockout check was added before the password check`). A
-  block is not in the list because a message was put into it: the message is;
+  block is not in the list because a message was put into it, and a boundary, a group or a
+  composite state is not in it because it gained a new member or lost one that is gone:
+  the message or the member is. The picture of the change colours the same way;
 - every hint `diff` printed, with what was done about it.
 
 Then: the files that changed without any effect on a diagram, in one line; the diagrams

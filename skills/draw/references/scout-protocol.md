@@ -93,11 +93,23 @@ those circles, so the status would be missing from the picture, and the CLI repo
 label as a `model:` warning. Several terminal statuses share one `final` state.
 
 The `initial` state is the same kind of marker: one state of kind `initial` without a
-label, with a transition to the status the default or the constructor sets. When the code
-never creates the thing (it only moves statuses that something else created), leave the
-`initial` state out and record that in `meta.omitted` ("no initial state: the code creates
-no order"); the `model:` warning about the missing initial state then stays, and the report
-quotes it beside that entry, as the closing contract says for a gap that is on purpose.
+label, with a transition to the status the default or the constructor sets. Two cases have
+no such status, and in both the `initial` state is left out, never pointed at a guess (the
+first member of the enum, the status most transitions leave from):
+
+- the code never creates the thing: it only moves statuses that something else created.
+  Record it in `meta.omitted` as `no initial state: the code creates no order`;
+- the code creates the thing and gives the status no value: no default on the field or the
+  column, no assignment in the constructor or the insert, so a new thing has no status
+  until a later call sets one. Record it as `no initial state: the code sets no status
+  when it creates an order; <method> sets the first one (<file>)`, so the reader of the
+  report learns where the life of the thing starts although the picture cannot show it.
+
+The `model:` warning about the missing initial state then comes with every `validate` and
+every emit of the run. It is never left standing alone: the `meta.omitted` entry is its
+recorded reason, the report quotes the warning once beside that entry, as the closing
+contract says for a gap that is on purpose, and a later revise or sync that finds the
+warning without the entry adds the entry or the state before it emits.
 
 ### er
 
@@ -163,7 +175,16 @@ all in one region, else in the outer frame (`gcp-icons.md`, Choosing). A `google
 its topic to its subscriber (labelled `push` or `pull` as the resource says), and a
 `google_cloud_scheduler_job` is a component that calls its target. A variable or a local
 that names a project or a region is shown by its value when the files give one
-(`terraform.tfvars`, a default), else by its name. When the files deploy to both clouds,
+(`terraform.tfvars`, a `default` in the variable block, a `locals` entry). When they give
+none (`project = var.project_id` with no value anywhere in the files), the name of a
+variable is not the name of a project, so the project does not count as named: the outer
+frame is `gcp:google_cloud` labelled "Google Cloud", not a `gcp:project` frame labelled
+with the variable, and `meta.notes` gets one `assumed:` entry that says which variable
+holds the project (`assumed: the project is var.project_id, which the files give no value
+for`). A region given only as a variable gets no region frame for the same reason: its
+components stand directly in the outer frame, or in the VPC network frame when the files
+define one, and the same entry names the variable. Never write `var.<name>` as the label
+of a frame. When the files deploy to both clouds,
 each resource takes the icon and the frames of its own provider.
 
 ### usecase

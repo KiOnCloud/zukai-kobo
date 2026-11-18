@@ -257,9 +257,8 @@ node "<skill-dir>/scripts/bin/cli.mjs" bundle --to doc --lang <en|ja|vi> --out <
   language it was written in.
 - The secret scan runs as for every local file: a credential by its form stops the command
   with exit code 2, a guess is a warning. The feature matrix is not asked, since a table
-  leaves nothing out. The command prints the `model:` and `detail:` warnings of every
-  diagram again, word for word as the emit of step 3 printed them: show each once in the
-  report, not once per command.
+  leaves nothing out. The `model:` and `detail:` warnings are the ones the emit of step 3
+  already printed and are not shown twice: this command does not print them again.
 - The tables are not previewed and not reviewed on their own: they hold what the reviewed
   IRs hold. Step 6 names the file and says in one line what it is for; do not print its
   content in the report.
@@ -342,8 +341,13 @@ the run folder and its run slug, never a new folder, and changes these steps:
 - Step 3 also writes the description tables again when the run has them: every
   `<run-slug>.doc.md` and `<run-slug>.doc.<lang>.md` in the run folder, each with the
   `--lang` its first line records (`<!-- zukai doc, lang=ja: ...`) and the title of its
-  first heading as `--title`. A run without them gets none, unless the request or `--doc`
-  asks for them.
+  first heading as `--title`, and each from the folder it was written from. The lines
+  that name the source of each diagram say which: `source/<slug>.ir.json` is the run
+  folder, and `source/<lang>/<slug>.ir.json` is a file with translated labels, which is
+  written again from `<run-folder>/source/<lang>` after the change was carried into the
+  translated IRs there (`variants.md`, "Language variants"). Written from the run folder,
+  such a file would get the labels of the run back in place of the translated ones. A run
+  without description tables gets none, unless the request or `--doc` asks for them.
 - Files that revise relabelled in place to keep hand edits are never emitted or bundled
   again, in step 3 or in the review loop. Review findings on them that are label wording are
   applied with `relabel` (the IR gets the same wording); any other finding is listed in the

@@ -30,6 +30,11 @@ rendered with `preview <file> --page <diagram id>`.
    finding.
 4. Every CLI warning that starts with `layout:` is resolved or explicitly accepted.
 
+A Mermaid picture is laid out by Mermaid's renderer. What `target-mermaid.md` lists as its
+own (a `swimlane-beta` branch that runs over a lane header or round the edge of the lanes,
+a sequence lifeline drawn through a message label or a block condition) is no finding
+against the IR: the report names it once, with the offer of `--to drawio`.
+
 ## Wording (read the IR)
 
 5. Labels are in the user's language, consistent throughout, and short: an action is one
@@ -132,8 +137,9 @@ The picture shows the new version with what was added in green, what changed or 
 amber and what was removed in red with a dashed outline; the legend under it lists the old
 value of everything amber and names a removed element it could not draw. It has one page
 per diagram that changed, so there may be several PNGs: judge each. A frame around a new
-or removed message of a sequence diagram is not coloured, because the frame itself did not
-change.
+or removed message of a sequence diagram is not coloured, and neither is a boundary, a
+group or a composite state that only gained a new member or lost one that is gone: the
+member is coloured, the frame itself did not change.
 
 17. Everything coloured follows from the request: an element the request did not ask to
     add, change, move or remove, and that is no cascade of it into a part or a business
