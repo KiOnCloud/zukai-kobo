@@ -486,3 +486,91 @@ No High finding.
 
 No long-running process was started. `ps` shows only the MCP PDF server that was running
 before.
+
+## Confirmation of the label background
+
+Date: 2026-11-18 (UTC). Tester: delegated agent, on the same board,
+https://www.figma.com/board/eogYZmhMNnhYdRxA95Wdpx ("Zukai e2e 2.3.0 (3)"). No other file was
+opened, nothing was created as a file and nothing was deleted. The only change on the board is
+the redraw of the 経費精算 section `19:312` in place.
+
+What is being checked: the fix of the narrow label back (S1 above).
+
+- The native and overlay scripts now record every text they draw with a function that places it,
+  and what lies behind it, from the text's current size. After the last drawing, `settle` runs
+  when a text holds a character outside Latin. It waits 100 ms at a time and places again each
+  text whose size changed. It stops after three quiet rounds, and after 3 s at most. The code is
+  shared from `figma-script-data.mjs` as `SETTLE_TEXTS`.
+- The reader (`drawnKind`) accepts a second kind of back. It shares a text's row (same top and
+  height within 2 px), lies within the text's width, and stands on the line or beside it, no
+  farther than its own height. So a board drawn before the fix reads back too.
+
+### Setup
+
+- Installed commit `a663fd25c5ee73f9375897c7a310a593b87e4a7b` (HEAD of
+  `claude/blissful-noether-5terit`). It came from `git archive HEAD` into
+  `<scratchpad>/e2e-figjam6/src`, and was installed with `install.sh --target claude-project`
+  into a copy of `e2e-figjam5/clinic`, whose installed skills had been removed. The installed
+  `cli.mjs` is identical to the repository's (`cmp`). Node 22.23.4.
+- `<scratchpad>` = `/tmp/claude-0/-home-user-zukai-kobo/dfd23dcb-7283-57de-90e1-1d422710abbb/scratchpad`.
+  - Scripts and reads: `<scratchpad>/e2e-figjam6/tmp/`.
+  - Screenshot: `<scratchpad>/e2e-figjam6/shots/sec-19-312.png`, with the crop
+    `zoom-extend-label.png`.
+- Run `clinic/diagrams/20261118_expense-usecases-ja-vi` (the fixture `valid-long-labels.json`):
+  - `validate`: 0 warnings;
+  - `emit --to figjam --native`: `calls: 1`, `created: [32]`, 13 198 bytes,
+    `CHECK = [2476, '51e6f065']`;
+  - `extract --figjam-script --section "経費精算"`: `calls: 1`.
+- The call count was stated before the first Figma call: 7, at most 9.
+
+### Steps
+
+| Step | What ran | Result | Verdict |
+|---|---|---|---|
+| 1 Redraw | the native script, unchanged | `{"section":"19:312","name":"経費精算","part":1,"parts":1,"created":32,"replaced":32}`. It replaced its own section in place, and `created` equals the CLI's 32 | PASS |
+| 2 Read | the reader script, unchanged | 47 nodes, `total` 47, `next: null` | PASS |
+| 3 Widths | the read of step 2 | «extend» [承認済みの申請がある]: text `25:163` box `[16686,238,117,26]`, back `25:162` box `[16684,238,121,26]`. The back is the text plus 2 px on each side and as high as the text. Before the fix the back was 93 px under a 117 px text (`19:353`/`19:354`). «include»: text 48, back 52 (`25:156`/`25:155`) | PASS |
+| 4 extract | `extract tmp/read-ja-vi.part0.json` | 9 nodes, **6 edges**, hint `usecase` 42 first ("5 ovals, 2 actor figures, 2 lines marked «include» or «extend»"). The only box is the «system» actor. The extend line: `ExportApprovedExpenseClaimsToAccountsPayable(batch)` → `Duyệt yêu cầu hoàn ứng`, label `«extend»\n[承認済みの申請がある]`, open arrow, dashed. The one warning: every end was taken from where the line stops, as on any native board | PASS |
+| 5 cover | `cover tmp/facts-ja-vi.json <run>` | `{"ok":true,"units":13,"covered":13,"missing":[],"edges":6,"lostEdges":[]}`, exit 0. The IR has 6 relations, the facts 6 edges | PASS |
+| 6 Old board | the new `extract` on the stored narrow-back read of the previous round (`e2e-figjam5/tmp/read-ja-vi.part0.json`) | 6 edges; `cover`: `edges: 6`, `lostEdges: []`, exit 0 (it was 5 before) | PASS |
+
+What this does not show: the result of the script does not say whether `settle` saw the text grow
+during its wait, or whether Figma had the fallback face in this session already and measured
+117 px at once. Either way the back on the board is now sized from the text as Figma finally sets
+it. The stand-in test simulates the late growth: it fails without the fix.
+
+**Screenshot** (one, section `19:312`, 1 612 × 486), looked at:
+
+- the whole JA/VI drawing, as in the previous round;
+- the dashed «extend» with "[承認済みの申請がある]" under the line, whole and readable, with
+  nothing cut off;
+- «include» over its dashed line, and the boundary title, the wrapped Japanese use case, the
+  Vietnamese actor name and the «system» box.
+
+The white back cannot be seen against the white section; its size is in step 3.
+
+### Figma calls: 7, as stated
+
+| # | Call | Purpose |
+|---|---|---|
+| 1 | `create_session` | board key |
+| 2–4 | `get_figma_skill` figma-use, figma-use-figjam, figma-generate-design | before `use_figma` |
+| 5 | `use_figma` | step 1 native script |
+| 6 | `use_figma` | step 2 reader |
+| 7 | `get_screenshot` 19:312 | one look |
+
+No call was refused.
+
+### Findings
+
+| Id | Grade | What | Evidence |
+|---|---|---|---|
+| S1 | FIXED | On the redrawn board the back is 121 px under a 117 px text. All 6 relations come back, and `cover` checks 6 edges. A board drawn before the fix, with its 93 px back, also reads back with 6 relations | Steps 3–6 |
+| S2 | Decided: no check | `cover` does not report IR relations the facts lack. A recook adds some on purpose (`added:` notes are free text, so they cannot be matched to relations reliably). And a relation the reader misses is missing from the facts and from the IR written from them alike, so a reverse check would not have caught this case in a real recook. `skills/recook/SKILL.md` section 4 now has the agent compare the number of edges of each facts page with the relations of its IRs, and account for every difference | `cover` code, recook section 4 |
+
+No new finding.
+
+### Processes
+
+No long-running process was started. `ps` shows only the MCP PDF server that was running
+before.

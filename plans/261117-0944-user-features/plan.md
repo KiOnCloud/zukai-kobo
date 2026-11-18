@@ -1,6 +1,6 @@
 # User features: sync, SVG export, description tables, visual diff, GCP, use case, PlantUML
 
-Status: done. All seven features are merged and released as 2.3.0; the suite passes (55 files, 1650 tests, 1 skipped). Skill-level rounds: e2e-261117-scout-sync-doc-svg.md, e2e-261117-usecase-diff-plantuml.md, e2e-261117-gcp.md, and e2e-261117-confirm.md (26 High and Medium findings fixed, none open). install.ps1 was edited but not run (no PowerShell); no real FigJam board was drawn.
+Status: done. All seven features are merged and released as 2.3.0; the suite passes (60 files, 1817 tests, 1 skipped, with pwsh and draw.io desktop on PATH). Skill-level rounds: e2e-261117-scout-sync-doc-svg.md, e2e-261117-usecase-diff-plantuml.md, e2e-261117-gcp.md, e2e-261117-confirm.md (every High and Medium finding fixed), and the Low findings fixed after them. install.ps1 runs in the tests under PowerShell 7 and in a windows-latest CI job; draw.io desktop 26.0.9 runs headless in the tests. Real FigJam boards: e2e-261118-figjam-real-board.md and e2e-261118-figjam-real-board-rerun.md (board eogYZmhMNnhYdRxA95Wdpx): drawing, overlay, read-back, revise redraw, call counts, section marker, script self-check and label backgrounds all pass. Open: the windows-latest CI job has not run yet (no PR); the main flow of one deployment diagram still runs along the bottom of its frames.
 
 ## Outcome
 
