@@ -704,3 +704,151 @@ No High or Medium finding. The repository was not changed apart from this sectio
 - `preview` left two `chrome-headless` zombies under PID 1 for a moment. They were gone at the
   final check.
 - `ps` shows only the MCP PDF server that was running before.
+
+## Midway refusal with a multi-part diagram (refusal simulated)
+
+Date: 2026-11-18 (UTC). Tester: delegated agent. Board: https://www.figma.com/board/eogYZmhMNnhYdRxA95Wdpx
+("Zukai e2e 2.3.0 (3)", plan "ai_ccj_dev_admin's team", Pro, no monthly limit). No file was created,
+no other file was opened, and nothing was deleted.
+
+What is being checked: what section 8 of `target-figjam.md` tells the agent to do when Figma refuses
+`use_figma` for the Starter-plan limit **after** some drawing scripts ran, with the refusal falling
+between part 1 and part 2 of one diagram; then whether the resume path it gives leaves a clean board.
+
+**The refusal was simulated.** The user's Starter plan (20 MCP calls a month) is spent until next
+month, so a real midway refusal cannot happen this month. The board work is real and was done on a
+Pro board. Before the first call N = 3 was fixed: the third drawing `use_figma` call was **not sent**
+and was treated as having returned Figma's message word for word ("You've reached the Figma MCP tool
+call limit on the Starter plan. Upgrade your plan for more tool calls: ... Use the whoami tool for
+more plan details. Learn more: ..."). From there on, the installed text was followed as an agent
+would follow it.
+
+### Setup
+
+- Installed release 2.3.2: `git archive origin/main` (`42ff413`) into `<scratchpad>/e2e-figjam8/src`,
+  then `install.sh --target claude-project` into copies of `e2e-figjam7/clinic` and
+  `e2e-figjam7/invoicing`. Their installed skills and `diagrams/` were removed first. Only the
+  installed copies were used. Node 22.23.4.
+- Four new run folders, so that no section of the earlier rounds could be drawn over (the script
+  draws over a section only for the same run). Each got its draw.io file and its native script,
+  one per diagram, with `emit --native`. The draw.io previews were looked at.
+
+  | Run | IR | CLI printed |
+  |---|---|---|
+  | `clinic/diagrams/20261118_midway-usecases` | clinic use cases | `calls: 1`, `created: [56]`, 14 412 bytes |
+  | `clinic/diagrams/20261118_midway-large-flow` | flowchart, 150 steps | `calls: 2`, `created: [560, 188]`, 49 956 + 26 514 bytes |
+  | `invoicing/diagrams/20261118_midway-gcp` | GCP architecture | `calls: 1`, `created: [88]`, 23 405 bytes |
+  | `invoicing/diagrams/20261118_midway-multicloud` | GCP + AWS architecture | `calls: 1`, `created: [108]`, 31 711 bytes |
+
+- The multi-part diagram: the fixture `flowchart/large-50-nodes.json` fits one call (28 346 bytes,
+  `calls: 1`), and so does a 100-step copy (46 781 bytes). Three copies of the fixture chained into
+  one 150-step flowchart split into two parts. None of the 24 architecture fixtures splits either
+  (largest: `valid-multi-cloud.json`, 40 132 bytes). The 150-step IR validates with 28 model warnings
+  (one-way decisions and size), as the fixture does.
+- Count stated before the first Figma call: 10 calls (create_session 1; skill reads 3, `figma-use`,
+  `figma-use-figjam`, `figma-generate-design`; `use_figma` 5, two of them for the 150-step flowchart;
+  one `get_screenshot`), with the note that the count is an upper bound.
+- `<scratchpad>` = `/tmp/claude-0/-home-user-zukai-kobo/dfd23dcb-7283-57de-90e1-1d422710abbb/scratchpad`.
+  Call log, count statement, report given and board reads: `<scratchpad>/e2e-figjam8/tmp/`;
+  screenshot and crops: `<scratchpad>/e2e-figjam8/shots/`.
+
+### Figma calls
+
+| # | Call | Result |
+|---|---|---|
+| 1 | `create_session` (board key) | session `48e217c8-3959-44de-b1c1-0f8dfd00bd12` |
+| 2–4 | `get_figma_skill` figma-use, figma-use-figjam, figma-generate-design | accepted |
+| T1 | `use_figma`, a read-only count of sections and shapes per run (tester's check) | 10 sections, none of a `midway-*` run |
+| 5 | drawing call 1: `midway-usecases.native.js` | section `29:122` "Clinic booking use cases (4)", `created` 56 (CLI 56) |
+| 6 | drawing call 2: `midway-large-flow.native.js`, part 1 of 2 | section `30:122` "Large process with 150 steps", `created` 560 (CLI 560) |
+| 7 | drawing call 3 = N: `midway-large-flow.native.2.js`, part 2 of 2 | **not sent; treated as refused** (simulated) |
+
+After call 7 no Figma call was made for the refused round, `whoami` included, as section 8 says.
+
+### The report given, following section 8
+
+> Figma refused the drawing call for "Large process with 150 steps", part 2 of 2: "You've reached
+> the Figma MCP tool call limit on the Starter plan." I have stopped calling Figma (I did not call
+> whoami).
+>
+> - Ran, in order:
+>   - `midway-usecases.native.js`: section 29:122 "Clinic booking use cases (4)", created 56 (the
+>     CLI said 56). Complete.
+>   - `midway-large-flow.native.js` (part 1 of 2): section 30:122 "Large process with 150 steps",
+>     created 560 (the CLI said 560).
+> - **Incomplete on the board:** "Large process with 150 steps" (section 30:122). Part 1 ran, part 2
+>   (`midway-large-flow.native.2.js`, 188 shapes, lines and texts) did not: the section holds steps
+>   1–150 but only the lines up to step 87; the lines from step 87 to step 150 are missing.
+> - Did not run, in this order: `midway-large-flow.native.2.js` (part 2, refused);
+>   `midway-gcp.native.js` (88); `midway-multicloud.native.js` (108).
+> - The refused call changed nothing on the board.
+> - How to go on: once the limit resets (Figma gives no time in the message; its rate-limit page and
+>   the plan's settings say when), or on a board of a plan that allows more calls, run the remaining
+>   scripts from the run folders, unchanged and in order. On a limited plan, first emit the two
+>   diagrams that did not run again as one script (`bundle --to figjam --native <run.js>
+>   invoicing/diagrams/20261118_midway-gcp invoicing/diagrams/20261118_midway-multicloud`), and draw
+>   "Large process with 150 steps" whole by running its parts again from part 1 (part 1 replaces what
+>   it drew before). That is 3 calls: parts 1 and 2, then the bundle.
+> - The draw.io files are delivered all the same: `drawio/<slug>.drawio` in each of the four run
+>   folders.
+
+Which content is in which part was read from the script data (all 150 steps and the lines up to
+step 87 are in part 1); the CLI's `created` gave the count of what is missing (188).
+
+### Resume on the board (the quota "came back")
+
+The bundle of the two diagrams that did not run: `calls: 1`, `created: [[88, 108]]`, 44 621 bytes,
+written to `invoicing/diagrams/midway-resume.native.js`.
+
+| # | Call | Result |
+|---|---|---|
+| T2 | read-only count (tester) | 12 sections; `29:122` 56 shapes; `30:122` 560 shapes (partial) |
+| 8 | part 1 again | `30:122`, `created` 560, `replaced` 560 |
+| 9 | part 2 | `30:122`, `created` 188 (CLI 188), `replaced` 0 |
+| 10 | the bundle | `[{section 34:122 "Invoicing on Google Cloud (3)", created 88}, {section 34:235 "Invoicing on Google Cloud and AWS (3)", created 108}]` (CLI `[[88, 108]]`) |
+| T3 | read-only count (tester) | see below |
+| 11 | `get_screenshot` of the page (8192 px) | `shots/board-after-resume.png` |
+
+Board after the resume (T3), against the read before it (T2):
+
+| Section | Before | After |
+|---|---|---|
+| the ten sections of the earlier rounds | counts as at T1 | unchanged |
+| `29:122` Clinic booking use cases (4) | 56 | 56, untouched |
+| `30:122` Large process with 150 steps | 560, lines missing from step 87 on | **748 = 560 + 188**, one section |
+| `34:122` Invoicing on Google Cloud (3) | absent | 88 |
+| `34:235` Invoicing on Google Cloud and AWS (3) | absent | 108 |
+
+In `30:122`: 320 groups, which is the number of cells (150 steps, 6 lanes, 164 lines); 150 distinct
+step labels, none twice; no group name twice apart from the repeated edge labels "yes" (24) and
+"no" (15); no shape outside a group. So the incomplete diagram was completed exactly once, with no
+leftover partial drawing and no second section. The screenshot, looked at in crops
+(`shots/crop-large-flow.png`, `shots/crop-top-new.png`): the flow runs whole from step 1 to step
+150 with every line, and the two bundled architectures are drawn beside it.
+
+### Verdict: PASS, with one Medium finding
+
+- **Acting without guessing.** Stopping and the report were fully covered: stop, no `whoami`; list
+  what ran with section ids and `created`; name the incomplete diagram; say that the refused call
+  changed nothing; say how to go on, with the bundle advice. The resume step left a choice (M1).
+- **Saying precisely what ran.** `calls` and `created` per part matched every result (56, 560, 188,
+  [88, 108]), so the report could say exactly what ran and how much of the split diagram is missing.
+- **Nothing half-drawn left unreported.** The incomplete section was named with its id.
+- **Clean board after the resume.** Yes (above).
+
+### Findings
+
+| Id | Grade | What | Evidence |
+|---|---|---|---|
+| M1 | Medium | For an incomplete multi-part diagram the resume step gives two readings and leaves a third open. "Run the remaining scripts ... in order" means part 2 alone, which would complete the diagram: the refused call changed nothing and part 2 draws into the section part 1 made. "Drawn whole by running its parts again from part 1" costs one more call. And "emit the diagrams that did not run again as one bundle" does not say whether a partly drawn diagram counts; `bundle` also splits it differently (`[[569], [179, 88], [108]]` with the three diagrams, against `[560, 188]` from `emit`). On a limited plan this changes the cost: part 2 alone plus the bundle of two is 2 calls; the path tested here (parts 1 and 2, then the bundle) is 3. Suggested wording: when the board was not changed since, running the parts that did not run is enough; running from part 1 is the safe choice when unsure; the bundle takes only diagrams none of whose parts ran | calls 6–10; CLI probe of `bundle` with the 150-step run |
+| L1 | Low | Where to keep the resume bundle is not said. The run folders hold per-diagram scripts, and a bundle of the remaining diagrams can span run folders (here two). It was written to `invoicing/diagrams/midway-resume.native.js` | step 6 |
+| L2 | Low | To say what is missing on the board, the agent has to read the script data; the CLI prints how many items each part draws, not what. Naming the diagram incomplete, which section 8 asks, needs no more; a one-line summary per part (for example "steps and lines up to step 87") would make the report concrete | report above |
+| L3 | Low | Part 1 ends with an empty group marker (`["[","...:p1e37"],["]"]`) that creates nothing, and part 2 opens that group again. Harmless: no empty or duplicate group on the board | `midway-large-flow.native.js`, T3 |
+| L4 | Low | The 50-node flowchart fixture does not split (28 346 bytes), nor does any architecture fixture. A test of the multi-part path needs a larger diagram (here 150 steps); a fixture that splits would make this repeatable | step 3 |
+
+No High finding. The repository was not changed apart from this section.
+
+### Processes
+
+- No long-running process was started. `preview` ran four times and left no `chrome` process.
+- `ps` shows only the MCP PDF server that was running before.
