@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { scriptsDir, fixturesDir } from './helpers.mjs';
@@ -63,6 +63,49 @@ describe('what a FigJam board costs in calls, and how each call is checked', () 
     // Options of the other bundle targets are refused, and --native goes with figjam only.
     expect(run('bundle', '--to', 'figjam', '--native', join(dir, 'x.js'), '--out', join(dir, 'x.mmd'), irs[0]).code).toBe(1);
     expect(run('bundle', '--to', 'drawio', '--native', join(dir, 'x.js'), '--out', join(dir, 'x.drawio'), irs[0]).code).toBe(1);
+  });
+
+  it('draws over no section of the same title but one it drew for the same run', async () => {
+    const ir = JSON.parse(readFileSync(fixture('usecase', 'valid'), 'utf8'));
+    // A run, and the recook of its board: a new run whose diagram keeps the title.
+    const irOf = (folder) => {
+      const source = join(dir, 'diagrams', folder, 'source');
+      mkdirSync(source, { recursive: true });
+      writeFileSync(join(source, 'clinic.ir.json'), JSON.stringify(ir));
+      return join(source, 'clinic.ir.json');
+    };
+    const scriptOf = (folder) => {
+      const r = run('emit', '--to', 'figjam', irOf(folder), '--native', join(dir, `${folder}.native.js`));
+      expect(r.code).toBe(0);
+      return readFileSync(r.out.native[0], 'utf8');
+    };
+    const original = scriptOf('20261101_clinic');
+    const recooked = scriptOf('20261118_clinic-recook');
+    const leaves = (n) => (n.children ?? []).flatMap((c) => (c.children ? leaves(c) : [c]));
+    const board = standInFigma();
+    // A section of that title that Zukai did not draw.
+    const theirs = board.figma.createSection();
+    theirs.name = ir.title;
+    const note = board.figma.createRectangle();
+    theirs.appendChild(note);
+    const first = await board.run(original);
+    expect(first).toMatchObject({ name: `${ir.title} (2)`, replaced: 0 });
+    expect(theirs.children).toEqual([note]);
+    const S = board.page.children.find((s) => s.id === first.section);
+    expect(new Set(leaves(S).map((n) => n.name))).toEqual(new Set(['zukai-native 20261101_clinic']));
+    // The recook drawn back onto the board it came from leaves the source's section as it is.
+    const kept = leaves(S);
+    const second = await board.run(recooked);
+    expect(second).toMatchObject({ name: `${ir.title} (3)`, replaced: 0, created: first.created });
+    expect(leaves(S)).toEqual(kept);
+    // Drawn again for the same run, the section of that run is replaced in place.
+    const third = await board.run(original);
+    expect(third).toMatchObject({ section: first.section, name: `${ir.title} (2)`, replaced: first.created, created: first.created });
+    expect(leaves(S)).toHaveLength(first.created);
+    expect(leaves(S).some((n) => kept.includes(n))).toBe(false);
+    expect(board.page.children.map((s) => s.name)).toEqual([ir.title, `${ir.title} (2)`, `${ir.title} (3)`]);
+    expect(theirs.children).toEqual([note]);
+    expect(leaves(board.page.children.find((s) => s.id === second.section))).toHaveLength(second.created);
   });
 
   it('the reader script is one call per part', () => {

@@ -15,19 +15,24 @@ const BUSINESS = '-business';
 const subjectOf = (id) => (id.endsWith(BUSINESS) ? id.slice(0, -BUSINESS.length) : id);
 
 /**
- * The run slug of a run folder, of its `source/` folder, or of a copy of the run inside it
- * (`drafts/<x>`, `history/<rev>`); undefined when no folder on the way up is named like a run.
+ * The name of the run folder (`<yyyymmdd>_<run-slug>`) that holds a folder: the run folder
+ * itself, its `source/` folder, or a copy of the run inside it (`drafts/<x>`, `history/<rev>`);
+ * undefined when no folder on the way up is named like a run.
  */
-export function runSlugOf(dir) {
+export function runFolderOf(dir) {
   let at = dir;
   for (let up = 0; up < 4; up++) {
-    const m = /^\d{8}_(.+)$/.exec(basename(at));
-    if (m) return m[1];
+    if (/^\d{8}_.+$/.test(basename(at))) return basename(at);
     const parent = dirname(at);
     if (parent === at) break;
     at = parent;
   }
   return undefined;
+}
+
+/** The run slug of the run folder that holds a folder (see `runFolderOf`). */
+export function runSlugOf(dir) {
+  return runFolderOf(dir)?.slice('yyyymmdd_'.length);
 }
 
 /**

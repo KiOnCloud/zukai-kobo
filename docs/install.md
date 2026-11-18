@@ -589,6 +589,13 @@ What changes for a run you already have:
   script. The new `bundle --to figjam --native <file.js> <run-folder>` draws the boards of a
   whole run with as few calls as fit, which matters on Figma's Starter plan (about twenty
   MCP calls).
+- A native script (`emit --native`, `bundle --to figjam --native`) draws over a section only
+  when it drew that section for the same run folder: its shapes are named `zukai-native
+  <yyyymmdd>_<run-slug>`. Beside a section of the same title that it did not draw for the
+  run (drawn by hand, by `generate_diagram`, or for another run, such as the board a recook
+  read) it makes a new section, `<title> (2)` or the next number free, so a recook drawn back
+  onto its board never overwrites the source. A board drawn by an earlier version is drawn
+  again into a new section; delete the old one by hand.
 - `bundle --to figjam --native` prints `created` per diagram, as each script returns it: for
   each script a list with one number per diagram in it (`[[88, 108]]`), no longer one sum.
 - A board drawn by `emit --native` from 2.3.0 on names the group of a line after its own

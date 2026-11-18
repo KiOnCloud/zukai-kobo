@@ -25,12 +25,14 @@ export const EMIT_TARGETS = [...TARGETS, DOC_TARGET];
  * `doc`, whose IRs the emit for a target already reported on), secret scan, emitter. Errors stop the pipeline; warnings accumulate across every stage.
  * @param {unknown} ir
  * @param {string} target
- * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, native?: boolean, nativeOnly?: boolean, lang?: string, refs?: Map<string, { pageId: string, title: string }> }} [options]
+ * @param {{ allowSensitive?: boolean, mermaidStable?: boolean, diagramId?: string, native?: boolean, nativeOnly?: boolean, run?: string, lang?: string, refs?: Map<string, { pageId: string, title: string }> }} [options]
  *   `refs` is set by `bundle` so a `ref` resolves to the target's title (and page link in draw.io).
  *   `lang` (doc only) is the language of the headings and column headers.
  *   `native` (figjam only) also makes the scripts that draw the board at the draw.io coordinates;
  *   a kind generate_diagram rejects is then emitted too, without the Mermaid text. With
- *   `nativeOnly` the text is not wanted at all, so its warnings are not returned.
+ *   `nativeOnly` the text is not wanted at all, so its warnings are not returned. `run` is the
+ *   name of the run folder the IR lies in: the native scripts draw over a section only when it
+ *   was drawn for that run.
  * @returns {Promise<{ ok: boolean, output?: string, overlay?: string, native?: string[], nativeData?: object[], nativeCreated?: number[], textSkipped?: string, errors: Array<object>, warnings: Array<object> }>}
  *   `overlay` is set for a FigJam sequence diagram that needs the overlay script; `nativeCreated`
  *   counts what each native script creates and `nativeData` holds its drawing; `native` holds
@@ -86,7 +88,7 @@ export async function emit(ir, target, options = {}) {
       } else result = { warnings: [] };
       if (native) {
         const drawn = await emitDrawio(ir, { diagramId: options.diagramId });
-        const board = figjamNative(drawn.output, { title: ir.title });
+        const board = figjamNative(drawn.output, { title: ir.title, run: options.run });
         result.native = board.parts;
         result.nativeData = board.data;
         result.nativeCreated = board.created;

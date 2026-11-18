@@ -39,7 +39,7 @@ import { relabelDrawio } from './relabel.mjs';
 import { diffIr, diffRun } from './ir-diff.mjs';
 import { visualDiff, isVisualDiff } from './visual-diff.mjs';
 import { driftDrawio, driftMarkdown } from './drift.mjs';
-import { orderIrFiles, runSlugOf } from './run-order.mjs';
+import { orderIrFiles, runFolderOf, runSlugOf } from './run-order.mjs';
 import { snapshotRun, listRevisions, restoreRun } from './revisions.mjs';
 import { extractFacts, extractBoards } from './extract.mjs';
 import { figjamReaderScript } from './extract-figjam.mjs';
@@ -87,7 +87,8 @@ its call must report as created (created) and its size in bytes (bytes). bundle 
 --native writes the native boards of several diagrams into as few scripts as the size of one
 call allows, each diagram into its own section, to save calls on a plan that limits them; its
 created holds, for each script, the number each of its diagrams must report, in the order the
-script returns them.
+script returns them. A native script draws over a section only when it drew that section for
+the same run folder; beside a section of the same title it makes "<title> (2)".
 export writes each page of a draw.io file as a picture that still opens in draw.io; given
 such a picture (.drawio.svg), it draws the diagram the picture holds again.
 diff --drawio writes a picture of the change beside the list: a draw.io file of the new version
@@ -289,7 +290,9 @@ export async function main(argv) {
     if (opts.overlay && opts.to !== 'figjam') return fail(1, { ok: false, errors: [{ path: '/', message: `--overlay goes with --to figjam, not "${opts.to}"` }], usage: USAGE });
     if (opts.native && opts.to !== 'figjam') return fail(1, { ok: false, errors: [{ path: '/', message: `--native goes with --to figjam, not "${opts.to}"` }], usage: USAGE });
     const diagramId = opts.out ? basename(opts.out, extname(opts.out)).replace(/\.ir$/, '') : undefined;
-    const result = await emit(ir, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, diagramId, native: opts.native !== undefined, nativeOnly: opts.native !== undefined && opts.out === undefined, lang: opts.lang });
+    // A native board is tagged with the run folder of the IR, so drawing it again replaces only what was drawn for this run.
+    const run = runFolderOf(dirname(resolve(opts.positional[0])));
+    const result = await emit(ir, opts.to, { allowSensitive: opts.allowSensitive, mermaidStable: opts.mermaidStable, diagramId, native: opts.native !== undefined, nativeOnly: opts.native !== undefined && opts.out === undefined, run, lang: opts.lang });
     if (!result.ok) return fail(2, { ok: false, errors: result.errors, warnings: result.warnings });
     // The native scripts carry the labels too, so they are written only past the same gates:
     // <file>.js, then <file>.2.js and so on when the drawing needs more than one script.
@@ -382,8 +385,8 @@ export async function main(argv) {
       // Each diagram past the same gates as emit --native; then the drawings packed into as few scripts as fit.
       const data = [];
       const warnings = [];
-      for (const e of entries) {
-        const r = await emit(e.ir, 'figjam', { allowSensitive: opts.allowSensitive, diagramId: e.id, native: true, nativeOnly: true });
+      for (const [i, e] of entries.entries()) {
+        const r = await emit(e.ir, 'figjam', { allowSensitive: opts.allowSensitive, diagramId: e.id, native: true, nativeOnly: true, run: runFolderOf(dirname(resolve(files[i]))) });
         if (!r.ok) return fail(2, { ok: false, diagram: e.id, errors: r.errors, warnings: r.warnings });
         warnings.push(...r.warnings.map((w) => ({ diagram: e.id, ...w })));
         data.push(...r.nativeData);

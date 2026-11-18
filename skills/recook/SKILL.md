@@ -64,6 +64,13 @@ Claude Code appends them as `ARGUMENTS: <text>`; in other runtimes read them fro
   Mermaid text, `figjam` for a board. PlantUML is a source only, Zukai does not write it:
   PlantUML text (and a Markdown file that mixes both languages) defaults to `drawio`. The
   report offers the other targets.
+- The section a recook read is never drawn over. `generate_diagram` always makes a section
+  of its own, and the native script of `<draw-dir>/references/target-figjam.md` section 7
+  draws over a section only when it drew that section for the same run, never because the
+  title is the same; a recook is a new run. Drawn natively back onto the board it came from,
+  the recook therefore goes into a new section beside the source, named after the diagram
+  with ` (2)` added (or the next number free). Name that section in the report, and say
+  that the source section was left as it was.
 
 ## 1. Read the source
 

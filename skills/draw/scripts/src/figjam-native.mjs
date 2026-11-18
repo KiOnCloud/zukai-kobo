@@ -36,7 +36,11 @@ const STENCIL_UNIT = stencilData.unit;
 /** `use_figma` takes at most this many characters of code. */
 export const SCRIPT_LIMIT = 50000;
 
-/** Every node the script creates carries this name, so a second run can replace the first. */
+/**
+ * Every node the script creates carries this name, followed by the run folder it was drawn
+ * for (`zukai-native 20261118_clinic-booking`) when the IR lies in one, so a second run of the
+ * same run can replace the first and a script of another run never takes its section.
+ */
 export const NATIVE_TAG = 'zukai-native';
 
 /** Free room between the border of the section and the drawing. */
@@ -992,8 +996,10 @@ function place(item, dx, dy) {
 
 /**
  * @param {string} drawioXml the single-diagram file `emitDrawio` wrote
- * @param {{ title: string, limit?: number }} options the name of the section the board is drawn
- *   into, and the most characters one script may have (what `use_figma` takes, unless given)
+ * @param {{ title: string, run?: string, limit?: number }} options the name of the section the
+ *   board is drawn into, the name of the run folder the IR lies in (the drawing is tagged with
+ *   it, and only a section tagged so is drawn over), and the most characters one script may
+ *   have (what `use_figma` takes, unless given)
  * @returns {{ parts: string[], data: object[], created: number[], offset: { x: number, y: number }, width: number, height: number }}
  *   `parts` are the scripts for `use_figma`, to be run in order (one unless the drawing is
  *   larger than `use_figma` takes at once), `data` the drawing each of them carries (for
@@ -1001,7 +1007,7 @@ function place(item, dx, dy) {
  *   which is the `created` its call returns; a point (x, y) of the draw.io file lies at
  *   (x + offset.x, y + offset.y) of the section, which is `width` by `height`.
  */
-export function figjamNative(drawioXml, { title, limit = SCRIPT_LIMIT }) {
+export function figjamNative(drawioXml, { title, run, limit = SCRIPT_LIMIT }) {
   const drawn = drawCells(parseCells(drawioXml));
   const b = boundsOf(drawn);
   // Whole pixels, so that a coordinate of the board differs from the one in the file by a round number.
@@ -1013,7 +1019,7 @@ export function figjamNative(drawioXml, { title, limit = SCRIPT_LIMIT }) {
   /** The stencil paths a list of drawings refers to, by key. */
   const stencilPath = (key) => { const [name, index] = key.split('#'); return stencilTable()[name].paint[index][1]; };
   const stencilsOf = (chunk) => Object.fromEntries([...new Set(chunk.filter((item) => item[0] === 'g').map((item) => item[1]))].map((key) => [key, stencilPath(key)]));
-  const dataOf = (chunk, part, parts) => ({ title, part, parts, width, height, offset: [offset.x, offset.y], stencils: stencilsOf(chunk), items: chunk });
+  const dataOf = (chunk, part, parts) => ({ title, run, part, parts, width, height, offset: [offset.x, offset.y], stencils: stencilsOf(chunk), items: chunk });
   const script = (chunk, part, parts) => scriptOf(dataOf(chunk, part, parts));
   // Every part carries the whole runtime and the stencil paths its own drawings use, so each
   // one runs on its own; the room left is for the drawings.
@@ -1094,12 +1100,16 @@ const RUNTIME = String.raw`const TAG = '${NATIVE_TAG}';
 const page = figma.currentPage;
 // One drawing, or a list of drawings drawn one after the other, each into its own section.
 const draw = async (D) => {
-// What this script drew carries the tag as its name, also inside a group; a group is named like its cell.
+// What this script drew carries the tag and its run as its name, also inside a group; a group is named like its cell.
+const tag = D.run ? TAG + ' ' + D.run : TAG;
 const ours = (n, found = []) => {
-  for (const c of n.children || []) { if (c.name === TAG) found.push(c); else ours(c, found); }
+  for (const c of n.children || []) { if (c.name === tag) found.push(c); else ours(c, found); }
   return found;
 };
-const isOurs = (n) => n.type === 'SECTION' && n.name === D.title && (n.children.length === 0 || ours(n).length > 0);
+// A section is taken only when this run drew into it, never for its title alone: a section of
+// that title drawn by hand, by generate_diagram or for another run (the source of a recook) stays.
+const named = (n) => n.name === D.title || (n.name.startsWith(D.title + ' (') && /^ \(\d+\)$/.test(n.name.slice(D.title.length)));
+const isOurs = (n) => n.type === 'SECTION' && named(n) && ours(n).length > 0;
 let S = page.children.filter(isOurs).pop();
 let replaced = 0;
 if (D.part === 1) {
@@ -1111,14 +1121,17 @@ if (D.part === 1) {
   } else {
     const others = page.children;
     S = figma.createSection();
-    S.name = D.title;
+    // Beside a section that has the title already, the new one is "<title> (2)", or the next number free.
+    let name = D.title;
+    for (let i = 2; others.some((n) => n !== S && n.type === 'SECTION' && n.name === name); i++) name = D.title + ' (' + i + ')';
+    S.name = name;
     S.x = others.length === 0 ? 0 : Math.max(...others.map((n) => n.x + n.width)) + 200;
     S.y = others.length === 0 ? 0 : Math.min(...others.map((n) => n.y));
   }
   S.resizeWithoutConstraints(D.width, D.height);
   S.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
 } else if (!S || S.children.length === 0) {
-  throw new Error('zukai native: no section named "' + D.title + '" drawn by part 1 on this board; run part 1 first. Nothing was changed.');
+  throw new Error('zukai native: no section named "' + D.title + '" drawn by part 1 of this run on this board; run part 1 first. Nothing was changed.');
 }
 
 // Arimo has the widths of Helvetica and Arial, the faces draw.io sizes its boxes for.
@@ -1138,7 +1151,7 @@ let created = 0;
 // container lies in the group of the container. A group keeps the coordinates of the section.
 const open = [];
 const collect = (n) => { if (open.length > 0) open[open.length - 1].nodes.push(n); return n; };
-const add = (n) => { S.appendChild(n); n.name = TAG; created++; return collect(n); };
+const add = (n) => { S.appendChild(n); n.name = tag; created++; return collect(n); };
 const openGroup = (name, goesOn) => {
   let node = null;
   if (goesOn) {

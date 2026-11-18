@@ -230,11 +230,21 @@ leave the machine, and the secret scan gates this emit like the other.
    an edge with its line, its line ends and its labels. A cell that lies in a container of
    the draw.io file (a frame, a lane, a composite state, an AWS or GCP group, a lifeline, a class or
    entity box) lies in the group of the container, so moving the container moves what is in
-   it. Each shape, line and text the script creates is named `zukai-native`. Running part 1
-   again removes those from that section, wherever they lie, and draws anew where the
+   it. Each shape, line and text the script creates is named `zukai-native` followed by the
+   name of the run folder the IR lies in (`zukai-native 20261118_clinic-booking`; just
+   `zukai-native` for an IR outside a run folder). That name, not the title, tells the
+   script which section is its own: it draws over a section only when the section holds
+   shapes it drew for the same run. Running part 1 again (after a revision of the run, say)
+   removes those shapes from that section, wherever they lie, and draws anew where the
    section now stands; what the user added to the section or to a group stays. A section of
-   the same name that `generate_diagram` made is not touched. The result of a call counts the
-   shapes, lines and texts it created and replaced, not the groups.
+   the same title that the script did not draw for this run (drawn by hand, made by
+   `generate_diagram`, or drawn for another run, such as the board a recook was read from)
+   is never touched: the script makes a new section beside it, named after the diagram with
+   ` (2)` added (`Clinic booking use cases (2)`), or ` (3)` and so on when that name is taken
+   too. The result of a call names the section (`section`, `name`) and counts the shapes,
+   lines and texts it created and replaced, not the groups; report the section by that name.
+   A board drawn by a version before 2.3.0 carries no run in those names, so drawing it
+   again makes a new section; delete the old one by hand when it is no longer wanted.
 5. Look at the result (`get_screenshot` of the section id the script returns) before
    reporting the board. On a plan that limits calls, one screenshot of the page can show
    several sections at once.

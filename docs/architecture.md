@@ -103,7 +103,10 @@ brainstorm (idea) ─> clarify ┘                                              
   `combineNative` packs the drawings of several diagrams into as few scripts as one call
   takes (`bundle --to figjam --native`); each drawing still goes into its own section, and
   `created` then lists, for each script, the count of each drawing in the order the script
-  returns its results. The
+  returns its results. Every shape a script draws is named `zukai-native` and the run folder
+  of its IR, and a script draws over a section only when it holds such shapes of the same
+  run, so a section of the same title drawn otherwise (the source of a recook) is left as it
+  is and the new drawing goes into `<title> (2)`. The
   group of a cell is named so that a board read back keeps what the picture cannot tell: an
   edge by its own label (never by a text at one of its ends), a stencil picture by its
   stencil, a client screen by `[client]`, a picture that is part of its frame (the Google
