@@ -39,7 +39,10 @@ export function openInDrawio({ run, name, embed, notice, wait = WAIT_MS, win = w
   replace(notice);
   const file = api.blob(path`/api/runs/${run}/files/${name}`).then((r) => (r.ok ? r.data.text() : Promise.reject(r.error)));
   let started = false;
-  let stop = () => {};
+  let bridge = () => {};
+  let watch = null;
+  // Listening ends when the popup is closed, so a listener does not stay behind per click.
+  const stop = () => { bridge(); clearInterval(watch); };
   const timer = setTimeout(() => {
     if (started) return;
     stop();
@@ -51,7 +54,7 @@ export function openInDrawio({ run, name, embed, notice, wait = WAIT_MS, win = w
     popup.close();
     replace(notice, S().Alert({ tone: 'danger', body: `${title} could not be read: ${error?.message ?? 'the server did not send it'}.` }));
   });
-  stop = embedBridge(popup, {
+  bridge = embedBridge(popup, {
     host: embed,
     xml: file,
     title,
@@ -62,6 +65,7 @@ export function openInDrawio({ run, name, embed, notice, wait = WAIT_MS, win = w
       replace(notice, S().Alert({ tone: 'info', title: `${title} was downloaded`, body: `To change the run with it, put it in place of diagrams/${run}/${name}; the next revise reads the difference as a hand edit.` }));
     },
   });
+  watch = setInterval(() => { if (popup.closed) { clearTimeout(timer); stop(); } }, 2000);
   return stop;
 }
 

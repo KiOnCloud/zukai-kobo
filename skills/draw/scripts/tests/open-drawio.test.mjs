@@ -165,9 +165,12 @@ describe('the route', () => {
 
   it('takes draw.io desktop when found, the web otherwise, and the web alone with --web', () => {
     expect(chooseRoute({ env: { DISPLAY: ':0' }, platform: 'linux', find: desktopAt('/opt/drawio/drawio') })).toEqual({ ok: true, via: 'desktop', bin: '/opt/drawio/drawio' });
-    expect(chooseRoute({ env: {}, platform: 'darwin', find: noDesktop })).toMatchObject({ ok: true, via: 'web', opener: { cmd: 'open' } });
-    expect(chooseRoute({ env: {}, platform: 'win32', find: noDesktop })).toMatchObject({ ok: true, via: 'web', opener: { cmd: 'cmd' } });
-    expect(browserOpener('win32', {}).args('C:\\t\\a b.html')).toEqual(['/c', 'start', '', 'C:\\t\\a b.html']);
+    expect(chooseRoute({ env: {}, platform: 'darwin', find: noDesktop })).toMatchObject({ ok: true, via: 'web', opener: { cmd: '/usr/bin/open' } });
+    // explorer.exe by its full path: no cmd to read & ^ % in the path, no lookup in the working directory.
+    const win = browserOpener('win32', { SystemRoot: 'D:\\Win' });
+    expect(win.cmd).toBe('D:\\Win\\explorer.exe');
+    expect(win.args('C:\\Users\\a&b^%x%\\p.html')).toEqual(['C:\\Users\\a&b^%x%\\p.html']);
+    expect(browserOpener('win32', {}).cmd).toBe('C:\\Windows\\explorer.exe');
     expect(chooseRoute({ web: true, env: {}, platform: 'darwin', find: () => { throw new Error('not looked for'); } })).toMatchObject({ ok: true, via: 'web' });
     expect(chooseRoute({ desktop: true, env: {}, platform: 'darwin', find: noDesktop })).toMatchObject({ ok: false, code: 'not-found' });
   });
@@ -217,6 +220,13 @@ describe('the opener page on disk', () => {
     const elsewhere = mkdtempSync(join(tmpdir(), 'zukai-open-elsewhere-'));
     symlinkSync(elsewhere, join(linked, 'zukai-open'));
     expect(pagesFolder(linked)).toMatchObject({ ok: false, code: 'bad-request' });
+    // A dangling link or a file in its place is refused too, as JSON, not thrown.
+    const dangling = mkdtempSync(join(tmpdir(), 'zukai-open-base-'));
+    symlinkSync(join(dangling, 'nowhere'), join(dangling, 'zukai-open'));
+    expect(pagesFolder(dangling)).toMatchObject({ ok: false, code: 'bad-request' });
+    const file = mkdtempSync(join(tmpdir(), 'zukai-open-base-'));
+    writeFileSync(join(file, 'zukai-open'), 'x');
+    expect(pagesFolder(file)).toMatchObject({ ok: false, code: 'bad-request' });
   });
 
   it('removes nothing but old .html files', () => {

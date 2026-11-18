@@ -135,13 +135,15 @@ Only the folders of the targets actually emitted exist; `source/` always does.
      is "Open it in draw.io desktop" when `via` is `desktop`, and "Open it on the web
      (diagrams.net receives the diagram)" when `via` is `web`; the second is "Not now".
      Name the file `open --check` printed as `file` when it is not the combined one.
-   - On yes, run `node "<skill-dir>/scripts/bin/cli.mjs" open <run-folder>` and pass its
-     result on in one line: draw.io desktop opened the run's own file, so a save there is a
+   - On yes, run `node "<skill-dir>/scripts/bin/cli.mjs" open --desktop <run-folder>` when
+     the question offered draw.io desktop and `open --web <run-folder>` when it offered the
+     web, so the route is the one the user agreed to, and pass its result on in one line: draw.io desktop opened the run's own file, so a save there is a
      hand edit the next revise reads; or the browser opened draw.io on the web, where Save
      downloads the file and nothing changes in the run until it is put in place of the
-     run's file. On exit 1, quote its message and hint.
+     run's file. On exit 1, quote its message and hint; a refused `--desktop` is not retried
+     on the web without asking again.
    - On "Not now", or no answer, do nothing. `open` is never run without the user's yes,
-     and the question is never asked twice for one run.
+     and the question is asked once per delivery.
    - A FigJam run ends with its board link, which the report already gives; a Mermaid run
      ends without the question. Neither runs `open --check`.
    - Inside a job of the labs console the question is a card of the console, asked before

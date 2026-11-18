@@ -102,7 +102,7 @@ const download = (xml) => {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 };
-const onSave = (xml) => { download(xml); status.textContent = 'Saved: ' + data.title + ' was downloaded. Put it in place of the run\\'s file to keep the change.'; };
+const onSave = (xml) => { download(xml); status.textContent = 'Saved: ' + data.title + ' was downloaded. The run is unchanged until it is put in place of the run\\'s ' + data.title + '.'; };
 let started = false;
 const onInit = () => { started = true; bar.hidden = true; frame.hidden = false; };
 const onLoad = () => { status.textContent = ''; };
@@ -112,9 +112,13 @@ setTimeout(() => {
   bar.hidden = false;
   frame.hidden = true;
 }, data.wait);
+let popup = null;
 document.getElementById('popup').addEventListener('click', () => {
+  // One window, bridged once: a second click brings it forward instead of loading it again.
+  if (popup && !popup.closed) { popup.focus(); return; }
   const win = window.open(data.url, 'zukai-drawio');
   if (!win) { status.textContent = 'The browser blocked the window. Allow pop-ups for this page, or download the file and open it in draw.io.'; return; }
+  popup = win;
   frame.remove();
   status.textContent = 'draw.io opens in another window.';
   embedBridge(win, { host: data.host, xml: data.xml, title: data.title, onLoad, onSave });

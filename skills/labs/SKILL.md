@@ -225,7 +225,8 @@ Picture of a diagram), and the closing question of the closing contract (step 8)
 here, while the job is still open: run `node "<draw-dir>/scripts/bin/cli.mjs" open --check <run-folder>`; when `can` is true, ask
 it as a card with the id `open-drawio`, the body "Open <run-slug>.drawio in draw.io?" (with
 "diagrams.net receives the diagram" when `via` is `web`) and one question whose options are
-"Open it" and "Not now". On "Open it", run `node "<draw-dir>/scripts/bin/cli.mjs" open <run-folder>` and add its result to the
+"Open it" and "Not now". On "Open it", run `node "<draw-dir>/scripts/bin/cli.mjs" open --desktop <run-folder>` when
+`via` was `desktop` and `open --web <run-folder>` when it was `web`, and add its result to the
 report in one line; on "Not now", or `can` false, open nothing. Then run
 `labs done <job> --session <id> --result done --report @<folder>/report.md`. When the job
 cannot be finished (the skill stopped, the user chose to stop, the request left the route

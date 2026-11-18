@@ -782,6 +782,9 @@ What changes for a project you already have:
   diagram to `embed.diagrams.net` by `postMessage`, so diagrams.net receives it and no
   address carries it. Save on the web downloads the file; changing the run with it stays
   your step.
+- On Linux, a browser installed as a snap or a flatpak (Ubuntu's Firefox and Chromium) has a
+  `/tmp` of its own and shows "file not found" for the page; draw.io desktop, or a default
+  browser that is not confined, opens it.
 - Forks and wrappers: the closing contract gained step 8, `skills/draw/SKILL.md` the
   `open` line, and the labs skill the closing card before `labs done`. Tests point
   `ZUKAI_DRAWIO_EMBED` at a stand-in of the embed page and `ZUKAI_OPENER` at a stand-in of

@@ -9,15 +9,15 @@
  *   2. Linux without DISPLAY or WAYLAND_DISPLAY is refused: no window could be shown (draw.io
  *      desktop would run under xvfb-run, invisibly, and a browser could not show either);
  *   3. draw.io desktop, when found (unless --web);
- *   4. the opener page in the default browser (`open`, `xdg-open`, `cmd /c start`, or the
- *      executable ZUKAI_OPENER names, which tests use).
+ *   4. the opener page in the default browser (`open`, `xdg-open`, Windows' `explorer.exe`, or
+ *      the executable ZUKAI_OPENER names, which tests use).
  */
 import { spawn } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { accessSync, constants, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, delimiter, extname, isAbsolute, join, resolve } from 'node:path';
-import { findDrawioBinary, drawioDesktopFlags, drawioMissing } from './preview.mjs';
+import { findDrawioBinary, drawioMissing } from './preview.mjs';
 import { drawioPages } from './export-svg.mjs';
 import { drawioXmlOf } from './extract-drawio.mjs';
 import { embedHostOf, openerPage } from './drawio-embed.mjs';
@@ -113,9 +113,11 @@ export function browserOpener(platform = process.platform, env = process.env) {
     const cmd = findExecutable(env.ZUKAI_OPENER, env);
     return cmd ? { cmd, args: (page) => [page] } : null;
   }
-  if (platform === 'darwin') return { cmd: 'open', args: (page) => [page] };
-  // `start` is a command of cmd; its first quoted argument is a window title, hence the "".
-  if (platform === 'win32') return { cmd: 'cmd', args: (page) => ['/c', 'start', '', page] };
+  if (platform === 'darwin') return { cmd: '/usr/bin/open', args: (page) => [page] };
+  // explorer.exe by its full path opens a file with its default program and parses no shell
+  // syntax: `cmd /c start` would read & ^ % in a user name of the temp path, and a bare name
+  // is looked up in the working directory before PATH.
+  if (platform === 'win32') return { cmd: `${env.SystemRoot ?? 'C:\\Windows'}\\explorer.exe`, args: (page) => [page] };
   const cmd = findExecutable('xdg-open', env);
   return cmd ? { cmd, args: (page) => [page] } : null;
 }
@@ -140,7 +142,7 @@ export function chooseRoute({ web = false, desktop = false, platform = process.p
     if (desktop) return refuse('not-found', drawioMissing(found), 'install draw.io desktop, or leave out --desktop to open draw.io on the web');
   }
   const opener = browserOpener(platform, env);
-  if (!opener) return refuse('no-browser', 'no program to open a browser was found (xdg-open is not on PATH)', "open the run's .drawio file in draw.io by hand");
+  if (!opener) return refuse('no-browser', env.ZUKAI_OPENER ? `the opener ZUKAI_OPENER names was not found: ${env.ZUKAI_OPENER}` : 'no program to open a browser was found (xdg-open is not on PATH)', "open the run's .drawio file in draw.io by hand");
   return { ok: true, via: 'web', opener };
 }
 
@@ -150,12 +152,17 @@ export function chooseRoute({ web = false, desktop = false, platform = process.p
  */
 export function pagesFolder(base = tmpdir()) {
   const dir = join(base, 'zukai-open');
-  mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const st = lstatSync(dir);
-  const mine = typeof process.getuid !== 'function' || st.uid === process.getuid();
-  if (!st.isDirectory() || st.isSymbolicLink() || !mine) {
-    return refuse('bad-request', `${dir} is not a private folder of this user`, `remove ${dir} and run open again`);
+  const notPrivate = refuse('bad-request', `${dir} is not a private folder of this user`, `remove ${dir} and run open again`);
+  let st;
+  try {
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    st = lstatSync(dir);
+  } catch (e) {
+    // A file or a dangling link in its place, or no right to create it.
+    return e.code === 'EEXIST' || e.code === 'ENOENT' ? notPrivate : refuse('bad-request', `${dir} cannot be created: ${e.code ?? e.message}`);
   }
+  const mine = typeof process.getuid !== 'function' || st.uid === process.getuid();
+  if (!st.isDirectory() || st.isSymbolicLink() || !mine) return notPrivate;
   if (process.platform !== 'win32' && (st.mode & 0o077) !== 0) chmodSync(dir, 0o700);
   return { ok: true, dir };
 }
@@ -186,7 +193,11 @@ export function writeOpenerPage(resolved, { env = process.env, base } = {}) {
   removeOldPages(folder.dir);
   const stem = resolved.title.replace(/\.drawio$/i, '').replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 60) || 'diagram';
   const page = join(folder.dir, `${stem}-${randomBytes(6).toString('hex')}.html`);
-  writeFileSync(page, openerPage({ host: embedHostOf(env), xml: resolved.xml, title: resolved.title, sha256 }), { mode: 0o600, flag: 'wx' });
+  try {
+    writeFileSync(page, openerPage({ host: embedHostOf(env), xml: resolved.xml, title: resolved.title, sha256 }), { mode: 0o600, flag: 'wx' });
+  } catch (e) {
+    return refuse('bad-request', `the opener page could not be written into ${folder.dir}: ${e.code ?? e.message}`);
+  }
   return { ok: true, page };
 }
 
@@ -224,14 +235,20 @@ export function checkOpen(target, options = {}) {
  * `open`: open the target in draw.io desktop or on the web.
  * @returns {Promise<{ ok: true, opened: 'desktop' | 'web', file: string, page?: string } | { ok: false, code: string, message: string, hint?: string }>}
  */
-export async function openDrawio(target, { web = false, desktop = false, platform = process.platform, env = process.env, find = findDrawioBinary, base } = {}) {
+export async function openDrawio(target, { web = false, desktop = false, platform = process.platform, env = process.env, find = findDrawioBinary, base = tmpdir() } = {}) {
+  // Every open, by either route, removes the pages that are older than a day.
+  if (existsSync(join(base, 'zukai-open'))) {
+    const folder = pagesFolder(base);
+    if (folder.ok) removeOldPages(folder.dir);
+  }
   const resolved = resolveDrawio(target);
   if (!resolved.ok) return resolved;
   const route = chooseRoute({ web, desktop, platform, env, find });
   if (!route.ok) return route;
   if (route.via === 'desktop') {
-    // No xvfb-run: a display is there, and the window must be one the user sees.
-    const started = await launch(route.bin, [resolved.file, ...drawioDesktopFlags(platform)]);
+    // No xvfb-run and none of the flags of a headless export (--no-sandbox above all): a
+    // display is there, and this is the window the user edits in.
+    const started = await launch(route.bin, [resolved.file]);
     if (started.ok) return { ok: true, opened: 'desktop', file: resolved.file };
     return refuse('not-found', `draw.io desktop did not start: ${started.error.code ?? started.error.message}`, '--web opens draw.io on the web instead');
   }

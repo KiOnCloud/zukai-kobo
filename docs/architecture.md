@@ -820,8 +820,11 @@ file in draw.io. What the user sees is in `README.md`; this section is why it wo
   uses for exports, in a window nobody sees. Then draw.io desktop, found by
   `findDrawioBinary` and started detached with the run's own file, so a save there lands in
   the run and the next revise reads it as a hand edit (`drift`). Last, the web: an opener
-  page in the default browser, started with an argument list (`open`, `xdg-open`,
-  `cmd /c start ""`), never a shell string.
+  page in the default browser, started with an argument list (`/usr/bin/open`, `xdg-open`,
+  `%SystemRoot%\explorer.exe`), never a shell string. `cmd /c start` was the first choice and
+  was dropped: cmd reads `&`, `^` and `%` in a temp path that holds such a user name, and a
+  bare `cmd` is looked up in the working directory before PATH. draw.io desktop is started
+  without the `--no-sandbox` of a headless export, since this is the window the user edits in.
 - **The diagram never travels in an address.** A `#R` fragment would carry it, but a run of
   five diagrams already passes the 8,191 characters of a Windows command line once it is
   handed to `cmd /c start`, and the whole diagram would sit in the browser's history.
@@ -839,7 +842,10 @@ file in draw.io. What the user sees is in `README.md`; this section is why it wo
   the gesture) and a download of the file. The page holds the diagram in a JSON block of
   its own (`<` written as `\u003c`), allows its one script by hash, frames of the embed host
   only and no connection, and lives under `zukai-open/` in the temp folder (0700, the page
-  0600, checked to be the user's own folder and no link) for 24 hours.
+  0600, checked to be the user's own folder and no link) until an `open` a day later
+  removes it. A browser confined by snap or flatpak (Firefox and Chromium as Ubuntu ships
+  them) has a `/tmp` of its own and cannot read the page; `open` cannot see that and reports
+  `opened: web`. `--desktop`, or a browser that is not confined, is the way there.
 - **The console opens a popup from the click** and fetches the file meanwhile; the bridge
   waits for it before it answers `init`. Its own page and `CONSOLE_CSP` are unchanged: a
   popup is a navigation of a new window, which the policy does not govern, and the popup,

@@ -110,7 +110,9 @@ opens draw.io on the web in your browser with every page of the file as a tab. O
 the diagram is handed to draw.io's page (`embed.diagrams.net`) by `postMessage`, never put
 in an address, so diagrams.net receives it but your browser history does not; Save
 downloads the file, and the run changes only when you put that file in place of the run's
-own. The question is left out where nothing could be opened (a cloud session, a machine
+own. On Ubuntu, Firefox and Chromium as snaps cannot read the page `open` writes under
+`/tmp`; install draw.io desktop there, or set a browser that is not a snap as the default.
+The question is left out where nothing could be opened (a cloud session, a machine
 without a display), for a Mermaid run, and for a FigJam run, which gives its board link
 instead.
 

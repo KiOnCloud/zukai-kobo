@@ -161,7 +161,8 @@ when the project has no glossary or it does not match its schema.
 open shows a run's draw.io file in draw.io: a run folder stands for its combined
 <run-slug>.drawio (else its only drawio/*.drawio), and a .drawio.svg for the diagram it holds.
 It starts draw.io desktop when it is found and a display is there; otherwise it writes a page
-into zukai-open/ under the temp folder (private to the user, removed after 24 hours) and opens
+into zukai-open/ under the temp folder (private to the user; the next open removes pages
+older than 24 hours) and opens
 it in the default browser, where draw.io on the web (embed.diagrams.net) receives the diagram
 by postMessage, never in an address. --web skips draw.io desktop; --desktop refuses without it.
 It prints {"ok": true, "opened": "desktop"|"web", "file", "page"?}. Refused, with exit 1:

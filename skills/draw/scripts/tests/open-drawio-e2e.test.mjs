@@ -95,7 +95,8 @@ describe('open through the bundle', () => {
     const r = cli(['open', run()], env);
     expect(r).toMatchObject({ code: 0, out: { ok: true, opened: 'desktop', file: runFile() } });
     await until(() => existsSync(join(bin, 'drawio.args.json')));
-    expect(JSON.parse(readFileSync(join(bin, 'drawio.args.json'), 'utf8'))[0]).toBe(runFile());
+    // The window the user edits in: the file alone, none of the headless flags (--no-sandbox).
+    expect(JSON.parse(readFileSync(join(bin, 'drawio.args.json'), 'utf8'))).toEqual([runFile()]);
   });
 
   it.skipIf(!posix)('writes a private opener page and hands the opener its path alone', async () => {
@@ -173,8 +174,18 @@ describe.skipIf(pw === null || !posix)('the opener page in a browser', () => {
     const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByRole('button', { name: 'Open in draw.io' }).click()]);
     await expect.poll(() => popup.locator('.tab').count(), { timeout: 20_000 }).toBe(pages);
     expect(popup.url()).toBe(`${silentInFrame.host}/?embed=1&proto=json&spin=1&noExitBtn=1&saveAndExit=0`);
+    // A second click brings the same window forward; it is not bridged twice.
+    let popups = 1;
+    context.on('page', () => { popups += 1; });
+    await page.getByRole('button', { name: 'Open in draw.io' }).click();
+    await page.waitForTimeout(300);
+    expect(popups).toBe(1);
+    let saves = 0;
+    page.on('download', () => { saves += 1; });
     const [download] = await Promise.all([page.waitForEvent('download'), popup.locator('#save').click()]);
     expect(download.suggestedFilename()).toBe('every-fixture.drawio');
+    await page.waitForTimeout(300);
+    expect(saves).toBe(1);
     const [fallback] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download every-fixture.drawio' }).click()]);
     expect(readFileSync(await fallback.path(), 'utf8')).toBe(xml);
     await context.close();
