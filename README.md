@@ -271,10 +271,20 @@ reads the file are in
 /zukai:labs [status|stop]
 ```
 
-`labs` serves a page on `127.0.0.1` for the project the session runs in. It lists the runs
-under `diagrams/` and shows each one (its picture, its model, its description tables, its
-history with what changed since each revision, and its files), and it holds the Glossary,
-where entries are added, edited, confirmed or rejected and a run is checked. The agent gives
+`labs` serves a page on `127.0.0.1` for the project the session runs in. Its **Overview**
+says what needs you (the agent's question, a failed job, runs behind their code, glossary
+suggestions) and offers the ways to start a diagram. **Diagrams** lists the runs under
+`diagrams/` as cards or a table and shows each one: the source files that changed since it
+was drawn, its diagrams, and their picture, model, description tables, history with what
+changed since each revision, files and glossary check. A new diagram is a form of choices
+shown as what they are (the input, the kind with a drawing of it, the level of detail, the
+view, the outputs); whatever you leave as "Ask me later" the agent asks while the job runs,
+and a summary beside the form says which. **Jobs** lists every job, and a job's page holds its
+request, its question, the questions already answered, every step, its report and, for a
+failed job, why and the undo. **Glossary** holds the entries, a review of the suggestions
+one by one, and the check of a run. An agent panel beside the page shows the agent, its open
+job, the queue and the jobs closed last; it can be closed, and a question of the agent is
+then announced in the page. The agent gives
 the address in the chat, in the form `http://127.0.0.1:<port>/#t=<token>`. The token is the
 console's key for that one server: do not paste the address anywhere else. The port is the
 same for the project every time.

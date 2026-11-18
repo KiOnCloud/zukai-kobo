@@ -15,10 +15,10 @@ function setAt(ir, pointer, value) {
   at[parts.at(-1)] = value;
 }
 
-const placeOf = (l) => (l.collection ? `${l.collection} · ${l.id} · ${l.field}` : 'title');
+const placeOf = (l) => (l.collection ? `${l.id} · ${l.field}` : 'Title of the diagram');
 
-export function modelEditor({ panel, run, detail, queue }) {
-  let diagram = detail.diagrams[0]?.id;
+export function modelEditor({ panel, run, detail, queue, diagram: chosen }) {
+  let diagram = chosen ?? detail.diagrams[0]?.id;
   let loaded = null; // { ir, rev, labels }
   let ir = null;
   let mode = 'labels';
@@ -34,10 +34,19 @@ export function modelEditor({ panel, run, detail, queue }) {
   const canSave = () => changed() && !jsonError && validated === text() && errors.length === 0;
 
   function labelsForm() {
-    return h('div', { class: 'zl-labels' }, loaded.labels.map((l) => {
-      const error = errors.find((e) => e.path === l.path);
-      return S().Input({ label: placeOf(l), helper: l.path, error: error ? `${error.message}${error.hint ? `: ${error.hint}` : ''}` : undefined, value: readAt(l.path), onInput: (e) => { setAt(ir, l.path, e.target.value); validated = null; updateActions(); } });
-    }));
+    // One group per collection, in the order of `labelsOf`, so the fields keep that order.
+    const groups = [];
+    for (const l of loaded.labels) {
+      const key = l.collection ?? 'diagram';
+      if (groups.at(-1)?.key !== key) groups.push({ key, labels: [] });
+      groups.at(-1).labels.push(l);
+    }
+    return h('div', { class: 'zl-labels' }, groups.map((g) => h('section', { class: 'zl-label-group' },
+      h('h3', { class: 'eyebrow' }, `${g.key} · ${g.labels.length}`),
+      g.labels.map((l) => {
+        const error = errors.find((e) => e.path === l.path);
+        return S().Input({ label: placeOf(l), helper: l.path, error: error ? `${error.message}${error.hint ? `: ${error.hint}` : ''}` : undefined, value: readAt(l.path), onInput: (e) => { setAt(ir, l.path, e.target.value); validated = null; updateActions(); } });
+      }))));
   }
   const readAt = (pointer) => pointer.split('/').slice(1).reduce((at, p) => at?.[p.replace(/~1/g, '/').replace(/~0/g, '~')], ir) ?? '';
 
@@ -76,7 +85,7 @@ export function modelEditor({ panel, run, detail, queue }) {
     else if (validated === text() && validated !== null) parts.push(S().Alert({ tone: 'success', body: changed() ? 'The IR is valid. Save the changes to queue them.' : 'The IR is valid and unchanged.' }));
     if (findings.length) parts.push(h('div', { class: 'zl-findings' }, h('h3', { class: 'heading-sm' }, 'Glossary'), findings.map((f) => h('p', { class: 'body-sm' }, `${f.level === 'blocking' ? 'Blocking' : 'Warning'}: "${f.text}" at ${f.path} uses the avoided word "${f.avoided}"${f.expected ? `; the confirmed term is "${f.expected}"` : ''}.`))));
     const tabs = S().Tabs({ variant: 'segment', panel: false, label: 'Edit the model as', value: mode, items: [{ value: 'labels', label: 'Labels' }, { value: 'json', label: 'JSON' }], onChange: (v) => { mode = v; draw(); } });
-    replace(body, tabs, mode === 'labels' ? labelsForm() : jsonForm(), ...parts, status, h('div', { class: 'zl-actions' }, validateButton, saveButton));
+    replace(body, h('div', { class: 'zl-picture-bar' }, tabs, h('p', { class: 'caption zl-muted' }, 'Validate, then save: the edit becomes a job the agent applies with the revise skill.')), mode === 'labels' ? labelsForm() : jsonForm(), ...parts, status, h('div', { class: 'zl-actions zl-actions-sticky' }, validateButton, saveButton));
     updateActions();
   }
 
@@ -93,7 +102,7 @@ export function modelEditor({ panel, run, detail, queue }) {
     draw();
   }
 
-  const pages = detail.diagrams.length > 1 ? S().Select({ label: 'Diagram', value: diagram, options: detail.diagrams.map((d) => ({ value: d.id, label: d.title ?? d.id })), onChange: (e) => { diagram = e.target.value; load(); } }) : null;
+  const pages = !chosen && detail.diagrams.length > 1 ? S().Select({ label: 'Diagram', value: diagram, options: detail.diagrams.map((d) => ({ value: d.id, label: d.title ?? d.id })), onChange: (e) => { diagram = e.target.value; load(); } }) : null;
   replace(panel, pages, body);
   load();
 }
