@@ -82,7 +82,7 @@ describe('the embed bridge', () => {
     expect(scripts[0].textContent).toContain('const embedBridge = (function embedBridge');
   });
 
-  it('answers init with the diagram, reports load, hands a save on and clears the mark, from that window and origin only', () => {
+  it('answers init with the diagram, reports load, hands a save on and clears the mark, from that window and origin only', async () => {
     const dom = new JSDOM('<!doctype html><body></body>', { url: 'http://127.0.0.1:4999/' });
     const w = dom.window;
     const sent = [];
@@ -97,6 +97,7 @@ describe('the embed bridge', () => {
     deliver('not json');
     expect(sent).toEqual([]);
     deliver(JSON.stringify({ event: 'init' }));
+    await Promise.resolve();
     expect(sent).toEqual([{ data: { action: 'load', xml: '<mxfile/>', title: 'a.drawio', autosave: 0 }, origin: EMBED_HOST }]);
     deliver(JSON.stringify({ event: 'load' }));
     deliver(JSON.stringify({ event: 'save', xml: '<mxfile id="x"/>' }), { origin: 'https://evil.example' });
@@ -106,6 +107,21 @@ describe('the embed bridge', () => {
     stop();
     deliver(JSON.stringify({ event: 'save', xml: '<mxfile id="3"/>' }));
     expect(seen).toHaveLength(3);
+  });
+
+  it('waits for a diagram that is still on its way before it answers init', async () => {
+    const dom = new JSDOM('<!doctype html><body></body>', { url: 'http://127.0.0.1:4999/' });
+    const w = dom.window;
+    const sent = [];
+    const embed = { postMessage: (data) => sent.push(JSON.parse(data)) };
+    let arrive;
+    embedBridge(embed, { host: EMBED_HOST, xml: new Promise((done) => { arrive = done; }), title: 'a.drawio', listenOn: w });
+    w.dispatchEvent(new w.MessageEvent('message', { data: JSON.stringify({ event: 'init' }), origin: EMBED_HOST, source: embed }));
+    await Promise.resolve();
+    expect(sent).toEqual([]);
+    arrive('<mxfile id="late"/>');
+    await new Promise((done) => setTimeout(done, 0));
+    expect(sent).toEqual([{ action: 'load', xml: '<mxfile id="late"/>', title: 'a.drawio', autosave: 0 }]);
   });
 });
 

@@ -37,9 +37,11 @@ export const embedUrl = (host) => `${host}/?embed=1&proto=json&spin=1&noExitBtn=
  * `win` and from the origin `host`; every other message is ignored. Returns a function that
  * stops listening.
  *
- * The opener page inlines this function's source, so it refers to nothing outside itself.
+ * `xml` may be a promise: the console opens the popup from the click, before the file has
+ * come from its server, and the load waits for it. The opener page inlines this function's
+ * source, so it refers to nothing outside itself.
  * @param {Window} win the embed page's window (a frame's contentWindow or a popup)
- * @param {{ host: string, xml: string, title: string, onInit?: () => void, onLoad?: () => void, onSave?: (xml: string) => void, listenOn?: Window }} options
+ * @param {{ host: string, xml: string | Promise<string>, title: string, onInit?: () => void, onLoad?: () => void, onSave?: (xml: string) => void, listenOn?: Window }} options
  */
 export function embedBridge(win, { host, xml, title, onInit, onLoad, onSave, listenOn }) {
   const self = listenOn || window;
@@ -55,7 +57,7 @@ export function embedBridge(win, { host, xml, title, onInit, onLoad, onSave, lis
     if (!message || typeof message !== 'object') return;
     if (message.event === 'init') {
       if (onInit) onInit();
-      post({ action: 'load', xml, title, autosave: 0 });
+      Promise.resolve(xml).then((text) => post({ action: 'load', xml: text, title, autosave: 0 }), () => {});
     } else if (message.event === 'load') {
       if (onLoad) onLoad();
     } else if (message.event === 'save' && typeof message.xml === 'string') {

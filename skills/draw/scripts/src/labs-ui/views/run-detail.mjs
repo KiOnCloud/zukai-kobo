@@ -7,6 +7,7 @@ import { h, replace, when, size } from '../dom.mjs';
 import { api, path } from '../api.mjs';
 import { ORIGIN } from '../words.mjs';
 import { badge, textBlock } from './badge.mjs';
+import { openButton } from './open-drawio.mjs';
 
 export const RUN_TABS = [
   { value: 'picture', label: 'Picture' },
@@ -36,6 +37,11 @@ export function runDetail({ store, run, tab = 'picture', extraTabs = {} }) {
     dialog.open();
   };
 
+  // A run's draw.io files: the combined <run-slug>.drawio, and drawio/<id>.drawio per diagram.
+  const hasFile = (name) => detail.files.some((f) => f.name === name);
+  const combinedName = () => `${run.replace(/^\d{8}_/, '')}.drawio`;
+  const openIn = (name, compact) => openButton({ run, name, store, notice, compact });
+
   // ---------------------------------------------------------------- picture
   const fresh = (id) => {
     const svg = detail.files.find((f) => f.name === `svg/${id}.drawio.svg`);
@@ -47,7 +53,9 @@ export function runDetail({ store, run, tab = 'picture', extraTabs = {} }) {
     diagram = ids.includes(diagram) ? diagram : ids[0];
     const pages = ids.length > 1 ? S().Select({ label: 'Diagram', value: diagram, options: detail.diagrams.map((d) => ({ value: d.id, label: d.title ?? d.id })), onChange: (e) => { diagram = e.target.value; show(); } }) : null;
     const frame = h('div', {});
+    const opener = h('div', { class: 'zl-row' });
     const show = async () => {
+      replace(opener, hasFile(`drawio/${diagram}.drawio`) ? openIn(`drawio/${diagram}.drawio`) : null);
       const svg = fresh(diagram);
       if (!svg) {
         if (extraTabs.livePicture) { replace(frame, extraTabs.livePicture.render({ run, diagram, onExport: exportPictures, onTables: () => switchTo('tables') })); return; }
@@ -60,7 +68,7 @@ export function runDetail({ store, run, tab = 'picture', extraTabs = {} }) {
       img.src = URL.createObjectURL(new Blob([r.data], { type: 'image/svg+xml' }));
       replace(frame, h('figure', { class: 'zl-picture' }, img));
     };
-    replace(panel, pages, frame);
+    replace(panel, pages, opener, frame);
     show();
   }
   const exportPictures = () => queue('export', { svg: true });
@@ -121,7 +129,8 @@ export function runDetail({ store, run, tab = 'picture', extraTabs = {} }) {
       { key: 'modified', label: 'Changed', muted: true, render: (f) => when(f.modified) },
       { key: 'actions', label: 'Actions', render: (f) => h('div', { class: 'zl-row' },
         S().Button({ label: `Copy the path of ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'edit', onClick: () => navigator.clipboard?.writeText(`diagrams/${run}/${f.name}`).catch(() => replace(notice, S().Alert({ tone: 'warning', body: `The browser did not allow copying. The path is diagrams/${run}/${f.name}.` }))) }),
-        S().Button({ label: `Download ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'download', onClick: () => download(f.name) })) },
+        S().Button({ label: `Download ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'download', onClick: () => download(f.name) }),
+        f.name.endsWith('.drawio') ? openIn(f.name, true) : null) },
     ];
     replace(panel, S().Table({ columns, rows: detail.files, caption: `Files of diagrams/${run}` }));
   }
@@ -149,7 +158,8 @@ export function runDetail({ store, run, tab = 'picture', extraTabs = {} }) {
         S().Button({ label: undo ? `Undo to ${undo}` : 'Undo', variant: 'secondary', disabled: !undo, onClick: () => queue('restore', { target: 'undo' }) }),
         S().Button({ label: redo ? `Redo ${redo}` : 'Redo', variant: 'secondary', disabled: !redo, onClick: () => queue('restore', { target: 'redo' }) }),
         detail.scouted ? S().Button({ label: 'Sync with the code', variant: 'secondary', onClick: () => queue('sync', {}) }) : null,
-        S().Button({ label: 'Export pictures', variant: 'secondary', onClick: exportPictures })),
+        S().Button({ label: 'Export pictures', variant: 'secondary', onClick: exportPictures }),
+        hasFile(combinedName()) ? openIn(combinedName()) : null),
       composer, notice);
   }
 

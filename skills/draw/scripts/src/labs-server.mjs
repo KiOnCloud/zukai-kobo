@@ -26,6 +26,7 @@ import { validateIr } from './validate-ir.mjs';
 import { inspect, DOC_LANGS } from './pipeline.mjs';
 import { labelsOf } from './ir-labels.mjs';
 import { readGlossary, writeGlossary, addEntries, checkRuns, checkGlossary, STATUSES, newEntryErrors, projectRoot } from './glossary.mjs';
+import { embedHostOf } from './drawio-embed.mjs';
 import { listRuns, runNames, runPath, runDetail, diagramIds, diagramDetail, runDoc, revisionNames, changesSince, filePath, diagramsDir, diagramPicture, fileView } from './labs-runs.mjs';
 
 export const APP = 'zukai-labs';
@@ -157,7 +158,9 @@ const decode = (s) => { try { return decodeURIComponent(s); } catch { return und
 
 /**
  * @param {{ root: string, token: string, pages: Map<string, {type: string, bytes: Buffer}>, version: string, instance: string,
- *   log?: (entry: object) => void, idleMs?: number, now?: () => number, jobs?: object, onShutdown?: () => void, onIdle?: () => void }} options
+ *   log?: (entry: object) => void, idleMs?: number, now?: () => number, jobs?: object, onShutdown?: () => void, onIdle?: () => void, drawioEmbed?: string }} options
+ *   `drawioEmbed` is the origin of draw.io's embed page the console opens; by default the one
+ *   ZUKAI_DRAWIO_EMBED names (tests point it at a stand-in), else embed.diagrams.net.
  */
 export function createLabsServer(options) {
   const { pages, version } = options;
@@ -168,6 +171,7 @@ export function createLabsServer(options) {
   const now = options.now ?? Date.now;
   const idleMs = options.idleMs ?? 30 * 60_000;
   const jobs = options.jobs;
+  const drawioEmbed = options.drawioEmbed ?? embedHostOf(process.env);
   const viewerPolicy = viewerCsp(viewerScriptHash(pages.get('/viewer.html')?.bytes.toString('utf8')));
   let counter = 0;
   let lastActivity = now();
@@ -213,7 +217,7 @@ export function createLabsServer(options) {
   const routes = [
     ['GET', '/api/state', () => ({ body: {
       app: APP, version, project: basename(root), runs: runNames(root).length,
-      glossary: glossaryState(), change: `${counter}-${runsStamp()}`, ...(jobs ? jobs.state() : { agent: { attached: false, waiting: false, lastContact: null }, jobs: { queued: 0, open: null } }),
+      glossary: glossaryState(), drawio: { embed: drawioEmbed }, change: `${counter}-${runsStamp()}`, ...(jobs ? jobs.state() : { agent: { attached: false, waiting: false, lastContact: null }, jobs: { queued: 0, open: null } }),
     } })],
     ['GET', '/api/runs', () => ({ body: { runs: listRuns(root) } })],
     ['GET', '/api/runs/:run', ({ params }) => ({ body: runDetail(root, runOf(params)) })],
