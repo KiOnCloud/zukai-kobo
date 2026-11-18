@@ -164,6 +164,20 @@ export function stencilTag(style, value = '') {
   return /^(aws|gcp):/.test(tag) ? tag : '';
 }
 
+/**
+ * What the native FigJam board writes in brackets after the name of a cell's group, so that a
+ * board read back knows what the picture alone cannot tell: the stencil of an AWS or GCP
+ * picture, `client` for a client screen, `part` for a picture that is part of its frame (the
+ * Google Cloud mark in the corner of the frame) and no element of its own; '' for any other cell.
+ */
+export function boardTag(style, value = '') {
+  const tag = stencilTag(style, value);
+  if (tag) return tag;
+  if (CLIENT_SHAPES.test(style.shape ?? '')) return 'client';
+  if (style.part === '1' && !String(value).trim() && /^mxgraph\./.test(style.shape ?? '')) return 'part';
+  return '';
+}
+
 /** The visible text of a cell: HTML labels lose their tags, plain labels keep their breaks. */
 function textOf(cell) {
   if (!cell.value) return '';

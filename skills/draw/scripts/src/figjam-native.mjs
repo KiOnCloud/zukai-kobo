@@ -1,6 +1,6 @@
 import { parseAttrs } from './relabel.mjs';
 import stencilData from './stencil-paths.json' with { type: 'json' };
-import { stencilTag } from './extract-drawio.mjs';
+import { boardTag } from './extract-drawio.mjs';
 import { unpackStencils } from './stencil-pack.mjs';
 
 /**
@@ -890,11 +890,13 @@ function drawCells(cells) {
   const children = new Map();
   for (const cell of cells) children.set(cell.parent, [...(children.get(cell.parent) ?? []), cell]);
   const nameOf = (cell) => {
-    const labels = [cell, ...(cell.edge ? children.get(cell.id) ?? [] : [])].map((c) => plainLabel(c.value).replace(/\s+/g, ' ').trim());
+    // An edge is named like its own label, never like a text at one of its ends (a
+    // multiplicity, a role), so a reader of the board can tell the label from the end texts.
+    const labels = [cell, ...(cell.edge ? (children.get(cell.id) ?? []).filter((c) => c.id === `${cell.id}:label`) : [])].map((c) => plainLabel(c.value).replace(/\s+/g, ' ').trim());
     const label = labels.find((l) => l !== '') ?? cell.id;
     const short = label.length > GROUP_NAME_LENGTH ? `${label.slice(0, GROUP_NAME_LENGTH - 1)}…` : label;
-    // The stencil a picture stands for, which the picture itself cannot tell a reader of the board.
-    const tag = cell.vertex ? stencilTag(cell.style, cell.value) : '';
+    // What a picture stands for, which the picture itself cannot tell a reader of the board.
+    const tag = cell.vertex ? boardTag(cell.style, cell.value) : '';
     return tag ? `${short} [${tag}]` : short;
   };
   const draw = (cell) => {
@@ -992,9 +994,11 @@ function place(item, dx, dy) {
  * @param {string} drawioXml the single-diagram file `emitDrawio` wrote
  * @param {{ title: string, limit?: number }} options the name of the section the board is drawn
  *   into, and the most characters one script may have (what `use_figma` takes, unless given)
- * @returns {{ parts: string[], offset: { x: number, y: number }, width: number, height: number }}
+ * @returns {{ parts: string[], data: object[], created: number[], offset: { x: number, y: number }, width: number, height: number }}
  *   `parts` are the scripts for `use_figma`, to be run in order (one unless the drawing is
- *   larger than `use_figma` takes at once); a point (x, y) of the draw.io file lies at
+ *   larger than `use_figma` takes at once), `data` the drawing each of them carries (for
+ *   `combineNative`), and `created` the number of shapes, lines and texts each one creates,
+ *   which is the `created` its call returns; a point (x, y) of the draw.io file lies at
  *   (x + offset.x, y + offset.y) of the section, which is `width` by `height`.
  */
 export function figjamNative(drawioXml, { title, limit = SCRIPT_LIMIT }) {
@@ -1009,7 +1013,8 @@ export function figjamNative(drawioXml, { title, limit = SCRIPT_LIMIT }) {
   /** The stencil paths a list of drawings refers to, by key. */
   const stencilPath = (key) => { const [name, index] = key.split('#'); return stencilTable()[name].paint[index][1]; };
   const stencilsOf = (chunk) => Object.fromEntries([...new Set(chunk.filter((item) => item[0] === 'g').map((item) => item[1]))].map((key) => [key, stencilPath(key)]));
-  const script = (chunk, part, parts) => `${RUNTIME_HEAD}const D = ${JSON.stringify({ title, part, parts, width, height, offset: [offset.x, offset.y], stencils: stencilsOf(chunk), items: chunk })};\n${RUNTIME}`;
+  const dataOf = (chunk, part, parts) => ({ title, part, parts, width, height, offset: [offset.x, offset.y], stencils: stencilsOf(chunk), items: chunk });
+  const script = (chunk, part, parts) => scriptOf(dataOf(chunk, part, parts));
   // Every part carries the whole runtime and the stencil paths its own drawings use, so each
   // one runs on its own; the room left is for the drawings.
   const room = limit - script([], 99, 99).length;
@@ -1041,7 +1046,39 @@ export function figjamNative(drawioXml, { title, limit = SCRIPT_LIMIT }) {
     else for (const g of open) g.drawn = true;
     if (item[0] === 'g') carried.add(item[1]);
   }
-  return { parts: chunks.map((chunk, i) => script(chunk, i + 1, chunks.length)), offset, width, height };
+  const data = chunks.map((chunk, i) => dataOf(chunk, i + 1, chunks.length));
+  return { parts: data.map(scriptOf), data, created: data.map(createdBy), offset, width, height };
+}
+
+/** The script that draws one drawing, or several one after the other (a list). */
+const scriptOf = (data) => `${RUNTIME_HEAD}const D = ${JSON.stringify(data)};\n${RUNTIME}`;
+
+/** How many shapes, lines and texts a drawing creates: one per item, and one more behind a label with a background. */
+function createdBy(data) {
+  return data.items.reduce((n, item) => n + (item[0] === '[' || item[0] === ']' ? 0 : item[0] === 't' && item[6]?.g ? 2 : 1), 0);
+}
+
+/**
+ * Fewer calls for several diagrams: the drawings of `figjamNative` (its `data`, of one diagram
+ * or of several, in the order they are to be drawn) packed into as few scripts as `limit`
+ * allows, each script drawing its drawings one after the other into their own sections. The
+ * parts of one diagram stay in their order. A script of several drawings returns the list of
+ * the results each drawing returns.
+ * @returns {{ parts: string[], created: number[], drawings: number[] }} the scripts, how many
+ *   shapes, lines and texts each creates, and how many drawings each holds
+ */
+export function combineNative(data, { limit = SCRIPT_LIMIT } = {}) {
+  const groups = [];
+  for (const d of data) {
+    const last = groups.at(-1);
+    if (last && scriptOf([...last, d]).length <= limit) last.push(d);
+    else groups.push([d]);
+  }
+  return {
+    parts: groups.map((g) => scriptOf(g.length === 1 ? g[0] : g)),
+    created: groups.map((g) => g.reduce((n, d) => n + createdBy(d), 0)),
+    drawings: groups.map((g) => g.length),
+  };
 }
 
 const RUNTIME_HEAD = `// Zukai: draws a diagram on a FigJam board at the coordinates of its draw.io file.
@@ -1054,6 +1091,8 @@ const RUNTIME_HEAD = `// Zukai: draws a diagram on a FigJam board at the coordin
  * the coordinates its path is written in, so nothing here knows where the section lies. */
 const RUNTIME = String.raw`const TAG = '${NATIVE_TAG}';
 const page = figma.currentPage;
+// One drawing, or a list of drawings drawn one after the other, each into its own section.
+const draw = async (D) => {
 // What this script drew carries the tag as its name, also inside a group; a group is named like its cell.
 const ours = (n, found = []) => {
   for (const c of n.children || []) { if (c.name === TAG) found.push(c); else ours(c, found); }
@@ -1198,4 +1237,8 @@ for (const item of D.items) {
   }
 }
 return { section: S.id, name: S.name, part: D.part, parts: D.parts, created, replaced };
+};
+const results = [];
+for (const one of Array.isArray(D) ? D : [D]) results.push(await draw(one));
+return Array.isArray(D) ? results : results[0];
 `;

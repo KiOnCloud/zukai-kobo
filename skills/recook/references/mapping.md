@@ -118,6 +118,7 @@ is the only one; otherwise list it in `meta.omitted`.
 |---|---|
 | `icon` with `aws:` / `gcp:` | a component with that `icon` (copy it; never rename it from memory) and the `kind` its service is (`database` for a database or storage icon, `queue`, `cache`, else `service`) |
 | `icon` with `aws:` / `gcp:` read from a board | the same: a board Zukai drew from version 2.2.0 on names each picture's stencil in its group (`Order API [aws:lambda]`) |
+| `client` read from a board | a component of kind `client`: a board Zukai drew from version 2.3.0 on names a client screen in its group (`Customer app [client]`), and the Google Cloud mark in a frame's corner (`[part]`) is read as part of the frame, not as a node |
 | `icon` with `drawio:` | a component of the kind its label says (`client` for a browser or an app, else `service`); `drawio:unknown` is a picture on a board whose stencil is not named; `drawio:image` on a source that is a GCP diagram is one of draw.io's newer GCP icons, which are pictures without a stencil name. When the diagram is a GCP one (the draw skill's "GCP icons" applies) and the label names the service ("Cloud Run", "Pub/Sub orders"), take its icon from `gcp-icons.md` by that name and record it the same way as for AWS below. When the diagram is an AWS one (the draw skill's "AWS icons" applies) and the label names the service ("SQS orders", "Aurora PostgreSQL"), take its icon from `aws-icons.md` by that name and record `added: icon aws:<name> from the label`; a label that names no service ("Fulfilment worker") keeps no icon, and the report lists it |
 | `box`, `rounded`, `process` with a label and no icon | a component of `kind` `service` (the default), without an icon unless the next row gives it one |
 | `store` | `database`; `queue`, `detail: hexagon` → `queue` |
@@ -173,6 +174,10 @@ protocol or purpose.
 | `block-open` end between two figures or two ovals | `generalization`, `from` the end without the triangle |
 | `dashed` line between ovals with no stereotype | ask nothing: an `include` when the source's legend or its other lines say so, else list it in `meta.omitted` with the reason "dashed line without a stereotype" |
 | a `note` or free `text` | a use case diagram has no note element: the title when it is one, the `condition` of an extend when the row above says so, else `meta.omitted` |
+
+A use case board drawn by `emit --native` reads as the rows above say: the stick figures
+come back as `actor`, the «include» and «extend» lines as dashed edges with an open end and
+their label, and the generalization as a `block-open` end, with the kind hint `usecase` first.
 
 Which actors are `primary` and which `supporting` follows from the side they stand on in the
 source: figures and systems on the side the reader starts from (left, or top) are primary,
