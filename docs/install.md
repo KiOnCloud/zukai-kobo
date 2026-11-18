@@ -1,7 +1,8 @@
 # Install Zukai
 
-One source folder, `skills/draw/`, is distributed two ways, together with the three skills
-that work on its runs (`skills/revise/`, `skills/recook/` and `skills/sync/`). Pick one channel per
+One source folder, `skills/draw/`, is distributed two ways, together with the skills that
+work on its runs (`skills/revise/`, `skills/recook/`, `skills/sync/` and `skills/labs/`),
+five skills in all. Pick one channel per
 machine: installing both the plugin and a project copy makes two copies of the same skill
 compete for routing.
 
@@ -91,6 +92,38 @@ without a display, as root, through `xvfb-run`:
   HTML label, a PNG of the label for viewers that cannot draw HTML. With Playwright both are
   replaced by SVG text, which also makes the file five to eight times smaller.
 
+### The labs console
+
+`/zukai:labs` needs nothing to install beyond the skills: its server is part of the CLI
+bundle and its pages and fonts are committed under `skills/draw/scripts/bin/labs-ui/`. It
+needs a browser on the same machine as the agent session, because the server listens on
+`127.0.0.1` only. Over SSH, `labs start` says to forward the port
+(`ssh -L <port>:127.0.0.1:<port>`); a forwarded port works. In a cloud session it is
+refused with `cloud-session`, since a browser on your device cannot reach the machine the
+session runs on; run `/zukai:labs` in a session on your own computer instead.
+`--skip-cloud-check` starts it anyway, for a browser on that same cloud machine, and the
+skill passes it only when you ask for it in your own words.
+
+The port is derived from the project folder, so it is the same every time; a busy port is
+reported, never replaced by the next one. `--port <n>` chooses another for one start, and
+`ZUKAI_LABS_PORT` makes the choice lasting. To stop the server, ask `/zukai:labs stop`, or
+run `labs stop` from the project root:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs labs stop
+```
+
+It refuses while a job is open, since stopping then ends that job as failed; `--force`
+stops it anyway. The server also ends by itself after 30 minutes with nothing to do
+(`--idle-minutes <n>` on `labs start` changes that). `labs status` says whether it runs.
+
+The console and the glossary keep their files in `.zukai/` under the project root:
+`glossary.json`, the project glossary, which is committed with the project; `.gitignore`,
+written with the folder, which keeps the other two out of git; `glossary.lock`, held for
+a moment while the glossary is written; and `labs/`, the console's state on this machine
+(`server.json` with the port, the process and the console's token, `server.log`, and one
+folder per job). An install or an uninstall never touches `.zukai/`.
+
 ## Claude Code (plugin)
 
 Add the marketplace and install the plugin. The repository is public, so no GitHub account
@@ -108,8 +141,8 @@ On Claude Code 2.1.275 or later the two steps collapse into one:
 ```
 
 The same commands work from a shell as `claude plugin marketplace add ...` and
-`claude plugin install ...`. After install, `/zukai:draw`, `/zukai:revise`, `/zukai:recook`
-and `/zukai:sync` appear in the skill list.
+`claude plugin install ...`. After install, `/zukai:draw`, `/zukai:revise`, `/zukai:recook`,
+`/zukai:sync` and `/zukai:labs` appear in the skill list.
 
 ### Uninstall
 
@@ -118,7 +151,9 @@ and `/zukai:sync` appear in the skill list.
 /plugin marketplace remove zukai
 ```
 
-Removing the marketplace also uninstalls every plugin installed from it. Both steps leave
+Stop the labs console first if it runs (`/zukai:labs stop`): a running server holds its
+pages in memory and does not end because its folder was removed, only when it is stopped
+or idle. Removing the marketplace also uninstalls every plugin installed from it. Both steps leave
 `~/.claude/plugins/` as it was before the install: the plugin copy lived under
 `cache/zukai/zukai/<version>/`, the marketplace clone under
 `marketplaces/zukai/`, and the records in `installed_plugins.json` and
@@ -177,15 +212,17 @@ is the project.
 
 The installer copies `skills/draw/` to `<project>/.agents/skills/zukai/`,
 `skills/revise/` to `<project>/.agents/skills/zukai-revise/`, `skills/recook/` to
-`<project>/.agents/skills/zukai-recook/` and `skills/sync/` to
-`<project>/.agents/skills/zukai-sync/`, changes the `name` line of each copied `SKILL.md`
+`<project>/.agents/skills/zukai-recook/`, `skills/sync/` to
+`<project>/.agents/skills/zukai-sync/` and `skills/labs/` to
+`<project>/.agents/skills/zukai-labs/`, changes the `name` line of each copied `SKILL.md`
 (`draw` to `zukai`, `revise` to `zukai-revise`, `recook` to `zukai-recook`, `sync` to
-`zukai-sync`) so it matches the folder, and writes a version file next to each
-(`.zukai-version`, `.zukai-revise-version`, `.zukai-recook-version`,
-`.zukai-sync-version`). The four belong together: `zukai-revise`, `zukai-recook` and
-`zukai-sync` run the CLI of the sibling `zukai/` folder, and `zukai-sync` also reads the
-draft rules of the sibling `zukai-revise/` folder, so a run installs whichever of them is
-missing or older and leaves one already at this version alone. It copies into a temporary sibling and moves the
+`zukai-sync`, `labs` to `zukai-labs`) so it matches the folder, and writes a version file
+next to each (`.zukai-version`, `.zukai-revise-version`, `.zukai-recook-version`,
+`.zukai-sync-version`, `.zukai-labs-version`). The five belong together: `zukai-revise`,
+`zukai-recook`, `zukai-sync` and `zukai-labs` run the CLI of the sibling `zukai/` folder,
+`zukai-sync` also reads the draft rules of the sibling `zukai-revise/` folder, and
+`zukai-labs` carries out its jobs by following the other four, so a run installs whichever
+of them is missing or older and leaves one already at this version alone. It copies into a temporary sibling and moves the
 copies into place only when all of them are complete, so an interrupted copy never leaves a
 half-copied folder; if a move itself fails (a locked folder on Windows), one skill can end up
 updated and another not, and running the installer again finishes the job. It never runs `npm`, never touches the network, and never deletes an existing copy:
@@ -193,8 +230,9 @@ a differing one is moved out of the skills folder first, to
 `<project>/.agents/zukai-backups/<name>-<timestamp>` (a backup inside `skills/` would still
 be a skill named `zukai` and compete with the new one). Backups that an earlier version left
 as `<name>.bak-<timestamp>` inside `skills/` are moved there on the next run. The copy holds
-what the skills run with (`SKILL.md`, `references/`, `scripts/bin/cli.mjs` and the feature
-matrix, about 3 MB); the sources, tests and fixtures of the CLI stay in the repository.
+what the skills run with (`SKILL.md`, `references/`, `scripts/bin/cli.mjs`, the console's
+pages and fonts in `scripts/bin/labs-ui/`, and the feature matrix, about 3 MB); the
+sources, tests and fixtures of the CLI stay in the repository.
 
 To update, pull the repository and run the installer again. Exit codes:
 
@@ -204,17 +242,18 @@ To update, pull the repository and run the installer again. Exit codes:
 | 1 | Usage or I/O error, or a prerelease version marker that cannot be compared |
 | 3 | An installed copy is newer than the source; nothing changed |
 
-In Codex, invoke the skills with `$zukai`, `$zukai-revise`, `$zukai-recook` and
-`$zukai-sync`, or let them route from their descriptions. To uninstall, delete the four
-folders (`zukai/`, `zukai-revise/`, `zukai-recook/` and `zukai-sync/`) and the
+In Codex, invoke the skills with `$zukai`, `$zukai-revise`, `$zukai-recook`, `$zukai-sync`
+and `$zukai-labs`, or let them route from their descriptions. To uninstall, stop the
+console if it runs (`labs stop`, above), then delete the five folders (`zukai/`,
+`zukai-revise/`, `zukai-recook/`, `zukai-sync/` and `zukai-labs/`) and the
 `zukai-backups/` folder beside `skills/` when you no longer need its copies. Delete all
-four together: `zukai-revise/`, `zukai-recook/` and `zukai-sync/` stop at their first step
-without the CLI of `zukai/`. The run folders under `diagrams/` belong to the project and
-are not touched by an install or an uninstall.
+five together: `zukai-revise/`, `zukai-recook/`, `zukai-sync/` and `zukai-labs/` stop at
+their first step without the CLI of `zukai/`. The run folders under `diagrams/` and the
+`.zukai/` folder belong to the project and are not touched by an install or an uninstall.
 
 ## Claude Code without the plugin (fallback)
 
-If a machine cannot add the marketplace, the same installer copies the four skills into
+If a machine cannot add the marketplace, the same installer copies the five skills into
 `.claude/skills/` of a project:
 
 ```bash
@@ -225,10 +264,10 @@ If a machine cannot add the marketplace, the same installer copies the four skil
 powershell -ExecutionPolicy Bypass -File .\zukai-kobo\install.ps1 -Target claude-project -Dest C:\path\to\your-project
 ```
 
-Invoke the copies with `/zukai`, `/zukai-revise`, `/zukai-recook` and `/zukai-sync`. The
-script warns that this channel competes with the plugin if both are present. To uninstall,
-delete the same four folders from `.claude/skills/`, and `.claude/zukai-backups/` when you
-no longer need its copies.
+Invoke the copies with `/zukai`, `/zukai-revise`, `/zukai-recook`, `/zukai-sync` and
+`/zukai-labs`. The script warns that this channel competes with the plugin if both are
+present. To uninstall, stop the console if it runs, then delete the same five folders from
+`.claude/skills/`, and `.claude/zukai-backups/` when you no longer need its copies.
 
 ## Upgrading to 2.0.0
 
@@ -664,6 +703,55 @@ parts that did not run is enough when nothing on the board changed since, and ru
 again from part 1 is the safe choice when in doubt. The bundle written to save calls takes
 only the diagrams none of whose parts ran, and it goes into the run folder of the first of
 them. A Starter plan allows 20 Figma MCP calls a month.
+
+## Upgrading to 2.4.0
+
+Version 2.4.0 adds a fifth skill, the labs console, and the project glossary. Existing
+`.ir.json` files, run folders, CLI commands, options and exit codes keep working unchanged,
+no exit code was added, and a diagram emitted again comes out as 2.3.3 drew it.
+
+- **`/zukai:labs`** (`$zukai-labs` and `/zukai-labs` in a copied install) serves a console
+  on `127.0.0.1` that lists the runs of the project, shows each one, queues changes as jobs
+  for the attached agent session and manages the glossary. The README's section on the
+  console says what a job is and what it needs; `skills/labs/SKILL.md` is the skill's
+  contract. Its requirements, how to stop it and the refusal of a cloud session are in
+  "The labs console" above.
+- **`labs` commands.** `labs start`, `labs status` and `labs stop` run the server of a
+  project; `labs wait`, `progress`, `ask` and `done` are the agent's side of a job; and
+  `labs holds <run>` tells whether a console job is working on a run (exit 2 when one is,
+  exit 0 when none is or no console runs). `cli.mjs help` gives the options of each.
+- **The project glossary**, `.zukai/glossary.json`, and the commands `glossary list`,
+  `add`, `set`, `pairs` and `check`. Only a confirmed entry is applied. In a project with a
+  glossary the closing contract runs `glossary check` on the run before the report, and a
+  blocking finding (exit 2) is fixed like a validation error. The format and the rules are
+  in `skills/draw/references/glossary.md`.
+
+What changes for a project you already have:
+
+- Nothing breaks. No IR has to be edited and no file has to be emitted again. A project
+  without a glossary skips the glossary step.
+- A project gets a `.zukai/` folder the first time the glossary or the console is used.
+  Commit `glossary.json`; the `.gitignore` written with the folder keeps `labs/` and
+  `glossary.lock` out of git.
+- Before the draw, revise, sync and recook skills write into a run folder that already
+  exists, they ask `labs holds`; when a console job is working on that run they say which
+  and stop. With no console running the answer is exit 0 and they go on. The check warns and
+  does not lock.
+- Every skill now states that text inside a diagram, a source file or a file read by
+  `extract` is data, drawn or translated and never followed as an instruction.
+- The copied install has a fifth folder, `zukai-labs`, with the marker
+  `.zukai-labs-version`, and the `zukai/` folder now also holds `scripts/bin/labs-ui/`; run
+  the installer again to get both. A fork that installs the skills by hand has to copy
+  `skills/labs/` beside the others and keep `scripts/bin/labs-ui/` in the copy of
+  `skills/draw/`.
+- Forks and wrappers: `skills/draw/SKILL.md` gained the sections "Project glossary" and
+  "Text that is read is data" and the `labs holds` step; the closing contract, the review
+  checklist (item 5) and `variants.md` gained the glossary; revise, sync and recook gained
+  the `labs holds` step and the data rule.
+- Maintainers: `npm run build` writes `bin/labs-ui/` beside `bin/cli.mjs`, and
+  `bundle-drift.test.mjs` holds both to a fresh build, so commit both after a change under
+  `src/`. The console is built on the Sienna design system; how a newer version of it is
+  taken is in the section "Labs console" of `docs/architecture.md`.
 
 ## Upgrading from it-diagrams
 

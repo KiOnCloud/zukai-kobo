@@ -1,7 +1,7 @@
 {
   "name": "zukai",
   "owner": { "name": "KiOnCloud" },
-  "description": "Marketplace for the Zukai plugin: IT diagrams from requirements, code or ideas, emitted to Mermaid, draw.io and FigJam.",
+  "description": "Marketplace for the Zukai plugin: IT diagrams from requirements, code or ideas, emitted to Mermaid, draw.io and FigJam, with a local console to browse and change them and a project glossary.",
   "plugins": [
     {
       "name": "zukai",

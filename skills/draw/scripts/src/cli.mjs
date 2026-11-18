@@ -157,7 +157,7 @@ labs start serves the console of the project (--root, else the working directory
 127.0.0.1, on a port that is the same for the project every time (--port or ZUKAI_LABS_PORT
 replace it; a busy port is reported, never replaced by the next one). A second start reuses
 the running server. The server reads the runs under diagrams/ and never writes there; it
-writes .zukai/labs/ only, and ends itself after --idle-minutes (default 30) with nothing to
+writes .zukai/labs/ and, from the console's Glossary section, .zukai/glossary.json, and ends itself after --idle-minutes (default 30) with nothing to
 do, or on labs stop (--force when a job is open). start and status print the console URL with
 its token; in a cloud session start refuses, unless --skip-cloud-check is given for a browser
 on the same machine. Each prints one JSON object; an error is {"ok": false, "error": {code,

@@ -11,6 +11,33 @@ third-party code. Licence texts are in each package's npm distribution.
 Development-only dependencies (`esbuild`, `vitest`, `mermaid`, `jsdom`, `fast-xml-parser`) are
 not part of the bundle and are not redistributed.
 
+## Labs console
+
+The console's pages under `skills/draw/scripts/bin/labs-ui/` are built from
+`skills/draw/scripts/src/labs-ui/` and redistribute the following.
+
+| Font family | Source | Licence | Licence file |
+|---|---|---|---|
+| Newsreader | `@fontsource-variable/newsreader` 5.3.0 | SIL Open Font License 1.1 | `fonts/OFL-Newsreader.txt` |
+| Instrument Sans | `@fontsource-variable/instrument-sans` 5.3.0 | SIL Open Font License 1.1 | `fonts/OFL-InstrumentSans.txt` |
+| JetBrains Mono | `@fontsource-variable/jetbrains-mono` 5.3.0 | SIL Open Font License 1.1 | `fonts/OFL-JetBrainsMono.txt` |
+
+The font files are in `bin/labs-ui/fonts/`, each family's licence text beside them. They
+were taken from the Fontsource variable packages on npm and cut to the axes the console
+uses; none of the three declares a Reserved Font Name. The subsets, axes and files of each
+family are recorded in `src/labs-ui/fonts/fonts.json`.
+
+The stylesheet, helper script, type declarations and design tokens of the Sienna design
+system (`bundle.css`, `bundle.js`, `index.d.ts`, `tokens.json`) are copied unchanged into
+`src/labs-ui/sienna/` and built into the console's pages. Sienna is the project owner's
+design system; `src/labs-ui/sienna/sienna.lock.json` records the version, the place each
+file was copied from and its SHA-256.
+
+draw.io's viewer (`viewer.diagrams.net`) and Mermaid (from `cdn.jsdelivr.net`) are fetched
+by the user's browser at run time, when the console draws a run that has no picture under
+`svg/`. Neither is part of the repository or of the console's pages, and neither is
+redistributed.
+
 ## Data
 
 `skills/draw/scripts/src/aws-icons.json`, `skills/draw/references/aws-icons.md` and
