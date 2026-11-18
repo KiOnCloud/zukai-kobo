@@ -5,12 +5,17 @@ import { loadFixture, validFixtures } from './helpers.mjs';
 
 const MESSAGE_LINE = /^(\S+?)(-->>|->>|-\))(\S+?): (.+)$/;
 
+/** Characters Figma sets in a fallback face: Chinese, Japanese, Korean, full-width forms. */
+const WIDE = /[\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/g;
+
 /**
  * A stand-in for the board Figma's generate_diagram makes of a sequence diagram, as it was
  * read back from a real board: one lifeline per participant, one connector per message row
  * 80 apart, and for a message of a participant to itself a stray connector tied to the page.
+ * With `lateFallback`, a text with wide characters grows a moment after it was set, as a real
+ * board's text did once Figma had loaded the fallback face of those characters.
  */
-function fakeBoard(text, title) {
+function fakeBoard(text, title, { lateFallback = false } = {}) {
   let seq = 0;
   const nodes = new Map();
   const make = (type, extra = {}) => {
@@ -22,7 +27,13 @@ function fakeBoard(text, title) {
       ...extra,
     };
     if (type === 'CONNECTOR' || type === 'SHAPE_WITH_TEXT') n.text = { characters: '', fontName: null, ...(extra.text ?? {}) };
-    if (type === 'TEXT') Object.defineProperty(n, 'characters', { set(v) { this.chars = v; this.width = v.length * 7; this.height = 16; }, get() { return this.chars; } });
+    if (type === 'TEXT') Object.defineProperty(n, 'characters', { set(v) {
+      this.chars = v;
+      this.width = v.length * 7;
+      this.height = 16;
+      const wide = (v.match(WIDE) ?? []).length;
+      if (lateFallback && wide > 0) setTimeout(() => { this.width = v.length * 7 + wide * 7; }, 20);
+    }, get() { return this.chars; } });
     nodes.set(n.id, n);
     return n;
   };
@@ -181,6 +192,24 @@ describe('figjam overlay script', () => {
     const lines = Math.ceil(self.label.length / 21);
     expect(text.y).toBeGreaterThanOrEqual(rowY(at) - 14 - 1);
     expect(text.y + lines * 19).toBeLessThanOrEqual(rowY(at + 1 + pads) - 14);
+  });
+
+  it('fits the white patch of a tag to its text as Figma finally sets it', async () => {
+    const ir = structuredClone(loadFixture('sequence', 'valid'));
+    ir.blocks.find((b) => b.id === 'b1').label = '承認済みの申請がある';
+    const r = await emit(ir, 'figjam');
+    const { figma, section } = fakeBoard(r.output, ir.title, { lateFallback: true });
+    await runOn(r.overlay, figma);
+    const tags = section.children.filter((c) => c.type === 'TEXT' && c.name === 'zukai-overlay').map((t) => [t, section.children[section.children.indexOf(t) - 1]])
+      .filter(([, back]) => back?.type === 'RECTANGLE' && back.strokes.length === 0);
+    expect(tags.map(([t]) => t.characters)).toContain('alt  [承認済みの申請がある]');
+    for (const [t, back] of tags) {
+      expect(back.width, t.characters).toBe(t.width + 12);
+      expect(back.height, t.characters).toBe(t.height + 6);
+    }
+    // The tag did grow after it was set.
+    const [grown] = tags.find(([t]) => t.characters.startsWith('alt'));
+    expect(grown.width).toBeGreaterThan(grown.characters.length * 7);
   });
 
   it('changes nothing and says why when the board is not the one the text made', async () => {

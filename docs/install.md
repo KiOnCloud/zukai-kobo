@@ -613,6 +613,7 @@ What changes for a run you already have:
   versions included.
 - In the FigJam text of a sequence diagram, a self-message whose label wraps beyond one row
   keeps further empty rows, as a long note does.
+- A native or overlay script fits the white back of a label to its text as Figma finally sets it, waiting up to 3 s for a fallback face (Japanese, Chinese, Korean), and recook reads a labelled line of an older board whose back came out narrower than its text as a line, no longer as a box.
 - The committed CLI bundle grew, and its size budget in the tests is now 3 MiB.
 
 To fail a CI job when a committed diagram has fallen behind the code, run `stale` on the

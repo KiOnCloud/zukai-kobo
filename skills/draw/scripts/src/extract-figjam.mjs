@@ -541,8 +541,14 @@ function drawnKind(kids, name = '') {
   // A picture with its name written under it (a client screen) is not a line with a label. A
   // label of a line that happens to stand below the line has a back of its own (the colour
   // behind it, so the line does not cross the text), and a dashed line is never a picture.
-  // A back fits its text: as high as the text, however many lines that has.
-  const isBack = (r) => texts.some((t) => boxInside(t.box, r.box) && t.box.h >= r.box.h - 2);
+  // A back fits its text: as high as the text, however many lines that has. A board drawn
+  // before the script sized backs from the text as Figma finally sets it can have a back
+  // narrower than its text (Figma set the text in a wider fallback face after the back was
+  // sized): it is still the label's back when it lies in the same row as a text of the group,
+  // within the text's width, on the line or right beside it.
+  const sameRow = (t, r) => Math.abs(t.box.y - r.box.y) <= 2 && Math.abs(t.box.h - r.box.h) <= 2 && r.box.x >= t.box.x - 2 && r.box.x + r.box.w <= t.box.x + t.box.w + 2;
+  const byLine = (r) => line && r.box.x <= line.box.x + line.box.w && r.box.x + r.box.w >= line.box.x && r.box.y <= line.box.y + line.box.h + r.box.h && r.box.y + r.box.h >= line.box.y - r.box.h;
+  const isBack = (r) => texts.some((t) => (boxInside(t.box, r.box) && t.box.h >= r.box.h - 2) || (sameRow(t, r) && byLine(r)));
   const backed = rects.some(isBack);
   const caption = !backed && !(main && main.dashed === 1) && texts.length > 0 && strokes.length > 0 && texts.every((t) => strokes.every((k) => t.box.y >= k.box.y + k.box.h - 2));
   const tinyEllipses = ellipses.every((e) => e.box.w <= 10 && e.box.h <= 10);

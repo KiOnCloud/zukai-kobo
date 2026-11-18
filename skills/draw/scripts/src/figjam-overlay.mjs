@@ -1,4 +1,4 @@
-import { dataBlock } from './figma-script-data.mjs';
+import { dataBlock, SETTLE_TEXTS } from './figma-script-data.mjs';
 import { figjamLabel } from './mermaid-text.mjs';
 import { layoutSequence } from './layout-sequence.mjs';
 
@@ -187,7 +187,7 @@ const RUNTIME_HEAD = `// Zukai: completes the FigJam board of a sequence diagram
  * use_figma expects. Coordinates are those of the section; a floating connector end is
  * given in page coordinates, hence the offset. */
 const RUNTIME = String.raw`const TAG = 'zukai-overlay';
-const fail = (m) => { throw new Error('zukai overlay: ' + m + '. Nothing was changed.'); };
+${SETTLE_TEXTS}const fail = (m) => { throw new Error('zukai overlay: ' + m + '. Nothing was changed.'); };
 const sections = figma.currentPage.children.filter((n) => n.type === 'SECTION' && n.name === D.title);
 if (sections.length === 0) fail('no section named "' + D.title + '" on this board; generate the diagram first, with the title as its name');
 const S = sections[sections.length - 1];
@@ -240,13 +240,17 @@ const label = (chars, x, y, size, width) => {
   t.y = y;
   return t;
 };
+// The tags on a white patch, whose patch settle fits again when a text grows after it was set.
+const fits = [];
 const tag = (chars, x, y) => {
   const back = keep(figma.createRectangle());
   S.appendChild(back);
   const t = label(chars, x + 6, y + 3, 12);
   back.x = x;
   back.y = y;
-  back.resize(t.width + 12, t.height + 6);
+  const place = () => back.resize(t.width + 12, t.height + 6);
+  place();
+  fits.push({ t, place, w: t.width, h: t.height });
   back.fills = solid(rgb(0xffffff));
   back.strokes = [];
   return t;
@@ -393,6 +397,7 @@ D.rows.forEach((r, k) => {
   }
 });
 
+await settle(fits);
 if (right + 40 > S.width) S.resizeWithoutConstraints(right + 40, S.height);
 return { section: S.id, createdNodeIds: created, removedNodeIds: removed, replacedNodeIds: old.length };
 `;

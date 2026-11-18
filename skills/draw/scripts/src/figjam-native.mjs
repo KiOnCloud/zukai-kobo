@@ -2,7 +2,7 @@ import { parseAttrs } from './relabel.mjs';
 import stencilData from './stencil-paths.json' with { type: 'json' };
 import { boardTag } from './extract-drawio.mjs';
 import { unpackStencils } from './stencil-pack.mjs';
-import { dataBlock } from './figma-script-data.mjs';
+import { dataBlock, SETTLE_TEXTS } from './figma-script-data.mjs';
 
 /**
  * A FigJam board drawn at the coordinates of the draw.io file, as scripts for the Figma MCP
@@ -1111,6 +1111,8 @@ const RUNTIME_HEAD = `// Zukai: draws a diagram on a FigJam board at the coordin
  * the coordinates its path is written in, so nothing here knows where the section lies. */
 const RUNTIME = String.raw`const TAG = '${NATIVE_TAG}';
 const page = figma.currentPage;
+${SETTLE_TEXTS}// Every text drawn, to be placed again once Figma has set it in the faces it finally uses.
+const fits = [];
 // One drawing, or a list of drawings drawn one after the other, each into its own section.
 const draw = async (D) => {
 // What this script drew carries the tag and its run as its name, also inside a group; a group is named like its cell.
@@ -1247,22 +1249,30 @@ for (const item of D.items) {
     }
     t.fills = paint(o.c || '000000');
     t.textAlignHorizontal = o.a === 'l' ? 'LEFT' : o.a === 'r' ? 'RIGHT' : 'CENTER';
-    // A text wider than its box was wrapped in draw.io and is wrapped here, at the same width.
-    const room = o.r ? h : w;
-    if (room > 0 && t.width > room) { t.textAutoResize = 'HEIGHT'; t.resize(room, t.height); }
-    if (o.r) {
-      // Turned a quarter, the text reads upwards and its box grows up and to the right of (x, y).
-      t.rotation = 90;
-      t.x = x + (w - t.height) / 2;
-      t.y = y + (h + t.width) / 2;
-    } else {
-      t.x = o.a === 'l' ? x : o.a === 'r' ? x + w - t.width : x + (w - t.width) / 2;
-      t.y = o.v === 't' ? y : o.v === 'b' ? y + h - t.height : y + (h - t.height) / 2;
-    }
+    // The text and its back are placed from the size the text has; settle places them again
+    // when the text grows later.
+    const place = () => {
+      // A text wider than its box was wrapped in draw.io and is wrapped here, at the same width.
+      const room = o.r ? h : w;
+      if (room > 0 && t.width > room) { t.textAutoResize = 'HEIGHT'; t.resize(room, t.height); }
+      if (o.r) {
+        // Turned a quarter, the text reads upwards and its box grows up and to the right of (x, y).
+        t.rotation = 90;
+        t.x = x + (w - t.height) / 2;
+        t.y = y + (h + t.width) / 2;
+      } else {
+        t.x = o.a === 'l' ? x : o.a === 'r' ? x + w - t.width : x + (w - t.width) / 2;
+        t.y = o.v === 't' ? y : o.v === 'b' ? y + h - t.height : y + (h - t.height) / 2;
+      }
+      if (back) {
+        back.x = t.x - 2;
+        back.y = t.y;
+        back.resize(t.width + 4, t.height);
+      }
+    };
+    place();
+    fits.push({ t, place, w: t.width, h: t.height });
     if (back) {
-      back.x = t.x - 2;
-      back.y = t.y;
-      back.resize(t.width + 4, t.height);
       back.fills = paint(o.g);
       back.strokes = [];
     }
@@ -1280,5 +1290,6 @@ return result;
 };
 const results = [];
 for (const one of Array.isArray(D) ? D : [D]) results.push(await draw(one));
+await settle(fits);
 return Array.isArray(D) ? results : results[0];
 `;

@@ -75,3 +75,30 @@ ${HASH_BODY.replace(/^/gm, '    ')}
 }
 `;
 }
+
+/**
+ * Code the drawing scripts share: `settle(fits)`, awaited after the last text is drawn. Figma
+ * sets a character its fonts lack (Japanese, Chinese, Korean) in a fallback face that it may
+ * load only after the script measured the text, and the text then grows: on a real board a
+ * label measured 89 px wide when its characters were set and 117 px later. Each entry of `fits`
+ * is a text `t`, its size when it was placed (`w`, `h`), and `place`, which places it and what
+ * lies behind it from the size it has now. While a text holds a character that may come from
+ * such a face, the script waits a little at a time, places each text whose size changed again,
+ * and stops once no text has changed for a while (at most 3 s).
+ */
+export const SETTLE_TEXTS = String.raw`const settle = async (fits) => {
+  const late = /[^\u0000-\u024f\u1e00-\u1eff\u2000-\u206f]/;
+  if (typeof setTimeout !== 'function' || !fits.some((f) => late.test(f.t.characters))) return;
+  for (let round = 0, still = 0; round < 30 && still < 3; round++) {
+    await new Promise((done) => setTimeout(done, 100));
+    still++;
+    for (const f of fits) {
+      if (f.t.width === f.w && f.t.height === f.h) continue;
+      f.place();
+      f.w = f.t.width;
+      f.h = f.t.height;
+      still = 0;
+    }
+  }
+};
+`;

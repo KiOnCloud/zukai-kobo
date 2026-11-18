@@ -10,6 +10,10 @@
  * - a vector takes its box from its path; its `vectorNetwork` holds the end point of every
  *   segment (no control points), relative to that box, and `absoluteTransform` moves it there;
  * - a text measures itself by its characters and size and wraps when the script fixes a width;
+ *   with `lateFallback`, a character of Chinese, Japanese or Korean is first measured narrow,
+ *   as a real board did before Figma had loaded the fallback face it sets such characters in,
+ *   and every text holding one grows a moment later, when that face has arrived (`idle()`
+ *   waits for it);
  * - a group has no coordinates of its own: its box is that of its children;
  * - a section holds its children, the page finds nodes at any depth.
  */
@@ -35,9 +39,19 @@ const verticesOf = (data) => {
   return v;
 };
 
-/** A fresh page and the `figma` object a script receives. */
-export function standInFigma() {
+/** Characters Arimo lacks, which Figma sets in a fallback face: Chinese, Japanese, Korean, full-width forms. */
+const WIDE = /[\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/;
+
+/**
+ * A fresh page and the `figma` object a script receives.
+ * @param {{ lateFallback?: boolean }} [options] `lateFallback`: the fallback face of wide
+ *   characters arrives a moment after the first text that needs it, and the texts then grow.
+ */
+export function standInFigma({ lateFallback = false } = {}) {
   let seq = 1;
+  // The fallback face: whether it has arrived, and the wait for it once a text asked for it.
+  let fallbackHere = false;
+  let fallbackComing = null;
   const page = { type: 'PAGE', name: 'Page 1', children: [] };
 
   class Node {
@@ -83,11 +97,18 @@ export function standInFigma() {
   class Text extends Node {
     constructor() { super('TEXT'); this.chars = ''; this.fontSize = 12; this.fixed = undefined; }
 
-    set characters(s) { this.chars = s; }
+    set characters(s) {
+      this.chars = s;
+      if (lateFallback && !fallbackComing && WIDE.test(s)) fallbackComing = new Promise((done) => setTimeout(() => { fallbackHere = true; done(); }, 20));
+    }
 
     get characters() { return this.chars; }
 
-    natural() { return Math.max(...this.chars.split('\n').map((l) => l.length)) * this.fontSize * 0.52; }
+    natural() {
+      // A wide character set in the fallback face is as wide as the font is high.
+      const wide = fallbackHere ? 1 / 0.52 : 1;
+      return Math.max(...this.chars.split('\n').map((l) => l.split('').reduce((sum, c) => sum + (WIDE.test(c) ? wide : 1), 0))) * this.fontSize * 0.52;
+    }
 
     get width() { return this.fixed ?? this.natural(); }
 
@@ -144,5 +165,7 @@ export function standInFigma() {
   const AsyncFunction = (async () => {}).constructor;
   /** Run a script as use_figma does: top-level await, and its `return` is the result. */
   const run = (script) => new AsyncFunction('figma', script)(figma);
-  return { figma, page, run };
+  /** Wait until the fallback face a text asked for has arrived (at once when none was asked for). */
+  const idle = () => fallbackComing ?? Promise.resolve();
+  return { figma, page, run, idle };
 }
