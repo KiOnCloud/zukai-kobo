@@ -65,9 +65,10 @@ below comes from a trial run in this session or from the repository, cited per d
   6. The console takes a message only from the window it opened and only from the embed
      host's origin; no CSP violation is reported.
   7. Every draw.io run of draw, revise, recook and sync ends with the closing question where
-     `cli open --check` says it can open; inside a labs job the question is a card of the
-     console, asked before the job is closed; a FigJam run ends with its board link; a
-     Mermaid run ends without the question.
+     `cli open --check` says it can open; the web option says that diagrams.net receives the
+     diagram; inside a labs job the question is a card of the console, asked before the job
+     is closed; a FigJam run ends with its board link; a Mermaid run ends without the
+     question.
 
 ## Key decisions
 
@@ -77,7 +78,7 @@ below comes from a trial run in this session or from the repository, cited per d
 | The host is `https://embed.diagrams.net`. | Embed mode on `app.diagrams.net` loaded the file but showed "app.diagrams.net will stop working for embed mode. Please use embed.diagrams.net." (trial screenshot). |
 | The chat's opener page frames the embed host; when it has not answered in 20 s, the page shows a button that opens it as a popup. | A page opened by the OS opener has no user gesture, so a popup would be blocked; a frame needs none. Whether `embed.diagrams.net` lets a `file://` page frame it is unverified here (the host answers 403 to a headless browser), so the popup, which the trial proved end to end, is the fallback. The local gate of phase 1 settles it. |
 | The console opens the embed host as a popup from the click. | The click is a user gesture; the console's own page and policy stay unchanged; the trial proved the popup protocol from a `http://127.0.0.1` page. |
-| Desktop first when it is found and a display is there. | Desktop saves into the run's own file, which revise already reads as a hand edit (`drift`); `findDrawioBinary()` exists in `preview.mjs:190`. Without a display `drawioCommand` would wrap it in `xvfb-run`, an invisible window, so that case counts as "no display". |
+| Desktop first when it is found and a display is there. | Desktop saves into the run's own file, which revise already reads as a hand edit (`drift`); `findDrawioBinary()` exists in `preview.mjs:191`. On Linux without `DISPLAY` or `WAYLAND_DISPLAY`, `drawioCommand` (`preview.mjs:133`) wraps it in `xvfb-run`, an invisible window, so that case counts as "no display"; macOS and Windows always count as having one. |
 | The closing question is asked only where `cli open --check` says yes; inside a labs job it is asked through the console with `labs ask`, before `labs done`. | A cloud session cannot reach the user's browser (`isCloudSession`, `labs-lifecycle.mjs:88`). Chosen by the user on 2026-11-18 for jobs: the question is part of the followed contract, so it reaches the console like every other question; `labs ask` needs the job open, so it comes before `labs done`. |
 | Tests use a stand-in embed host, chosen by `ZUKAI_DRAWIO_EMBED`, and a stand-in opener, chosen by `ZUKAI_OPENER`. | The real host refuses headless browsers (403 for the `HeadlessChrome` user agent, 200 for a normal one, checked with curl); tests must not open real browsers. The labs server already takes test variables (`ZUKAI_LABS_*`). |
 
@@ -137,6 +138,52 @@ combined `.md` to a page that renders it (the labs viewer already draws Mermaid)
 ### Whole-Plan Consistency Sweep (Session 1)
 - Files reread: plan.md, phase-01 to phase-03
 - Decision deltas checked: 2 (question inside a job; version)
+- Unresolved contradictions: 0
+
+### Session 2 — 2026-11-18
+**Trigger:** `/ak-plan validate` before implementation.
+**Questions asked:** 2
+
+#### Verification Results
+- **Tier:** Standard (Fact Checker + Contract Verifier)
+- **Claims checked:** 16
+- **Verified:** 13 | **Failed:** 1 | **Unverified:** 2
+
+Verified: `findDrawioBinary` (`preview.mjs:191`); `drawioCommand` and its `xvfb-run`
+wrapping (`preview.mjs:133-139`); `isCloudSession` (`labs-lifecycle.mjs:88`); `drawioPages`
+(`export-svg.mjs:43`); `drawioXmlOf(buf)` (`extract-drawio.mjs:28`); the file route
+(`GET /api/runs/:run/files/:name`, `labs-server.mjs`); the `#/` and `blob:` rule
+(`labs-ui/dom.mjs:18`); `picture()` and `files()` (`run-detail.mjs:45`, `:117`); `labs serve`
+inheriting the start's environment (`labs-lifecycle.mjs:138`), so `ZUKAI_DRAWIO_EMBED` reaches
+the server; sync, recook and revise ending with the closing contract (`sync/SKILL.md:301`,
+`recook/SKILL.md:12`, `closing-contract.md:324`); the embed `init` and `load` events (trial).
+
+Contract Verifier:
+- `cli open` joins `COMMAND_OPTIONS` (`cli.mjs:190`) and the usage text. The install tests and the Windows job assert that some help lines are present, never the whole text, so a new line breaks none of them.
+- `/api/state` gains `drawio`. Its one consumer, `labs-ui/main.mjs:79-88`, reads fields one by one, and no test compares the whole state.
+- The closing step reaches draw, revise, recook, sync and, through `labs ask`, the labs skill: five consumers, all listed in phase 3.
+
+#### Failures
+1. [Fact Checker] `preview.mjs:190`: the function is at `:191`. Corrected.
+
+#### Unverified
+- The embed `save` and `status` messages on the real host: only `init` and `load` were seen. Added to the local gate.
+- The rule for "a display is there" on Linux: `drawioCommand` reads `DISPLAY` or `WAYLAND_DISPLAY`, and the plan named neither. Written into phase 1, with `--check` reporting `no-display`.
+
+#### Questions & Answers
+1. **[Risks]** Without draw.io desktop the closing question opens diagrams.net, whose script receives the whole diagram. How should the question read?
+   - **Answer:** say so in the question: the web option reads "Open it on the web (diagrams.net receives the diagram)".
+2. **[Tradeoffs]** If the local gate shows that `embed.diagrams.net` cannot be framed by a local page, is one click on the opener page acceptable?
+   - **Answer:** yes; the popup button is the fallback route, and the `#R` URL is not used.
+
+#### Impact on Phases
+- Phase 1: the display rule; `--check` and the web route report `no-display` on Linux without one; the local gate also presses Save.
+- Phase 3: the wording of the web option.
+
+### Whole-Plan Consistency Sweep (Session 2)
+- Files reread: plan.md, phase-01 to phase-03
+- Decision deltas checked: 3 (display rule; web option wording; Save in the local gate)
+- Reconciled stale references: 1 (`preview.mjs:190`)
 - Unresolved contradictions: 0
 2. Version: 2.4.1, chosen by the user on 2026-11-18.
 

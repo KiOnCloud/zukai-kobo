@@ -9,6 +9,8 @@ dependencies: []
 
 # Phase 1: Open command and embed bridge
 
+<!-- Updated: Validation Session 2 - the display rule, no-display on Linux, Save in the local gate -->
+
 ## Goal
 
 `cli open` opens a run's draw.io file in draw.io desktop or, without it, in draw.io on the
@@ -76,8 +78,10 @@ cli.mjs open --check <run-dir|file.drawio|file.drawio.svg>
 - **Choose the route:**
   1. Cloud session: refuse with `cloud-session`.
   2. `--desktop`, or desktop found and a display available: spawn `<bin> <file>` detached,
-     with no `xvfb-run`; output `opened: desktop`.
-  3. Otherwise, the web: write the opener page and spawn the OS opener with its path.
+     with no `xvfb-run`; output `opened: desktop`. A display is available on macOS and
+     Windows always, and on Linux when `DISPLAY` or `WAYLAND_DISPLAY` is set.
+  3. Linux without a display: refuse with `no-display` (a browser could not show either).
+  4. Otherwise, the web: write the opener page and spawn the OS opener with its path.
      ENOENT from the opener gives `no-browser` with the path of the run's file.
 - `ZUKAI_OPENER` replaces the OS opener (tests point it at a stand-in that records its
   arguments). It is documented as a test variable, like `ZUKAI_LABS_*`.
@@ -99,7 +103,7 @@ cli.mjs open --check <run-dir|file.drawio|file.drawio.svg>
 
 ## Tasks & Steps
 
-1. **Local gate, first:** write `plans/261118-0954-open-in-drawio/trial/open-trial.html`, an opener page for one fixture built with the real host, and ask the user to open it in their own browser. Record whether the frame loads, and whether the popup button loads. The outcome decides whether the frame or the popup is the chat's first route.
+1. **Local gate, first:** write `plans/261118-0954-open-in-drawio/trial/open-trial.html`, an opener page for one fixture built with the real host, and ask the user to open it in their own browser. Record whether the frame loads, whether the popup button loads, and whether Save downloads the file and clears the unsaved mark (`save` and `status`). The outcome decides whether the frame or the popup is the chat's first route; the user accepted one click on the popup button when the frame fails.
 2. `drawio-embed.mjs`, with unit tests: the URL, the escaping of the JSON block (a label holding `</script>`), the inlined bridge.
 3. The resolver and its refusals, with a test per run shape (drawio, svg, figjam, mermaid, several `drawio/` files).
 4. The route choice with stand-ins: a fake `drawio` on PATH answering `--version`, `DISPLAY` set or not, `CLAUDE_CODE_REMOTE`.

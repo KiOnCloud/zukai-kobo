@@ -9,6 +9,8 @@ dependencies: [1, 2]
 
 # Phase 3: Skills, docs and release
 
+<!-- Updated: Validation Session 2 - the web option says diagrams.net receives the diagram -->
+
 ## Goal
 
 Every draw.io run ends with "Open it in draw.io?", a FigJam run with its board link, and the
@@ -22,7 +24,7 @@ documents and version say what was added.
 
 ## Requirements
 
-- [ ] The closing contract's last step, after the report: when the run wrote a draw.io file, run `cli open --check <run-folder>`; when `can` is true, ask once (`AskUserQuestion` where the runtime has it, else one text line) "Open <run-slug>.drawio in draw.io?" with "Open it (draw.io desktop|draw.io on the web)" first and "Not now"; on yes, run `cli open <run-folder>` and pass its result on in one line.
+- [ ] The closing contract's last step, after the report: when the run wrote a draw.io file, run `cli open --check <run-folder>`; when `can` is true, ask once (`AskUserQuestion` where the runtime has it, else one text line) "Open <run-slug>.drawio in draw.io?" with "Open it in draw.io desktop" or, when `via` is `web`, "Open it on the web (diagrams.net receives the diagram)" first, and "Not now"; on yes, run `cli open <run-folder>` and pass its result on in one line.
 - [ ] A FigJam run ends with its board link (already in the report); no question.
 - [ ] A Mermaid run ends without the question.
 - [ ] Inside a labs job the question is a console card: before `labs done`, the agent asks it with `labs ask` (id `open-drawio`, options "Open it" and "Not now"), runs `cli open` on yes, then closes the job; the report also names the console's Open in draw.io.
