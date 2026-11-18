@@ -103,6 +103,17 @@ is in [docs/quickstart.md](docs/quickstart.md); every install option is in
 
 Anything not given as an option is asked once, in a single question, in the user's language.
 
+A run that wrote a draw.io file ends with one question, "Open it in draw.io?". On yes, the
+agent runs `cli.mjs open <run-folder>`, which starts draw.io desktop when it is installed,
+with the run's own file (a save there is a hand edit the next revise reads), and otherwise
+opens draw.io on the web in your browser with every page of the file as a tab. On the web
+the diagram is handed to draw.io's page (`embed.diagrams.net`) by `postMessage`, never put
+in an address, so diagrams.net receives it but your browser history does not; Save
+downloads the file, and the run changes only when you put that file in place of the run's
+own. The question is left out where nothing could be opened (a cloud session, a machine
+without a display), for a Mermaid run, and for a FigJam run, which gives its board link
+instead.
+
 ```text
 /zukai:draw clarify order approval process
 /zukai:draw scout --kind activity --scope overview the refund flow
@@ -302,6 +313,11 @@ and is refused while the first session is attached and in contact. A session out
 console (a `/zukai:revise` in another terminal) asks `labs holds <run>` before it changes a
 run and stops when a console job is working on it. That check only warns; it is not a lock,
 so do not change one run from two sessions at once.
+
+A run with a draw.io file shows **Open in draw.io** in its header, on each `.drawio` row of
+Files and in the Picture of each diagram. It opens draw.io on the web in a window of its
+own and hands it the file, as the chat's `open` does; Save downloads the file. If nothing
+opens, allow pop-ups for the console's address.
 
 The console's own words (menus, buttons, states) are English; labels, the questions of a
 job and its report are in the language they were written in. `/zukai:labs status` says

@@ -123,6 +123,29 @@ Only the folders of the targets actually emitted exist; `source/` always does.
 7. Offer the other targets in one line, in the same line the description tables when the
    run has none, and for a `drawio` run without pictures the SVG pictures for a wiki or a
    README. Do not emit or export them unless asked.
+8. Offer to open the diagram, last, once the report is shown. This step runs in every run
+   that wrote or rewrote a draw.io file: draw, revise (whatever route, an undo included),
+   recook and sync.
+   - Run `node "<skill-dir>/scripts/bin/cli.mjs" open --check <run-folder>`. It opens
+     nothing. When `can` is false, skip the question and say nothing about it: the reason
+     (a cloud session, a machine without a display or a browser opener) is not the user's
+     task.
+   - When `can` is true, ask once, with `AskUserQuestion` where the runtime has it and
+     otherwise as one line of text: "Open <run-slug>.drawio in draw.io?" The first option
+     is "Open it in draw.io desktop" when `via` is `desktop`, and "Open it on the web
+     (diagrams.net receives the diagram)" when `via` is `web`; the second is "Not now".
+     Name the file `open --check` printed as `file` when it is not the combined one.
+   - On yes, run `node "<skill-dir>/scripts/bin/cli.mjs" open <run-folder>` and pass its
+     result on in one line: draw.io desktop opened the run's own file, so a save there is a
+     hand edit the next revise reads; or the browser opened draw.io on the web, where Save
+     downloads the file and nothing changes in the run until it is put in place of the
+     run's file. On exit 1, quote its message and hint.
+   - On "Not now", or no answer, do nothing. `open` is never run without the user's yes,
+     and the question is never asked twice for one run.
+   - A FigJam run ends with its board link, which the report already gives; a Mermaid run
+     ends without the question. Neither runs `open --check`.
+   - Inside a job of the labs console the question is a card of the console, asked before
+     the job is closed (the labs skill, section "Close the job").
 
 Rules that hold in every mode:
 
@@ -385,6 +408,8 @@ the run folder and its run slug, never a new folder, and changes these steps:
   check.
 - Step 7 is skipped unless the user asks for another target, for the description tables or
   for the pictures.
+- Step 8 runs as in every run: a revision rewrote the draw.io file, so the question is
+  asked again after each delivered change, once per delivery.
 - A revision made by the revise skill does not compare the run with the code, so it does
   not record the sources of the run again: the record keeps saying which state of the code
   the run was last compared with. Two cases record one diagram alone, with

@@ -38,6 +38,11 @@ by the user's browser at run time, when the console draws a run that has no pict
 `svg/`. Neither is part of the repository or of the console's pages, and neither is
 redistributed.
 
+draw.io's embed page (`embed.diagrams.net`) is loaded by the user's browser at run time, when
+the console's Open in draw.io or the CLI's `open` shows a diagram in draw.io on the web, and
+receives the diagram by `postMessage`. It is not part of the repository, the bundle or the
+console's pages, and it is not redistributed.
+
 ## Data
 
 `skills/draw/scripts/src/aws-icons.json`, `skills/draw/references/aws-icons.md` and
