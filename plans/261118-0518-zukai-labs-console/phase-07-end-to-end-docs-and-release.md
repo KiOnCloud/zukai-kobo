@@ -1,7 +1,7 @@
 ---
 phase: 7
 title: "Phase 7: End-to-end, docs and release"
-status: todo
+status: done
 priority: P2
 effort: "1.5d"
 dependencies: [1, 2, 3, 4, 5, 6]
@@ -40,11 +40,11 @@ Places in the documents that count or list the skills:
 
 ## Requirements
 
-- [ ] Each acceptance criterion of `plan.md` is shown by a test or by a recorded step of the round.
-- [ ] The round runs on the plugin layout and on a copied install, in Claude Code and, where it can be run, in Codex.
-- [ ] High and medium findings are fixed and the step is run again.
-- [ ] The documents describe the console, the glossary, the fifth skill, the `.zukai/` folder and the limits of the console.
-- [ ] No process started by the round is left running.
+- [x] Each acceptance criterion of `plan.md` is shown by a test or by a recorded step of the round.
+- [x] The round runs on the plugin layout and on a copied install, in Claude Code and, where it can be run, in Codex.
+- [x] High and medium findings are fixed and the step is run again.
+- [x] The documents describe the console, the glossary, the fifth skill, the `.zukai/` folder and the limits of the console.
+- [x] No process started by the round is left running.
 
 ## Design
 
@@ -115,13 +115,13 @@ files produced and each finding with its level. No report quotes a token or a co
 
 ## Todo
 
-- [ ] Sample project
-- [ ] Round on the plugin layout, recorded
-- [ ] Findings fixed and steps run again
-- [ ] Round on a copied install and in Codex
-- [ ] README and docs
-- [ ] Version 2.4.0, rebuilt bundle, full suite
-- [ ] No process left
+- [x] Sample project
+- [x] Round on the plugin layout, recorded
+- [x] Findings fixed and steps run again
+- [x] Round on a copied install (Codex: not run, no session at hand)
+- [x] README and docs
+- [x] Version 2.4.0, rebuilt bundle, full suite
+- [x] No process left
 
 ## Success Criteria
 

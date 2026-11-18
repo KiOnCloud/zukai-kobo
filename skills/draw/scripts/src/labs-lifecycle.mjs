@@ -97,7 +97,7 @@ const cliEntry = () => process.argv[1];
 export async function startServer({ root: rootOption, port: portOption, idleMinutes, skipCloudCheck = false, env = process.env, onStarted } = {}) {
   const root = projectRoot(rootOption);
   if (isCloudSession(env) && !skipCloudCheck) {
-    return { code: 1, error: { code: 'cloud-session', message: 'this session runs on a cloud machine: a browser on your device cannot reach a server started here', hint: 'run /zukai:labs in a session on your own computer; --skip-cloud-check starts it anyway, for a browser on the same machine' } };
+    return { code: 1, error: { code: 'cloud-session', message: 'this session runs on a cloud machine: a browser on your device cannot reach a server started here', hint: 'run /zukai:labs (/zukai-labs in a copied install) in a session on your own computer; --skip-cloud-check starts it anyway, for a browser on the same machine' } };
   }
   const chosen = chosenPort(root, portOption);
   if (chosen.error) return { code: 1, error: { code: 'bad-request', message: chosen.error } };

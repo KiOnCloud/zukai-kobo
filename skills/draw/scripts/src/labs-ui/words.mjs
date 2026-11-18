@@ -37,4 +37,4 @@ export function agentBadge(state, now = Date.now()) {
   return { label: 'Agent attached', tone: 'neutral', dot: true };
 }
 
-export const ATTACH_HINT = 'Run /zukai:labs in an agent session on this machine to attach one. Queued jobs wait until then.';
+export const ATTACH_HINT = 'Run /zukai:labs (or /zukai-labs, $zukai-labs in a copied install) in an agent session on this machine to attach one. Queued jobs wait until then.';

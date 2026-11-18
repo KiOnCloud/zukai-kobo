@@ -21,12 +21,12 @@ const paramsOf = (state, base) => ({ ...base, to: state.to, ...(state.kind ? { k
 
 export function newDiagram({ recook = false } = {}) {
   const element = h('div', { class: 'zl-page' });
-  const state = { mode: 'clarify', request: '', source: '', to: 'drawio', doc: [], svg: false };
+  const state = { mode: '', request: '', source: '', to: 'drawio', doc: [], svg: false };
   const notice = h('div', { role: 'status' });
 
   async function submit() {
     const kind = recook ? 'recook' : 'draw';
-    const params = recook ? paramsOf(state, { source: state.source.trim() }) : paramsOf(state, { mode: state.mode, request: state.request.trim() });
+    const params = recook ? paramsOf(state, { source: state.source.trim() }) : paramsOf(state, { ...(state.mode ? { mode: state.mode } : {}), request: state.request.trim() });
     const r = await api.post('/api/jobs', { kind, params });
     if (!r.ok) {
       const lines = (r.error.errors ?? []).map((e) => e.message).join(' ');
@@ -43,7 +43,7 @@ export function newDiagram({ recook = false } = {}) {
   const fields = recook
     ? [S().Input({ label: 'Source', helper: 'A file inside the project (docs/flow.drawio, design.puml) or a FigJam board link', value: state.source, onInput: (e) => { state.source = e.target.value; } })]
     : [
-      S().Radio({ label: 'Input', name: 'mode', value: state.mode, options: [{ value: 'clarify', label: 'Requirements to clarify', description: 'A flow or feature described in words' }, { value: 'scout', label: 'Code to scout', description: 'The diagram follows the source code of this project' }, { value: 'brainstorm', label: 'An idea to brainstorm', description: 'Not yet sure which diagrams would help' }], onChange: (e) => { state.mode = e.target.value; } }),
+      S().Radio({ label: 'Input', name: 'mode', value: state.mode, options: [{ value: '', label: 'Let the agent ask', description: 'The agent asks which input you have' }, { value: 'clarify', label: 'Requirements to clarify', description: 'A flow or feature described in words' }, { value: 'scout', label: 'Code to scout', description: 'The diagram follows the source code of this project' }, { value: 'brainstorm', label: 'An idea to brainstorm', description: 'Not yet sure which diagrams would help' }], onChange: (e) => { state.mode = e.target.value; } }),
       S().Input({ label: 'Request', multiline: true, rows: 5, helper: 'At most 4000 characters', value: state.request, onInput: (e) => { state.request = e.target.value; } }),
     ];
 

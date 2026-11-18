@@ -32,6 +32,7 @@ describe('checks when a job is queued', () => {
   const ir = JSON.parse(readFileSync(join(p.root, 'diagrams', p.runs.checkout, 'source', 'checkout.ir.json'), 'utf8'));
   it.each([
     ['draw', { mode: 'clarify', request: 'a login flow', to: 'drawio', kind: 'sequence', scope: 'overview', audience: 'both', svg: true, doc: ['en', 'ja'] }],
+    ['draw', { request: 'a login flow' }],
     ['revise', { run: '20261110_checkout', request: 'add a stock check', preview: true }],
     ['restore', { run: '20261110_checkout', target: 'undo' }],
     ['restore', { run: '20261110_checkout', target: 'r001' }],
@@ -273,5 +274,19 @@ describe('records that came with a clone', () => {
     expect(exists(join(p.root, 'written.json'))).toBe(false);
     expect(jobs.list()).toHaveLength(50);
     expect(() => jobs.state()).not.toThrow();
+  });
+});
+
+describe('an agent that went away', () => {
+  it('is no longer shown as attached once it is out of contact, and a job handed out has its folder', async () => {
+    const { existsSync: exists } = await import('node:fs');
+    const { p, clock, jobs } = setup();
+    expect(await jobs.wait(S1)).toEqual({ job: null });
+    expect(jobs.state().agent.attached).toBe(true);
+    jobs.queue('sync', { run: p.runs.checkout });
+    clock.t += 61_000;
+    expect(jobs.state().agent.attached).toBe(false);
+    const { job } = await jobs.wait(S2);
+    expect(exists(job.folder)).toBe(true);
   });
 });

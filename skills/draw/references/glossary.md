@@ -60,7 +60,8 @@ node "<skill-dir>/scripts/bin/cli.mjs" glossary check <run-dir>... [--root <proj
   an original label equal to a term is not the term of its language. A warning is a term or
   an avoided word inside a longer label, or a contradiction found through a label map,
   which can be older than the IR. Exit 1 means no glossary or one that does not match its
-  schema.
+  schema. A term that is only a part of a label (most suggestions are) gives warnings, never
+  exit 2: a blocking finding needs a confirmed term equal to a whole label.
 
 ## When a skill reads it
 

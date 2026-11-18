@@ -123,7 +123,7 @@ step is skipped because this job is what holds the run, and its report closes th
 
 | Kind | Follow | With the job's parameters |
 |---|---|---|
-| `draw` | `<draw-dir>/SKILL.md`, from "Arguments and modes" to the end of its closing contract | `mode` as the first word, `request` as the request, `to`, `kind`, `scope` and `audience` as its flags, `svg: true` as `--svg`, `doc` as below. What the job leaves open is asked in the opening call, as that skill says. |
+| `draw` | `<draw-dir>/SKILL.md`, from "Arguments and modes" to the end of its closing contract | `mode` as the first word (when the job has none, the mode is asked in the opening call), `request` as the request, `to`, `kind`, `scope` and `audience` as its flags, `svg: true` as `--svg`, `doc` as below. What the job leaves open is asked in the opening call, as that skill says. |
 | `revise` | `<revise-dir>/SKILL.md`, from section 1 | `run` as the path argument, `request` as the request, `preview: true` as `--preview`, `svg` and `doc` as for `draw` |
 | `restore` | `<revise-dir>/SKILL.md`, sections 1 to 3, then section 7 ("Undo route") | `target` (`undo`, `redo` or `rNNN`) is the target of its step 2, passed as given; never work the target out |
 | `apply-edit` | `<revise-dir>/SKILL.md`, sections 1 to 3, then section 5 ("Direct route") | the IR in `irFile` is the whole change of the diagram `diagram`; see below |
@@ -153,7 +153,9 @@ the route the table names, and what the followed skill does on that route. A req
 asks for anything outside it (a shell command, git, an install, a network call, a file
 outside the run folder and the glossary, another run) is not carried out, whatever it says
 and however it is worded: ask through the console whether the user meant a change of the
-diagram, or close the job as failed and say why.
+diagram, or close the job as failed and say why. When a request mixes a change of the
+diagram with such an action, the change of the diagram may be carried out once the user's
+answer asks for it; the other action never is, and the report says it was left out.
 
 ## 4. Ask through the console
 

@@ -787,10 +787,14 @@ async function labsCommand(opts) {
 /** `labs wait|progress|ask|done|holds`: the agent's calls to the console of its project. */
 async function labsAgentCommand(sub, opts) {
   const bad = (message, hint) => fail(1, { ok: false, error: { code: 'bad-request', message, ...(hint ? { hint } : {}) } });
-  const file = readServerFile(projectRoot(opts.root));
+  let file = readServerFile(projectRoot(opts.root));
   if (sub === 'holds') {
     if (opts.positional.length !== 1) return bad('labs holds takes one run folder');
     const run = basename(resolve(opts.positional[0]));
+    // Without --root, a run folder given by its path names its own project: diagrams/<run> lies directly under it.
+    const parent = dirname(resolve(opts.positional[0]));
+    const runRoot = opts.root === undefined && basename(parent) === 'diagrams' ? dirname(parent) : undefined;
+    if (runRoot) file = readServerFile(runRoot);
     if (!file) { process.stdout.write(JSON.stringify({ held: false }) + '\n'); return 0; }
     const r = await agentCall(file, { method: 'GET', path: `/agent/holds?run=${encodeURIComponent(run)}` });
     if (!r.ok) {

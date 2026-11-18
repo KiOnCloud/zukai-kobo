@@ -104,7 +104,7 @@ describe.skipIf(pw === null)('the console in a browser', () => {
     const report = join(out.job.folder, 'report.md');
     writeFileSync(report, 'Draft A applied as r003.');
     expect((await run(['labs', 'done', out.job.id, '--session', started.session, '--result', 'done', '--report', `@${report}`, '--root', p.root])).code).toBe(0);
-    await page.getByText('Draft A applied as r003.').waitFor({ timeout: 10_000 });
+    await page.locator('summary', { hasText: 'Draft A applied as r003.' }).waitFor({ timeout: 10_000 });
     await page.close();
   }, 120_000);
 

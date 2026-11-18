@@ -55,6 +55,8 @@ describe('the job bridge through the bundle', () => {
     const waited = await run(['labs', 'wait', '--session', c.session, '--root', c.root]);
     expect(waited.out).toMatchObject({ session: c.session, job: { id, kind: 'revise', state: 'running' } });
     expect(runSync(['labs', 'holds', join(c.root, 'diagrams', c.p.runs.checkout), '--root', c.root])).toMatchObject({ code: 2, out: { held: true, job: id, kind: 'revise' } });
+    // From another working directory, the run's path names its project.
+    expect(runSync(['labs', 'holds', join(c.root, 'diagrams', c.p.runs.checkout)])).toMatchObject({ code: 2, out: { held: true, job: id } });
     expect(runSync(['labs', 'progress', id, '--session', c.session, '--message', 'drafting', '--root', c.root]).code).toBe(0);
     const asking = run(['labs', 'ask', id, '--session', c.session, '--question', c.file('q.json', Q('pick-1', 3)), '--timeout', '10', '--root', c.root]);
     let shown;

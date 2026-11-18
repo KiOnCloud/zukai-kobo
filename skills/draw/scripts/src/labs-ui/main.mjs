@@ -67,6 +67,7 @@ export function start(root = document.getElementById('app')) {
   });
 
   let lost = false;
+  let lastSignature = null;
   onForbidden(() => {
     if (lost) return;
     lost = true;
@@ -83,7 +84,9 @@ export function start(root = document.getElementById('app')) {
         const stamp = r.data.change.split('-')[1];
         store.set({ state: r.data, change: r.data.change });
         replace(agentFoot, badge(agentBadge(r.data)));
-        if (r.data.change !== before) await panel.render(r.data);
+        // Silence and the agent's coming and going change no file, so they count as a change too.
+        const signature = JSON.stringify([r.data.change, r.data.agent?.attached, r.data.agent?.waiting, r.data.jobs?.open?.silent]);
+        if (signature !== lastSignature) { lastSignature = signature; await panel.render(r.data); }
         if (before !== null && stamp !== before.split('-')[1]) view?.reload?.();
       }
     }

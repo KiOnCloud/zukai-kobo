@@ -57,6 +57,7 @@ const ROUTES = () => [
   { method: 'GET', path: `/api/runs/${p.runs.checkout}/diagrams/checkout/picture` },
   { method: 'GET', path: `/api/runs/${p.runs.checkout}/revisions/r001/changes` },
   { method: 'GET', path: `/api/runs/${p.runs.checkout}/files/${encodeURIComponent('svg/checkout.drawio.svg')}` },
+  { method: 'GET', path: `/api/runs/${p.runs.checkout}/files/${encodeURIComponent('checkout.drawio')}/view` },
   { method: 'POST', path: '/api/validate', body: { ir: IR } },
   { method: 'GET', path: '/api/glossary' },
   { method: 'POST', path: '/api/glossary/entries', body: { entries: [{ terms: { en: 'desk' } }], rev: 'stale' } },
@@ -242,5 +243,19 @@ describe('files of .zukai that came with a clone', () => {
     try { symlinkSync(target, link); } catch { return; }
     makeLogger(link)({ event: 'started' });
     expect(statSync(target).size).toBe(1024 * 1024 + 10);
+  });
+});
+
+describe('a file of a run shown in place', () => {
+  it('gives the pages of a draw.io file, the text of a small text file, and refuses anything else', async () => {
+    const run = `/api/runs/${p.runs.checkout}/files`;
+    const drawio = await raw({ path: `${run}/${encodeURIComponent('checkout.drawio')}/view` });
+    expect(drawio.json).toMatchObject({ ok: true, kind: 'drawio', more: 0 });
+    expect(drawio.json.pages[0]).toMatchObject({ name: 'Checkout' });
+    const text = await raw({ path: `${run}/${encodeURIComponent('source/checkout.sources.json')}/view` });
+    expect(text.json).toMatchObject({ ok: true, kind: 'text' });
+    expect((await raw({ path: `${run}/${encodeURIComponent('svg/checkout.drawio.svg')}/view` })).status).toBe(415);
+    expect((await raw({ path: `${run}/${encodeURIComponent('source/leak.txt')}/view` })).status).toBe(404);
+    expect((await raw({ path: `${run}/${encodeURIComponent('../20261109_login-flow/source/login-flow.ir.json')}/view` })).status).toBe(404);
   });
 });

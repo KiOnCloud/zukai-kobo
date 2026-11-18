@@ -8,6 +8,7 @@ import { h, replace, when } from '../dom.mjs';
 import { api, path } from '../api.mjs';
 import { KIND_LABEL, STATE_BADGE, REASON, agentBadge, ATTACH_HINT } from '../words.mjs';
 import { badge, textBlock } from './badge.mjs';
+import { showFileButton } from './file-view.mjs';
 
 const RECENT = 4;
 
@@ -37,7 +38,10 @@ export function createJobPanel({ store }) {
     const blocks = [];
     if (ask.body) blocks.push(textBlock(ask.body));
     for (const a of ask.attachments) {
-      if (a.kind === 'run') blocks.push(h('p', { class: 'body-sm' }, 'Attached: ', h('a', { href: `#/diagrams/${encodeURIComponent(job.run)}/files` }, h('span', { class: 'code' }, a.name))));
+      if (a.kind === 'run') {
+        const shown = h('div', {});
+        blocks.push(h('div', { class: 'zl-row' }, h('span', { class: 'body-sm' }, 'Attached: '), h('a', { href: `#/diagrams/${encodeURIComponent(job.run)}/files` }, h('span', { class: 'code' }, a.name)), showFileButton({ run: job.run, name: a.name, into: shown })), shown);
+      }
       else {
         const holder = h('div', {}, h('p', { class: 'body-sm zl-muted' }, `Loading ${a.name}`));
         blocks.push(holder);
@@ -70,9 +74,12 @@ export function createJobPanel({ store }) {
     return S().Card({ eyebrow: 'The agent asks', title: KIND_LABEL[job.kind] ?? job.kind, body: h('div', { class: 'zl-stack' }, blocks, errorLine), actions: [send] });
   }
 
+  /** A report folded to its first line; the whole text opens on demand. */
+  const reportBlock = (report) => h('details', {}, h('summary', { class: 'body-sm' }, report.split('\n').find((l) => l.trim()) ?? 'Report'), textBlock(report));
+
   function failedLines(job) {
     const lines = [h('p', { class: 'body-sm' }, REASON[job.reason] ?? 'This job failed.')];
-    if (job.report) lines.push(textBlock(job.report));
+    if (job.report) lines.push(reportBlock(job.report));
     if (job.run && job.revisionsSince?.length) {
       const first = job.revisionsSince[0];
       lines.push(h('p', { class: 'body-sm' }, `Revisions written while this job ran: ${job.revisionsSince.join(', ')}`));
@@ -126,7 +133,7 @@ export function createJobPanel({ store }) {
         return h('li', { class: 'zl-closed' },
           h('div', { class: 'zl-row' }, h('span', { class: 'label' }, KIND_LABEL[job.kind] ?? job.kind), badge(STATE_BADGE[job.state])),
           h('p', { class: 'caption zl-muted' }, when(job.finishedAt)),
-          job.state === 'failed' ? failedLines(job) : job.report ? textBlock(job.report) : null);
+          job.state === 'failed' ? failedLines(job) : job.report ? reportBlock(job.report) : null);
       }));
       sections.push(h('section', { class: 'zl-rail-section' }, h('h2', { class: 'heading-sm' }, 'Recent jobs'), h('ul', { class: 'zl-list' }, items)));
     }

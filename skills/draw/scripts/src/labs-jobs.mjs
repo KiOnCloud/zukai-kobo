@@ -65,7 +65,7 @@ function kindSpecs(ctx) {
   const langs = (v) => (Array.isArray(v) && v.length > 0 && v.every((x) => DOC_LANGS.includes(x)) && new Set(v).size === v.length) || `is a list of ${DOC_LANGS.join(', ')}`;
   const drawOptions = { to: oneOf(DRAW_TARGETS), kind: oneOf(KINDS), scope: oneOf(SCOPES), audience: oneOf(AUDIENCES), svg: bool, doc: langs };
   return {
-    draw: { required: { mode: oneOf(MODES), request }, optional: drawOptions },
+    draw: { required: { request }, optional: { mode: oneOf(MODES), ...drawOptions } },
     revise: { required: { run, request }, optional: { preview: bool, svg: bool, doc: langs } },
     restore: { required: { run, target: (v, p) => v === 'undo' || v === 'redo' || (REV_RE.test(v) && ctx.revisions(p.run).includes(v)) || 'is undo, redo or a revision of the run' } },
     'apply-edit': { required: { run, diagram: (v, p) => ctx.diagrams(p.run).includes(v) || 'is not a diagram of the run', baseRev: (v) => (typeof v === 'string' && HEX64.test(v)) || 'is the rev the IR was loaded with', ir: (v) => { const r = validateIr(v); return r.ok || { message: 'the edited IR does not pass validation', errors: r.errors }; } } },
@@ -309,6 +309,7 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
     const next = queued()[0];
     const waiter = waiters.find((w) => w.session === session?.id);
     if (!next || !waiter) return;
+    mkdirSync(folderOf(next.id), { recursive: true });
     move(next, 'running', { startedAt: iso(), session: waiter.session });
     waiter.settle({ job: forAgent(next) });
   }
@@ -345,6 +346,7 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
     if (open && open.session === id) closeOpen(open, 'not-closed');
     const ready = !openJob() && queued()[0];
     if (ready) {
+      mkdirSync(folderOf(ready.id), { recursive: true });
       move(ready, 'running', { startedAt: iso(), session: id });
       return { job: forAgent(ready) };
     }
@@ -502,7 +504,8 @@ export function createJobs({ root: rootOption, now = Date.now, holdMs = 9 * 60_0
   function state() {
     const open = openJob();
     return {
-      agent: { attached: Boolean(session), waiting: Boolean(session && waiters.some((w) => w.session === session.id)), lastContact: session ? new Date(session.lastContact).toISOString() : null },
+      // A session out of contact is no longer shown as attached: its agent has gone.
+      agent: { attached: Boolean(session) && inContact(session), waiting: Boolean(session && waiters.some((w) => w.session === session.id)), lastContact: session ? new Date(session.lastContact).toISOString() : null },
       jobs: { queued: queued().length, queue: queued().map(summary), open: open ? { ...summary(open), silent: silent(open), ask: open.ask ? { id: open.ask.id } : null } : null },
     };
   }

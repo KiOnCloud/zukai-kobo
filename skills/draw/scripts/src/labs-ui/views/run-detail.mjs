@@ -120,7 +120,7 @@ export function runDetail({ store, run, tab = 'picture', extraTabs = {} }) {
       { key: 'size', label: 'Size', numeric: true, render: (f) => size(f.size) },
       { key: 'modified', label: 'Changed', muted: true, render: (f) => when(f.modified) },
       { key: 'actions', label: 'Actions', render: (f) => h('div', { class: 'zl-row' },
-        S().Button({ label: `Copy the path of ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'edit', onClick: () => navigator.clipboard?.writeText(`diagrams/${run}/${f.name}`) }),
+        S().Button({ label: `Copy the path of ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'edit', onClick: () => navigator.clipboard?.writeText(`diagrams/${run}/${f.name}`).catch(() => replace(notice, S().Alert({ tone: 'warning', body: `The browser did not allow copying. The path is diagrams/${run}/${f.name}.` }))) }),
         S().Button({ label: `Download ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'download', onClick: () => download(f.name) })) },
     ];
     replace(panel, S().Table({ columns, rows: detail.files, caption: `Files of diagrams/${run}` }));

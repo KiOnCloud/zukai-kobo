@@ -26,7 +26,7 @@ import { validateIr } from './validate-ir.mjs';
 import { inspect, DOC_LANGS } from './pipeline.mjs';
 import { labelsOf } from './ir-labels.mjs';
 import { readGlossary, writeGlossary, addEntries, checkRuns, checkGlossary, STATUSES, newEntryErrors, projectRoot } from './glossary.mjs';
-import { listRuns, runNames, runPath, runDetail, diagramIds, diagramDetail, runDoc, revisionNames, changesSince, filePath, diagramsDir, diagramPicture } from './labs-runs.mjs';
+import { listRuns, runNames, runPath, runDetail, diagramIds, diagramDetail, runDoc, revisionNames, changesSince, filePath, diagramsDir, diagramPicture, fileView } from './labs-runs.mjs';
 
 export const APP = 'zukai-labs';
 export const MAX_BODY = 1024 * 1024;
@@ -247,6 +247,13 @@ export function createLabsServer(options) {
       const path = filePath(root, run, params.name);
       if (!path) throw notFound();
       return { raw: readFileSync(path), type: typeOf(params.name), name: basename(params.name) };
+    }],
+    ['GET', '/api/runs/:run/files/:name/view', ({ params }) => {
+      const run = runOf(params);
+      const view = fileView(root, run, params.name);
+      if (!view) throw notFound();
+      if (!view.ok) throw new HttpError(415, 'media-type', view.errors[0].message);
+      return { body: view };
     }],
     ['POST', '/api/validate', ({ req }) => {
       const ir = body(req).ir;

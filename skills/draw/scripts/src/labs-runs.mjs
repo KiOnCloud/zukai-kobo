@@ -253,3 +253,27 @@ export async function diagramPicture(root, run, id) {
   if (!r.ok) return { ok: false, errors: r.errors };
   return { ok: true, kind: 'drawio', from: `source/${id}.ir.json`, text: cleanForViewer(r.output) };
 }
+
+const TEXT_VIEW_MAX = 200 * 1024;
+
+/**
+ * A listed file of a run as the console shows it in place: each page of a draw.io file (a
+ * draft's combined file, the picture of a change) cleaned for the viewer frame, a Mermaid text
+ * for the frame, or a small text file as text. Anything else is only downloaded.
+ */
+export function fileView(root, run, name) {
+  const path = filePath(root, run, name);
+  if (!path) return undefined;
+  const lower = name.toLowerCase();
+  if (lower.endsWith('.drawio')) {
+    const pages = drawioPages(readFileSync(path, 'utf8'));
+    if (pages.error) return { ok: false, errors: [{ path: '/', message: pages.error }] };
+    return { ok: true, kind: 'drawio', pages: pages.pages.slice(0, 12).map((p) => ({ name: p.name, text: cleanForViewer(p.xml) })), more: Math.max(0, pages.pages.length - 12) };
+  }
+  if (lower.endsWith('.mmd')) return { ok: true, kind: 'mermaid', text: readFileSync(path, 'utf8') };
+  if (/\.(md|json|txt)$/.test(lower)) {
+    const bytes = readFileSync(path);
+    return { ok: true, kind: 'text', text: bytes.subarray(0, TEXT_VIEW_MAX).toString('utf8'), cut: bytes.length > TEXT_VIEW_MAX };
+  }
+  return { ok: false, errors: [{ path: '/', message: 'this kind of file is only downloaded' }] };
+}

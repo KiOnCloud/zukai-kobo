@@ -1,7 +1,7 @@
 ---
 title: "Zukai Labs: local console, agent job bridge and project glossary"
 description: "A fifth skill, /zukai:labs, serves a console on 127.0.0.1 to browse runs, queue changes for the attached agent and manage a project glossary of preferred terms per language."
-status: in-progress
+status: completed
 priority: P1
 effort: 14.5d
 branch: claude/wizardly-babbage-o4mmey
@@ -88,7 +88,7 @@ adversarial reviewers and revised (see Red Team Review).
 | 4 | [Console shell, runs and jobs](./phase-04-console-shell-runs-and-jobs.md) | 2.5d | 2, 3 | Done |
 | 5 | [Viewer, model editor and Glossary section](./phase-05-viewer-model-editor-and-glossary.md) | 2.5d | 4 | Done |
 | 6 | [Labs skill and distribution](./phase-06-labs-skill-and-distribution.md) | 1.5d | 3 | Done |
-| 7 | [End-to-end, docs and release](./phase-07-end-to-end-docs-and-release.md) | 1.5d | 1 to 6 | Pending |
+| 7 | [End-to-end, docs and release](./phase-07-end-to-end-docs-and-release.md) | 1.5d | 1 to 6 | Done |
 
 Phase 6 touches no file of phases 4 and 5 and can run beside them once phase 3 is merged.
 Phase 1 can be released alone; whether it is, is decided when it is merged.
@@ -282,5 +282,19 @@ registry or loader is added, as the Extension rule of `docs/architecture.md` has
 - Decision deltas checked: 4 (design system; content policy; fonts and their budget; effort 14d to 14.5d)
 - Reconciled stale references: 3 (the policy text of phase 2, the file count, the effort of phase 4 in the table)
 - Unresolved contradictions: 0
+
+
+
+## Outcome — 2026-11-18
+
+Released as 2.4.0 on the working branch. The round is recorded in
+`plans/reports/e2e-261118-labs.md`: acceptance criteria 1 to 5, 7 and 8 passed as run;
+criterion 6 failed in part (the console kept saying "Agent attached" after the agent left,
+and an open page showed a silent job only after a reload) and was fixed with the other
+findings of the round; the table "Resolution" of the report lists each. An independent
+code review found that files under `.zukai/`, which can come with a clone, were trusted (a
+forged job id could reach a recursive delete outside the project); fixed in 0b08276. Not
+run: Codex (no session), the plugin layout (the copied install was run). Open for the user:
+open question 4, a sans family in Sienna that covers Vietnamese and Japanese.
 
 <!-- slug: zukai-labs-console -->
