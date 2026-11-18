@@ -27,8 +27,8 @@ sub-flow (payment, notification, retry) into one step, record in `meta.notes` wh
 and lift any decisive rule of that sub-flow into the main diagram. Under `detailed` draft the
 main diagram first, then one sub-diagram per sub-flow worth its own picture, and set `ref` on
 the main diagram's collapsed element to the part's slug: the step of a flowchart or activity
-diagram, the message of a sequence diagram, the state, component, class or entity of the
-other kinds (`ir-reference.md` lists the field per kind).
+diagram, the message of a sequence diagram, the state, component, class, entity or use case
+of the other kinds (`ir-reference.md` lists the field per kind).
 
 ## Choosing the kind
 
@@ -45,6 +45,7 @@ that question, never to choose silently:
 | classes, interfaces, inheritance, modules and their relations | `class` |
 | services, databases, queues, deployment units, network boundaries, external systems | `architecture` |
 | who does which step, hand-offs between teams or systems, parallel work, swimlanes | `activity` |
+| who uses the system and what for, roles, goals, features per role, scope of a system | `usecase` |
 
 ## Question bank
 
@@ -81,7 +82,7 @@ when the request hints at them.
 |---|---|---|
 | subject | What is the thing that has states (an order, a ticket, a session)? | from request |
 | states | List every state it can be in. | none; required |
-| initial and final | Which state does it start in, and which states are terminal? | first listed, last listed |
+| initial and final | Which state does it start in, and which states are terminal? A terminal state keeps its name: it is drawn as an ordinary state with a transition to the unlabelled end circle (`ir-reference.md`, state) | first listed, last listed |
 | transitions | For each transition: from, to, the event that triggers it, and any condition. | none; required |
 | actions (optional) | Does any transition perform a side effect worth naming? | none |
 | composites (optional) | Does any state contain sub-states with their own flow? | none |
@@ -109,10 +110,10 @@ when the request hints at them.
 | Slot | Question | Default |
 |---|---|---|
 | components | Which deployable units, data stores, queues, caches, clients and external systems exist? One component per deployed resource: do not ask for, or draw, the tables of a database or the endpoints of a service (`ir-reference.md`, Level of detail) | none; required |
-| boundaries | How are they grouped (cloud account, VPC, region, team, on-premise)? | no boundaries |
+| boundaries | How are they grouped (cloud account, VPC, region, team, on-premise)? | no boundaries; a system said to run on AWS or Google Cloud still gets that cloud's outermost frame (see "Cloud icons") |
 | connections | Which component talks to which, over what (HTTPS, SQL, queue, gRPC)? Write each the way the request or message moves (`ir-reference.md`, architecture): producer to queue, queue to consumer. The label is the protocol, the port or the infrastructure purpose, not an endpoint, a job or a field | none; required |
 | direction | Is any connection two-way? | all one-way |
-| AWS icons (optional) | Does it run on AWS, and which AWS service is each component (Lambda, ECS, RDS, SQS)? Which boundaries are an account, region, VPC, Availability Zone or subnet? | asked only when AWS is mentioned or the stack is unknown and the target is drawio; AWS services named in the request get their icon without asking, and each system outside AWS gets a general resource or its product logo (`SKILL.md`, AWS icons) |
+| Cloud icons (optional) | Does it run on AWS or on Google Cloud (or both)? Which service is each component (AWS: Lambda, ECS, RDS, SQS; Google Cloud: Cloud Run, GKE, Cloud SQL, Pub/Sub)? Which boundaries are an account or project, region, VPC or VPC network, Availability Zone or zone, subnet? | asked only when AWS or Google Cloud is mentioned or the stack is unknown and the target is drawio; services named in the request get their icon without asking, and each system outside the cloud gets a general resource, a resource figure or its product logo (`SKILL.md`, AWS icons and GCP icons). When the user names the cloud and does not know the region or the network ("somewhere in Europe", "whatever is normal"), do not ask again and do not invent one: draw the provider's outermost frame (`aws:aws_cloud`, `gcp:google_cloud`, or the account or project when one is named) and nothing inside it, add a region or network frame only for what the user stated, and record what was left open as one `assumed:` entry in `meta.notes` ("assumed: region and network not decided, no region or VPC frame drawn") |
 | scope (optional) | Current state or target state? | current state; recorded in `meta.notes` |
 
 ### activity
@@ -130,6 +131,37 @@ when the request hints at them.
 Draw.io is the primary target for activity diagrams. Mermaid renders them with the beta
 `swimlane-beta` syntax (or a plain flowchart with `--mermaid-stable`), and FigJam does not
 support them; say so when the user asks for those targets.
+
+### usecase
+
+| Slot | Question | Default |
+|---|---|---|
+| actors | Who uses the system? List the roles (not people's names), and the outside systems that take part. | none; required |
+| goals | What does each actor come to the system to get done? One goal each, as a verb phrase ("Borrow a book"). | none; required |
+| system boundary | What is the system called, and is it one system or several subsystems with their own use cases? | one boundary named after the subject of the request |
+| supporting actors | Which outside systems or roles does the system call on to finish a goal (a payment provider, a mail service), and for which goals? | none |
+| shared behaviour | Is there something several goals always do as a part of them (signing in, checking a card)? | none |
+| optional behaviour | Is there something that happens only sometimes on top of a goal? Under what condition? | none |
+| kinds of actor or goal (optional) | Is one role a special kind of another (a registered customer is a customer), or one goal a special way of doing another (pay by card)? | none |
+
+An answer that lists steps ("opens the page, scans the card, confirms") or screens is one
+goal: name the goal, and keep the steps for a part under the scope `detailed` (`ref` on the
+use case, a part of kind `activity`, `sequence` or `flowchart`) or, under `overview`, for
+`meta.notes`. Ask for the goal when only steps were given ("What is the member trying to
+get done with these steps?"). Shared behaviour becomes `include`, optional behaviour
+`extend` with its condition, a special kind `generalization`.
+
+Under `detailed`, ask which goals deserve a part (default: the one or two the request
+dwells on, never all of them) and take the steps of each in the same round. The kind of
+such a part is not asked: `activity` when the actor and the system (or several actors) take
+turns, which is the usual case, `flowchart` when one party does every step, `sequence` when
+the user describes calls between systems. The draft says which kind each part got, and the
+part's title is the label of its use case.
+
+Draw.io is the primary target for use case diagrams. Mermaid has no use case diagram: the
+CLI writes a flowchart and warns for what is lost. FigJam's `generate_diagram` does not
+take one either; the board is drawn with `emit --native`. Say so when the user asks for
+those targets.
 
 ## Draft and closing
 

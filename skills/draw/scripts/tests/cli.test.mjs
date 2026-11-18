@@ -68,7 +68,9 @@ describe('cli (committed bundle, run from a different working directory)', () =>
     expect(told.native).toEqual([join(otherCwd, 'nat', 'order.native.js')]);
     // generate_diagram rejects a class diagram, so no Mermaid text is written, and the output says so.
     expect(told.out).toBeNull();
-    expect(told.text).toContain('not written: kind "class" is unsupported');
+    expect(told.text).toContain('not written: there is no Mermaid text for a class diagram on FigJam');
+    // The option that was just used is not offered as the way out.
+    expect(told.text).not.toContain('emit --native');
     expect(existsSync(join(otherCwd, 'nat', 'order.mmd'))).toBe(false);
     const script = readFileSync(join(otherCwd, 'nat', 'order.native.js'), 'utf8');
     expect(script).toContain('"title":"Order domain"');

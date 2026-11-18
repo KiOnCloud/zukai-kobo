@@ -79,6 +79,7 @@ describe('extractMermaid on every emitted fixture', () => {
       expect(page.warnings).toEqual([]);
 
       // An architecture the grid planner cannot place is emitted as a flowchart on purpose.
+      // A use case diagram is a flowchart too, and is read back by its «actor» boxes and stereotypes.
       const expected = ir.kind === 'architecture' && /^flowchart /m.test(r.output) ? 'flowchart' : ir.kind;
       expect(page.kindHints).toHaveLength(1);
       expect(page.kindHints[0]).toMatchObject({ kind: expected, score: 100 });
@@ -307,6 +308,15 @@ describe('extractMermaid on hand-written Mermaid', () => {
     expect(p.edges[3]).toMatchObject({ dashed: true, endArrow: 'block' });
     expect(p.edges[4].endArrow).toBe('none');
     expect(p.edges[0].dashed).toBeUndefined();
+  });
+
+  it('a filled circle: the start node when nothing comes in and something goes out, else a junction', () => {
+    const p = only('swimlane-beta TB\n  subgraph l1["Desk"]\n    s@{ shape: f-circ }\n    a["Check in"]\n    b["Pay"]\n    j@{ shape: filled-circle }\n    c["Leave"]\n  end\n  s --> a\n  a --> j\n  b --> j\n  j --> c\n  o@{ shape: f-circ }\n');
+    expect(byId(p, 's')).toMatchObject({ shape: 'initial', label: '' });
+    expect(byId(p, 'j')).toMatchObject({ shape: 'bar', label: '' });
+    // One that nothing joins is no start either.
+    expect(byId(p, 'o').shape).toBe('bar');
+    for (const n of p.nodes) expect(n.dot, n.id).toBeUndefined();
   });
 
   it('sequence: actors, aliases, alt/else frame, note over two participants, arrow kinds and order', () => {

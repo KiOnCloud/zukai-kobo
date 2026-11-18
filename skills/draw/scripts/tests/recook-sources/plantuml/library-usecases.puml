@@ -1,0 +1,29 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+title Library system
+
+actor Member
+actor :Librarian: as Lib
+actor "Payment gateway" as Pay <<system>>
+
+rectangle "Library system" {
+  (Search the catalogue) as Search
+  usecase "Borrow a book" as Borrow
+  usecase Return as "Return a book"
+  usecase (Pay a late fee) as Fee
+  (Check membership)
+  usecase "Manage the catalogue" as Manage
+}
+
+Member --> Search
+Member --> Borrow
+Member --> Return
+Lib --> Manage
+Lib -up-|> Member
+Borrow ..> (Check membership) : <<include>>
+Fee .> Return : <<extend>>
+Fee --> Pay
+(Reserve a book) --|> Borrow
+note right of Fee : Only when the book is overdue
+@enduml

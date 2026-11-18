@@ -1,0 +1,231 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="booking-api-on-gke" name="Booking API on GKE">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="booking-api-on-gke:region" value="asia-northeast1 (Tokyo)" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#ECEFF1;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry x="264" y="182" width="1505" height="967" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:vpc" value="VPC network" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#E3F2FD;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="booking-api-on-gke:region">
+          <mxGeometry x="262" y="292" width="711" height="311" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:proxy" value="Proxy-only subnet" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#EDE7F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="booking-api-on-gke:vpc">
+          <mxGeometry x="22" y="42" width="132" height="166" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:private" value="GKE subnet" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#EDE7F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=78;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="booking-api-on-gke:vpc">
+          <mxGeometry x="407" y="133" width="282" height="166" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:browser" value="Staff browser" style="shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=79;" vertex="1" parent="1">
+          <mxGeometry x="66" y="571" width="54" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:lb" value="Application Load Balancer (HTTPS)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_load_balancing;labelWidth=107;" vertex="1" parent="booking-api-on-gke:proxy">
+          <mxGeometry x="27" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:api" value="Booking API (GKE Autopilot, 2 pods)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.container_engine;labelWidth=107;" vertex="1" parent="booking-api-on-gke:private">
+          <mxGeometry x="27" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:registry" value="Artifact Registry (API image)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.container_registry;labelWidth=160;" vertex="1" parent="booking-api-on-gke:region">
+          <mxGeometry x="53" y="500" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:lb_logs" value="Cloud Storage load balancer logs" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_storage;labelWidth=106;" vertex="1" parent="booking-api-on-gke:region">
+          <mxGeometry x="1134" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:keys" value="Cloud KMS" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.key_management_service;labelWidth=69;" vertex="1" parent="booking-api-on-gke:region">
+          <mxGeometry x="1374" y="315" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:tables" value="Firestore (9 collections)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_firestore;labelWidth=133;" vertex="1" parent="booking-api-on-gke:region">
+          <mxGeometry x="1134" y="859" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:files" value="Cloud Storage attachments" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_storage;labelWidth=154;" vertex="1" parent="booking-api-on-gke:region">
+          <mxGeometry x="1374" y="169" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:jobs" value="Cloud Tasks reminders" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_tasks;labelWidth=132;" vertex="1" parent="booking-api-on-gke:region">
+          <mxGeometry x="1374" y="461" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:events" value="Pub/Sub booking events" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_pubsub;labelWidth=139;" vertex="1" parent="booking-api-on-gke:region">
+          <mxGeometry x="1374" y="608" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:logs" value="Cloud Logging (30 days)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.logging;labelWidth=139;" vertex="1" parent="booking-api-on-gke:region">
+          <mxGeometry x="1374" y="754" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:idp" value="Identity provider" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#757575;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.application;labelWidth=94;" vertex="1" parent="1">
+          <mxGeometry x="970.5" y="1213" width="57" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:realtime" value="Firebase Realtime Database" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#FFA000;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.firebase;labelWidth=161;" vertex="1" parent="1">
+          <mxGeometry x="971" y="12" width="56" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:records" value="Hospital records system" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#757575;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.application_system;labelWidth=137;" vertex="1" parent="1">
+          <mxGeometry x="1911.5" y="735" width="57" height="57" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:browser" target="booking-api-on-gke:lb">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c1:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-api-on-gke:c1">
+          <mxGeometry x="0.21" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:lb" target="booking-api-on-gke:api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="715" y="604"/>
+              <mxPoint x="715" y="672"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c2:label" value="HTTP :8080" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E3F2FD;" vertex="1" connectable="0" parent="booking-api-on-gke:c2">
+          <mxGeometry x="0.18" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.507;exitDx=0;exitDy=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:registry" target="booking-api-on-gke:api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="868" y="717"/>
+              <mxPoint x="868" y="695"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c3:label" value="pull image" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E3F2FD;" vertex="1" connectable="0" parent="booking-api-on-gke:c3">
+          <mxGeometry x="0.03" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.333;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:lb" target="booking-api-on-gke:lb_logs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1272" y="581"/>
+              <mxPoint x="1272" y="259"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c4:label" value="access logs" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E3F2FD;" vertex="1" connectable="0" parent="booking-api-on-gke:c4">
+          <mxGeometry x="-0.43" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.246;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:api" target="booking-api-on-gke:keys">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1178" y="666"/>
+              <mxPoint x="1178" y="668"/>
+              <mxPoint x="1312" y="668"/>
+              <mxPoint x="1312" y="532"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c5:label" value="decrypt at start" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-api-on-gke:c5">
+          <mxGeometry x="0.46" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.87;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:api" target="booking-api-on-gke:tables">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1078" y="709"/>
+              <mxPoint x="1078" y="718"/>
+              <mxPoint x="1272" y="718"/>
+              <mxPoint x="1272" y="1076"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c6:label" value="read / write" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-api-on-gke:c6">
+          <mxGeometry x="0.16" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.13;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:api" target="booking-api-on-gke:files">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1292" y="658"/>
+              <mxPoint x="1292" y="386"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c7:label" value="store files" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-api-on-gke:c7">
+          <mxGeometry x="0.54" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.377;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:api" target="booking-api-on-gke:jobs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1158" y="675"/>
+              <mxPoint x="1158" y="678"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c8:label" value="reminder due" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-api-on-gke:c8">
+          <mxGeometry x="0.33" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.623;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:api" target="booking-api-on-gke:events">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1118" y="692"/>
+              <mxPoint x="1118" y="698"/>
+              <mxPoint x="1312" y="698"/>
+              <mxPoint x="1312" y="825"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c9:label" value="publish" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-api-on-gke:c9">
+          <mxGeometry x="0.45" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.754;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:api" target="booking-api-on-gke:logs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1098" y="701"/>
+              <mxPoint x="1098" y="708"/>
+              <mxPoint x="1292" y="708"/>
+              <mxPoint x="1292" y="971"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c10:label" value="JSON logs" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-api-on-gke:c10">
+          <mxGeometry x="0.54" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=43;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:api" target="booking-api-on-gke:idp">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c11:label" value="verify token" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-gke:c11">
+          <mxGeometry x="0.86" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=28;entryPerimeter=0;" edge="1" parent="1" source="booking-api-on-gke:api" target="booking-api-on-gke:realtime">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c12:label" value="publish version" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-api-on-gke:c12">
+          <mxGeometry x="0.88" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.507;exitDx=0;exitDy=0;entryX=0;entryY=0.509;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-api-on-gke:api" target="booking-api-on-gke:records">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1138" y="684"/>
+              <mxPoint x="1138" y="688"/>
+              <mxPoint x="1332" y="688"/>
+              <mxPoint x="1332" y="764"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-api-on-gke:c13:label" value="fetch records" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-api-on-gke:c13">
+          <mxGeometry x="0.24" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

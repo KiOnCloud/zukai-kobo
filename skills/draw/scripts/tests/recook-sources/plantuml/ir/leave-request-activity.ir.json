@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "kind": "activity",
+  "title": "Leave request",
+  "lanes": [
+    {
+      "id": "employee",
+      "label": "Employee"
+    },
+    {
+      "id": "manager",
+      "label": "Manager"
+    },
+    {
+      "id": "hr",
+      "label": "HR system"
+    }
+  ],
+  "actions": [
+    {
+      "id": "fill",
+      "label": "Fill in the leave form",
+      "lane": "employee"
+    },
+    {
+      "id": "review",
+      "label": "Review the request",
+      "lane": "manager"
+    },
+    {
+      "id": "approve",
+      "label": "Approve",
+      "lane": "manager"
+    },
+    {
+      "id": "propose",
+      "label": "Propose new dates",
+      "lane": "employee"
+    },
+    {
+      "id": "approve-changed",
+      "label": "Approve changed dates",
+      "lane": "manager"
+    },
+    {
+      "id": "reject",
+      "label": "Reject with a reason",
+      "lane": "manager"
+    },
+    {
+      "id": "read-rejection",
+      "label": "Read the rejection",
+      "lane": "employee"
+    },
+    {
+      "id": "balance",
+      "label": "Update the leave balance",
+      "lane": "hr"
+    },
+    {
+      "id": "calendar",
+      "label": "Block the dates in the team calendar",
+      "lane": "hr"
+    },
+    {
+      "id": "wait",
+      "label": "Wait for the next run",
+      "lane": "hr"
+    },
+    {
+      "id": "recalculate",
+      "label": "Recalculate salary",
+      "lane": "hr"
+    },
+    {
+      "id": "confirmation",
+      "label": "Receive confirmation",
+      "lane": "employee"
+    }
+  ],
+  "controls": [
+    {
+      "id": "start",
+      "kind": "initial",
+      "lane": "employee"
+    },
+    {
+      "id": "coverage",
+      "kind": "decision",
+      "label": "Team coverage ok?",
+      "lane": "manager"
+    },
+    {
+      "id": "movable",
+      "kind": "decision",
+      "label": "Can dates move?",
+      "lane": "manager"
+    },
+    {
+      "id": "rejected",
+      "kind": "final",
+      "lane": "employee"
+    },
+    {
+      "id": "approved",
+      "kind": "merge",
+      "lane": "hr"
+    },
+    {
+      "id": "fork",
+      "kind": "fork",
+      "lane": "hr"
+    },
+    {
+      "id": "join",
+      "kind": "join",
+      "lane": "hr"
+    },
+    {
+      "id": "payroll-open",
+      "kind": "decision",
+      "label": "Payroll run open?",
+      "lane": "hr"
+    },
+    {
+      "id": "more-months",
+      "kind": "decision",
+      "label": "More months affected?",
+      "lane": "hr"
+    },
+    {
+      "id": "done",
+      "kind": "final",
+      "lane": "employee"
+    }
+  ],
+  "flows": [
+    {
+      "id": "e1",
+      "from": "start",
+      "to": "fill"
+    },
+    {
+      "id": "e2",
+      "from": "fill",
+      "to": "review",
+      "guard": "submitted"
+    },
+    {
+      "id": "e3",
+      "from": "review",
+      "to": "coverage"
+    },
+    {
+      "id": "e4",
+      "from": "coverage",
+      "to": "approve",
+      "guard": "yes"
+    },
+    {
+      "id": "e5",
+      "from": "coverage",
+      "to": "movable"
+    },
+    {
+      "id": "e6",
+      "from": "movable",
+      "to": "propose",
+      "guard": "yes"
+    },
+    {
+      "id": "e7",
+      "from": "propose",
+      "to": "approve-changed"
+    },
+    {
+      "id": "e8",
+      "from": "movable",
+      "to": "reject",
+      "guard": "no"
+    },
+    {
+      "id": "e9",
+      "from": "reject",
+      "to": "read-rejection"
+    },
+    {
+      "id": "e10",
+      "from": "read-rejection",
+      "to": "rejected"
+    },
+    {
+      "id": "e11",
+      "from": "approve",
+      "to": "approved"
+    },
+    {
+      "id": "e12",
+      "from": "approve-changed",
+      "to": "approved"
+    },
+    {
+      "id": "e12b",
+      "from": "approved",
+      "to": "fork"
+    },
+    {
+      "id": "e13",
+      "from": "fork",
+      "to": "balance"
+    },
+    {
+      "id": "e14",
+      "from": "fork",
+      "to": "calendar"
+    },
+    {
+      "id": "e15",
+      "from": "balance",
+      "to": "join"
+    },
+    {
+      "id": "e16",
+      "from": "calendar",
+      "to": "join"
+    },
+    {
+      "id": "e17",
+      "from": "join",
+      "to": "payroll-open"
+    },
+    {
+      "id": "e18",
+      "from": "payroll-open",
+      "to": "wait",
+      "guard": "yes"
+    },
+    {
+      "id": "e19",
+      "from": "wait",
+      "to": "payroll-open"
+    },
+    {
+      "id": "e20",
+      "from": "payroll-open",
+      "to": "recalculate",
+      "guard": "no"
+    },
+    {
+      "id": "e21",
+      "from": "recalculate",
+      "to": "more-months"
+    },
+    {
+      "id": "e22",
+      "from": "more-months",
+      "to": "recalculate",
+      "guard": "yes"
+    },
+    {
+      "id": "e23",
+      "from": "more-months",
+      "to": "confirmation",
+      "guard": "no"
+    },
+    {
+      "id": "e24",
+      "from": "confirmation",
+      "to": "done"
+    }
+  ],
+  "meta": {
+    "source": "recook",
+    "notes": [
+      "recooked from leave-request-activity.puml, page \"Leave request\"",
+      "added: merge before the fork (the two approvals rejoin there)"
+    ],
+    "omitted": [
+      "\"Within 2 working days\": note beside Review the request; an activity diagram has no notes",
+      "\"Payroll\": partition around the salary loop; lanes are the only grouping"
+    ]
+  }
+}

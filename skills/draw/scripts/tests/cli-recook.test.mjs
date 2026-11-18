@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { scriptsDir } from './helpers.mjs';
+import { scriptsDir, scriptData } from './helpers.mjs';
 
 const cli = join(scriptsDir, 'bin', 'cli.mjs');
 const sources = join(scriptsDir, 'tests', 'recook-sources');
@@ -75,7 +75,7 @@ describe('cli recook commands (committed bundle)', () => {
     expect(r.json).toMatchObject({ ok: true, script: 'tmp/read-board.js', section: 'Checkout' });
     const script = readFileSync(join(cwd, 'tmp', 'read-board.js'), 'utf8');
     expect(script).toMatch(/Changes nothing on the board/);
-    expect(script).toContain('const SECTION = "Checkout";');
+    expect(scriptData(script).section).toBe('Checkout');
     expect(script).not.toMatch(/figma\.create|\.remove\(|appendChild/);
     expect(run(['extract', 'x.drawio', '--figjam-script', 'tmp/a.js']).code).toBe(1);
     expect(run(['extract', join(sources, 'hand-flowchart.drawio'), '--section', 'A']).code).toBe(1);

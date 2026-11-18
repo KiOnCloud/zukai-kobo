@@ -16,11 +16,9 @@
  * it back, because its id was never accepted.
  */
 
-import { awsIcon } from './aws-icons.mjs';
+import { isStoreIcon } from './aws-icons.mjs';
 
 const STORE_KINDS = new Set(['database', 'cache', 'queue']);
-/** The AWS icon categories that draw a store, whatever the `kind` of the component. */
-const STORE_ICON_CATEGORIES = new Set(['Databases', 'Storage']);
 /** How many components of one kind, used by one component alone, read as the parts of one resource. */
 const PARTS_MIN = 3;
 
@@ -53,8 +51,8 @@ const CAMEL_CASE = /(?:^|[^A-Za-z])[a-z]{2,}[A-Z][a-z]+/;
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const list = (ir, key) => (Array.isArray(ir[key]) ? ir[key].filter(isObj) : []);
 const quoted = (ids) => ids.map((id) => `"${id}"`).join(', ');
-const iconCategory = (c) => (typeof c.icon === 'string' ? awsIcon(c.icon)?.category : undefined);
-const isStore = (c) => STORE_KINDS.has(c.kind ?? 'service') || STORE_ICON_CATEGORIES.has(iconCategory(c));
+/** A store by its kind, or by an icon of a category that draws one (a database or storage service of AWS or GCP). */
+const isStore = (c) => STORE_KINDS.has(c.kind ?? 'service') || isStoreIcon(c.icon);
 const ACCEPTED = /^\s*detail accepted:/i;
 
 /**
@@ -71,7 +69,7 @@ export function checkDetail(ir) {
   const byId = new Map(components.map((c) => [c.id, c]));
 
   // A plain boundary around components of one kind: the parts of one resource framed as a group.
-  // A boundary with an AWS `group` frame (a subnet, a VPC) groups by network and is left alone.
+  // A boundary with a cloud `group` frame (a subnet, a VPC) groups by network and is left alone.
   const reported = new Set();
   list(ir, 'boundaries').forEach((b, i) => {
     if (b.group !== undefined || !Array.isArray(b.children) || b.children.length < 2) return;

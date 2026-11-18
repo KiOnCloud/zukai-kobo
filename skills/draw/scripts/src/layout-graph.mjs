@@ -73,44 +73,51 @@ function breaksAfter(ch, next, starts) {
  * East Asian characters, inside a word where `breaksAfter` says so, and around an em dash;
  * it never breaks at a no-break space, at a slash, a dot or an underscore, or elsewhere
  * inside a word, so a part wider than the line stands alone on it. Explicit line breaks are kept. Returns the line count and the widest line in
- * px; `bold` measures the text in the bold face of headers and titles.
+ * px, and `inWord`, the number of lines that start inside a word (after a break at a hyphen
+ * such as the one in `invoices-pg`); `bold` measures the text in the bold face of headers and
+ * titles.
  */
 export function wrapText(label, width, { bold = false } = {}) {
   const px = (text) => textWidth(text, { bold });
   const blank = px(' ');
   let lines = 0;
   let widest = 0;
+  let inWord = 0;
   for (const para of String(label).split(/\r\n?|\n/)) {
-    const tokens = []; // a word or one wide character: its width, and whether a space precedes it
+    // A word or one wide character: its width, whether a space precedes it, and whether it is
+    // the rest of a word that a break inside it ended.
+    const tokens = [];
     let word = '';
     let space = false;
-    const flush = () => {
+    let joined = false;
+    const flush = (inside = false) => {
       if (word === '') return;
-      tokens.push({ px: px(word), space });
+      tokens.push({ px: px(word), space, joined });
       word = '';
       space = false;
+      joined = inside;
     };
     const chars = [...para];
     chars.forEach((ch, i) => {
-      if (BREAK_SPACE.test(ch)) { flush(); space = true; }
-      else if (isWide(ch) || ch === EM_DASH) { flush(); tokens.push({ px: px(ch), space }); space = false; }
+      if (BREAK_SPACE.test(ch)) { flush(); space = true; joined = false; }
+      else if (isWide(ch) || ch === EM_DASH) { flush(); tokens.push({ px: px(ch), space, joined: false }); space = false; joined = false; }
       else {
         const starts = word === '';
         word += ch;
-        if (ch === ZERO_WIDTH_SPACE || breaksAfter(ch, chars[i + 1], starts)) flush();
+        if (ch === ZERO_WIDTH_SPACE || breaksAfter(ch, chars[i + 1], starts)) flush(true);
       }
     });
     flush();
     let line = 0;
     for (const t of tokens) {
       const gap = line > 0 && t.space ? blank : 0;
-      if (line > 0 && line + gap + t.px > width) { widest = Math.max(widest, line); lines++; line = t.px; }
+      if (line > 0 && line + gap + t.px > width) { widest = Math.max(widest, line); lines++; line = t.px; if (t.joined) inWord++; }
       else line += gap + t.px;
     }
     widest = Math.max(widest, line);
     lines++;
   }
-  return { lines, widest };
+  return { lines, widest, inWord };
 }
 
 /**
@@ -148,8 +155,15 @@ function rhombusFor(a, b) {
  * can have: the narrowest width (never above `upper`) at which the greedy wrap still takes
  * no more lines, found by bisection since the line count only falls as the width grows. The
  * lines come out balanced, so no line is a nearly full one followed by a short remainder.
+ *
+ * Balance alone can pick a break at a hyphen inside a word (`Cloud SQL invoices-` over
+ * `pg (PostgreSQL 16)`), which splits a name the reader reads as one. When it does, the
+ * narrowest width up to `upper` that takes as many lines and breaks only at spaces is taken
+ * instead, even though its lines are less even; a text that cannot be wrapped so keeps the
+ * balanced block. `slack` is what the renderer's wrap width adds to the widest line, so the
+ * block is held to break at spaces at that width too.
  */
-function balancedBlock(label, lines, upper) {
+function balancedBlock(label, lines, upper, slack = 0) {
   let lo = 1;
   let hi = upper;
   while (lo < hi) {
@@ -157,7 +171,15 @@ function balancedBlock(label, lines, upper) {
     if (wrapText(label, mid).lines <= lines) hi = mid;
     else lo = mid + 1;
   }
-  return wrapText(label, lo);
+  const atSpaces = (b) => b.inWord === 0 && (slack === 0 || wrapText(label, Math.ceil(b.widest) + slack).inWord === 0);
+  const block = wrapText(label, lo);
+  if (atSpaces(block)) return block;
+  for (let width = lo + 1; width <= upper; width++) {
+    const wider = wrapText(label, width);
+    if (wider.lines < block.lines) break;
+    if (atSpaces(wider)) return wider;
+  }
+  return block;
 }
 
 /**
@@ -208,9 +230,38 @@ export function measureDecision(label) {
  *   width its text wraps at, in px
  */
 export function measureLabelBelow(label, { maxWidth = 160 } = {}) {
-  const block = balancedBlock(label, wrapText(label, maxWidth).lines, maxWidth);
+  const block = balancedBlock(label, wrapText(label, maxWidth).lines, maxWidth, 8);
   const wrap = Math.ceil(block.widest) + 8;
   return { width: wrap, height: block.lines * TEXT_LINE + 6, wrap };
+}
+
+const ELLIPSE_MIN_WIDTH = 120;
+const ELLIPSE_MIN_HEIGHT = 50;
+/** Text of an ellipse wraps at this width, in px, before the ellipse grows further. */
+const ELLIPSE_WRAP = 150;
+/** Room between the text block and the outline at the block's corners, in px. */
+const ELLIPSE_PAD = 4;
+
+/**
+ * Size of an ellipse and the label spacing that keeps its text inside the outline. draw.io
+ * wraps a label at the width of the box, but an ellipse is narrower than its box everywhere
+ * but the centre line, so the text is wrapped as a balanced block (as for a decision) and the
+ * ellipse is the smallest one that holds that block: a block of `a` by `b` px fits when
+ * (a/w)^2 + (b/h)^2 <= 1. The height is the block's times the square root of two, at least
+ * the minimum, and the width follows from it. A word that cannot break is one line of the
+ * block however long it is, so the ellipse grows with it and the word never leaves the shape.
+ * @returns {{width:number, height:number, spacing:number}} spacing in px per side
+ */
+export function measureEllipse(label) {
+  const even = (n) => Math.ceil(n / 2) * 2;
+  const block = balancedBlock(label, wrapText(label, ELLIPSE_WRAP).lines, Math.max(ELLIPSE_WRAP, Math.ceil(widestWord(label))));
+  const a = roomFor(block.widest) + 2 * ELLIPSE_PAD;
+  const b = block.lines * TEXT_LINE + 2 * ELLIPSE_PAD;
+  const height = Math.max(ELLIPSE_MIN_HEIGHT, even(b * Math.SQRT2));
+  const width = Math.max(ELLIPSE_MIN_WIDTH, even(a / Math.sqrt(1 - (b / height) ** 2)));
+  // draw.io keeps 2 px of its own on each side; the rest makes it wrap at the block's width.
+  const spacing = Math.max(0, Math.floor((width - roomFor(block.widest)) / 2) - 2);
+  return { width, height, spacing };
 }
 
 function measureLabel(text) {
@@ -240,6 +291,39 @@ export function backEdges(nodes, edges) {
     if (component.get(e.from) === component.get(e.to) && order.get(e.to) < order.get(e.from)) back.add(e.id);
   }
   return back;
+}
+
+/**
+ * The edges that close a circle, in the order the edges are given: an edge whose target
+ * already leads to its source over the edges before it. The author lists the connections of
+ * a system in the order of the flow, so the connection that comes back (a topic that pushes
+ * to the service that publishes to it) is listed after the way out, and it is the one to lay
+ * out against the flow. Left to itself the layout breaks a circle at an edge of its own
+ * choosing, which can turn the main flow against the direction of the diagram. What remains
+ * without these edges is acyclic. Self-loops are never touched.
+ * @param {Array<{id:string,from:string,to:string}>} edges
+ * @returns {Set<string>} ids of the edges that close a circle
+ */
+export function closingEdges(edges) {
+  const out = new Map();
+  const reaches = (from, to) => {
+    const seen = new Set([from]);
+    const queue = [from];
+    while (queue.length > 0) {
+      const at = queue.shift();
+      if (at === to) return true;
+      for (const next of out.get(at) ?? []) if (!seen.has(next)) { seen.add(next); queue.push(next); }
+    }
+    return false;
+  };
+  const closing = new Set();
+  for (const e of edges) {
+    if (e.from === e.to) continue;
+    if (reaches(e.to, e.from)) { closing.add(e.id); continue; }
+    if (!out.has(e.from)) out.set(e.from, []);
+    out.get(e.from).push(e.to);
+  }
+  return closing;
 }
 
 /**
@@ -357,13 +441,13 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     if (!el.isContainer) {
       // Fixed ports pin where edges meet the node (ER rows); ELK routes from those points.
       if (el.ports?.length) {
-        return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_POS' }, ports: el.ports.map((p) => ({ id: p.id, x: p.x, y: p.y, width: 1, height: 1 })) };
+        return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_POS', ...el.layoutOptions }, ports: el.ports.map((p) => ({ id: p.id, x: p.x, y: p.y, width: 1, height: 1 })) };
       }
       // A loop head: the edges that lead back to it arrive on a side across the flow, so the
       // side along the flow stays with the edge that goes on and the main line runs straight.
       const back = backPorts.get(el.id);
       if (back) return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_SIDE' }, ports: back.map((id) => ({ id, width: 1, height: 1, layoutOptions: { 'elk.port.side': BACK_SIDE[direction] ?? 'EAST' } })) };
-      return { id: el.id, width: el.width, height: el.height };
+      return { id: el.id, width: el.width, height: el.height, ...(el.layoutOptions ? { layoutOptions: el.layoutOptions } : {}) };
     }
     const header = el.headerHeight ?? 30;
     return {

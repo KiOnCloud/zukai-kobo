@@ -33,14 +33,15 @@ Derive the business IR from the technical one (same kind, same scope, same subje
 | Technical branches whose outcomes the reader cannot distinguish (merge them into one step) | Branches whose outcomes differ for the reader, even when the code treats them alike |
 
 The table is written for the kinds that show a flow (`flowchart`, `activity`, `sequence`,
-`state`). The other three kinds are made of the very names the table removes, so each has a
-rule of its own:
+`state`). The other four kinds are made of the very names the table removes, or of nothing
+the table speaks about, so each has a rule of its own:
 
 | Kind | Business view |
 |---|---|
 | `architecture` | The same deployed picture read as "which systems take part and who runs them". Keep every system the reader knows by name, product names included ("Amazon SQS" is a name a client reads on an invoice), and keep the AWS icons: the checklist's rule that a label names its icon's service still holds. Remove what only an operator needs: instance sizes, table counts, replica settings, subnets and availability zones (keep the account or region frame when it says who owns or where the data lives). Replace a protocol on a connection with what the connection is for ("gửi sự kiện tích điểm" for "SQS SendMessage", still no endpoint or field). A component that has no name the reader knows and that the reader cannot tell apart from its neighbour (an unnamed internal queue between two services) is merged into the connection it serves; one that carries a product name stays. A `detail accepted:` choice of the technical view holds for the business view too: copy the note. |
 | `er` | A glossary of the business objects and how many of each belong together. Keep the entities the reader has a word for, named with that word ("Đơn hàng", not `orders`), their relations and cardinalities, and the attributes that carry a rule or that the reader would ask for (status, amount, expiry date). Remove surrogate keys, foreign-key columns, audit columns, column types that say nothing to the reader (write `text`, `number`, `date`), and tables that only join two others (the relation becomes many-to-many). |
 | `class` | Rarely worth a business view: when the classes are domain concepts, draw them as the `er` glossary above; when they are technical structure (services, handlers, DTOs), there is no business reading, so say that in one line and deliver the technical view alone, even under `both`. |
+| `usecase` | Already a business picture: actors and goals in the reader's words. The business view keeps every actor, goal, condition and boundary and changes only names: an actor or boundary named after a component becomes the name the reader uses ("Payment provider", not `StripeGateway`; "Online shop", not `storefront-api`), a use case named after an endpoint or a function becomes the goal it serves, and a use case that exists only for the implementation (refresh a token, rebuild a cache) goes into `meta.omitted`, with the `include` that led to it. When the technical diagram holds no technical names, the two views would be the same picture: say so in one line and deliver one diagram with `meta.audience: "business"`, even under `both`. |
 
 With `both` and a run of several kinds, apply the rule of each kind; a diagram that has no
 business view by the table above is listed in the report as "technical only", with the reason.
@@ -100,6 +101,10 @@ share their ids. The keys of the things that are not plain elements:
 
 - a label on a line (a flowchart edge, a connection, a message, an activity guard): the id
   of that edge, connection, message or flow;
+- the condition of an `extend` relation of a use case diagram: the id of the relation, with
+  the condition as it is drawn, in its brackets (`"[sách quá hạn]"`). The «extend» line above
+  it is kept, and «include», «extend» and the «system» line of an outside system are never
+  translated: they are UML's words, and the CLI does not list them as untouched;
 - a state transition: its id, with the whole text as it is drawn, `event [guard] / action`;
 - the canvas page of a bundle: `canvas:title`;
 - an attribute row of an ER entity or a member row of a class: `<entity id>:row-<n>`, with
@@ -123,7 +128,7 @@ wider than the box, or exceeds a non-wrapping box, measured by the glyph widths 
 draw.io's 12 px font and wrapped where draw.io wraps; a cell and its canvas
 copy give one warning naming both pages. The fix is a shorter label, or a re-emit from a
 translated IR when the user prefers resized shapes over a preserved layout. A name
-below a figure (an AWS icon, a client) is the one label `relabel` gives more room: the figure
+below a figure (an AWS or GCP icon, a client) is the one label `relabel` gives more room: the figure
 does not hold it, so its wrap width grows until the new name takes no more lines than the old one,
 as far as the frame around the figure and the figures beside it leave room (never across a
 frame line, at most 200 px). A name that is still reported after that is longer than that
@@ -150,7 +155,37 @@ matched nothing are listed in `unmatched`; they usually mean a typo in the id.
 { "$keep": ["API", "get"], "login:title": "ログイン", "login:a-submit": "送信する" }
 ```
 
-For Mermaid: copy each IR to `source/<slug>.<lang>.ir.json`, translate the labels, set
-`meta.lang`, validate, emit and bundle as in the closing contract (`references/closing-contract.md`). The relabel map and the
+Translated IRs. Two outputs of a variant are written from IRs whose labels are translated,
+not from a label map: the Mermaid text, which has no layout to keep, and description tables
+with translated labels. Those IRs live in one place, a folder of `source/` named after the
+language: copy each IR of the run to `source/<lang>/<slug>.ir.json` (the same file name,
+so every `ref` still resolves among them), translate the labels and the title, set
+`meta.lang`, and validate each. Ids, structure and `meta.sources` stay as they are. The
+place matters: every command that takes the run folder reads the IRs directly in `source/`
+and nothing below it, so the translated IRs are never bundled as further diagrams of the
+run, `snapshot` does not copy them, and `sources` and `stale` never see them. A file
+`source/<slug>.<lang>.ir.json` beside the originals would be all of that: do not write one.
+The translated IRs are derived files: after a revision changes a label, change the same
+label in them and write their outputs again.
+
+The description tables of a run (`<run-slug>.doc.md`, closing contract) take their labels
+from the IRs, so a relabelled draw.io file does not change them. Two different things are
+asked for as "the tables in Japanese":
+
+- Headings in that language, labels as they are: `<run-slug>.doc.<lang>.md`, written from
+  the run folder with `--lang <lang>` (`en`, `ja`, `vi`). It needs no variant; the closing
+  contract has the rule, and the document then holds two languages.
+- Labels translated as well: write the tables from the translated IRs, giving the folder,
+  `bundle --to doc --lang <lang> --out <run-folder>/<run-slug>.doc.<lang>.md --title "<title in that language>" <run-folder>/source/<lang>`.
+  The CLI takes them in run order and names each as `source/<lang>/<slug>.ir.json` in the
+  document. One file per language: the translated tables replace the heading-only file of
+  that language.
+
+A business view needs nothing of its own: its IR is in the run folder, so its tables are in
+the document, after those of the technical view.
+
+For Mermaid: write the translated IRs as above, then emit each into
+`mermaid/<slug>.<lang>.mmd` and bundle the folder into `<run-folder>/<run-slug>.<lang>.md`
+(`bundle --to mermaid --out ... <run-folder>/source/<lang>`), as in the closing contract (`references/closing-contract.md`). The relabel map and the
 translated IR go through the same review as any diagram: wording items apply, layout items
 apply to the draw.io result after `relabel`.

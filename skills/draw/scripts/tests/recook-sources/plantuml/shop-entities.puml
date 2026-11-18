@@ -1,0 +1,40 @@
+@startuml
+' Entity model, information engineering notation
+hide circle
+skinparam linetype ortho
+
+entity "Customer" as customer {
+  * id : uuid <<generated>>
+  --
+  * email : varchar(255)
+  name : varchar(120)
+}
+
+entity "Order" as order {
+  * id : uuid
+  --
+  * customer_id : uuid <<FK>>
+  * placed_at : timestamp
+  status : varchar(20)
+}
+
+entity order_line {
+  * order_id : uuid <<FK>>
+  * line_no : int
+  --
+  * product_id : uuid <<FK>>
+  quantity : int
+}
+
+entity Product {
+  * id : uuid
+  --
+  sku : varchar(40)
+  price : decimal(10,2)
+}
+
+customer ||--o{ order : places
+order ||--|{ order_line : contains
+Product ||..o{ order_line
+customer |o--o| "Loyalty card"
+@enduml

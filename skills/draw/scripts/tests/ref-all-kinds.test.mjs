@@ -16,13 +16,14 @@ const CARRIERS = [
   { kind: 'architecture', path: '/components/1/ref', cell: 'api', label: 'Order API' },
   { kind: 'class', path: '/classes/0/ref', cell: 'order', label: 'Order' },
   { kind: 'er', path: '/entities/0/ref', cell: 'customer', label: 'CUSTOMER' },
+  { kind: 'usecase', path: '/useCases/0/ref', cell: 'sync', label: 'Sync the orders' },
 ];
 const PART = 'order-sync-01-load';
 const part = () => ({ id: PART, ir: { ...loadFixture('flowchart', 'valid-refund-check'), title: 'Load the orders of one shop' } });
 const main = (kind) => ({ id: 'main', ir: loadFixture(kind, 'valid-ref-parts') });
 
 describe('ref on the element that a sub-diagram details, for every kind', () => {
-  it('is part of the schema for a message, a state, a component, a class and an entity', () => {
+  it('is part of the schema for a message, a state, a component, a class, an entity and a use case', () => {
     for (const { kind } of CARRIERS) expect(validateIr(loadFixture(kind, 'valid-ref-parts')), kind).toEqual({ ok: true, errors: [] });
   });
 

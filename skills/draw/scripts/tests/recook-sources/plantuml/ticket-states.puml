@@ -1,0 +1,33 @@
+@startuml
+title Support ticket lifecycle
+hide empty description
+skinparam state {
+  BackgroundColor<<warning>> #FFF3CD
+}
+
+[*] --> New
+New --> Triaged : assign [agent available] / notify agent
+New --> Closed : spam detected
+
+state "In progress" as InProgress {
+  [*] --> Investigating
+  Investigating --> WaitingForCustomer : ask for details
+  WaitingForCustomer --> Investigating : customer replied
+  Investigating --> [*] : fix found
+}
+Triaged --> InProgress : start work
+state priority <<choice>>
+InProgress --> priority : resolve
+priority --> Closed : [low priority]
+priority --> Review : [high priority]
+Review : Second agent checks the answer
+Review --> Closed : approved
+Review -up-> InProgress : rejected
+Closed --> [*]
+
+note right of Review
+  Only for
+  enterprise plans
+end note
+note left of New : Created by e-mail or form
+@enduml

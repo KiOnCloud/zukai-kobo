@@ -1,7 +1,8 @@
 import { vertex, edge, edgeLabel, envelope, envelopePages, htmlLabel, pageLink, cellsBounds, shiftCells } from './drawio-xml.mjs';
-import { awsIcon, awsGroup } from './aws-icons.mjs';
-import { layoutGraph, backEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, widestWord, LABEL_PAD } from './layout-graph.mjs';
-import { layoutSequence, NOTE_FOLD, NOTE_PAD } from './layout-sequence.mjs';
+import { cloudIcon, cloudGroup } from './aws-icons.mjs';
+import { layoutGraph, backEdges, closingEdges, cycleOf, measureNode, measureDecision, measureLabelBelow, wrapText, widestWord, LABEL_PAD } from './layout-graph.mjs';
+import { measureEllipse } from './layout-graph.mjs';
+import { layoutSequence, NOTE_FOLD, NOTE_PAD, SELF_LOOP, selfLabelBox } from './layout-sequence.mjs';
 import { layoutActivity, LANE_PALETTE } from './layout-activity.mjs';
 import { widestLine, roomFor, safeWidth, sameText } from './text-metrics.mjs';
 
@@ -46,6 +47,8 @@ export async function emitDrawioBundle(entries, options = {}) {
   const rendered = [];
   for (const [i, entry] of entries.entries()) {
     const page = await emitDrawioPage(entry.ir, { diagramId: ids[i], refs, slug });
+    // Two diagrams of one title would be two pages of one name: the caller hands the later one a name of its own.
+    if (options.pageNames?.has(ids[i])) page.name = options.pageNames.get(ids[i]);
     rendered.push(page);
     warnings.push(...page.warnings.map((w) => ({ ...w, diagram: page.diagramId })));
   }
@@ -117,6 +120,7 @@ async function emitDrawioPage(ir, options = {}) {
     case 'architecture': cells = await emitArchitecture(ir, cid, refs, warnings); break;
     case 'sequence': cells = emitSequence(ir, cid, warnings, refs); break;
     case 'activity': cells = await emitActivity(ir, cid, warnings, refs); break;
+    case 'usecase': cells = await emitUsecase(ir, cid, refs, warnings); break;
     default: throw new Error(`unknown kind "${ir.kind}"`);
   }
   return { diagramId: slug, name: ir.title, cells, warnings };
@@ -358,7 +362,8 @@ function markerBox(path, length) {
  * with the length of the path as a fraction of it would. The text is aligned away from its
  * anchor, so only the side it starts on has to be exact. The label follows the line, round a
  * bend when the first segment is shorter than the marker and the text; at each step both
- * sides are candidates, the right of a vertical segment and above a horizontal one first. The
+ * sides are candidates, the right of a vertical segment and above a horizontal one first, and
+ * past a bend the side that lies beyond the marker first. The
  * first box that is free according to `blocked` wins, and `free` is false when none is.
  * @param {Array<{x:number,y:number}>} path the edge as drawn, source end first
  * @param {'from'|'to'} end
@@ -370,9 +375,14 @@ function endLabelGeometry(path, end, text, clear, blocked) {
   const width = Math.ceil(widestLine(text));
   const { gap, side, height, step, reach } = END_LABEL;
   const candidates = [];
+  const leaves = pointAlong(fromEnd, 1);
   for (let along = clear + gap; along <= clear + gap + reach; along += step) {
     const { point, vertical, dir } = pointAlong(fromEnd, along);
-    for (const s of vertical ? [1, -1] : [-1, 1]) {
+    // Round a bend, one side of the line lies back beside the marker and the other beyond it,
+    // further along the way the line left its end: that side comes first, so the text stays
+    // past the marker as it does on a straight line.
+    const sides = vertical !== leaves.vertical ? [leaves.dir, -leaves.dir] : vertical ? [1, -1] : [-1, 1];
+    for (const s of sides) {
       candidates.push(vertical
         ? {
           offset: { x: point.x - at.x + s * side, y: point.y - at.y + (dir * height) / 2 },
@@ -415,6 +425,8 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
     const box = layout.containers.get(c.id);
     const style = c.headerHeight ? c.style.replace(/startSize=\d+;/, `startSize=${c.headerHeight};`) : c.style;
     cells.push(vertex({ id: cid(c.id), value: htmlLabel(c.label), style, ...box, parent: c.parent ? cid(c.parent) : '1', link: c.link }));
+    // The mark of a frame (the Google Cloud mark) is a cell of its own in the frame's corner: part of the frame, never an end of a connection.
+    if (c.mark) cells.push(vertex({ id: `${cid(c.id)}:mark`, value: '', style: `${c.mark.style}part=1;pointerEvents=0;`, x: c.mark.x, y: c.mark.y, width: c.mark.width, height: c.mark.height, parent: cid(c.id), connectable: false }));
   };
   for (const c of containers) emitContainer(c);
   for (const n of nodes) {
@@ -1054,7 +1066,12 @@ async function emitClass(ir, cid, warnings, refs) {
       const value = r[`${end}Cardinality`];
       if (value) endLabels.push({ suffix: `${end}-card`, value, end, path: `/relations/${i}/${end}Cardinality`, what: `cardinality "${value}" of relation "${r.id}" at "${r[end]}"` });
     }
-    return { id: r.id, from: r.from, to: r.to, label: r.label, style: `${STYLE.classEdge}${def.style}`, endLabels, markers: { from: def.from, to: def.to } };
+    // A general class stands above the classes that specialise it, and an interface above
+    // what realises it: the hollow triangle points up, as a class diagram is read. Such a
+    // relation runs from the special to the general, so left to the engine the subclass
+    // would take the earlier layer; it is laid out against its direction instead.
+    const upward = (r.kind === 'inheritance' || r.kind === 'realization') && r.from !== r.to;
+    return { id: r.id, from: r.from, to: r.to, label: r.label, style: `${STYLE.classEdge}${def.style}`, endLabels, markers: { from: def.from, to: def.to }, ...(upward ? { layoutReversed: true } : {}) };
   });
   // A self-relation drawn beside its class needs room there for the loop and its label, or
   // the label lands on the neighbouring class: the layout gets the class that much wider on
@@ -1083,15 +1100,16 @@ const AWS_ICON = { width: 78, height: 78, below: 6 };
 const AWS_ICON_POINTS = 'points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];';
 const awsIconStyle = (icon) => `sketch=0;${AWS_ICON_POINTS}outlineConnect=0;fontColor=#232F3E;${icon.gradient ? `gradientColor=${icon.gradient};gradientDirection=north;` : ''}fillColor=${icon.fill};strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.${icon.name};`;
 /**
- * The style of a figure that is a stencil of its own: a general resource of the AWS library
- * (a server, an application) or a product logo. It is drawn in one colour without a square
- * behind it, which is how a system that is not an AWS service is told from one.
+ * The style of a figure that is a stencil of its own: a GCP service (a hexagon), a general
+ * resource of either library (a server, an application, a bucket) or a product logo. It is
+ * drawn in one colour without a square behind it, which is how a system that is not an AWS
+ * service is told from one.
  */
 const stencilStyle = (icon) => `sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=${icon.fill};strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=${icon.stencil};`;
-/** The corner icon of an AWS group frame and the gap before its title (the palette's `spacingLeft=30`). */
+/** The corner icon of a group frame and the gap before its title (the AWS palette's `spacingLeft=30`). */
 const AWS_GROUP_ICON = 30;
 /**
- * Room between an AWS group frame and its members. AWS diagrams nest four or five frames
+ * Room between a cloud group frame and its members. Cloud diagrams nest four or five frames
  * (account, region, VPC, subnet) where a plain one nests one or two, so the 20 px a plain
  * boundary keeps on each side would add up to a wide empty band around the innermost members.
  */
@@ -1100,28 +1118,54 @@ const AWS_FRAME_INSET = 12;
 const TITLE_GAP = 8;
 /** Room kept between a frame title and a line that crosses the top of its frame. */
 const TITLE_LINE_GAP = 12;
+/** The flags that make a cell a frame its members move with; the AWS stencil frames carry them already. */
+const CONTAINER_FLAGS = 'container=1;pointerEvents=0;collapsible=0;recursiveResize=0;';
 /**
- * An AWS group frame as a container. The palette's style is kept, with two changes. A frame
- * that is a plain rectangle there (an Availability Zone) gains the container flags the
- * stencil frames already carry. The Auto Scaling group, whose palette form has its icon and
- * title in the middle of the top side, is drawn like every other frame, icon in the corner
- * and title beside it: a title in the corner can step aside when a connection enters the
- * frame from above, a fixed icon in the middle cannot. The title of a frame stands on one
- * line, so the frame is at least that wide.
+ * How the palette style of a provider's group frame becomes the style of a container. Every
+ * frame is drawn the same way, whatever its provider: the title on one line at the top left,
+ * at the size of the component names, after the corner icon where the frame has one.
+ *
+ * AWS: the Auto Scaling group, whose palette form has its icon and title in the middle of
+ * the top side, is drawn like every other frame, icon in the corner and title beside it: a
+ * title in the corner can step aside when a connection enters the frame from above, a fixed
+ * icon in the middle cannot. A frame that is a plain rectangle there (an Availability Zone)
+ * keeps its centred title.
+ *
+ * GCP: the palette writes its frames in two forms (a zone with `spacing=10`, a frame of the
+ * project legend with `spacingLeft=10` and a 10 px font). Both get the one left margin
+ * `spacingLeft` gives, so a title that steps aside is moved by that one key. The frame with
+ * the Google Cloud mark keeps the room the palette leaves for the mark before its title.
  */
-function awsGroupContainer(group, label) {
-  const corner = group.style
+const FRAME_STYLE = {
+  aws: (style) => style
     .replace('shape=mxgraph.aws4.groupCenter;', 'shape=mxgraph.aws4.group;')
     .replace('align=center;', `align=left;spacingLeft=${AWS_GROUP_ICON};`)
-    .replace('spacingTop=25;', '');
-  const stencil = corner.includes('shape=mxgraph.aws4.');
+    .replace('spacingTop=25;', ''),
+  gcp: (style) => {
+    const parts = style.split(';').filter(Boolean);
+    const value = (key) => Number(parts.find((part) => part.startsWith(`${key}=`))?.slice(key.length + 1) ?? 0);
+    const kept = parts.filter((part) => !/^(?:spacing|spacingLeft|spacingTop|fontSize)=/.test(part));
+    return [...kept, 'fontSize=12', 'spacing=0', 'spacingTop=6', `spacingLeft=${value('spacing') + value('spacingLeft')}`, ''].join(';');
+  },
+};
+/**
+ * A cloud group frame as a container: the palette's style as `FRAME_STYLE` adapts it, plus
+ * the container flags where the palette form is a plain shape. The title of a frame stands
+ * on one line, so the frame is at least that wide.
+ */
+function groupContainer(group, label) {
+  const adapted = FRAME_STYLE[group.provider](group.style);
   const text = measureLabelBelow(label, { maxWidth: 360 });
-  const start = stencil ? AWS_GROUP_ICON : TITLE_GAP;
+  // Where the title starts: after the corner icon or the mark, else at the frame's left margin.
+  const left = /(?:^|;)align=left;/.test(adapted) ? Number(/(?:^|;)spacingLeft=(\d+);/.exec(adapted)?.[1] ?? 0) : 0;
+  const start = left > 0 ? left : TITLE_GAP;
+  const corner = adapted.includes('grIcon=') || group.mark !== undefined;
   return {
-    style: stencil ? corner : `${corner}container=1;pointerEvents=0;collapsible=0;recursiveResize=0;`,
-    title: { width: text.width, height: text.height + 4, start, centred: !stencil },
+    style: adapted.includes('container=1;') ? adapted : `${adapted}${CONTAINER_FLAGS}`,
+    title: { width: text.width, height: text.height + 4, start, centred: left === 0, corner },
     inset: AWS_FRAME_INSET,
     minWidth: Math.min(400, 2 * Math.ceil((start + text.width + TITLE_GAP) / 2)),
+    ...(group.mark ? { mark: group.mark } : {}),
   };
 }
 
@@ -1244,7 +1288,7 @@ function placeLineLabels(layout, own, { containers, nodes, edges }) {
   const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
   const within = (a, b) => a.x >= b.x && a.y >= b.y && a.x + a.width <= b.x + b.width && a.y + a.height <= b.y + b.height;
   const boxes = nodes.filter((n) => layout.nodes.has(n.id)).map((n) => absoluteBox(n.id, layout, parentOf));
-  const frames = containers.map((c) => ({ box: absoluteBox(c.id, layout, parentOf), icon: c.title && !c.title.centred }));
+  const frames = containers.map((c) => ({ box: absoluteBox(c.id, layout, parentOf), icon: c.title?.corner === true }));
   const corners = frames.filter((f) => f.icon).map((f) => ({ x: f.box.x, y: f.box.y, width: AWS_GROUP_ICON, height: AWS_GROUP_ICON }));
   const pathOf = (e) => { const r = layout.edges.get(e.id); return r?.start && r?.end ? [r.start, ...(r.points ?? []), r.end] : undefined; };
   const lines = [];
@@ -1316,6 +1360,135 @@ function placeLineLabels(layout, own, { containers, nodes, edges }) {
     labels.push(placed);
   }
   return undefined;
+}
+
+/** A step a straight line can do without: its bends lie this close across the flow, in px. */
+const STEP_MAX = 24;
+/** The least room between two line ends on one side of a figure, in px. */
+const STEP_PORT_GAP = 10;
+
+/**
+ * Take the small step out of a line drawn back against the flow (the one that closes a
+ * circle, such as a topic that pushes back to the service that publishes to it). It shares
+ * both facing sides with the line that goes on, each figure spreads the ends of its lines
+ * evenly over its side, and two neighbours with a different number of lines there get ends
+ * that are a few pixels out of line: the engine joins them with two bends in the middle.
+ * Where one end can move level with the other within its figure, keeping the order of the
+ * ends on that side, the room to its neighbours and a straight way free of shapes and other
+ * lines, the line is drawn straight. A line that the engine had to route round something
+ * keeps its route, and so does every line that goes with the flow.
+ */
+function straightenSteps(layout, { containers, nodes, edges, direction }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const sideways = acrossIsVertical(direction);
+  // `across` is the coordinate the step lies in; `along` the one the line runs in.
+  const across = (p) => (sideways ? p.y : p.x);
+  const along = (p) => (sideways ? p.x : p.y);
+  const setAcross = (p, v) => { if (sideways) p.y = v; else p.x = v; };
+  const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const figureOf = (id) => (layout.nodes.has(id) ? drawBox(byId.get(id), absoluteBox(id, layout, parentOf)) : undefined);
+  const routes = () => edges.map((e) => ({ e, r: layout.edges.get(e.id) })).filter(({ r }) => r?.start && r?.end);
+  for (const { e, r } of routes()) {
+    const points = r.points ?? [];
+    if (!e.layoutReversed || points.length === 0 || e.from === e.to) continue;
+    const path = [r.start, ...points, r.end];
+    // Only a line that runs along the flow from one end to the other, with bends close together across it.
+    const spread = Math.max(...path.map(across)) - Math.min(...path.map(across));
+    if (spread > STEP_MAX || Math.abs(across(r.start) - across(r.end)) < 0.5) continue;
+    const forward = Math.sign(along(r.end) - along(r.start));
+    if (forward === 0 || path.slice(1).some((p, i) => Math.sign(along(p) - along(path[i])) === -forward)) continue;
+    const ends = [{ id: e.from, at: r.start, other: r.end }, { id: e.to, at: r.end, other: r.start }];
+    for (const end of ends) {
+      const figure = figureOf(end.id);
+      if (!figure) continue;
+      const to = across(end.other);
+      const [lo, hi] = sideways ? [figure.y, figure.y + figure.height] : [figure.x, figure.x + figure.width];
+      if (to < lo + 4 || to > hi - 4) continue;
+      // The other ends on the same side of this figure: the same place along the flow.
+      const side = routes().flatMap(({ e: o, r: q }) => (o.id === e.id ? [] : [q.start, q.end].filter((p) => Math.abs(along(p) - along(end.at)) < 0.5 && across(p) >= lo - 0.5 && across(p) <= hi + 0.5)));
+      if (side.some((p) => Math.abs(across(p) - to) < STEP_PORT_GAP)) continue;
+      if (side.some((p) => Math.sign(across(p) - across(end.at)) !== Math.sign(across(p) - to))) continue;
+      // The straight way: no shape but the two ends, no stretch of another line near it along the flow.
+      const [a, b] = [Math.min(along(r.start), along(r.end)), Math.max(along(r.start), along(r.end))];
+      const lane = sideways ? { x: a, y: to - STEP_PORT_GAP / 2, width: b - a, height: STEP_PORT_GAP } : { x: to - STEP_PORT_GAP / 2, y: a, width: STEP_PORT_GAP, height: b - a };
+      if (nodes.some((n) => n.id !== e.from && n.id !== e.to && layout.nodes.has(n.id) && hit(lane, absoluteBox(n.id, layout, parentOf)))) continue;
+      const crowded = routes().some(({ e: o, r: q }) => {
+        if (o.id === e.id) return false;
+        const qp = [q.start, ...(q.points ?? []), q.end];
+        return qp.slice(1).some((p, i) => {
+          const s = qp[i];
+          if (Math.abs(across(p) - across(s)) > 0.5) return false;
+          const box = { x: Math.min(p.x, s.x), y: Math.min(p.y, s.y), width: Math.abs(p.x - s.x) || 1, height: Math.abs(p.y - s.y) || 1 };
+          return hit(lane, box);
+        });
+      });
+      if (crowded) continue;
+      setAcross(end.at, to);
+      r.points = [];
+      break;
+    }
+  }
+}
+
+/**
+ * A label that `placeLineLabels` had no place for goes back to the layout engine, which puts
+ * it on either side of its line. Among the labels of a row (lines that run along one
+ * coordinate, `placeLineLabels` writing above a horizontal line and left of a vertical one
+ * first) one on the other side reads as belonging to something else. Such a label moves to
+ * the side its neighbours on that row stand on, mirrored across its line at the same
+ * distance, when that place is free of shapes, labels, lines and frame borders; otherwise it
+ * stays where the engine put it.
+ */
+function alignLabelSides(layout, { containers, nodes, edges }) {
+  const handedBack = edges.filter((e) => e.label && e.labelOnDrawnLine && !e.labelPlacedByCaller);
+  if (handedBack.length === 0) return;
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const within = (a, b) => a.x >= b.x && a.y >= b.y && a.x + a.width <= b.x + b.width && a.y + a.height <= b.y + b.height;
+  const boxes = nodes.filter((n) => layout.nodes.has(n.id)).map((n) => absoluteBox(n.id, layout, parentOf));
+  const frames = containers.map((c) => ({ box: absoluteBox(c.id, layout, parentOf), icon: c.title?.corner === true }));
+  const corners = frames.filter((f) => f.icon).map((f) => ({ x: f.box.x, y: f.box.y, width: AWS_GROUP_ICON, height: AWS_GROUP_ICON }));
+  const pathOf = (e) => { const r = layout.edges.get(e.id); return r?.start && r?.end ? [r.start, ...(r.points ?? []), r.end] : undefined; };
+  // Each label beside a straight stretch of its line: the line it runs along and its side.
+  const sideOf = (e) => {
+    const label = layout.edges.get(e.id)?.label;
+    const path = pathOf(e);
+    if (!label || !path || !e.label) return undefined;
+    for (let i = 1; i < path.length; i++) {
+      const [a, b] = [path[i - 1], path[i]];
+      const flat = Math.abs(a.y - b.y) < 0.5;
+      if (!flat && Math.abs(a.x - b.x) >= 0.5) continue;
+      const [lo, hi] = flat ? [Math.min(a.x, b.x), Math.max(a.x, b.x)] : [Math.min(a.y, b.y), Math.max(a.y, b.y)];
+      const mid = flat ? label.x + label.width / 2 : label.y + label.height / 2;
+      if (mid < lo || mid > hi) continue;
+      const at = flat ? a.y : a.x;
+      const [near, far] = flat ? [label.y, label.y + label.height] : [label.x, label.x + label.width];
+      if (far <= at && at - far < 12) return { flat, at, side: -1, gap: at - far, label };
+      if (near >= at && near - at < 12) return { flat, at, side: 1, gap: near - at, label };
+    }
+    return undefined;
+  };
+  const placed = new Map(edges.map((e) => [e.id, sideOf(e)]).filter(([, s]) => s));
+  for (const e of handedBack) {
+    const mine = placed.get(e.id);
+    if (!mine) continue;
+    const row = [...placed].filter(([id, s]) => id !== e.id && s.flat === mine.flat && Math.abs(s.at - mine.at) < 1).map(([, s]) => s.side);
+    if (row.length === 0 || row.some((s) => s !== row[0]) || row[0] === mine.side) continue;
+    const { label } = mine;
+    const box = mine.flat
+      ? { ...label, y: row[0] < 0 ? mine.at - mine.gap - label.height : mine.at + mine.gap }
+      : { ...label, x: row[0] < 0 ? mine.at - mine.gap - label.width : mine.at + mine.gap };
+    const lines = edges.flatMap((o) => {
+      const path = pathOf(o);
+      return path ? path.slice(1).map((p, i) => ({ x: Math.min(path[i].x, p.x) - 1, y: Math.min(path[i].y, p.y) - 1, width: Math.abs(p.x - path[i].x) + 2, height: Math.abs(p.y - path[i].y) + 2 })) : [];
+    });
+    const others = edges.filter((o) => o.id !== e.id).map((o) => (o.label ? layout.edges.get(o.id)?.label : undefined)).filter(Boolean);
+    if (boxes.some((n) => hit(box, n)) || others.some((l) => hit(box, l)) || corners.some((c) => hit(box, c)) || lines.some((l) => hit(box, l))) continue;
+    if (frames.some((f) => hit(box, f.box) && !within(box, f.box))) continue;
+    layout.edges.get(e.id).label = box;
+    placed.set(e.id, { ...mine, side: row[0], label: box });
+  }
 }
 
 /**
@@ -1734,6 +1907,62 @@ function backToOrigin(layout, { containers, nodes }) {
   for (const b of [...boxes, ...points]) { b.x += dx; b.y += dy; }
 }
 
+/**
+ * The header bars of the plain frames: a boundary without a cloud group is a frame with a
+ * strip at its top that holds the title, which a line should not run through.
+ * @returns {Array<{id:string, box:{x:number,y:number,width:number,height:number}}>}
+ */
+function headerBars(containers, frames) {
+  const boxOf = new Map(frames.map((f) => [f.id, f.box]));
+  return containers.filter((c) => /^swimlane;/.test(c.style ?? '') && boxOf.has(c.id)).map((c) => {
+    const box = boxOf.get(c.id);
+    const strip = c.headerHeight ?? Number(/startSize=(\d+);/.exec(c.style)?.[1] ?? 0);
+    return { id: c.id, box: { x: box.x, y: box.y, width: box.width, height: strip } };
+  }).filter((h) => h.box.height > 0);
+}
+
+/**
+ * The connections that run through the header bar of a plain frame, as `layout:` warnings.
+ * A line that passes over a frame it does not enter is one; so is, in a left-to-right or
+ * right-to-left diagram, a line that leaves or enters a frame across its top, since the flow
+ * then reaches the members from the sides and such a line runs through the strip beside the
+ * title. In a top-down or bottom-up diagram a line comes into a frame through its top by
+ * the flow itself, which is how a frame with a header is read, and is no warning.
+ */
+function headerCrossings(layout, { ir, containers, nodes, edges }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const frames = containers.map((c) => ({ id: c.id, box: absoluteBox(c.id, layout, parentOf) }));
+  const headers = headerBars(containers, frames);
+  if (headers.length === 0) return [];
+  const across = acrossIsVertical(ir.direction);
+  const inside = (id, frame) => { for (let p = parentOf.get(id); p; p = parentOf.get(p)) if (p === frame) return true; return false; };
+  const label = new Map(containers.map((c) => [c.id, c.label]));
+  const out = [];
+  ir.connections.forEach((c, i) => {
+    const r = layout.edges.get(c.id);
+    if (!r?.start || !r?.end) return;
+    const path = [r.start, ...(r.points ?? []), r.end];
+    for (const h of headers) {
+      const ends = inside(c.from, h.id) || inside(c.to, h.id);
+      if (ends && !across) continue;
+      const { x, y, width, height } = h.box;
+      const through = path.slice(1).some((p, k) => {
+        const q = path[k];
+        const lo = { x: Math.min(p.x, q.x), y: Math.min(p.y, q.y) };
+        const hi = { x: Math.max(p.x, q.x), y: Math.max(p.y, q.y) };
+        return lo.x < x + width && hi.x > x && lo.y < y + height && hi.y > y;
+      });
+      if (!through) continue;
+      out.push({
+        path: `/connections/${i}`,
+        message: `layout: connection "${c.id}" runs through the header bar of frame "${String(label.get(h.id)).replace(/\s+/g, ' ')}", beside its title`,
+        hint: 'try another "direction" or another order of the components and connections; a crossing that no order avoids is shown to the user and accepted explicitly',
+      });
+    }
+  });
+  return out;
+}
+
 /** Room between the outermost frame and a system placed beside it, when its connection has no label. */
 const ASIDE_GAP = 64;
 /** Where a layout starts on both axes (ELK's default padding). */
@@ -1938,14 +2167,15 @@ async function arrangeArchitecture(ir, refs, how) {
   const warnings = [];
   const parent = parentMap(ir.boundaries ?? []);
   const containers = (ir.boundaries ?? []).map((b) => {
-    const group = awsGroup(b.group);
-    return { id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container, ...(group ? awsGroupContainer(group, b.label) : { title: plainTitle(b.label) }) };
+    const group = cloudGroup(b.group);
+    return { id: b.id, label: b.label, parent: parent.get(b.id), style: STYLE.container, ...(group ? groupContainer(group, b.label) : { title: plainTitle(b.label) }) };
   });
-  const usesAws = (ir.boundaries ?? []).some((b) => awsGroup(b.group)) || ir.components.some((c) => awsIcon(c.icon));
+  // The placement rules below hold for a diagram with icons or group frames of a cloud provider, whichever it is.
+  const usesCloud = (ir.boundaries ?? []).some((b) => cloudGroup(b.group)) || ir.components.some((c) => cloudIcon(c.icon));
   const kindOf = (c) => c.kind ?? 'service';
-  // A figure with its label below it: the screen of a client, or an AWS service icon.
+  // A figure with its label below it: the screen of a client, or the icon of a cloud service.
   const figureOf = (c) => {
-    const icon = awsIcon(c.icon);
+    const icon = cloudIcon(c.icon);
     if (icon?.stencil) return { ...AWS_ICON, width: icon.width, height: icon.height, style: stencilStyle(icon) };
     if (icon) return { ...AWS_ICON, style: awsIconStyle(icon) };
     return kindOf(c) === 'client' ? { ...CLIENT_FIGURE, style: STYLE.client } : undefined;
@@ -1972,15 +2202,20 @@ async function arrangeArchitecture(ir, refs, how) {
     return { ...node, ...measureNode(label, { pad: padOf(kind), baseHeight: kind === 'database' || kind === 'cache' ? 70 : 40 }) };
   });
   const edges = ir.connections.map((c) => ({ id: c.id, from: c.from, to: c.to, label: c.label, style: `${STYLE.flowEdge}${c.bidirectional ? 'startArrow=classic;startFill=1;' : ''}` }));
+  // A connection that closes a circle (a topic that pushes back to the service that publishes
+  // to it) is laid out against the flow, so the connections listed before it keep the
+  // direction of the diagram and a component outside the frames keeps its side.
+  const closing = closingEdges(edges);
+  for (const e of edges) if (closing.has(e.id)) e.layoutReversed = true;
   const spacing = { nodeNode: 50, layer: 80, ...loopSpacing(ir.direction) };
   // The ports of a figure depend on the sides its connections use, so they are worked out
   // afresh for every arrangement that is tried.
-  // In an AWS diagram each label is placed beside its own line after the layout (placeLineLabels).
-  if (usesAws) for (const e of edges) if (e.label && e.from !== e.to) { e.labelPlacedByCaller = true; e.labelOnDrawnLine = true; }
-  const aside = usesAws ? asideCandidates(nodes, edges) : new Map();
-  const row = usesAws ? rowCandidates(nodes, edges, aside) : new Map();
+  // In a cloud diagram each label is placed beside its own line after the layout (placeLineLabels).
+  if (usesCloud) for (const e of edges) if (e.label && e.from !== e.to) { e.labelPlacedByCaller = true; e.labelOnDrawnLine = true; }
+  const aside = usesCloud ? asideCandidates(nodes, edges) : new Map();
+  const row = usesCloud ? rowCandidates(nodes, edges, aside) : new Map();
   // A system of a row is placed with the row, also when one component alone uses it.
-  const stores = usesAws ? attachStores(nodes, edges, ir.direction, row) : new Map();
+  const stores = usesCloud ? attachStores(nodes, edges, ir.direction, row) : new Map();
   const apart = (id) => aside.has(id) || row.has(id) || stores.has(id);
   const laidOut = () => ({ nodes: nodes.filter((n) => !apart(n.id)), edges: edges.filter((e) => !apart(e.to) && !row.has(e.from)) });
   const arrange = async () => {
@@ -2000,6 +2235,7 @@ async function arrangeArchitecture(ir, refs, how) {
       const unplaced = placeRow(base, row, { containers, nodes, edges, direction: ir.direction, aside });
       if (unplaced !== undefined) { row.delete(unplaced); base = await arrange(); continue; }
       backToOrigin(base, { containers, nodes });
+      straightenSteps(base, { containers, nodes, edges, direction: ir.direction });
       // A label with no free place beside its line goes back to the layout engine.
       const own = new Set(edges.filter((e) => e.labelPlacedByCaller && !aside.has(e.to) && !stores.has(e.to)).map((e) => e.id));
       const crowded = placeLineLabels(base, own, { containers, nodes, edges });
@@ -2013,21 +2249,25 @@ async function arrangeArchitecture(ir, refs, how) {
     }
   };
   let layout = await placeAside(await arrange());
-  if (usesAws) {
+  if (usesCloud) {
     const g = laidOut();
     layout = await placeAside(await nearSide(layout, g, arrange));
   }
-  // A wider frame moves the lines, so the titles are placed again after each new layout.
+  // A wider frame moves the lines, so the titles are placed again after each new layout. A
+  // narrow frame that two lines enter side by side (two clouds, one below the other) grows by
+  // a few pixels a round, so the rounds are not cut short.
   let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
-  for (let round = 0; unplaced && round < 6; round++) {
+  for (let round = 0; unplaced && round < 16; round++) {
     layout = await placeAside(await layoutGraph({ ...laidOut(), containers, direction: ir.direction, spacing, ...how }));
     unplaced = placeGroupTitles(layout, { containers, nodes, edges });
   }
   if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a connection crosses the title of a group frame; no free place was found for it along the top of the frame', hint: 'set "direction" to "LR" or shorten the boundary label' });
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
+  warnings.push(...headerCrossings(layout, { ir, containers, nodes, edges }));
+  if (usesCloud) alignLabelSides(layout, { containers, nodes, edges });
   // draw.io writes an edge label on a white patch. Inside a tinted frame (a subnet) the patch
   // takes the colour of the frame, so the label hides its line without showing as a box.
-  if (usesAws) {
+  if (usesCloud) {
     const parentOf = new Map(containers.map((c) => [c.id, c.parent]));
     const depth = (id) => { let d = 0; for (let p = parentOf.get(id); p; p = parentOf.get(p)) d++; return d; };
     const framed = containers.map((c) => ({ c, box: absoluteBox(c.id, layout, parentOf), depth: depth(c.id) })).sort((a, b) => b.depth - a.depth);
@@ -2143,9 +2383,12 @@ function emitSequence(ir, cid, warnings, refs) {
     if (msg.from === msg.to) {
       // Anchor both ends on the lifeline's centre line explicitly; the lifeline perimeter
       // would otherwise attach the arrow head on the far side and draw it across the line.
-      const x = from.centerX + 50;
+      const x = from.centerX + SELF_LOOP.out;
+      // A label too wide to stand centred over the loop starts beside the activation bar.
+      const box = selfLabelBox(label);
+      const beside = box.aligned ? { style: 'align=left;', labelOffset: { x: box.left - SELF_LOOP.out, y: 0 } } : { style: '' };
       const anchors = `exitX=0.5;exitY=0;exitDx=0;exitDy=${y - 10 - from.y};exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=${y + 10 - from.y};entryPerimeter=0;`;
-      cells.push(edge({ id: cid(msg.id), value: htmlLabel(label), style: `${STYLE.selfMessage}${anchors}`, source: cid(msg.from), target: cid(msg.to), points: [{ x, y: y - 10 }, { x, y: y + 10 }], link }));
+      cells.push(edge({ id: cid(msg.id), value: htmlLabel(label), style: `${STYLE.selfMessage}${beside.style}${anchors}`, source: cid(msg.from), target: cid(msg.to), points: [{ x, y: y - 10 }, { x, y: y + 10 }], link, ...(beside.labelOffset ? { labelOffset: beside.labelOffset } : {}) }));
       continue;
     }
     const style = kind === 'return' ? STYLE.returnMessage : kind === 'async' ? STYLE.asyncMessage : STYLE.syncMessage;
@@ -2205,4 +2448,385 @@ async function emitActivity(ir, cid, warnings, refs) {
     if (label) cells.push(edgeLabel({ id: `${cid(f.id)}:label`, value: htmlLabel(f.guard), parent: cid(f.id), position: label.position, offset: label.offset }));
   }
   return cells;
+}
+
+/** The stick figure of an actor, at the size of draw.io's UML library; its name is drawn below it. */
+const ACTOR_FIGURE = { width: 30, height: 60 };
+const USECASE_STYLE = {
+  actor: 'shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;',
+  // An outside system that takes part: a box marked «system», so nobody reads it as a person.
+  system: `whiteSpace=wrap;html=1;${labelPad('process')}`,
+  useCase: 'ellipse;whiteSpace=wrap;html=1;',
+  // The system boundary: a rectangle with its name at the top, as UML draws the subject.
+  boundary: 'rounded=0;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;fontStyle=1;spacingTop=4;',
+  edge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;',
+};
+const USECASE_EDGE = {
+  association: 'endArrow=none;',
+  include: 'dashed=1;endArrow=open;endSize=10;endFill=0;',
+  extend: 'dashed=1;endArrow=open;endSize=10;endFill=0;',
+  generalization: 'endArrow=block;endSize=14;endFill=0;',
+};
+/** The side of a node that faces along the flow, and the one that faces against it. */
+const FLOW_SIDE = { LR: 'right', RL: 'left', TB: 'bottom', BT: 'top' };
+const OPPOSITE_SIDE = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' };
+/** How far the line of a generalization between two actors that are not neighbours stands off their column, and the pitch of further ones. */
+const ACTOR_BRACKET = { out: 20, step: 14 };
+
+/** The role of an actor: a person starts use cases unless told otherwise, an outside system is called on. */
+const actorRole = (a) => a.role ?? ((a.kind ?? 'person') === 'system' ? 'supporting' : 'primary');
+
+/**
+ * Where a line meets a shape of a use case diagram, as draw.io's relative anchor, from the
+ * point the layout routed it to on the shape's layout box. An ellipse is narrower than its
+ * box everywhere but the middle of a side, so the last stretch of the line is carried on in
+ * its own direction to the outline; the anchor is that point, kept as it is (`perimeter`
+ * off), so the line stays straight where draw.io would otherwise turn it towards the centre.
+ * A figure with its name below is met at the figure's side, or under the name when the line
+ * comes from below.
+ */
+function usecaseAnchor(n, layoutBox, pt) {
+  const b = drawBox(n, layoutBox);
+  const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
+  if (n.ellipse) {
+    const rx = b.width / 2;
+    const ry = b.height / 2;
+    const cx = b.x + rx;
+    const cy = b.y + ry;
+    const sideways = Math.min(Math.abs(pt.x - b.x), Math.abs(pt.x - b.x - b.width)) <= Math.min(Math.abs(pt.y - b.y), Math.abs(pt.y - b.y - b.height));
+    if (sideways) {
+      const t = clamp((pt.y - cy) / ry, -0.98, 0.98);
+      return { x: (cx + Math.sign(pt.x - cx || 1) * rx * Math.sqrt(1 - t * t) - b.x) / b.width, y: (cy + t * ry - b.y) / b.height, dx: 0, dy: 0, fixed: true };
+    }
+    const t = clamp((pt.x - cx) / rx, -0.98, 0.98);
+    return { x: (cx + t * rx - b.x) / b.width, y: (cy + Math.sign(pt.y - cy || 1) * ry * Math.sqrt(1 - t * t) - b.y) / b.height, dx: 0, dy: 0, fixed: true };
+  }
+  const a = { x: clamp((pt.x - b.x) / b.width), y: clamp((pt.y - b.y) / b.height), dx: 0, dy: 0, fixed: false };
+  // Under the name of a figure: the point itself, as an offset from the figure's bottom.
+  if (pt.y > b.y + b.height + 0.5) Object.assign(a, { dx: pt.x - (b.x + a.x * b.width), dy: pt.y - (b.y + b.height), fixed: true });
+  return a;
+}
+const usecaseAnchorStyle = (prefix, a) => `${prefix}X=${round(a.x)};${prefix}Y=${round(a.y)};${prefix}Dx=${round(a.dx)};${prefix}Dy=${round(a.dy)};${a.fixed ? `${prefix}Perimeter=0;` : ''}`;
+
+/**
+ * Use case diagram. The layout engine places the primary actors in the first layer and the
+ * supporting actors and outside systems in the last one, with the system boundaries and
+ * their use cases between them: left and right of the boundary in the default left-to-right
+ * direction, above and below it top-down. Along the flow an included use case follows its
+ * base, an extending one follows the use case it extends, and a special use case follows
+ * the general one, so the use cases an actor starts stand nearest to it.
+ *
+ * Every line of an actor leaves from one point of its figure, so its associations run as
+ * one line that parts where the use cases are. A generalization between two actors of one
+ * side is not the engine's: they share a layer, and the line is drawn straight between
+ * neighbours, or round the outside of the column when another actor stands between them.
+ */
+async function emitUsecase(ir, cid, refs, warnings) {
+  const direction = ir.direction ?? 'LR';
+  const horizontal = direction === 'LR' || direction === 'RL';
+  const even = (v) => 2 * Math.ceil(v / 2);
+  const role = new Map(ir.actors.map((a) => [a.id, actorRole(a)]));
+  const isActor = (id) => role.has(id);
+  const portSide = (id) => (role.get(id) === 'primary' ? FLOW_SIDE[direction] : OPPOSITE_SIDE[FLOW_SIDE[direction]]);
+  const parent = parentMap(ir.boundaries ?? []);
+
+  // A boundary title stays on one line up to a width; a longer one wraps, and a word of it
+  // cannot break, so the boundary is at least as wide as that word.
+  const titleWidth = (label) => even(Math.max(roomFor(widestWord(label, { bold: true })), Math.min(320, roomFor(wrapText(label, Infinity, { bold: true }).widest))) + 2 * LABEL_PAD);
+  const headerOf = (lines) => 30 + 16 * (lines - 1);
+  const containers = (ir.boundaries ?? []).map((b) => ({ id: b.id, label: b.label, style: USECASE_STYLE.boundary, headerHeight: 30, minWidth: titleWidth(b.label), title: plainTitle(b.label) }));
+
+  const actors = ir.actors.map((a) => {
+    const side = portSide(a.id);
+    const layoutOptions = { 'elk.layered.layering.layerConstraint': role.get(a.id) === 'primary' ? 'FIRST_SEPARATE' : 'LAST_SEPARATE' };
+    if ((a.kind ?? 'person') === 'system') {
+      const label = `«system»\n${a.label}`;
+      const size = measureNode(label);
+      return { id: a.id, label, style: USECASE_STYLE.system, width: size.width, height: size.height, own: size, side, layoutOptions };
+    }
+    const below = measureLabelBelow(a.label);
+    return { id: a.id, label: a.label, style: `${USECASE_STYLE.actor}labelWidth=${below.wrap};`, width: even(Math.max(ACTOR_FIGURE.width, below.width)), height: even(ACTOR_FIGURE.height + below.height), own: ACTOR_FIGURE, drawWidth: ACTOR_FIGURE.width, drawHeight: ACTOR_FIGURE.height, side, layoutOptions };
+  });
+  // The actors of one side get one layout box across the flow, so their figures line up; each
+  // is drawn at its own size in the middle (or at the top) of that box.
+  for (const which of ['primary', 'supporting']) {
+    const group = actors.filter((n) => role.get(n.id) === which);
+    const across = Math.max(0, ...group.map((n) => (horizontal ? n.width : n.height)));
+    for (const n of group) {
+      if (horizontal) { if (n.width < across) { n.drawWidth = n.drawWidth ?? n.width; n.width = across; } }
+      else if (n.height < across) { n.drawWidth = n.drawWidth ?? n.width; n.drawHeight = n.drawHeight ?? n.height; n.height = across; }
+    }
+  }
+  // One port per actor, on the side that faces the system, at the middle of the figure: its
+  // lines leave together. A port is a 1 px box whose centre the line ends at.
+  const portAt = (n, shift = 0) => {
+    const mid = n.own.height / 2;
+    switch (n.side) {
+      case 'right': return { x: n.width - 1, y: mid + shift - 0.5 };
+      case 'left': return { x: 0, y: mid + shift - 0.5 };
+      case 'bottom': return { x: n.width / 2 + shift - 0.5, y: n.height - 1 };
+      default: return { x: n.width / 2 + shift - 0.5, y: 0 };
+    }
+  };
+  for (const n of actors) n.ports = [{ id: `${n.id}:port`, ...portAt(n) }];
+
+  const useCases = ir.useCases.map((u, i) => {
+    const { label, link } = refLabel(u.label, u.ref, refs, `/useCases/${i}/ref`, warnings);
+    const size = measureEllipse(label);
+    return { id: u.id, label, link, parent: parent.get(u.id), style: `${USECASE_STYLE.useCase}spacingLeft=${size.spacing};spacingRight=${size.spacing};`, width: size.width, height: size.height, ellipse: true };
+  });
+  const nodes = [...actors, ...useCases];
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+
+  const edges = ir.relations.map((r) => {
+    const e = { id: r.id, from: r.from, to: r.to, style: `${USECASE_STYLE.edge}${USECASE_EDGE[r.kind]}` };
+    // The end that comes first along the flow.
+    let first = r.from;
+    switch (r.kind) {
+      case 'association': {
+        const actor = isActor(r.from) ? r.from : r.to;
+        first = role.get(actor) === 'primary' ? actor : (actor === r.from ? r.to : r.from);
+        break;
+      }
+      case 'include': e.label = '«include»'; break;
+      case 'extend': e.label = r.condition ? `«extend»\n[${r.condition}]` : '«extend»'; first = r.to; break;
+      default:
+        if (!isActor(r.from)) first = r.to;
+        else if (role.get(r.from) === role.get(r.to)) e.byHand = true;
+        else first = role.get(r.from) === 'primary' ? r.from : r.to;
+    }
+    if (first !== r.from) e.layoutReversed = true;
+    if (!e.byHand) {
+      // A generalization that crosses the system keeps clear of the associations of its actors.
+      const port = (id) => {
+        const n = nodeById.get(id);
+        if (r.kind !== 'generalization') return `${id}:port`;
+        n.ports.push({ id: `${id}:port:${r.id}`, ...portAt(n, 14) });
+        return `${id}:port:${r.id}`;
+      };
+      if (isActor(r.from)) e.fromPort = port(r.from);
+      if (isActor(r.to)) e.toPort = port(r.to);
+    }
+    return e;
+  });
+  const byHand = edges.filter((e) => e.byHand);
+  const routed = edges.filter((e) => !e.byHand);
+
+  // Room outside the first layer for the lines drawn round a column of actors.
+  const outerRoom = { left: 0, top: 0 };
+  const bracketCount = (side) => new Set(byHand.filter((e) => OPPOSITE_SIDE[nodeById.get(e.from).side] === side).map((e) => e.to)).size;
+  for (const side of ['left', 'top']) if (bracketCount(side) > 0) outerRoom[side] = ACTOR_BRACKET.out + ACTOR_BRACKET.step * bracketCount(side);
+  // The nodes of a layer are ordered from the model: the actors of a side stand as the model
+  // lists them, the use cases as the engine derives their order from the model and its
+  // edges. Left to the crossing minimisation, the order is whatever crosses the fewest
+  // lines, and one added association turns a whole column round: the reader of a change
+  // then finds nothing where it was. It also lets the author fix a crossing, by the order
+  // of the actors in the IR.
+  const options = { 'elk.padding': `[top=${12 + outerRoom.top},left=${12 + outerRoom.left},bottom=12,right=12]`, 'elk.layered.crossingMinimization.forceNodeModelOrder': 'true' };
+  const arrange = () => layoutGraph({ nodes, containers, edges: routed, direction, spacing: { nodeNode: 40, layer: 70 }, options });
+  let layout = await arrange();
+  // A boundary is as wide as its use cases need, which only the layout knows; a title that
+  // wraps at that width needs a taller header, and the layout runs once more with it.
+  let taller = false;
+  for (const c of containers) {
+    const height = headerOf(headerLines(c.label, layout.containers.get(c.id).width));
+    if (height > c.headerHeight) { c.headerHeight = height; c.title = plainTitle(c.label, height); taller = true; }
+  }
+  if (taller) layout = await arrange();
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const boxOf = (id) => absoluteBox(id, layout, parentOf);
+  // Two line ends on one ellipse never lie on each other: a use case with more ends on a
+  // side than its outline has room for is drawn taller, and the layout runs again.
+  for (let pass = 0; pass < 2 && growCrowdedUseCases(layout, routed, useCases, boxOf, horizontal).length > 0; pass++) layout = await arrange();
+  // A line that enters a boundary from above runs across its title: the title steps aside.
+  let unplaced = placeGroupTitles(layout, { containers, nodes, edges: routed });
+  for (let pass = 0; unplaced && pass < 6; pass++) {
+    layout = await arrange();
+    unplaced = placeGroupTitles(layout, { containers, nodes, edges: routed });
+  }
+  if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a line crosses the title of a boundary; no free place was found for it along the top of the boundary', hint: 'set "direction" to "LR" or shorten the boundary label' });
+  for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
+
+  placeActorGeneralizations(layout, byHand, { actors, horizontal, boxOf });
+  separateActorTrunks(layout, routed, { actors, nodes, containers, horizontal, boxOf });
+  for (const e of edges) {
+    const route = layout.edges.get(e.id);
+    if (!route?.start || !route?.end) continue;
+    e.style += usecaseAnchorStyle('exit', usecaseAnchor(nodeById.get(e.from), boxOf(e.from), route.start)) + usecaseAnchorStyle('entry', usecaseAnchor(nodeById.get(e.to), boxOf(e.to), route.end));
+  }
+  return graphCells(cid, layout, { containers, nodes, edges, direction }, warnings);
+}
+
+/** Trunks of two actors on one line read as one line when their ends are nearer than this; the pitches to try between their tracks; the room a moved trunk keeps to what it passes. */
+const ACTOR_TRUNK = { near: 60, pitches: [14, 12, 10, 8], clear: 8 };
+
+/**
+ * Give the lines of each actor a track of their own. The associations of an actor leave its
+ * figure as one line, the trunk, which runs along the column of actors and parts where the
+ * use cases are. The engine sets the trunks of several actors on one line when they do not
+ * overlap, and two of them that end a few pixels from each other then read as one line that
+ * joins two actors. Trunks that share a line and nearly meet are moved apart across the
+ * flow, each actor to its own track, in the order of the actors; only the stretches along
+ * the flow get longer or shorter, and the trunks of different actors cover different ranges,
+ * so no new crossing can come of it. A pitch is taken only when every moved trunk stays
+ * clear of the nodes, the borders of the boundaries and the other lines; with no such pitch
+ * the routes stay as the engine made them.
+ */
+function separateActorTrunks(layout, routed, { actors, nodes, containers, horizontal, boxOf }) {
+  // Across the flow lies the coordinate a trunk runs along (`run`); `track` is the one it stands at.
+  const track = (p) => (horizontal ? p.x : p.y);
+  const run = (p) => (horizontal ? p.y : p.x);
+  const setTrack = (p, v) => { if (horizontal) p.x = v; else p.y = v; };
+  const trunks = new Map();
+  for (const n of actors) {
+    for (const e of routed) {
+      const mine = e.fromPort === `${n.id}:port` ? 'from' : e.toPort === `${n.id}:port` ? 'to' : null;
+      const route = layout.edges.get(e.id);
+      if (!mine || !route?.start || !route?.end || (route.points ?? []).length < 2) continue;
+      // The first two bends, seen from the actor: the ends of the stretch along the column.
+      const [a, b] = mine === 'from' ? route.points : [route.points.at(-1), route.points.at(-2)];
+      if (Math.abs(track(a) - track(b)) > 0.5) continue;
+      const key = `${n.side}|${Math.round(track(a) * 2) / 2}`;
+      if (!trunks.has(key)) trunks.set(key, new Map());
+      const byActor = trunks.get(key);
+      if (!byActor.has(n.id)) byActor.set(n.id, { at: track(a), lo: Infinity, hi: -Infinity, bends: [], edges: new Set() });
+      const t = byActor.get(n.id);
+      t.lo = Math.min(t.lo, run(a), run(b));
+      t.hi = Math.max(t.hi, run(a), run(b));
+      t.bends.push(a, b);
+      t.edges.add(e.id);
+    }
+  }
+  const boxes = [...nodes.map((n) => drawBox(n, boxOf(n.id))), ...nodes.filter((n) => n.drawWidth !== undefined).map((n) => boxOf(n.id))];
+  const borders = containers.map((c) => boxOf(c.id)).flatMap((b) => (horizontal ? [b.x, b.x + b.width] : [b.y, b.y + b.height]));
+  for (const byActor of trunks.values()) {
+    const line = [...byActor.values()].sort((p, q) => p.lo - q.lo);
+    // The trunks that nearly meet their neighbour on the line, as runs of neighbours.
+    const groups = [];
+    for (const [i, t] of line.entries()) {
+      if (i > 0 && t.lo - line[i - 1].hi < ACTOR_TRUNK.near) groups.at(-1).push(t);
+      else groups.push([t]);
+    }
+    for (const group of groups.filter((g) => g.length > 1)) {
+      const own = new Set(group.flatMap((t) => [...t.edges]));
+      // Every stretch across the flow of the other lines: what a moved trunk must not lie on.
+      const others = [];
+      for (const e of routed) {
+        const route = layout.edges.get(e.id);
+        if (own.has(e.id) || !route?.start || !route?.end) continue;
+        const path = [route.start, ...(route.points ?? []), route.end];
+        for (let i = 1; i < path.length; i++) if (Math.abs(track(path[i]) - track(path[i - 1])) < 0.5) others.push({ at: track(path[i]), lo: Math.min(run(path[i]), run(path[i - 1])), hi: Math.max(run(path[i]), run(path[i - 1])) });
+      }
+      const free = (at, t) => {
+        const c = ACTOR_TRUNK.clear;
+        if (borders.some((v) => Math.abs(v - at) < c)) return false;
+        if (others.some((o) => Math.abs(o.at - at) < c && o.lo < t.hi + c && t.lo - c < o.hi)) return false;
+        return !boxes.some((b) => (horizontal ? b.x - c < at && at < b.x + b.width + c && b.y < t.hi && t.lo < b.y + b.height : b.y - c < at && at < b.y + b.height + c && b.x < t.hi && t.lo < b.x + b.width));
+      };
+      const pitch = ACTOR_TRUNK.pitches.find((step) => group.every((t, i) => free(t.at + (i - (group.length - 1) / 2) * step, t)));
+      if (pitch === undefined) continue;
+      for (const [i, t] of group.entries()) for (const p of t.bends) setTrack(p, t.at + (i - (group.length - 1) / 2) * pitch);
+    }
+  }
+}
+
+/** The least distance between two line ends on one side of a use case: an open arrowhead and a hollow triangle side by side. */
+const ELLIPSE_END_GAP = 15;
+
+/**
+ * Use cases that are too low for the line ends of one of their sides, with the height each
+ * needs. The engine sets the ends of a side evenly over that side of the layout box; on a
+ * one-line ellipse three of them stand some ten pixels apart, and a hollow triangle then
+ * lies on the arrowhead beside it. A taller ellipse gives every end its own stretch of the
+ * outline, and the lines stay straight. Returns the ids that grew.
+ */
+function growCrowdedUseCases(layout, edges, useCases, boxOf, horizontal) {
+  const grown = [];
+  for (const n of useCases) {
+    const b = boxOf(n.id);
+    const sides = { left: [], right: [], top: [], bottom: [] };
+    for (const e of edges) {
+      const route = layout.edges.get(e.id);
+      if (!route?.start || !route?.end) continue;
+      for (const [id, pt] of [[e.from, route.start], [e.to, route.end]]) {
+        if (id !== n.id) continue;
+        const dx = Math.min(Math.abs(pt.x - b.x), Math.abs(pt.x - b.x - b.width));
+        const dy = Math.min(Math.abs(pt.y - b.y), Math.abs(pt.y - b.y - b.height));
+        const side = dx <= dy ? (Math.abs(pt.x - b.x) <= Math.abs(pt.x - b.x - b.width) ? 'left' : 'right') : (Math.abs(pt.y - b.y) <= Math.abs(pt.y - b.y - b.height) ? 'top' : 'bottom');
+        sides[side].push(dx <= dy ? pt.y : pt.x);
+      }
+    }
+    // The sides across the flow are the ones lines end on; they are as long as the node is high (or wide, top-down).
+    let need = 0;
+    for (const side of horizontal ? ['left', 'right'] : ['top', 'bottom']) {
+      const at = sides[side].sort((p, q) => p - q);
+      if (at.length < 2 || at.every((v, i) => i === 0 || v - at[i - 1] >= ELLIPSE_END_GAP)) continue;
+      need = Math.max(need, (at.length + 1) * ELLIPSE_END_GAP);
+    }
+    const size = horizontal ? 'height' : 'width';
+    if (need > n[size]) { n[size] = 2 * Math.ceil(need / 2); grown.push(n.id); }
+  }
+  return grown;
+}
+
+/**
+ * Route the generalizations between actors of one side, which stand in one layer. Between
+ * neighbours the line runs straight from the special actor to the general one, along the
+ * column (or the row, in a top-down diagram). When another actor stands between them it
+ * leaves the special actor on the side away from the system, runs outside the column and
+ * comes back to the general one; the lines to one general actor share that run. The routes
+ * are written into `layout.edges` as the engine writes its own.
+ */
+function placeActorGeneralizations(layout, byHand, { actors, horizontal, boxOf }) {
+  if (byHand.length === 0) return;
+  const byId = new Map(actors.map((n) => [n.id, n]));
+  const whole = new Map(actors.map((n) => [n.id, boxOf(n.id)]));
+  const drawn = new Map(actors.map((n) => [n.id, drawBox(n, whole.get(n.id))]));
+  // Along the column: y for actors beside the system, x for actors above or below it.
+  const lo = (b) => (horizontal ? b.y : b.x);
+  const hi = (b) => (horizontal ? b.y + b.height : b.x + b.width);
+  const tracks = new Map();
+  for (const e of byHand) {
+    const child = byId.get(e.from);
+    const general = byId.get(e.to);
+    const [cw, gw, cd, gd] = [whole.get(e.from), whole.get(e.to), drawn.get(e.from), drawn.get(e.to)];
+    const column = actors.filter((n) => n.side === child.side && n.id !== e.from && n.id !== e.to);
+    const between = column.some((n) => lo(whole.get(n.id)) > Math.min(lo(cw), lo(gw)) && hi(whole.get(n.id)) < Math.max(hi(cw), hi(gw)));
+    const after = lo(cw) > lo(gw); // the special actor stands below (or right of) the general one
+    if (!between) {
+      if (horizontal) {
+        const x = cd.x + cd.width / 2;
+        const gx = gd.x + gd.width / 2;
+        const start = { x, y: after ? cd.y : cw.y + cw.height };
+        const end = { x: gx, y: after ? gw.y + gw.height : gd.y };
+        // Figures of different widths stand on one centre line; a step covers what is left.
+        const mid = (start.y + end.y) / 2;
+        layout.edges.set(e.id, { start, end, points: Math.abs(x - gx) < 0.5 ? [] : [{ x, y: mid }, { x: gx, y: mid }] });
+      } else {
+        const y = cd.y + cd.height / 2;
+        const gy = gd.y + gd.height / 2;
+        const start = { x: after ? cd.x : cd.x + cd.width, y };
+        const end = { x: after ? gd.x + gd.width : gd.x, y: gy };
+        const mid = (start.x + end.x) / 2;
+        layout.edges.set(e.id, { start, end, points: Math.abs(y - gy) < 0.5 ? [] : [{ x: mid, y }, { x: mid, y: gy }] });
+      }
+      continue;
+    }
+    const outer = OPPOSITE_SIDE[child.side];
+    const key = `${outer}|${e.to}`;
+    if (!tracks.has(key)) tracks.set(key, [...tracks.keys()].filter((k) => k.startsWith(`${outer}|`)).length);
+    const off = ACTOR_BRACKET.out + ACTOR_BRACKET.step * tracks.get(key);
+    const all = [...column, child, general].map((n) => whole.get(n.id));
+    if (horizontal) {
+      const x = outer === 'left' ? Math.min(...all.map((b) => b.x)) - off : Math.max(...all.map((b) => b.x + b.width)) + off;
+      const start = { x: outer === 'left' ? cd.x : cd.x + cd.width, y: cd.y + cd.height / 2 };
+      const end = { x: outer === 'left' ? gd.x : gd.x + gd.width, y: gd.y + gd.height / 2 };
+      layout.edges.set(e.id, { start, end, points: [{ x, y: start.y }, { x, y: end.y }] });
+    } else {
+      const y = outer === 'top' ? Math.min(...all.map((b) => b.y)) - off : Math.max(...all.map((b) => b.y + b.height)) + off;
+      const start = { x: cd.x + cd.width / 2, y: outer === 'top' ? cd.y : cw.y + cw.height };
+      const end = { x: gd.x + gd.width / 2, y: outer === 'top' ? gd.y : gw.y + gw.height };
+      layout.edges.set(e.id, { start, end, points: [{ x: start.x, y }, { x: end.x, y }] });
+    }
+  }
 }

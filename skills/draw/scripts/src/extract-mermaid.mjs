@@ -26,9 +26,10 @@ const KIND_HEADERS = [
  * @param {string} text a .mmd file, or Markdown holding ```mermaid fenced blocks (one page per block)
  * @returns {{ facts: 1, format: 'mermaid', pages: object[] }}
  */
-export function extractMermaid(text) {
+export function extractMermaid(text, { withLines = false } = {}) {
   const blocks = splitBlocks(String(text ?? ''));
-  return { facts: 1, format: 'mermaid', pages: blocks.map((b, i) => extractPage(b, i + 1)) };
+  // `withLines` adds the line each page starts at, for a caller that orders pages of several readers.
+  return { facts: 1, format: 'mermaid', pages: blocks.map((b, i) => ({ ...extractPage(b, i + 1), ...(withLines ? { line: b.line ?? b.lines[0]?.line ?? 1 } : {}) })) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -53,7 +54,7 @@ function splitBlocks(text) {
       const close = new RegExp(`^\\s{0,3}${fence[0] === '`' ? '`' : '~'}{${fence.length},}\\s*$`);
       let j = i + 1;
       while (j < lines.length && !close.test(lines[j].text)) j++;
-      if (MERMAID_FENCE.test(lines[i].text)) blocks.push({ lines: lines.slice(i + 1, j), heading });
+      if (MERMAID_FENCE.test(lines[i].text)) blocks.push({ lines: lines.slice(i + 1, j), heading, line: lines[i].line });
       i = j;
       continue;
     }
@@ -84,6 +85,15 @@ function extractPage(block, index) {
   const body = [...(rest.length ? [{ text: rest.join(';'), line: lines[0].line }] : []), ...lines.slice(1)];
   const parse = { flowchart: parseFlowchart, activity: parseFlowchart, architecture: parseArchitecture, state: parseState, er: parseEr, class: parseClass, sequence: parseSequence }[kind];
   parse(body, g, kind);
+  // Mermaid has no use case diagram, so one is written as a flowchart (Zukai's own form among
+  // them): boxes marked «actor» beside rounded nodes, or lines marked «include» or «extend».
+  if (kind === 'flowchart') {
+    const marked = page.nodes.filter((n) => /^\s*(?:«|<<)\s*(?:actor|system)\s*(?:»|>>)/i.test(n.label ?? '')).length;
+    const stereotyped = page.edges.filter((e) => /(?:«|<<)\s*(?:include|extend)s?\s*(?:»|>>)/i.test(e.label ?? '')).length;
+    if (marked > 0 || stereotyped > 0) {
+      page.kindHints[0] = { kind: 'usecase', score: 100, evidence: [`line ${lines[0].line}: header "${header}"`, [marked ? `${marked} node${marked === 1 ? '' : 's'} marked «actor» or «system»` : '', stereotyped ? `${stereotyped} link${stereotyped === 1 ? '' : 's'} marked «include» or «extend»` : ''].filter(Boolean).join(', ')] };
+    }
+  }
   return page;
 }
 
@@ -172,7 +182,7 @@ function eachStatement(lines, fn, raw = () => false) {
  * its label until a definition gives it another. Generated ids (notes, frames, [*]) never
  * collide with an id written in the source.
  */
-function createGraph(page) {
+export function createGraph(page) {
   const byId = new Map();
   const counters = new Map();
   const node = (id, shape, parent) => {
@@ -214,7 +224,7 @@ function createGraph(page) {
 // ---------------------------------------------------------------------------------------------
 // Text decoding
 
-const NAMED_ENTITIES = {
+export const NAMED_ENTITIES = {
   quot: '"', amp: '&', lt: '<', gt: '>', apos: "'", nbsp: ' ', ensp: ' ', emsp: ' ', thinsp: ' ',
   ndash: '–', mdash: '—', hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
   laquo: '«', raquo: '»', middot: '·', bull: '•', deg: '°', times: '×', divide: '÷',
@@ -365,6 +375,14 @@ function parseFlowchart(lines, g, kind) {
     parseChain(s, line, g, stack.at(-1));
   });
   if (stack.length) g.warn(lines.at(-1)?.line ?? 0, `subgraph "${stack.at(-1)}" is not closed with "end"`);
+  // A filled circle is a junction where lines meet, or, with nothing coming in and something
+  // going out, the filled start node of an activity, which is how the emitter writes one.
+  const page = g.page;
+  for (const n of page.nodes) {
+    if (!n.dot) continue;
+    delete n.dot;
+    if (n.shape === 'bar' && !page.edges.some((e) => e.to === n.id) && page.edges.some((e) => e.from === n.id)) n.shape = 'initial';
+  }
 }
 
 function parseSubgraphHead(rest, g) {
@@ -440,9 +458,11 @@ function parseFlowNode(s, pos, g, parent) {
     const close = findClosingBrace(s, end + 1);
     if (close < 0) return null;
     const props = parseProps(s.slice(end + 2, close));
-    const shape = AT_SHAPES[String(props.shape ?? 'rect').toLowerCase()] ?? 'box';
+    const name = String(props.shape ?? 'rect').toLowerCase();
+    const shape = AT_SHAPES[name] ?? 'box';
     def = { shape, label: props.label !== undefined ? decodeLabel(props.label) : SILENT_SHAPES.has(shape) ? '' : id };
     if (props.icon) def.icon = props.icon;
+    if (name === 'f-circ' || name === 'filled-circle') def.dot = true;
     end = close + 1;
   } else {
     for (const [open, closers, shape] of FLOW_SHAPES) {
@@ -460,6 +480,7 @@ function parseFlowNode(s, pos, g, parent) {
     n.label = def.label;
     n.shape = def.shape;
     if (def.icon) n.icon = def.icon;
+    if (def.dot) n.dot = true;
   }
   return { id, end };
 }

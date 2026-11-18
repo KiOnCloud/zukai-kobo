@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Shop on AWS with analytics on Google Cloud",
+  "direction": "LR",
+  "components": [
+    { "id": "browser", "label": "Customer browser", "kind": "client" },
+    { "id": "cdn", "label": "CloudFront", "icon": "aws:cloudfront" },
+    { "id": "alb", "label": "Application Load Balancer", "icon": "aws:elastic_load_balancing" },
+    { "id": "api", "label": "Shop API (ECS Fargate)", "icon": "aws:fargate" },
+    { "id": "db", "label": "Aurora PostgreSQL", "kind": "database", "icon": "aws:aurora" },
+    { "id": "stream", "label": "Kinesis order events", "kind": "queue", "icon": "aws:kinesis_data_streams" },
+    { "id": "forwarder", "label": "Event forwarder", "icon": "aws:lambda" },
+    { "id": "topic", "label": "Pub/Sub order events", "kind": "queue", "icon": "gcp:cloud_pubsub" },
+    { "id": "pipeline", "label": "Dataflow pipeline", "icon": "gcp:cloud_dataflow" },
+    { "id": "warehouse", "label": "BigQuery", "kind": "database", "icon": "gcp:bigquery" },
+    { "id": "reports", "label": "Reports (Cloud Run)", "icon": "gcp:cloud_run" },
+    { "id": "analysts", "label": "Analysts", "kind": "client" },
+    { "id": "psp", "label": "Payment provider", "kind": "external", "icon": "aws:generic_application" }
+  ],
+  "boundaries": [
+    { "id": "aws", "label": "AWS Cloud", "group": "aws:aws_cloud", "children": ["cdn", "aws-region"] },
+    { "id": "aws-region", "label": "ap-northeast-1", "group": "aws:region", "children": ["vpc", "stream", "forwarder"] },
+    { "id": "vpc", "label": "VPC", "group": "aws:vpc", "children": ["public", "private"] },
+    { "id": "public", "label": "Public subnet", "group": "aws:public_subnet", "children": ["alb"] },
+    { "id": "private", "label": "Private subnet", "group": "aws:private_subnet", "children": ["api", "db"] },
+    { "id": "gcp", "label": "Google Cloud", "group": "gcp:google_cloud", "children": ["gcp-region"] },
+    { "id": "gcp-region", "label": "asia-northeast1", "group": "gcp:region", "children": ["topic", "pipeline", "warehouse", "reports"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "cdn", "label": "HTTPS" },
+    { "id": "c2", "from": "cdn", "to": "alb", "label": "/api" },
+    { "id": "c3", "from": "alb", "to": "api", "label": "HTTP" },
+    { "id": "c4", "from": "api", "to": "db", "label": "SQL" },
+    { "id": "c5", "from": "api", "to": "stream", "label": "order placed" },
+    { "id": "c6", "from": "stream", "to": "forwarder", "label": "trigger" },
+    { "id": "c7", "from": "forwarder", "to": "topic", "label": "publish (HTTPS)" },
+    { "id": "c8", "from": "topic", "to": "pipeline", "label": "pull" },
+    { "id": "c9", "from": "pipeline", "to": "warehouse", "label": "streaming insert" },
+    { "id": "c10", "from": "reports", "to": "warehouse", "label": "query" },
+    { "id": "c11", "from": "analysts", "to": "reports", "label": "HTTPS" },
+    { "id": "c12", "from": "api", "to": "psp", "label": "capture payment" }
+  ]
+}

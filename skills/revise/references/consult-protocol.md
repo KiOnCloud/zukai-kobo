@@ -11,12 +11,17 @@ written. Paths below are relative to the run folder; `<draw-dir>` and the CLI ar
 drafts/a/source/*.ir.json      a full copy of the run's IRs with draft a's change
 drafts/a/drawio/<slug>.drawio  or mermaid/<slug>.mmd: each diagram of the draft
 drafts/a/<run-slug>.drawio     or <run-slug>.md: the draft as one file
+drafts/a/changes.diff.drawio   the change of draft a drawn on the diagrams (draw.io runs)
 drafts/b/ …                    the next draft, same layout
 drafts/consult.json            { "request", "axis", "drafts": [{ "id": "a", "name" }] }
 ```
 
 `consult.json` is written with the first draft and kept up to date: it is what a later
-session reads to resume this consult without guessing what the drafts were for.
+session reads to resume this consult without guessing what the drafts were for, and it is
+what makes the folder an open consult. Beside the drafts, `drafts/` may hold
+`changes-<rNNN>.diff.drawio` files, the pictures of changes applied earlier: they belong to
+no consult and are never deleted here (`<draw-dir>/references/closing-contract.md`, "The
+drafts folder").
 
 ## 1. Find the axis of choice
 
@@ -47,7 +52,14 @@ For each draft:
    list loses removed diagrams and gains new ones). Give `bundle` the folder `drafts/<x>`,
    so the draft is written in run order.
 3. `diff <run>/source <run>/drafts/<x>/source` for the change list and its hints. A draft
-   that only moves elements shows up under `reordered`.
+   that only moves elements shows up under `reordered`. For a draw.io run add
+   `--drawio <run>/drafts/<x>/changes.diff.drawio`: the same call then writes the picture
+   of the change, one page per diagram the draft touches, with what the draft adds in
+   green, what it changes or moves in amber and what it removes in red, dashed, where it
+   stood. Read `drawio.notDrawn` in the output: a removed element named there is in the
+   list only, and the presentation says so. The picture has one page per diagram, listed
+   under `drawio.pages`; to look at the page of a part or of a business view, run
+   `preview <run>/drafts/<x>/changes.diff.drawio --page <diagram id> --max-px 1600`.
 
 Print every CLI warning verbatim. No review gate runs on drafts: the review runs once, on the
 confirmed result.
@@ -59,7 +71,10 @@ One block per draft, in the user's language:
 - a one-line name that says what is different ("A: kiểm tra trước khi thanh toán");
 - the change list in plain words: added, removed and changed elements by their labels, the
   diagrams touched, and every hint from `diff`;
-- the path of the draft's combined file, to open in draw.io;
+- the path of the draft's combined file, to open in draw.io, and beside it the path of the
+  draft's picture of the change (`changes.diff.drawio`), with one line on how to read it:
+  green is added, amber is changed or moved (the old value is in the legend under the
+  page), red and dashed is removed;
 - for a Mermaid run, the draft's Mermaid text of each changed diagram in a fenced `mermaid`
   block, so it can be read without opening a file.
 
@@ -81,11 +96,18 @@ works. Repeat until the user confirms.
    on"): write the number into that entry now, since the draft was made before it existed.
 2. Copy `drafts/<x>/source/*.ir.json` over `source/`; delete IRs from `source/` that the
    draft does not have, with their `drawio/<slug>.drawio` or `mermaid/<slug>.mmd`.
-3. Delete `drafts/`.
-4. Run `<draw-dir>/references/closing-contract.md` in full. The report names the draft
+3. Delete the consult: `drafts/consult.json` and the draft folders it names (`drafts/a/`,
+   `drafts/b/`, `drafts/c/`). Nothing else in `drafts/` is touched: the pictures of earlier
+   changes stay.
+4. With a draw.io target, `diff <run>/history/<rNNN>/source <run>/source --drawio
+   <run>/drafts/changes-<rNNN>.diff.drawio` writes the picture of the confirmed change
+   again, now against the revision, for the review and the report (step 3 removed the
+   draft's own).
+5. Run `<draw-dir>/references/closing-contract.md` in full. The report names the draft
    chosen and the revision written.
 
 ## 7. Drop
 
-Delete `drafts/` and say that the run is unchanged. `source/`, the delivered files and
-`history/` were never touched, so nothing else needs undoing.
+Delete `drafts/consult.json` and the draft folders it names, and say that the run is
+unchanged. `source/`, the delivered files and `history/` were never touched, so nothing
+else needs undoing, and the pictures of earlier changes in `drafts/` stay.

@@ -1,15 +1,27 @@
 # Scout protocol
 
 Derive a diagram from the source code in the working directory. Read-only: this protocol
-never edits the project. It may run in a subagent (Claude Code: the `source-scout` agent);
-the subagent returns the IR JSON inline, with the file paths it used, and the main session
-writes the file and runs the closing contract in `references/closing-contract.md`.
+never edits the project. It may run in a subagent (the `source-scout` agent, where it is
+available); the subagent returns the IR JSON inline, with the file paths it used, and the
+main session writes the file and runs the closing contract in
+`references/closing-contract.md`. Where the agent is not available, which includes every
+copied install, the main session follows this protocol itself (`closing-contract.md`, "Agents that may not be there").
 
 ## Rules
 
 - Cite evidence. Every element comes from a file; list the paths in `meta.notes`
   (`src/orders/order-service.ts`, `src/Orders/OrderStatus.cs`). A reader must be able to
   check the diagram against the code.
+- List the same files in `meta.sources`, for the machine: one entry per file an element of
+  this diagram came from, as a path from the project root (the working directory) with
+  forward slashes, and nothing else in the entry (no line number, no remark, no folder, no
+  pattern). A file read and not used is left out; a file that decides what the diagram shows
+  is in, also when it is configuration (`docker-compose.yml`, a Terraform file, a
+  migration). Each diagram lists its own files: a part lists the files of its sub-flow, not
+  those of the whole run, and the business view of a diagram carries the list of its
+  technical one unchanged. The closing contract records a hash of every listed file, and
+  the sync skill later uses that record to tell which diagrams the code has left behind, so
+  a file missing from the list is a change nobody will be told about.
 - The kind comes from the user: `SKILL.md` asks for it before this protocol starts. Never
   switch kinds on your own; if the code suggests another kind would fit better, say so in one
   line and keep the one chosen. One case is settled before this protocol starts: a request
@@ -32,8 +44,8 @@ writes the file and runs the closing contract in `references/closing-contract.md
   sub-diagram per sub-flow that deserves its own picture, each collapsed element carrying
   `ref` to its part, each part complete on its own. The element is the one the part details:
   a flowchart node, an activity action, a sequence message (the call whose callee the part
-  follows), a state, an architecture component, a class or an ER entity; `ir-reference.md`
-  has the field for each kind. Put the part's id in `ref` only, never in a label, so the
+  follows), a state, an architecture component, a class, an ER entity or a use case;
+  `ir-reference.md` has the field for each kind. Put the part's id in `ref` only, never in a label, so the
   reader sees the part's title and a page link instead of a slug. Never produce parts
   without the main diagram.
 - Redact. Never copy connection strings, keys, tokens, hostnames with credentials, or
@@ -71,8 +83,33 @@ module that owns the steps.
 Look for the thing with a status: an enum of statuses, a `state` column, a state-machine
 library configuration, or a set of methods guarded by status checks. Each enum member is a
 state; each method or handler that assigns a new status is a transition with the method name
-or event as `event` and the guard condition as `guard`. The default or constructor value is
-the `initial` state; statuses with no outgoing assignment are `final`.
+or event as `event` and the guard condition as `guard`.
+
+Every status is an ordinary state with its name as the label, the terminal ones included:
+a status with no way out (`CANCELLED`, `REFUNDED`) is a state of its own, and it gets a
+transition to one `final` state, which carries no label and is drawn as the end circle. A
+`final` or `initial` state never takes the name of a status: no target draws a label on
+those circles, so the status would be missing from the picture, and the CLI reports such a
+label as a `model:` warning. Several terminal statuses share one `final` state.
+
+The `initial` state is the same kind of marker: one state of kind `initial` without a
+label, with a transition to the status the default or the constructor sets. Two cases have
+no such status, and in both the `initial` state is left out, never pointed at a guess (the
+first member of the enum, the status most transitions leave from):
+
+- the code never creates the thing: it only moves statuses that something else created.
+  Record it in `meta.omitted` as `no initial state: the code creates no order`;
+- the code creates the thing and gives the status no value: no default on the field or the
+  column, no assignment in the constructor or the insert, so a new thing has no status
+  until a later call sets one. Record it as `no initial state: the code sets no status
+  when it creates an order; <method> sets the first one (<file>)`, so the reader of the
+  report learns where the life of the thing starts although the picture cannot show it.
+
+The `model:` warning about the missing initial state then comes with every `validate` and
+every emit of the run. It is never left standing alone: the `meta.omitted` entry is its
+recorded reason, the report quotes the warning once beside that entry, as the closing
+contract says for a gap that is on purpose, and a later revise or sync that finds the
+warning without the entry adds the entry or the state before it emits.
 
 ### er
 
@@ -113,10 +150,80 @@ Choosing) are listed in `meta.omitted` too, in one entry. Label a connection wit
 protocol only when the files state it (a port alone is not a protocol); otherwise with the
 call the code makes, or leave the label out.
 
+When the code deploys to Google Cloud the same holds with the names of `gcp-icons.md`
+(`SKILL.md`, GCP icons). The service of a component is named by a Terraform `google_*`
+resource (`google_cloud_run_v2_service`, `google_sql_database_instance`,
+`google_pubsub_topic`, `google_storage_bucket`, `google_container_cluster`), a Cloud Run
+service or job manifest (`serving.knative.dev`, `run.googleapis.com`), a GKE manifest
+together with the cluster it is applied to, a `gcloud` command of a deploy script or a CI
+workflow (`gcloud run deploy`, `gcloud functions deploy`, `gcloud sql instances create`), a
+Deployment Manager type (`sqladmin.v1beta4.instance`, `pubsub.v1.topic`), `app.yaml` for App
+Engine, or a client library the code imports (`@google-cloud/*`, `google-cloud-*`,
+`Google.Cloud.*`, `cloud.google.com/go/*`). A client library names the service the code
+calls, not where the code runs: it gives a store or a topic its icon, never the caller. The
+frames come from `google_compute_network` (`gcp:vpc_network`), `google_compute_subnetwork`
+(`gcp:subnet`, in the region the resource states), the `project` and `region` of the
+provider block or of the resource (`gcp:project` when the project is named, else
+`gcp:google_cloud`; `gcp:region`), a `zone` argument only where the diagram is about zones
+(`gcp:zone`), and a GKE cluster when its workloads are drawn inside it
+(`gcp:kubernetes_cluster`). A Cloud Run service or a function stands in the region, not in
+a subnet, also when it has a `vpc_access` connector or direct VPC egress: the connector, its
+subnet and the egress setting are supporting resources. A Cloud SQL instance with a private
+network stands in that VPC network. A resource without a region (a Pub/Sub topic, a
+multi-region bucket) stands in the region frame of the components that use it when they are
+all in one region, else in the outer frame (`gcp-icons.md`, Choosing). A `google_pubsub_subscription` is the connection from
+its topic to its subscriber (labelled `push` or `pull` as the resource says), and a
+`google_cloud_scheduler_job` is a component that calls its target. A variable or a local
+that names a project or a region is shown by its value when the files give one
+(`terraform.tfvars`, a `default` in the variable block, a `locals` entry). When they give
+none (`project = var.project_id` with no value anywhere in the files), the name of a
+variable is not the name of a project, so the project does not count as named: the outer
+frame is `gcp:google_cloud` labelled "Google Cloud", not a `gcp:project` frame labelled
+with the variable, and `meta.notes` gets one `assumed:` entry that says which variable
+holds the project (`assumed: the project is var.project_id, which the files give no value
+for`). A region given only as a variable gets no region frame for the same reason: its
+components stand directly in the outer frame, or in the VPC network frame when the files
+define one, and the same entry names the variable. Never write `var.<name>` as the label
+of a frame. When the files deploy to both clouds,
+each resource takes the icon and the frames of its own provider.
+
+### usecase
+
+The actors and their goals are in what the system offers to the outside and in who may use
+it, not in its call chains.
+
+1. Goals: read the entry points a user or another system can reach: the route table,
+   controllers, GraphQL operations, CLI commands, menu or navigation definitions, public
+   message consumers, scheduled jobs. Group the entry points that serve one goal into one
+   use case ("list, show, create and cancel a booking" are two or three goals, not four
+   endpoints), and name it by what the actor gets done, in the words the user interface or
+   the documentation uses. An endpoint, a screen or a handler is never a use case by itself
+   (`ir-reference.md`, usecase, Level of detail).
+2. Actors: read who is allowed in: roles and their rights (an enum of roles, policies,
+   guards, middleware, `authorize` attributes, tables of rights), and the kinds of client (a
+   public site, an admin area, a partner API). Each role that reaches at least one goal is
+   an actor; a role that holds every right of another is a `generalization`. An entry point
+   without any guard belongs to an anonymous actor ("Visitor"). A scheduler that starts a
+   job is an actor of `kind` `system` with `role` `primary`.
+3. Supporting actors: the outside systems the code calls while serving a goal (HTTP
+   clients, SDK clients, mail and payment gateways) are actors of `kind` `system`,
+   associated with the use cases whose code path calls them.
+4. Relations: a guard that lets a role reach an entry point is the `association`. A service
+   or step that several use cases always call and that a reader would name (signing in, a
+   credit check) is an `include`; behaviour behind a feature flag or a condition on top of
+   a goal is an `extend` with that condition. Do not turn every shared helper into an
+   include.
+5. Boundaries: one per deployed application or bounded module whose entry points were read.
+
+Cite the route file, the policy or role definition and the client registrations in
+`meta.notes`. Under the scope `detailed` a use case whose flow deserves a picture carries
+`ref` to a `sequence` or `activity` part scouted from its handler.
+
 ## Output
 
-Produce the IR with `meta.source` set to `scout` and the cited paths in `meta.notes`, then
-hand it to the closing contract in `references/closing-contract.md`. When running as a subagent, reply with:
+Produce the IR with `meta.source` set to `scout`, the cited paths in `meta.notes` and the
+list of source files in `meta.sources`, then hand it to the closing contract in
+`references/closing-contract.md`, which records the sources at its end. When running as a subagent, reply with:
 
 1. The IR in a fenced `json` block.
 2. One paragraph of rationale: entry point chosen and what was left out. No questions, no

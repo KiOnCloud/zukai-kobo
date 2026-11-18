@@ -38,7 +38,7 @@ jobs:
           node -e '
             const fs = require("fs");
             const allowed = new Set(["name", "description", "license", "compatibility", "metadata", "allowed-tools"]);
-            for (const name of ["draw", "revise", "recook"]) {
+            for (const name of ["draw", "revise", "recook", "sync"]) {
               const text = fs.readFileSync("skills/" + name + "/SKILL.md", "utf8");
               const m = text.match(/^---\n([\s\S]*?)\n---/);
               if (!m) throw new Error(name + "/SKILL.md has no frontmatter");
@@ -79,3 +79,49 @@ jobs:
       - name: Record that strict validation was skipped
         if: ${{ steps.claude_cli.outcome != 'success' }}
         run: echo "::warning::Claude Code CLI did not install; 'claude plugin validate . --strict' is a local pre-release step (see docs/install.md)."
+
+  install-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install both targets with install.ps1 and run the installed CLI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = (Get-Content -LiteralPath .claude-plugin/plugin.json -Raw | ConvertFrom-Json).version
+          $expected = 'zukai,zukai-recook,zukai-revise,zukai-sync'
+          # Windows PowerShell 5.1 is what docs/install.md tells users to run; PowerShell 7 too.
+          foreach ($shell in @('powershell', 'pwsh')) {
+            foreach ($target in @('codex', 'claude-project')) {
+              # Square brackets in the project path: PowerShell reads them as a wildcard
+              # wherever a path is not taken literally.
+              $dest = Join-Path $env:RUNNER_TEMP "$shell-$target [app]"
+              [System.IO.Directory]::CreateDirectory($dest) | Out-Null
+              & $shell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\install.ps1 -Target $target -Dest $dest
+              if ($LASTEXITCODE -ne 0) { throw "$shell install.ps1 -Target $target exited $LASTEXITCODE" }
+
+              $skills = Join-Path $dest $(if ($target -eq 'codex') { '.agents\skills' } else { '.claude\skills' })
+              [string[]]$names = Get-ChildItem -LiteralPath $skills -Name
+              [Array]::Sort($names, [StringComparer]::Ordinal)
+              if (($names -join ',') -cne $expected) { throw "$shell/${target}: installed $($names -join ',')" }
+              foreach ($name in $names) {
+                $marker = [System.IO.File]::ReadAllText((Join-Path (Join-Path $skills $name) ".$name-version"))
+                if ($marker -cne "$version`n") { throw "$shell/${target}: marker of $name is '$marker'" }
+                # No byte-order mark and no CRLF in front of the frontmatter.
+                $head = [System.IO.File]::ReadAllBytes((Join-Path (Join-Path $skills $name) 'SKILL.md'))[0..3]
+                if (($head -join ',') -cne '45,45,45,10') { throw "$shell/${target}: SKILL.md of $name starts with bytes $($head -join ',')" }
+              }
+
+              $help = (& node (Join-Path $skills 'zukai\scripts\bin\cli.mjs') help) -join "`n"
+              if ($LASTEXITCODE -ne 0 -or -not $help.Contains('cli.mjs stale <run-dir>...')) { throw "$shell/${target}: the installed CLI does not answer help" }
+
+              $again = (& $shell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\install.ps1 -Target $target -Dest $dest) -join "`n"
+              if ($LASTEXITCODE -ne 0 -or -not $again.Contains('already up to date')) { throw "$shell/${target}: a second run did not leave the install alone: $again" }
+              Write-Output "ok: $shell $target"
+            }
+          }

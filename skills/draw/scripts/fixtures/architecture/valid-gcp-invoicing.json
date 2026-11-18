@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Invoicing system on Google Cloud (current state)",
+  "direction": "TB",
+  "meta": {
+    "source": "clarify",
+    "audience": "technical",
+    "notes": [
+      "Scope: current state",
+      "All connections are one-way",
+      "Both Cloud Run services reach the VPC network through a serverless VPC access connector; they are drawn in the region, outside the network",
+      "The renderer writes the PDF to the Cloud Storage bucket after it receives the push from Pub/Sub"
+    ],
+    "omitted": [
+      "Serverless VPC access connector and its subnet: supporting resources of the connection from the API to the database",
+      "Pub/Sub subscription: it is the connection from the topic to the renderer"
+    ]
+  },
+  "components": [
+    { "id": "users", "label": "Users", "kind": "client" },
+    { "id": "lb", "label": "External Application Load Balancer", "icon": "gcp:cloud_load_balancing" },
+    { "id": "invoice-api", "label": "Invoice API (Cloud Run)", "icon": "gcp:cloud_run" },
+    { "id": "invoice-db", "label": "Cloud SQL for PostgreSQL", "kind": "database", "icon": "gcp:cloud_sql" },
+    { "id": "tax-rate-api", "label": "Third-party tax rate API", "kind": "external" },
+    { "id": "invoice-topic", "label": "Pub/Sub topic", "kind": "queue", "icon": "gcp:cloud_pubsub" },
+    { "id": "pdf-renderer", "label": "PDF renderer (Cloud Run)", "icon": "gcp:cloud_run" },
+    { "id": "pdf-bucket", "label": "Cloud Storage bucket", "kind": "database", "icon": "gcp:cloud_storage" }
+  ],
+  "boundaries": [
+    { "id": "project", "label": "Project invoicing-prod", "group": "gcp:project", "children": ["lb", "region"] },
+    { "id": "region", "label": "asia-northeast1", "group": "gcp:region", "children": ["invoice-api", "vpc", "invoice-topic", "pdf-renderer", "pdf-bucket"] },
+    { "id": "vpc", "label": "VPC network", "group": "gcp:vpc_network", "children": ["private-subnet"] },
+    { "id": "private-subnet", "label": "Private subnet 10.8.0.0/24", "group": "gcp:subnet", "children": ["invoice-db"] }
+  ],
+  "connections": [
+    { "id": "users-to-lb", "from": "users", "to": "lb", "label": "HTTPS" },
+    { "id": "lb-to-api", "from": "lb", "to": "invoice-api", "label": "forwards requests" },
+    { "id": "api-to-db", "from": "invoice-api", "to": "invoice-db", "label": "reads and writes" },
+    { "id": "api-to-tax", "from": "invoice-api", "to": "tax-rate-api", "label": "gets tax rates (HTTPS)" },
+    { "id": "api-to-topic", "from": "invoice-api", "to": "invoice-topic", "label": "invoice issued" },
+    { "id": "topic-to-renderer", "from": "invoice-topic", "to": "pdf-renderer", "label": "push" },
+    { "id": "renderer-to-bucket", "from": "pdf-renderer", "to": "pdf-bucket", "label": "stores rendered PDF" }
+  ]
+}

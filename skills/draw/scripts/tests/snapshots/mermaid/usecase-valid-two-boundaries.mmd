@@ -1,0 +1,52 @@
+---
+title: "Clinic appointments"
+---
+flowchart LR
+  %% id: patient
+  n1["«actor»<br/>Patient"]
+  %% id: receptionist
+  n2["«actor»<br/>Receptionist"]
+  %% id: doctor
+  n3["«actor»<br/>Doctor"]
+  %% id: insurer
+  n4["«system»<br/>Health insurer"]
+  %% id: reminder-job
+  n5["«system»<br/>Nightly reminder run"]
+  %% id: booking
+  subgraph n13["Booking portal"]
+    %% id: book
+    n6(["Book an appointment"])
+    %% id: cancel
+    n7(["Cancel an appointment"])
+    %% id: remind
+    n8(["Remind the patient"])
+  end
+  %% id: practice
+  subgraph n14["Practice management"]
+    %% id: check-in
+    n9(["Check a patient in"])
+    %% id: record
+    n10(["Record the consultation"])
+    %% id: invoice
+    n11(["Issue an invoice"])
+    %% id: claim
+    n12(["Claim the cost from the insurer"])
+  end
+  %% id: a1
+  n1 --- n6
+  %% id: a2
+  n1 --- n7
+  %% id: a3
+  n5 --- n8
+  %% id: a4
+  n2 --- n6
+  %% id: a5
+  n2 --- n9
+  %% id: a6
+  n3 --- n10
+  %% id: a7
+  n2 --- n11
+  %% id: x1
+  n12 -.->|"«extend»<br/>#91;the patient is insured#93;"| n11
+  %% id: a8
+  n12 --- n4

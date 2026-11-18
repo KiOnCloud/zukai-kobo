@@ -137,8 +137,11 @@ describe('cover', () => {
       { id: 'end', label: 'Kết thúc', shape: 'terminal' },
     ],
     edges: [
+      { id: 'e1', from: 'start', to: 'enter' },
+      { id: 'e2', from: 'enter', to: 'check' },
       { id: 'e3', from: 'check', to: 'pay', label: 'Có' },
       { id: 'e4', from: 'check', to: 'notify', label: 'Không' },
+      { id: 'e5', from: 'pay', to: 'end' },
     ],
     meta: { source: 'recook', omitted: ['"Ghi chú: giờ cao điểm 18h–21h": a free note, not a step of the flow'] },
   });
@@ -207,7 +210,7 @@ describe('facts never hold a credential or personal data', () => {
     const { facts } = extractFacts(Buffer.from(xml), 'x.drawio');
     const ir = (omitted) => ({ schemaVersion: 1, kind: 'flowchart', title: 'Orders', nodes: [{ id: 'api', label: 'Order API', shape: 'process' }], edges: [], meta: { omitted } });
     expect(cover(facts, [{ name: 'o', ir: ir(['"Cấu hình: DB_PASSWORD=<db password> (tạm thời), hỏi <staff e-mail>": a credential and a contact, not part of the system']) }]).ok).toBe(true);
-    expect(cover(facts, [{ name: 'o', ir: ir([]) }]).missing.map((m) => m.text)).toEqual(['Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời)', 'hỏi <redacted e-mail>']);
+    expect(cover(facts, [{ name: 'o', ir: ir([]) }]).missing.map((m) => m.text)).toEqual(['Cấu hình: DB_PASSWORD=<redacted credential> (tạm thời) hỏi <redacted e-mail>']);
   });
 });
 
@@ -238,4 +241,35 @@ describe('cover by page', () => {
     expect(cover(one, [{ name: 'f', ir: ir(['Chấm điểm "x": Thử lại tối đa 3 lần']) }]).ok).toBe(false);
     expect(cover(one, [{ name: 'f', ir: ir(['"Thử lại tối đa 3 lần": gộp vào bước gọi cổng thanh toán']) }]).ok).toBe(true);
   });
+});
+
+describe('the label of a connection in a file Zukai wrote', () => {
+  it('is read as the label wherever along the line it was placed, and an end text stays an end text', () => {
+    const cell = (id, attrs, geometry) => `<mxCell id="${id}" ${attrs}>${geometry}</mxCell>`;
+    const xml = `<mxfile host="zukai" compressed="false"><diagram id="a" name="A"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+${cell('a:worker', 'value="worker" style="rounded=1;" vertex="1" parent="1"', '<mxGeometry x="0" y="0" width="120" height="40" as="geometry"/>')}
+${cell('a:secrets', 'value="Secret Manager" style="rounded=1;" vertex="1" parent="1"', '<mxGeometry x="600" y="300" width="160" height="40" as="geometry"/>')}
+${cell('a:c1', 'value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="a:worker" target="a:secrets"', '<mxGeometry relative="1" as="geometry"/>')}
+${cell('a:c1:label', 'value="read secrets" style="edgeLabel;html=1;" vertex="1" connectable="0" parent="a:c1"', '<mxGeometry x="-0.8" y="0" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>')}
+${cell('a:c2', 'value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="a:worker" target="a:secrets"', '<mxGeometry relative="1" as="geometry"/>')}
+${cell('a:c2:from-label', 'value="1" style="edgeLabel;html=1;" vertex="1" connectable="0" parent="a:c2"', '<mxGeometry x="-0.8" y="0" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>')}
+</root></mxGraphModel></diagram></mxfile>`;
+    const page = extractDrawio(xml).pages[0];
+    expect(edge(page, 'a:c1')).toMatchObject({ label: 'read secrets' });
+    expect(edge(page, 'a:c1').startLabel).toBeUndefined();
+    expect(edge(page, 'a:c2')).toMatchObject({ label: '', startLabel: '1' });
+  });
+
+  it('comes back as the label for every connection of every architecture fixture', async () => {
+    for (const { name, ir } of validFixtures().filter((f) => f.kind === 'architecture')) {
+      const { output } = await emit(ir, 'drawio', { diagramId: 'a' });
+      const page = extractDrawio(drawioXmlOf(Buffer.from(output)).xml).pages[0];
+      for (const c of ir.connections.filter((x) => x.label)) {
+        const read = page.edges.find((e) => e.id === `a:${c.id}`);
+        expect(read.label.replace(/\s+/g, ' '), `${name} ${c.id}`).toBe(c.label.replace(/\s+/g, ' '));
+        expect(read.startLabel, `${name} ${c.id}`).toBeUndefined();
+        expect(read.endLabel, `${name} ${c.id}`).toBeUndefined();
+      }
+    }
+  }, 120000);
 });

@@ -55,10 +55,10 @@ export function pageLink(diagramId) {
 }
 
 /** An edge cell. With `link` it is wrapped in a `UserObject`, as a linked vertex is. */
-export function edge({ id, value, style, source, target, points = [], parent = '1', sourcePoint, targetPoint, link }) {
+export function edge({ id, value, style, source, target, points = [], parent = '1', sourcePoint, targetPoint, link, labelOffset }) {
   const ends = `edge="1" parent="${xmlAttr(parent)}" source="${xmlAttr(source)}" target="${xmlAttr(target)}"`;
   if (link) {
-    const inner = edge({ id, value, style, source, target, points, parent, sourcePoint, targetPoint });
+    const inner = edge({ id, value, style, source, target, points, parent, sourcePoint, targetPoint, labelOffset });
     return [
       `<UserObject label="${xmlAttr(value ?? '')}" link="${xmlAttr(link)}" id="${xmlAttr(id)}">`,
       `  <mxCell style="${xmlAttr(style)}" ${ends}>`,
@@ -77,6 +77,8 @@ export function edge({ id, value, style, source, target, points = [], parent = '
     for (const p of points) lines.push(`      <mxPoint x="${num(p.x)}" y="${num(p.y)}"/>`);
     lines.push('    </Array>');
   }
+  // Moves the label off the middle of the line, where draw.io puts it, by this many px.
+  if (labelOffset) lines.push(`    <mxPoint x="${num(labelOffset.x)}" y="${num(labelOffset.y)}" as="offset"/>`);
   lines.push('  </mxGeometry>', '</mxCell>');
   return lines;
 }
@@ -97,6 +99,8 @@ export function edgeLabel({ id, value, parent, position = 0, offset = { x: 0, y:
 
 const GEOMETRY = /<mxGeometry x="(-?[\d.]+)" y="(-?[\d.]+)" width="(-?[\d.]+)" height="(-?[\d.]+)"/;
 const POINT = /<mxPoint x="(-?[\d.]+)" y="(-?[\d.]+)"/g;
+/** The offset of an edge's own label: a distance, not a place on the page, so it is no part of the extent and is never shifted. */
+const LABEL_OFFSET = /<mxPoint\b[^>]*\sas="offset"/;
 
 /**
  * Whether a cell built by this module sits directly on the page (parent "1"), and what it is.
@@ -120,7 +124,7 @@ export function cellsBounds(cells) {
       if (root.vertex) {
         const m = GEOMETRY.exec(line);
         if (m) { extend(+m[1], +m[2]); extend(+m[1] + +m[3], +m[2] + +m[4]); }
-      } else if (root.edge) {
+      } else if (root.edge && !LABEL_OFFSET.test(line)) {
         for (const m of line.matchAll(POINT)) extend(+m[1], +m[2]);
       }
     }
@@ -135,7 +139,7 @@ export function shiftCells(cells, dx, dy) {
     if (!root || (dx === 0 && dy === 0)) return cell;
     return cell.map((line) => {
       if (root.vertex) return line.replace(GEOMETRY, (_, x, y, w, h) => `<mxGeometry x="${num(+x + dx)}" y="${num(+y + dy)}" width="${w}" height="${h}"`);
-      if (root.edge) return line.replace(POINT, (_, x, y) => `<mxPoint x="${num(+x + dx)}" y="${num(+y + dy)}"`);
+      if (root.edge && !LABEL_OFFSET.test(line)) return line.replace(POINT, (_, x, y) => `<mxPoint x="${num(+x + dx)}" y="${num(+y + dy)}"`);
       return line;
     });
   });

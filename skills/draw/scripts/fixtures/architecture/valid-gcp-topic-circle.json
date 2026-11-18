@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Invoicing on Google Cloud: the topic pushes back to the API",
+  "direction": "LR",
+  "meta": {
+    "source": "manual",
+    "notes": ["A circle through a topic: the API publishes to it, and a second subscription pushes the status back to the API. The connection that closes the circle is listed last."],
+    "omitted": ["Pub/Sub subscriptions: each is the connection from the topic to its subscriber"]
+  },
+  "components": [
+    { "id": "scheduler", "label": "Cloud Scheduler nightly-reminders", "icon": "gcp:scheduled_tasks" },
+    { "id": "invoice-api", "label": "invoice-api (Cloud Run)", "icon": "gcp:cloud_run" },
+    { "id": "invoice-events", "label": "Pub/Sub invoice-events", "kind": "queue", "icon": "gcp:cloud_pubsub" },
+    { "id": "invoice-worker", "label": "invoice-worker (Cloud Run)", "icon": "gcp:cloud_run" },
+    { "id": "invoices-pg", "label": "Cloud SQL invoices-pg", "kind": "database", "icon": "gcp:cloud_sql" },
+    { "id": "invoice-pdfs", "label": "Cloud Storage invoice-pdfs", "kind": "database", "icon": "gcp:cloud_storage" },
+    { "id": "payment-api", "label": "Payment API", "kind": "external", "icon": "gcp:application" }
+  ],
+  "boundaries": [
+    { "id": "project", "label": "Project invoicing-prod", "group": "gcp:project", "children": ["region"] },
+    { "id": "region", "label": "europe-west1", "group": "gcp:region", "children": ["scheduler", "invoice-api", "invoice-events", "invoice-worker", "invoice-pdfs", "vpc"] },
+    { "id": "vpc", "label": "VPC network invoicing-vpc", "group": "gcp:vpc_network", "children": ["invoices-pg"] }
+  ],
+  "connections": [
+    { "id": "c-scheduler-api", "from": "scheduler", "to": "invoice-api", "label": "HTTP POST (OIDC)" },
+    { "id": "c-api-db", "from": "invoice-api", "to": "invoices-pg", "label": "SQL" },
+    { "id": "c-api-topic", "from": "invoice-api", "to": "invoice-events", "label": "publish" },
+    { "id": "c-topic-worker", "from": "invoice-events", "to": "invoice-worker", "label": "push" },
+    { "id": "c-worker-db", "from": "invoice-worker", "to": "invoices-pg", "label": "SQL" },
+    { "id": "c-worker-pdfs", "from": "invoice-worker", "to": "invoice-pdfs", "label": "write objects" },
+    { "id": "c-worker-payment", "from": "invoice-worker", "to": "payment-api", "label": "HTTPS" },
+    { "id": "c-topic-api", "from": "invoice-events", "to": "invoice-api", "label": "push" }
+  ]
+}

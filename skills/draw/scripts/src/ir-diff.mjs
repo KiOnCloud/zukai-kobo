@@ -14,19 +14,49 @@
  * sequence diagram and of its lifelines, and the order every layout starts from. Elements
  * both models have that no longer stand in the same order are reported as `reordered`, with
  * the fewest elements whose move explains the new order and what each now follows.
+ *
+ * A block of a sequence diagram lists every message between its first and its last one, the
+ * messages of the blocks inside it included, so one message put into the innermost block
+ * changes the list of every block around it. When the lists of a block (`MEMBER_LISTS`) differ
+ * only by ids that were added or removed, the block itself did not change: the message that
+ * came or went is reported, not every frame around it. A message that both versions have and
+ * that moved in or out of the block, and a section that came or went, still make it `changed`.
+ *
+ * A container is read the same way. A boundary, a group or a composite state that gained a
+ * new member or lost one that is gone did not change: the member is reported as added or
+ * removed, and a reader who saw the frame marked as changed would look for a difference in
+ * the frame that is not there. A member both versions have that moved into or out of the
+ * container still makes it `changed`, since nothing else in the list says so.
  */
 
 /** Top-level scalar fields worth reporting; `meta` is compared field by field. */
 const TOP_FIELDS = ['title', 'kind', 'direction'];
-const META_FIELDS = ['source', 'audience', 'lang', 'omitted', 'notes'];
+const META_FIELDS = ['source', 'audience', 'lang', 'omitted', 'notes', 'sources'];
 /** Keys whose values name an element (or, for `ref`, a diagram) by id, from the IR schema. */
 const REF_KEYS = new Set(['from', 'to', 'children', 'participants', 'after', 'ref', 'lane']);
 
-const labelOf = (item) => item.label ?? item.name ?? item.title ?? item.guard ?? item.event ?? '';
+export const labelOf = (item) => item.label ?? item.name ?? item.title ?? item.guard ?? item.event ?? '';
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+/**
+ * Fields of an element that list its members by id: the messages a block spans (its first
+ * section and its further sections) and the children of a container (a boundary, a group, a
+ * composite state).
+ */
+const MEMBER_LISTS = new Set(['messages', 'branches', 'children']);
+
+/** `value` without the given ids in any list of ids it holds, however deep. */
+function withoutIds(value, ids) {
+  if (Array.isArray(value)) {
+    if (value.every((v) => typeof v === 'string')) return value.filter((v) => !ids.has(v));
+    return value.map((v) => withoutIds(v, ids));
+  }
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, withoutIds(v, ids)]));
+  return value;
+}
+
 /** Arrays of id-carrying objects at the top level of an IR, by collection name. */
-function collections(ir) {
+export function collections(ir) {
   const out = new Map();
   for (const [key, value] of Object.entries(ir ?? {})) {
     if (!Array.isArray(value)) continue;
@@ -60,7 +90,8 @@ function keptOrder(before, after) {
  *   reordered: Array<{ collection: string, moved: Array<{ id: string, label: string, after: string | null }> }>, fields: Array<{ field: string, from: unknown, to: unknown }>,
  *   added: Array<{ collection: string, id: string, label: string }>,
  *   removed: Array<{ collection: string, id: string, label: string }>,
- *   changed: Array<{ collection: string, id: string, label: string, fields: string[] }> }}
+ *   changed: Array<{ collection: string, id: string, label: string, fields: string[], values: Record<string, { from: unknown, to: unknown }> }> }}
+ *   `values` holds, per changed field, what it was and what it is (`from` or `to` is absent when the field was not set)
  */
 export function diffIr(oldIr, newIr) {
   const fields = [];
@@ -78,6 +109,15 @@ export function diffIr(oldIr, newIr) {
   const before = collections(oldIr);
   const after = collections(newIr);
   const names = [...new Set([...before.keys(), ...after.keys()])].sort();
+  // Ids that are in one version only, over every collection: a list that differs by these alone is the same list.
+  const oneSided = new Set();
+  for (const name of names) {
+    const a = before.get(name) ?? new Map();
+    const b = after.get(name) ?? new Map();
+    for (const id of a.keys()) if (!b.has(id)) oneSided.add(id);
+    for (const id of b.keys()) if (!a.has(id)) oneSided.add(id);
+  }
+  const sameButMembers = (key, x, y) => same(x, y) || (MEMBER_LISTS.has(key) && Array.isArray(x) && Array.isArray(y) && same(withoutIds(x, oneSided), withoutIds(y, oneSided)));
   for (const name of names) {
     const a = before.get(name) ?? new Map();
     const b = after.get(name) ?? new Map();
@@ -88,8 +128,8 @@ export function diffIr(oldIr, newIr) {
       if (!x) added.push({ collection: name, id, label: labelOf(y) });
       else if (!y) removed.push({ collection: name, id, label: labelOf(x) });
       else {
-        const keys = [...new Set([...Object.keys(x), ...Object.keys(y)])].sort().filter((k) => !same(x[k], y[k]));
-        if (keys.length > 0) changed.push({ collection: name, id, label: labelOf(y), fields: keys });
+        const keys = [...new Set([...Object.keys(x), ...Object.keys(y)])].sort().filter((k) => !sameButMembers(k, x[k], y[k]));
+        if (keys.length > 0) changed.push({ collection: name, id, label: labelOf(y), fields: keys, values: Object.fromEntries(keys.map((k) => [k, { from: x[k], to: y[k] }])) });
       }
     }
     const was = [...a.keys()].filter((id) => b.has(id));

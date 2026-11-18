@@ -468,6 +468,28 @@
             "status": "degraded",
             "note": "the AWS group frames are drawn as plain subgraphs"
           }
+        },
+        "component.icon.gcp": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "Mermaid has no GCP icons; each component is drawn with the generic icon or shape of its kind"
+          },
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "FigJam has no GCP icons; each component is drawn with the shape of its kind"
+          }
+        },
+        "boundary.group.gcp": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "the GCP group frames are drawn as plain groups"
+          },
+          "drawio": "supported",
+          "figjam": {
+            "status": "degraded",
+            "note": "the GCP group frames are drawn as plain subgraphs"
+          }
         }
       }
     },
@@ -525,6 +547,72 @@
           "figjam": "supported"
         },
         "action.ref": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        }
+      }
+    },
+    "usecase": {
+      "kind": {
+        "mermaid": {
+          "status": "degraded",
+          "note": "Mermaid has no use case diagram; emitted as a flowchart: an actor is a box marked «actor» or «system», a use case a rounded (stadium) node, a boundary a subgraph"
+        },
+        "drawio": "supported",
+        "figjam": {
+          "status": "unsupported",
+          "note": "FigJam generate_diagram has no use case diagram; use --to drawio, or emit --native to draw the board with use_figma"
+        }
+      },
+      "features": {
+        "actor.kind.person": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "no stick figure in a flowchart: a box marked «actor»"
+          },
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "actor.kind.system": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "boundary": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.association": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.include": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.extend": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.kind.generalization": {
+          "mermaid": {
+            "status": "degraded",
+            "note": "no hollow triangle in a flowchart: a solid arrow labelled «generalization»"
+          },
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "relation.condition": {
+          "mermaid": "supported",
+          "drawio": "supported",
+          "figjam": "supported"
+        },
+        "useCase.ref": {
           "mermaid": "supported",
           "drawio": "supported",
           "figjam": "supported"

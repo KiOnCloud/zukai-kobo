@@ -266,16 +266,16 @@ describe('AWS names in an architecture IR', () => {
     const components = Object.keys(catalog.logos).map((name, i) => ({ id: `c${i}`, label: name, kind: 'external', icon: `gcp:${name}` }));
     expect(validateIr(base(components))).toEqual({ ok: true, errors: [] });
     const r = validateIr(base([{ id: 'a', label: 'A', icon: 'gcp:firebas' }]));
-    expect(r.errors.map((e) => `${e.path} ${e.message}`)).toEqual(['/components/0/icon unknown product logo "gcp:firebas"']);
+    expect(r.errors.map((e) => `${e.path} ${e.message}`)).toEqual(['/components/0/icon unknown GCP icon "gcp:firebas"']);
     expect(r.errors[0].hint).toContain('did you mean gcp:firebase');
-    // A group frame is always one of the AWS library.
+    // A product logo is no group frame.
     expect(validateIr(base([{ id: 'a', label: 'A' }], [{ id: 'b', label: 'B', group: 'gcp:firebase', children: ['a'] }])).ok).toBe(false);
   });
 
   it('rejects another provider or a malformed value with one error that says how to write it', () => {
     for (const icon of ['azure:vm', 'lambda', 'aws:Lambda', 'aws:', 'gcp:Firebase']) {
       const r = validateIr(base([{ id: 'a', label: 'A', icon }]));
-      expect(r.errors, icon).toEqual([{ path: '/components/0/icon', message: expect.any(String), hint: 'write "aws:<name>" with a name listed in references/aws-icons.md' }]);
+      expect(r.errors, icon).toEqual([{ path: '/components/0/icon', message: expect.any(String), hint: 'write "aws:<name>" or "gcp:<name>" with a name listed in references/aws-icons.md or references/gcp-icons.md' }]);
     }
   });
 
@@ -1121,5 +1121,75 @@ describe('systems outside AWS in an AWS diagram', () => {
       expect(r.ok, target).toBe(true);
       expect(r.warnings.filter((w) => w.feature === 'component.icon.aws'), target).toHaveLength(1);
     }
+  });
+});
+
+describe('a connection through the header bar of a plain frame', () => {
+  // A deployment diagram: the worker in the ECS cluster calls Twilio, which stands above the frames.
+  const deployment = () => ({
+    schemaVersion: 1, kind: 'architecture', title: 'Clinic booking - production', direction: 'LR',
+    components: [
+      { id: 'user', label: 'Patient', kind: 'client' },
+      { id: 'net', label: 'Internet', kind: 'external' },
+      { id: 'lb', label: 'Load Balancer' },
+      { id: 'web', label: 'booking-web:2.4' },
+      { id: 'api', label: 'booking-api:2.4' },
+      { id: 'wrk', label: 'reminder-worker:1.1' },
+      { id: 'pg', label: 'PostgreSQL 15 (RDS)', kind: 'database', icon: 'aws:rds' },
+      { id: 'sqs', label: 'SQS reminders', kind: 'queue', icon: 'aws:sqs' },
+      { id: 'tw', label: 'Twilio', kind: 'external' },
+    ],
+    boundaries: [
+      { id: 'region', label: 'AWS eu-west-1', group: 'aws:region', children: ['public-subnet', 'private-subnet'] },
+      { id: 'public-subnet', label: 'Public subnet', group: 'aws:public_subnet', children: ['lb'] },
+      { id: 'private-subnet', label: 'Private subnet', group: 'aws:private_subnet', children: ['ecs', 'pg', 'sqs'] },
+      { id: 'ecs', label: 'ECS cluster', children: ['web', 'api', 'wrk'] },
+    ],
+    connections: [
+      { id: 'e1', from: 'user', to: 'net', label: 'HTTPS' },
+      { id: 'e2', from: 'net', to: 'lb', label: '443' },
+      { id: 'e3', from: 'lb', to: 'web', label: 'HTTP 8080' },
+      { id: 'e4', from: 'web', to: 'api', label: 'REST' },
+      { id: 'e5', from: 'api', to: 'pg', label: 'SQL 5432' },
+      { id: 'e6', from: 'api', to: 'sqs', label: 'enqueue' },
+      { id: 'e7', from: 'wrk', to: 'sqs', label: 'poll' },
+      { id: 'e8', from: 'wrk', to: 'pg', label: 'SQL 5432' },
+      { id: 'e9', from: 'wrk', to: 'tw', label: 'SMS API' },
+    ],
+  });
+
+  it('is reported as a layout warning that names the connection and the frame', async () => {
+    const ir = deployment();
+    const { r, abs, paths } = await drawn(ir);
+    // The line to Twilio leaves the cluster upwards, through the strip that holds its title.
+    const frame = abs.get('a:ecs');
+    const line = paths.get('a:e9');
+    expect(line.every((p) => p.x === line[0].x)).toBe(true);
+    expect(line[0].x).toBeGreaterThan(frame.x);
+    expect(line[0].x).toBeLessThan(frame.x + frame.width);
+    expect(Math.min(...line.map((p) => p.y))).toBeLessThan(frame.y);
+    expect(r.warnings).toEqual([expect.objectContaining({
+      path: '/connections/8',
+      message: 'layout: connection "e9" runs through the header bar of frame "ECS cluster", beside its title',
+    })]);
+    // Without that connection nothing runs through the header.
+    const quiet = deployment();
+    quiet.components = quiet.components.filter((c) => c.id !== 'tw');
+    quiet.connections = quiet.connections.filter((c) => c.id !== 'e9');
+    expect((await emit(quiet, 'drawio')).warnings.filter((w) => /header bar/.test(w.message))).toEqual([]);
+  });
+
+  it('is no warning for a line that enters a frame from above by the flow of a top-down diagram', async () => {
+    const ir = {
+      schemaVersion: 1, kind: 'architecture', title: 'T', direction: 'TB',
+      components: [{ id: 'web', label: 'Web app', kind: 'client' }, { id: 'api', label: 'API' }, { id: 'db', label: 'Orders', kind: 'database' }],
+      boundaries: [{ id: 'backend', label: 'Backend', children: ['api', 'db'] }],
+      connections: [{ id: 'c1', from: 'web', to: 'api', label: 'HTTPS' }, { id: 'c2', from: 'api', to: 'db', label: 'SQL' }],
+    };
+    const { r, abs, paths } = await drawn(ir);
+    const frame = abs.get('a:backend');
+    expect(paths.get('a:c1').at(-1).y).toBeGreaterThan(frame.y);
+    expect(paths.get('a:c1')[0].y).toBeLessThan(frame.y);
+    expect(r.warnings).toEqual([]);
   });
 });

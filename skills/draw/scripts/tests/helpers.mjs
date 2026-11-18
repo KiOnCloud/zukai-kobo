@@ -40,3 +40,13 @@ export function loadMermaid() {
   }
   return mermaidPromise;
 }
+
+/**
+ * The data a script for `use_figma` carries (the value of its `const D`), read as the script
+ * itself reads it: from `const D =` to the first line that ends the statement.
+ */
+export function scriptData(script) {
+  const start = script.search(/^const D =/m);
+  const end = script.indexOf(';\n', start);
+  return new Function(`${script.slice(start, end + 1)}\nreturn D;`)();
+}

@@ -1,0 +1,33 @@
+' Two diagrams this reader reads, and four it does not
+@startuml login
+Alice -> Bob : hello
+Bob --> Alice : hi
+@enduml
+
+@startmindmap
+* Roadmap
+** Q1
+** Q2
+@endmindmap
+
+@startuml
+title Door
+[*] --> Closed
+Closed --> Open : open
+@enduml
+
+@startuml old-activity
+(*) --> "Check input"
+"Check input" --> (*)
+@enduml
+
+@startgantt
+[Design] lasts 5 days
+@endgantt
+
+@startuml
+salt
+{
+  Login | "user"
+}
+@enduml

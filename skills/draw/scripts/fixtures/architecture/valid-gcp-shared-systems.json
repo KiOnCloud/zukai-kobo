@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Booking platform on Google Cloud",
+  "direction": "LR",
+  "components": [
+    { "id": "browser", "label": "Staff browser", "kind": "client" },
+    { "id": "cdn", "label": "Cloud CDN", "icon": "gcp:cloud_cdn" },
+    { "id": "site", "label": "Cloud Storage web app", "kind": "database", "icon": "gcp:cloud_storage" },
+    { "id": "lb", "label": "Application Load Balancer", "icon": "gcp:cloud_load_balancing" },
+    { "id": "api", "label": "Booking API (GKE)", "icon": "gcp:container_engine" },
+    { "id": "tables", "label": "Firestore", "kind": "database", "icon": "gcp:cloud_firestore" },
+    { "id": "files", "label": "Cloud Storage attachments", "kind": "database", "icon": "gcp:cloud_storage" },
+    { "id": "idp", "label": "Identity provider", "kind": "external", "icon": "gcp:application" },
+    { "id": "realtime", "label": "Firebase Realtime Database", "kind": "external", "icon": "gcp:firebase" },
+    { "id": "client_logs", "label": "Client log collector", "kind": "external", "icon": "gcp:application" }
+  ],
+  "boundaries": [
+    { "id": "project", "label": "Production project", "group": "gcp:project", "children": ["cdn", "region"] },
+    { "id": "region", "label": "asia-northeast1 (Tokyo)", "group": "gcp:region", "children": ["site", "vpc", "tables", "files"] },
+    { "id": "vpc", "label": "VPC network", "group": "gcp:vpc_network", "children": ["proxy", "private"] },
+    { "id": "proxy", "label": "Proxy-only subnet", "group": "gcp:subnet", "children": ["lb"] },
+    { "id": "private", "label": "GKE subnet", "group": "gcp:subnet", "children": ["api"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "cdn", "label": "HTTPS" },
+    { "id": "c2", "from": "browser", "to": "lb", "label": "REST" },
+    { "id": "c3", "from": "browser", "to": "idp", "label": "sign in" },
+    { "id": "c4", "from": "browser", "to": "realtime", "label": "listen for version" },
+    { "id": "c5", "from": "browser", "to": "client_logs", "label": "client logs" },
+    { "id": "c6", "from": "cdn", "to": "site" },
+    { "id": "c7", "from": "lb", "to": "api", "label": "HTTP" },
+    { "id": "c8", "from": "api", "to": "tables", "label": "read / write" },
+    { "id": "c9", "from": "api", "to": "files", "label": "store files" },
+    { "id": "c10", "from": "api", "to": "idp", "label": "verify token" },
+    { "id": "c11", "from": "api", "to": "realtime", "label": "publish version" }
+  ]
+}

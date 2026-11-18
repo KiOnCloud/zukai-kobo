@@ -1,20 +1,24 @@
 # Review checklist and verdict
 
-Every diagram passes a review before it is delivered. In Claude Code the `diagram-reviewer`
-agent runs it in a separate context; in other runtimes the main session runs it as an explicit
-step, reading this file first and judging the diagram as a reviewer, not as its author. The
-reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI warnings.
+Every diagram passes a review before it is delivered. Where the `diagram-reviewer` agent is
+available it runs the review in a separate context; anywhere else, which includes every
+copied install, the main session runs it as an explicit step, reading this file first and
+judging the diagram as a reviewer, not as its author (`closing-contract.md`, "Agents that may not be there"). The
+reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI warnings. For
+a revision it also gets the request and, when there is one, the PNGs of the picture of the
+change (`diff --drawio`), one per page of it: a page per diagram that changed, each
+rendered with `preview <file> --page <diagram id>`.
 
 ## Layout (look at the PNG)
 
 1. Every arrow starts and ends at the intended elements and points the right way; branch
    arrows leave a decision at its tip and share one trunk when they head the same way.
 2. No label overlaps another label, a frame, a note or a shape; nothing is cut off or
-   outside the page. No connection runs through a component name or a frame title. An AWS icon shows its picture: an empty coloured or white square means
+   outside the page. No connection runs through a component name or a frame title. An AWS or GCP icon shows its picture: an empty coloured or white square, or an empty place above a name, means
    the viewer lacks that stencil, which is reported, not passed.
 3. Frames, groups and lanes enclose exactly their members; each action sits in the lane of
    the actor that performs it; the reading order (top to bottom or left to right) matches
-   the order in the IR. One exception is intended and is not a finding: in an AWS
+   the order in the IR. One exception is intended and is not a finding: in an AWS or GCP
    architecture diagram a system outside the frames that a component inside them calls
    stands beside the frames, level with its caller, or at the nearer end of the frames when
    it has several callers, and a store stands beside the one component that uses it, so
@@ -26,6 +30,11 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
    finding.
 4. Every CLI warning that starts with `layout:` is resolved or explicitly accepted.
 
+A Mermaid picture is laid out by Mermaid's renderer. What `target-mermaid.md` lists as its
+own (a `swimlane-beta` branch that runs over a lane header or round the edge of the lanes,
+a sequence lifeline drawn through a message label or a block condition) is no finding
+against the IR: the report names it once, with the offer of `--to drawio`.
+
 ## Wording (read the IR)
 
 5. Labels are in the user's language, consistent throughout, and short: an action is one
@@ -35,7 +44,7 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
    business rule with its values may take up to four lines, because splitting the rule into
    several elements would make the simpler view larger than the technical one.
 6. Names are consistent: the same system, actor or entity has the same label everywhere;
-   stereotypes and lane names match the vocabulary of the project. An AWS `icon` is the
+   stereotypes and lane names match the vocabulary of the project. An AWS or GCP `icon` is the
    service its label names, and a `group` is the construct its label names (a subnet is not
    drawn as a VPC).
 7. The title says what the diagram shows; ids and file names are English kebab-case; no
@@ -45,7 +54,7 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 
 8. One main diagram covers the whole feature at the chosen scope; parts exist only under
    `detailed` and are referenced with `ref` on the element they detail (a step, a message,
-   a state, a component, a class or an entity), never by an id written into a label;
+   a state, a component, a class, an entity or a use case), never by an id written into a label;
    no second diagram repeats the kind and subject of another one at a different level of
    detail; nothing in the request is missing and nothing outside it was added. A recooked
    run (`meta.source: "recook"`) also keeps each page of its source as a diagram of its own
@@ -54,7 +63,8 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
 9. No degenerate control: a merge or join with one incoming flow, a decision or fork with
    one outgoing flow, a node nothing reaches, a branch that never ends.
 10. In `scout` mode the diagram contains only what the code does, with the source files in
-    `meta.notes`, and no open questions or suggestions anywhere in the output.
+    `meta.notes` and in `meta.sources`, and no open questions or suggestions anywhere in the
+    output.
 11. An `architecture` diagram stays at the level of deployed resources (`ir-reference.md`,
     Level of detail). Each of these is a `wrong` finding, because the diagram then answers a
     question it was not asked: several components that are parts of one resource (one icon
@@ -78,14 +88,36 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
     breach written as plain prose ("writes the sync date of each office") is for the
     reviewer to find, so read the labels as well. A system outside
     AWS in an AWS diagram that has no icon is a `polish` finding: give it a general resource
-    or its product logo (`aws-icons.md`).
+    or its product logo (`aws-icons.md`); in a GCP diagram, a resource figure or its product
+    logo (`gcp-icons.md`).
+
+12. A `usecase` diagram shows who uses the system and for what (`ir-reference.md`, usecase,
+    Level of detail). Each of these is a `wrong` finding: a use case that names a step, a
+    screen, a button or a function instead of a goal of an actor ("Click Confirm", "Loan
+    page", "validateLoan"); a chain of use cases joined by `include` that reads as the
+    order of the steps of one goal; an actor inside a boundary, or the system itself drawn
+    as an actor of its own use cases; an `include` or `extend` whose arrow points the wrong
+    way (the arrow of an include ends at the included use case, the arrow of an extend at
+    the use case that is extended); an `extend` without a condition where the request, the
+    code or, in a recook, a note of the source beside the extending use case or on its
+    line states one (`mapping.md` of the recook skill says when such a note is the
+    condition); an actor named after a person instead of a role. The fix is one
+    use case per goal, with its steps in a part linked with `ref` (scope `detailed`) or in
+    `meta.notes`. In a recooked diagram (`meta.source: "recook"`) a use case keeps the
+    wording of its source: one that reads as a step or a screen is a `polish` finding
+    there, with the offer of a `revise`. On the image: every primary actor stands before the boundary and every
+    supporting actor or outside system after it, each line ends on the outline of its
+    ellipse, no line runs through an ellipse it does not end on, and no «include» or
+    «extend» label lies on a line. `polish`: more than about twelve use cases in one
+    boundary (split by subsystem, one boundary each), an actor whose only association
+    another actor already has (a generalization may say it better).
 
 ## Audience (read `meta.audience`; see `variants.md`)
 
-12. `business`: no class, method, table, column, queue, endpoint or configuration name
+13. `business`: no class, method, table, column, queue, endpoint or configuration name
     remains; no implementation-only step (queueing, logging, caching, sanitising, retries)
     remains; no label hides a rule behind a word such as "safe" or "valid".
-13. `business`: every business rule of the technical diagram is still present with its
+14. `business`: every business rule of the technical diagram is still present with its
     value. A business rule is a condition whose value the reader would check: a time
     window, a lookback period, a threshold, a limit, a cut-off, a role that may act, and
     the outcomes the reader can observe (an approval, a rejection, a notification, a wait).
@@ -93,11 +125,32 @@ reviewer gets: the IR file(s), the preview PNG(s) from `preview`, and the CLI wa
     a retry, a validation of the request shape; these may be dropped or merged without a
     finding. When the technical IR is given, compare the two and list each dropped business
     rule as a `missing-rule` finding.
-14. `technical` (or unset): names match the code or the specification exactly; nothing was
+15. `technical` (or unset): names match the code or the specification exactly; nothing was
     reworded for a non-technical reader.
-15. Anything listed in `meta.omitted` was left out on purpose: never ask for it back, in any
-    audience. The author's or the user's decision to omit wins over items 8, 9 and 13; the
+16. Anything listed in `meta.omitted` was left out on purpose: never ask for it back, in any
+    audience. The author's or the user's decision to omit wins over items 8, 9 and 14; the
     closing report lists the omissions so the reader knows what the picture does not cover.
+
+## Revision (when the task gives a request and the picture of the change)
+
+The picture shows the new version with what was added in green, what changed or moved in
+amber and what was removed in red with a dashed outline; the legend under it lists the old
+value of everything amber and names a removed element it could not draw. It has one page
+per diagram that changed, so there may be several PNGs: judge each. A frame around a new
+or removed message of a sequence diagram is not coloured, and neither is a boundary, a
+group or a composite state that only gained a new member or lost one that is gone: the
+member is coloured, the frame itself did not change.
+
+17. Everything coloured follows from the request: an element the request did not ask to
+    add, change, move or remove, and that is no cascade of it into a part or a business
+    view, is a `wrong` finding. So is something the request asked for that the picture
+    does not show as changed.
+18. A red element is one the request meant to drop, and nothing that still refers to it
+    stays behind: a rule, a condition or an outcome that went with it and that the request
+    did not name is a `missing-rule` finding.
+19. The picture is judged for what it says about the change only. Its own layout (a removed
+    step standing beside a new one, a thicker line, the legend) is never a finding; the
+    layout items are checked on the PNG of the delivered file.
 
 ## Verdict format
 
@@ -109,7 +162,8 @@ Findings:
 ```
 
 The `Images:` line says, for every diagram, whether the reviewer actually opened its PNG
-(every tile when there are several). A diagram whose image was not opened was reviewed on
+(every tile when there are several), and for a revision whether it opened the picture of
+the change (`changes: opened | not opened (<reason>)`). A diagram whose image was not opened was reviewed on
 the IR and warnings only, and the layout items could not be checked; the closing report
 repeats this line as it is.
 

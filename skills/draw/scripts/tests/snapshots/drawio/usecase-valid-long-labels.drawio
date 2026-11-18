@@ -1,0 +1,79 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="diagram" name="経費精算">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="diagram:system" value="経費精算システム (Expense reimbursement system of the whole group)" style="rounded=0;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;fontStyle=1;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="238" y="12" width="906" height="326" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram:employee" value="従業員" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=45;" vertex="1" parent="1">
+          <mxGeometry x="70" y="70" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram:approver" value="Phê duyệt viên cấp phòng ban và cấp công ty" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=146;" vertex="1" parent="1">
+          <mxGeometry x="70" y="192" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram:erp" value="«system»&lt;br&gt;AccountsPayableReconciliationService" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1224" y="173" width="240" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram:submit" value="出張旅費および交際費の経費精算申請を提出する" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=32;spacingRight=32;" vertex="1" parent="diagram:system">
+          <mxGeometry x="20" y="61" width="210" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram:attach" value="Attach the receipts and the supporting documents that the finance policy asks for" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=33;spacingRight=33;" vertex="1" parent="diagram:system">
+          <mxGeometry x="508" y="50" width="220" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram:approve" value="Duyệt yêu cầu hoàn ứng" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=11;spacingRight=11;" vertex="1" parent="diagram:system">
+          <mxGeometry x="43" y="166" width="164" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram:export" value="ExportApprovedExpenseClaimsToAccountsPayable(batch)" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=24;spacingRight=24;" vertex="1" parent="diagram:system">
+          <mxGeometry x="508" y="166" width="378" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram:ok" value="OK" style="ellipse;whiteSpace=wrap;html=1;spacingLeft=48;spacingRight=48;" vertex="1" parent="diagram:system">
+          <mxGeometry x="20" y="256" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram:a1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="diagram:employee" target="diagram:submit">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="diagram:i1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;dashed=1;endArrow=open;endSize=10;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="diagram:submit" target="diagram:attach">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="diagram:i1:label" value="«include»" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="diagram:i1">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="diagram:a2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="diagram:approver" target="diagram:approve">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="183" y="222"/>
+              <mxPoint x="183" y="203"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="diagram:x1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;dashed=1;endArrow=open;endSize=10;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="diagram:export" target="diagram:approve">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="diagram:x1:label" value="«extend»&lt;br&gt;[承認済みの申請がある]" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="diagram:x1">
+          <mxGeometry x="-0.08" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="20" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="diagram:a3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="diagram:erp" target="diagram:export">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="diagram:a4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="diagram:employee" target="diagram:ok">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="203" y="100"/>
+              <mxPoint x="203" y="293"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

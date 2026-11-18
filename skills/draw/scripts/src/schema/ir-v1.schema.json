@@ -17,7 +17,8 @@
         "er",
         "class",
         "architecture",
-        "activity"
+        "activity",
+        "usecase"
       ]
     }
   },
@@ -45,6 +46,9 @@
     },
     {
       "$ref": "#/$defs/activity"
+    },
+    {
+      "$ref": "#/$defs/usecase"
     }
   ],
   "$defs": {
@@ -124,6 +128,16 @@
           "type": "string",
           "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
           "description": "BCP 47 tag of the label language, set on a translated variant"
+        },
+        "sources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "description": "The files the diagram was derived from, as paths relative to the project root with forward slashes; the scout mode writes them, and the sources and stale commands follow them"
         }
       }
     },
@@ -873,7 +887,7 @@
                 "$ref": "#/$defs/idList"
               },
               "group": {
-                "$ref": "#/$defs/awsName"
+                "$ref": "#/$defs/groupName"
               }
             }
           }
@@ -1041,15 +1055,154 @@
       ],
       "unevaluatedProperties": false
     },
-    "awsName": {
+    "usecase": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/envelope"
+        }
+      ],
+      "properties": {
+        "kind": {
+          "const": "usecase"
+        },
+        "actors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "person",
+                  "system"
+                ],
+                "description": "person (default): a role people play, drawn as a stick figure; system: an outside system that takes part, drawn as a box marked «system»"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "primary",
+                  "supporting"
+                ],
+                "description": "primary: starts use cases to reach a goal, drawn before the system boundary; supporting: the system calls on it, drawn after the boundary. Defaults to primary for a person and supporting for a system"
+              }
+            }
+          }
+        },
+        "useCases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "ref": {
+                "$ref": "#/$defs/ref"
+              }
+            }
+          }
+        },
+        "boundaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "children"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "children": {
+                "$ref": "#/$defs/idList"
+              }
+            }
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to",
+              "kind"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "from": {
+                "$ref": "#/$defs/id"
+              },
+              "to": {
+                "$ref": "#/$defs/id"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "association",
+                  "include",
+                  "extend",
+                  "generalization"
+                ]
+              },
+              "condition": {
+                "$ref": "#/$defs/label",
+                "description": "extend only: the condition or the extension point under which the extending use case takes part"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "actors",
+        "useCases",
+        "relations"
+      ],
+      "unevaluatedProperties": false
+    },
+    "groupName": {
       "type": "string",
-      "pattern": "^aws:[a-z0-9_]{1,64}$",
-      "description": "An AWS group frame of draw.io's AWS library, written aws:<name>; the names are listed in references/aws-icons.md"
+      "pattern": "^(aws|gcp):[a-z0-9_]{1,64}$",
+      "description": "A group frame of draw.io's AWS or GCP library, written aws:<name> or gcp:<name>; the names are listed in references/aws-icons.md and references/gcp-icons.md"
     },
     "iconName": {
       "type": "string",
       "pattern": "^(aws|gcp):[a-z0-9_]{1,64}$",
-      "description": "An icon of draw.io's AWS library, written aws:<name>, or a product logo, written gcp:<name>; the names are listed in references/aws-icons.md"
+      "description": "An icon of draw.io's AWS or GCP library or a product logo, written aws:<name> or gcp:<name>; the names are listed in references/aws-icons.md and references/gcp-icons.md"
     }
   }
 }

@@ -29,14 +29,30 @@ brainstorm (idea) ─> clarify ┘                                              
   and turns `degraded` cells into warnings that name the element and what is lost, and
   `unsupported` cells into errors. Tests assert the matrix covers every feature the enumerator
   can produce for every target, so a new enum value cannot ship without a decision per target.
+  The description tables (`emit-doc.mjs`) stand beside the matrix, not in it: `--to doc`
+  writes every element of an IR as a row, a column or a heading of a Markdown table, so
+  there is no cell that could say `degraded`, and the pipeline does not ask the matrix for
+  it. That is why `doc` is no fourth target: it is written beside the files of the target
+  the user chose. The secret scan still runs, as for every local file. Every word the tables
+  write themselves is in `doc-strings.mjs`, once per language (`en`, `ja`, `vi`); labels are
+  never translated. The first line of a document records its language, so a later change
+  writes it again the same way, and in a bundle an element with `ref` links to the section
+  of its part. Tables with translated labels are written from translated IRs, which live in
+  `source/<lang>/`: the commands that take a run folder read `source/` and nothing below
+  it, so those IRs are no further diagrams of the run and the sources record never sees
+  them.
 - **The model check** (`check-model.mjs`) reports what a valid IR can still get wrong, on
-  `validate` and on every emit: a decision with fewer than two ways out, a step connected to
+  `validate` and on every emit for a target (the description tables are written from IRs
+  whose emit has just reported it, so `--to doc` does not say it again): a decision with fewer than two ways out, a step connected to
   nothing, a repeated edge, a state diagram without an initial state or with a state it never
-  reaches, a reply before its call, an entity with a foreign key and no relation, and (as
-  `size:`) more than 40 elements in one diagram. They are warnings: each has an honest
+  reaches, an initial or final state with a label (those are markers, and no target draws a
+  name on them: the warning names the state and says how to keep the name), a boundary or
+  group without a member, a reply before its call, an entity with a foreign key and no relation, a use case
+  that no actor reaches (directly or through include, extend or generalization), an actor
+  without a use case, and (as `size:`) more than 40 elements in one diagram. They are warnings: each has an honest
   exception, which the author records in `meta.omitted`.
 - **The level of detail** (`check-detail.mjs`) is checked on every emit of an architecture
-  diagram: several stores of one kind used by one component alone (a database drawn table
+  diagram for a target, as the model is: several stores of one kind used by one component alone (a database drawn table
   by table; a store is known by its `kind` or by a database or storage icon), a plain
   boundary that holds only components of one icon, connection labels that start with step
   numbers, and a connection label that reads as an endpoint path, a job or data path or a
@@ -55,7 +71,9 @@ brainstorm (idea) ─> clarify ┘                                              
 - **Emitters** are deterministic functions from IR to text: `emit-mermaid.mjs` (safe ids,
   entity-encoded labels, own-line id comments) and `emit-drawio.mjs` (uncompressed mxGraph
   XML; ELK layout through `layout-graph.mjs` for graph-shaped kinds, the fixed grid in
-  `layout-sequence.mjs` for sequence diagrams). FigJam reuses the Mermaid emitter with a
+  `layout-sequence.mjs` for sequence diagrams, where the label of a self-message that is
+  too wide to stand centred over its loop starts beside the activation bar, and the gap to
+  the next lifeline and the frames around the message are sized for it). FigJam reuses the Mermaid emitter with a
   stricter profile and the agent makes the MCP call. What Figma's `generate_diagram` leaves
   out of a sequence diagram (block frames, notes, self-messages, participant kinds,
   activation bars) is drawn afterwards by a
@@ -65,33 +83,65 @@ brainstorm (idea) ─> clarify ┘                                              
   `use_figma` scripts that draw every cell as plain shapes, vector lines and text at the
   draw.io coordinates, so the layout is not computed twice and class and activity diagrams,
   which `generate_diagram` rejects, reach FigJam too. The pictograms of draw.io's stencils
-  (AWS services and groups, product logos, the client screen) are data as well:
+  (AWS and GCP services and groups, product logos, the client screen) are data as well:
   `src/stencil-paths.json`, which `tools/generate-stencil-paths.mjs` makes from draw.io's
   `stencils.min.js` at the tag of the icon catalog
   (`node tools/generate-stencil-paths.mjs <path to the downloaded file> [tag]`). It holds, for
   every stencil name the emitters can write, the paths of the stencil in its own box, arcs
-  already turned into curves; the table is stored Brotli-packed so that the bundle keeps
-  under its size budget, and a script carries only the paths its diagram shows.
+  already turned into curves. With the GCP library the table would have taken the bundle
+  over its size budget, so `stencil-pack.mjs` writes every number of a path as the
+  difference to the number before it on its axis: the points of an outline lie close
+  together, the differences are short and repeat, and the Brotli-packed table comes to
+  under two thirds of what the plain numbers take. The table that is unpacked is the one
+  that went in, number for number, and a script carries only the paths its diagram shows.
+  On the native board the title of a frame without a header strip (a GCP group, an
+  Availability Zone) stands at the top of the frame, as draw.io draws it.
+  Each script is one `use_figma` call, and a Figma plan may limit calls (the Starter plan
+  stops after about twenty), so the CLI prints what a board costs: `calls`, and for each
+  script the number of shapes, lines and texts its call must report as `created`, and its
+  size in `bytes`. Every script for `use_figma` (native, overlay, reader) takes its data
+  block from `figma-script-data.mjs`: the data over lines of at most 200 characters, since
+  an agent copies the script into the call and tool output cuts long lines, and the length
+  and a short hash of that data, which the script computes again and compares before it
+  reads or changes the board, so a copy that lost or changed a character throws instead of
+  drawing.
+  `combineNative` packs the drawings of several diagrams into as few scripts as one call
+  takes (`bundle --to figjam --native`); each drawing still goes into its own section, and
+  `created` then lists, for each script, the count of each drawing in the order the script
+  returns its results. Every shape a script draws is named `zukai-native` and the run folder
+  of its IR, and a script draws over a section only when it holds such shapes of the same
+  run, so a section of the same title drawn otherwise (the source of a recook) is left as it
+  is and the new drawing goes into `<title> (2)`. Of two such sections (a copy made on the
+  board) the last is drawn over and the result names the other in a `warning`. The
+  group of a cell is named so that a board read back keeps what the picture cannot tell: an
+  edge by its own label (never by a text at one of its ends), a stencil picture by its
+  stencil, a client screen by `[client]`, a picture that is part of its frame (the Google
+  Cloud mark) by `[part]`.
 - **The CLI** (`cli.mjs`, bundled by esbuild into the committed `bin/cli.mjs`) exposes
-  `validate`, `emit`, `bundle`, `relabel` and `preview`, plus `diff`, `drift`, `snapshot`,
+  `validate`, `emit`, `bundle` (both also with `--to doc`), `relabel`, `preview` and
+  `export`, plus `diff` (with `--drawio` for the picture of a change), `drift`, `snapshot`,
   `revisions` and `restore` for the revise skill, `extract` and `cover` for the recook
-  skill, and `help`; it exits 2 on validation errors
-  and 1 on a usage error (an unknown target, an option without its value) with the errors as
-  JSON on stderr, and is invoked with the absolute skill directory because the working
+  skill, `sources` and `stale` for the sync skill, and `help`; it exits 2 on validation errors
+  and 1 on a usage error (an unknown target, an option without its value, an option the
+  command does not take: `COMMAND_OPTIONS` lists them per command, so none is read and
+  dropped) with the errors as JSON on stderr, and is invoked with the absolute skill directory because the working
   directory is always the user's project. A run folder given to `bundle`, `diff` or `drift`
   stands for the IRs of its `source/` in run order (`run-order.mjs`): the diagram named
   after the run, its business view, then each part with its business view. A file-name sort
   would put the parts first, since `-` sorts before `.`.
 - **The closing contract** (`skills/draw/references/closing-contract.md`) is the one place
-  that says how every run ends: write, validate, emit, bundle, review, report. All three
-  skills read it; none copies it.
+  that says how every run ends: write, validate, emit, bundle, review, pictures when asked
+  for, report. All four skills read it; none copies it.
 
 ## Visual check
 
 A tiled preview has the white beside the drawing cut off each tile, across the direction
 the tiles follow each other in, so a canvas of diagrams of different heights does not come
 back as mostly empty images. `cli.mjs preview` renders a `.drawio` or `.mmd` file, or every block of the combined `.md` of
-a Mermaid run, to a PNG in the system temp directory (one path per input file, made from its
+a Mermaid run, to a PNG. A draw.io file of several pages shows its first page, or the one
+`--page <id|name>` names (cut out as a file of its own by the code `export` uses for its
+pages, so both mean the same page by the same name); an editable picture (`.drawio.svg`) is
+rendered from the diagram in its `content` attribute. The image goes into the system temp directory (one path per input file and per page asked for, made from its
 name, type and a hash of its full path, so two files or two projects never share one) so
 the agent can look at the result and fix layout problems from the IR (label length, element
 order, direction, note placement). The image is the agent's working copy, not a deliverable. It is the one command that may touch the network, and only to fetch the renderer
@@ -109,6 +159,32 @@ against its inscribed rectangle rather than its box, wrapping a long question in
 lines and adding label spacing so draw.io wraps inside the diamond (see the draw.io target
 reference).
 
+`cli.mjs export` (`export-svg.mjs`) is the same rendering kept as a deliverable: each page of
+a draw.io file, or each page `--page` names, becomes `<name>.drawio.svg`, a picture that GitHub, a browser or a wiki shows
+and that draw.io opens for editing. A run folder stands for its combined file, since only
+there a step with `ref` shows the title of its part, and its pictures go to `svg/`. Such a
+picture given back to `export` stands for the diagram in its `content` attribute, as it
+does for `preview` and `extract`, and is drawn again from it. The
+page is drawn by one of the two renderers of `preview`, draw.io desktop first, and what
+comes back is made a file that stands on its own by one piece of code for both. draw.io
+writes a label as HTML in a `foreignObject`, which only a browser draws; a PDF converter or
+a wiki's own renderer shows "Text is not SVG" in its place. So each label is turned into
+SVG `<text>`, one element per line, at the place the browser laid that line out. That step
+needs a browser: with draw.io desktop and no Playwright the labels keep the HTML form and
+the output says `text: "html"` with a warning, and a label that holds more than text (a
+table, a list, an image) keeps it in any case and is named. The file gets a white
+background and loses every colour that follows the viewer's dark mode, because a picture
+in a document must look the same for every reader. The page's own mxfile goes into the
+`content` attribute of the root `<svg>`, where draw.io and `extract` read it. Each picture
+holds one page, so a link to another page is taken off the drawing (the label and its "↳"
+line stay) while the embedded diagram keeps the cell as the source has it. Before anything
+is written, every picture is read back with the reader `extract` uses and must return the
+page it was made from; nothing is written unless every page has a picture, and without a
+renderer the command exits 1 and writes nothing, since a picture made any other way would
+not be the diagram. `export` is the second command that may reach the network, for the
+same reason as `preview`: the viewer script is fetched when draw.io desktop is not
+installed, and the diagram is rendered locally.
+
 ## Distribution
 
 One source folder, `skills/draw/`, follows the Agent Skills standard (only `name` and
@@ -116,7 +192,12 @@ One source folder, `skills/draw/`, follows the Agent Skills standard (only `name
 and its single plugin (`.claude-plugin/`, `source: "./"`). Inside the plugin the skill is
 named `draw` and invoked as `/zukai:draw`. Codex users copy the folder with
 `install.sh --target codex`, which installs it as `zukai` (folder and `name`, since a copy
-has no plugin namespace), writes a version marker and upgrades in place. The
+has no plugin namespace), writes a version marker and upgrades in place. The other three
+skills, `skills/revise/`, `skills/recook/` and `skills/sync/`, are instructions only and
+are distributed with it: four skills in the plugin (`/zukai:draw`, `/zukai:revise`,
+`/zukai:recook`, `/zukai:sync`) and four folders in a copied install (`zukai`,
+`zukai-revise`, `zukai-recook`, `zukai-sync`), each of the three finding the CLI in the
+sibling folder of the draw skill. The
 `version` in `.claude-plugin/plugin.json` is the single release number for both channels.
 
 ## Activity lanes in draw.io
@@ -191,13 +272,19 @@ title and a draw.io page link (`data:page/id,<page id>`, which needs a `UserObje
 around the cell); outside a bundle they keep the slug. A part whose title is the label of
 the element that links to it adds no second line. Every kind has one element that takes
 `ref` (flowchart node, activity action, sequence message, state, architecture component,
-class, ER entity), so the `detailed` scope links a main diagram to its parts whatever the
-kind; the schema shares one `$defs/ref` and the matrix has one `<element>.ref` feature per
-kind.
+class, ER entity, use case), so the `detailed` scope links a main diagram to its parts
+whatever the kind; the schema shares one `$defs/ref` and the matrix has one `<element>.ref`
+feature per kind. A use case with `ref` is the natural case: the diagram names the goal and
+the part shows its steps.
+
+The picture of a change (`diff --drawio`, see Revising a run) is built with the same
+`bundle`, one page per diagram that changed, and then restyled. It is no output of a run:
+its legend cells carry ids that no IR id can have, which is how the CLI recognises such a
+file, refuses to write it over any other draw.io file and refuses to read it in `drift`.
 
 ## Graph kinds in draw.io
 
-ELK lays out flowchart, state, ER, class and architecture diagrams with orthogonal routing,
+ELK lays out flowchart, state, ER, class, architecture and use case diagrams with orthogonal routing,
 20 px between parallel edges and ports, and label-aware spacing; the emitter converts ELK's
 label boxes into draw.io's relative label geometry, so a label stays where the engine put
 it. Every edge is written with ELK's waypoints and with exit and entry anchors taken from
@@ -215,9 +302,9 @@ ports (`FIXED_POS`), repeated until the order of anchors sharing a header band i
 Table rows grow with wrapped text.
 
 An architecture component drawn as a figure with its name below (a `client`, or a component
-with an AWS `icon`) has a layout box that holds the figure and the name; the figure is drawn
+with a cloud `icon`) has a layout box that holds the figure and the name; the figure is drawn
 at the top centre of that box, and a second layout pass gives its connections fixed ports
-within the figure's extent. In a diagram with AWS icons or frames, `attachStores` enlarges the layout box of an icon
+within the figure's extent. In a diagram with cloud icons or frames, `attachStores` enlarges the layout box of an icon
 that passes work on to hold the one store it uses (a component with that single connection,
 in the same frame), and `placeStores` puts the store beside it, across the flow, after the
 layout. In the same kind of diagram, a plain component outside the frames with one
@@ -236,25 +323,85 @@ stands off the middle of them and off the middle of the finished picture (the sy
 beside the frames and in the row included, since they move its middle), and above a
 threshold the whole layout is repeated with the containers on the page's own node placement
 (`balanceContainers` in `layoutGraph`; ELK does not hand the strategy down to a container),
-without the model order, and with both. The one that brings the hubs nearest the middle is
+without the model order, and with both. A connection that closes a circle is laid out
+against the flow before any of this (`closingEdges` in `layout-graph.mjs`): in the order of
+the connections, the one whose target already leads to its source. Left to the engine, a
+circle was broken at an edge of its choosing, which could turn the main flow against the
+direction of the diagram and send a system outside the frames to the caller's side. The one that brings the hubs nearest the middle is
 kept when it is clearly better. `placeLineLabels` writes each connection label beside a free stretch of its own line, so
 the layout engine reserves no layer for labels; a label with no free place is handed back
-to the engine and the layout runs again. After the layout, the title of each AWS group frame is placed on a
+to the engine and the layout runs again. After the layout, the title of each cloud group frame is placed on a
 stretch of the frame's top that no connection crosses, and a frame without one is widened
-and the layout repeated. AWS icons and group frames are draw.io's own `mxgraph.aws4`
-stencils. Their names, titles and colours are data: `src/aws-icons.json`, generated by
-`tools/generate-aws-icons.mjs` from draw.io's `Sidebar-AWS4.js` at a pinned tag
-(`npm run gen:aws-icons -- <path to the downloaded file> [tag] [path to Sidebar-GCP2.js]`,
-which also rewrites `references/aws-icons.md`). The same catalog holds the general
-resources of that library (shapes with a size of their own) and, from `Sidebar-GCP2.js` at
-the same tag, the product logos named `gcp:<name>`; both are what a system outside AWS is
-drawn with. The validator looks every `aws:<name>` up in that catalog,
-because draw.io draws an unknown stencil as an empty box without an error. To follow a newer
-draw.io release, download the file for its tag, run the generator and review the diff.
+and the layout repeated.
+
+The cloud icons of both providers are draw.io's own stencils: `mxgraph.aws4` for
+`aws:<name>` and `mxgraph.gcp2` for `gcp:<name>`, as `icon` on a component and as `group`
+on a boundary (`gcp:project`, `gcp:region`, `gcp:zone`, `gcp:vpc_network`, `gcp:subnet`,
+`gcp:google_cloud`, `gcp:kubernetes_cluster` and the rest of the library). Their names,
+titles and colours are data: `src/aws-icons.json`, generated by
+`tools/generate-aws-icons.mjs` from draw.io's `Sidebar-AWS4.js`, `Sidebar-GCP2.js` and
+`shapes/mxGCP2.js` at one pinned tag
+(`npm run gen:icons -- <path to Sidebar-AWS4.js> [tag] [path to Sidebar-GCP2.js] [path to mxGCP2.js]`,
+of which `gen:aws-icons` is the older name; it also rewrites `references/aws-icons.md` and
+`references/gcp-icons.md`). The second file holds the GCP group frames, the grey resource
+figures and the product logos, the third names the GCP service icons. The catalog also
+holds the general resources of the AWS library (shapes with a size of their own); these,
+the GCP resource figures and the product logos are what a system outside the clouds is
+drawn with. Google Cloud was added without a second emitter. What differs between the
+providers is a table, `PROVIDERS` in `aws-icons.mjs` (the stencil library, the icons and
+groups, whether an icon is a figure of its own or a picture in a square, which categories
+draw a store, the reference page), and `FRAME_STYLE` in the emitter, which adapts the
+palette's frame style per provider so that a title can step aside by one key. The
+placement code above (`attachStores`, `placeBeside`, `placeRow`, the frame titles) is
+shared, which is why both clouds can stand in one diagram, each in its own outer frame.
+The validator looks every `aws:<name>` and `gcp:<name>` up in the catalog and answers an
+unknown one with the nearest names of that provider and the page that lists them, because
+draw.io draws an unknown stencil as an empty box without an error. A name people write
+for a service that draw.io names otherwise, or has no stencil for, is answered from a small
+table kept by hand (`src/cloud-aliases.json`, printed at the end of each reference page)
+before the nearest names are, since a near name can be valid and wrong. Mermaid and the FigJam
+text have no such icons: the matrix marks them `degraded`, and the warning comes once per
+provider, not once per element. To follow a newer draw.io release, download the files for
+its tag, run the generator and review the diff.
+
+A use case diagram (`emitUsecase`) reads from the actors to the system and on to what the
+system calls, left to right unless the IR gives another direction. The primary actors are
+pinned to the first layer and the supporting actors and outside systems to the last one
+(ELK's layer constraints), with the boundaries and their use cases between them. Within a
+layer the nodes are ordered from the model (`forceNodeModelOrder`: the actors of a side
+stand as `actors` lists them, the use cases as the engine derives their order from the
+model and its edges), as the other kinds follow model order: left to the crossing minimisation, one added association turned a
+whole column of actors round, and the picture of a change could not be compared with the
+diagram before it. The price is that a crossing the engine would have avoided is now the
+author's to avoid, by the order of the IR. A use case with more line ends on one side than
+its outline has room for (15 px each) is drawn taller and the layout runs again
+(`growCrowdedUseCases`), so two ends never lie on each other. The
+layers follow the reading order, not the direction of the arrows: an included use case
+follows its base, an extending one follows the use case it extends and a special use case
+follows the general one (those two are handed to the engine reversed), which leaves the
+use cases an actor starts nearest to it. Every association of an actor uses one port on the side that faces the
+system, so its lines leave as one line that parts where the use cases are; a generalization
+that crosses the system gets a port of its own, clear of them. A generalization between two
+actors of one side is not the engine's, because the two share a layer:
+`placeActorGeneralizations` draws it straight between neighbours and round the outside of
+the column when another actor stands between them, and the layout keeps room for that run.
+An ellipse is narrower than its layout box everywhere but the middle of a side, so
+`usecaseAnchor` carries the last stretch of each line on to the outline and fixes the
+anchor there; draw.io would otherwise turn the line towards the centre. A person is
+draw.io's `umlActor` figure with the name below it, an outside system a box marked
+«system» so that nobody reads it as a person, and a boundary a plain rectangle with its
+title at the top: the title steps aside when a line enters from above, as an AWS frame
+title does, and a title that wraps makes the header taller and the layout run again.
 
 For Mermaid, `planArchitectureGrid` places components on
 a grid and falls back to the flowchart form when `architecture-beta`'s side constraints
-cannot express the graph.
+cannot express the graph. Mermaid has no use case diagram, so that kind is written as a
+flowchart and the matrix marks it `degraded`: an actor is a box whose first line says
+«actor» or «system», a use case a stadium node, a boundary a subgraph, `include` and
+`extend` dotted arrows labelled with the stereotype, and a generalization a solid arrow
+labelled «generalization», since a flowchart has no hollow triangle. FigJam's
+`generate_diagram` has no such form at all, so the cell is `unsupported` and the board is
+drawn by `emit --native`, which needs nothing per kind because it reads the draw.io XML.
 
 ## Variants: audience and language
 
@@ -301,10 +448,43 @@ choices.
   bound; it holds a few files per hand-edited redraw).
 - **Drafts never touch `source/`.** A what-if is built as complete copies of the run under
   `drafts/<a|b|c>/` and compared with `diff` (`ir-diff.mjs`: elements added, removed, changed
-  and reordered per top-level collection, plus hints for a `ref` part or a business view that did
+  and reordered per top-level collection, each changed element with the old and the new
+  value of every field under `values`. A block of a sequence diagram lists every message it
+  spans, those of the blocks inside it included, so its lists are compared without the
+  messages that came or went: the message is the change, not every frame around it. The
+  `children` of a boundary, a group or a composite state are compared the same way, so a
+  container that gained a new member or lost one that is gone is not listed and not drawn
+  amber, while a member both versions have that moved into it still is a change of the
+  container. The list also carries hints for a `ref` part or a business view that did
   not follow, for references left on a removed element, and for an added diagram that no
   element links to or that is a second architecture diagram of the run). The run is written
   only after the user confirms one draft, so dropping all drafts needs no undo.
+- **The change is drawn, not only listed.** A list of ids says what changed; a reviewer
+  wants to see where. `diff --drawio` (`visual-diff.mjs`) writes a draw.io file of the new
+  version with one page per diagram that changed: added elements green, changed or moved
+  ones amber, removed ones drawn again in red with a dashed outline, and under each page a
+  legend with the old value of everything amber. A removed element is not in the new model,
+  so each page is drawn from a merged model: the new IR with the removed elements put back
+  where they stood (a message at its old place in the order, a node with its old edges, a
+  container with its members, a row of a class or an entity at its old row). The merged
+  model is a valid IR and goes through the pipeline of every emit, and the cells are then
+  restyled by their ids, which the emitter derives from the IR ids; no layout code is
+  repeated and a kind needs no code of its own. When the merge is not a valid IR, it is
+  tried again with removed containers that leave the members another container now holds;
+  when that fails too, the new model is drawn alone and every removed element is named
+  under `notDrawn` with the reason. A diagram whose kind changed makes no one model: it is
+  two pages, the new one marked as added and the old one as removed, like a diagram that is
+  in one version only. The old labels are written on the page, so the secret scan runs on
+  the old version as well. The legend cells have ids of the form `<page id>:$diff:...`,
+  which no IR id can be; they are the marker by which the CLI tells such a file from the
+  output of a run. Revise writes the picture under `drafts/`
+  (`drafts/<x>/changes.diff.drawio` for a draft, `drafts/changes-<rNNN>.diff.drawio` for an
+  applied change), which is why a `drafts/` folder counts as an open consult only when it
+  holds `consult.json`. The closing contract holds that rule once, for revise and sync:
+  confirming or dropping a consult deletes its own draft folders and `consult.json` only,
+  the pictures of applied changes stay until the user deletes them, an undo removes the
+  picture of the change it took back, and a sync writes the picture of its change as
+  revise does. A diagram that differs in `meta` alone gets no page.
 - **A new diagram is drawn by the draw skill's rules.** A request to add a diagram to a run
   has its own route: revise reads `skills/draw/SKILL.md` and runs its opening call, mode
   protocol and IR rules before it writes anything, then places the diagram as a `ref` part,
@@ -329,7 +509,30 @@ of its own; it adds two commands to the draw skill's.
   and turns the joined parts into facts: connectors keep their ends, a sequence diagram that
   `generate_diagram` drew (two boxes and a line per participant, the overlay's frames as
   shapes) is read back as lifelines and frames, a board drawn by `emit --native` is read back
-  from its groups, and a whole page splits into one facts page per diagram on it. All three write the same
+  from its groups, and a whole page splits into one facts page per diagram on it. On a
+  native board a group of a round head, body strokes and a name under them is an actor, a
+  line whose label stands below it on a back of its own is still a line, and a closed outline
+  that holds every other stroke is a shape (a cylinder's lid is no line). The round trip
+  `emit --native` -> board -> `extract` is tested for every valid fixture on a stand-in of the
+  Plugin API (`tests/figma-stand-in.mjs`), checked against a real board, as the round trips
+  through draw.io and Mermaid are.
+  `extract-plantuml.mjs` reads PlantUML text (a file of one or several
+  `@startuml ... @enduml` blocks, or Markdown fences) with a tolerant line reader, not with
+  PlantUML itself, so nothing is installed and nothing is executed. PlantUML has no header
+  that names the diagram type, so the statements decide between four families: sequence,
+  state, activity in the new syntax, and the description family that class, ER, component,
+  deployment and use case diagrams share, whose kind hints are scored from what the page
+  holds. A page adds three fields to the facts: `unsupported` (`{ type, reason }`) for a
+  diagram type that is not read (a mind map, a Gantt chart, the legacy activity syntax),
+  which holds no nodes so that nothing is guessed from it; `direction` for
+  `left to right direction`, the one layout choice of the author that is kept; and
+  `autonumber`, which says that message numbers are not content. A statement the reader
+  cannot read is a warning that names its line, and the preprocessor is not run: an
+  `!include` is reported as not followed, since what another file declares cannot be
+  claimed as read. A note on the line of an «extend», or beside the use case that extends,
+  is offered as the `condition` of that edge, since PlantUML has no other place for it. The
+  pages of a Markdown file come in the order of the file, and pages one heading would name
+  alike are numbered. All four write the same
   facts, with kind hints scored from the shapes so the skill can suggest a kind with its
   evidence; the model maps facts to IR by `skills/recook/references/mapping.md`.
 - **Coverage instead of trust.** `cover.mjs` lists every text of the facts that is in no
@@ -342,19 +545,73 @@ of its own; it adds two commands to the draw skill's.
   the run folder, and `cover` asks only for the words around a `<redacted ...>` placeholder.
   Each IR names its source page in a `meta.notes` entry (`page "<name>"`), and a page's
   texts are looked for only in the IRs of that page, so a word of one diagram cannot stand in
-  for the same word dropped from another; an omission counts only as `"<text>": <reason>`. The skill
-  loops until the check passes, then runs the closing contract unchanged.
+  for the same word dropped from another; an omission counts only as `"<text>": <reason>`.
+  Texts alone do not prove that a line was kept: two connections often carry one label, and
+  the label of a dropped one is then found in the one that stayed. So every edge of the facts
+  whose two ends are known must also be joined in the IRs, by an element with `from` and `to`
+  whose ends carry the texts of the edge's ends (either way round), by an element that
+  carries one end and names the other by id, or by an omission that quotes its label (its two
+  ends when it has none) or leaves out one of its ends. A lost edge is reported under
+  `lostEdges` by its two ends and its label; `units`, `covered` and `missing` keep their
+  meaning for texts, and `edges` says how many edges were checked. The skill loops until the
+  check passes, then runs the closing contract unchanged.
 - **Zukai's rules over the source's structure.** A page that mixes kinds or draws the inside
   of resources is split into a main diagram and `ref` parts, as the user chose for this
   skill, rather than redrawn as it was; the change list in the report says what moved.
+
+## Syncing a run
+
+`skills/sync/SKILL.md` brings a run that `scout` drew up to date with the code. It has no
+CLI of its own either: it adds `sources` and `stale` to the draw skill's and borrows the
+drafts, the snapshot and the hand-edit check from revise.
+
+- **A diagram names its files.** The scout protocol writes `meta.sources` into every IR it
+  derives: the files the diagram was read from, as paths from the project root with forward
+  slashes. The validator refuses an absolute path, a backslash and a `..`, so the list
+  means the same on every machine.
+- **The record is a statement, not a cache.** `sources` (`sources.mjs`) writes
+  `source/<run-slug>.sources.json`: per diagram, each file with a SHA-256 of its content.
+  A run has one record, so in a run folder that was renamed or copied under another name
+  the one `*.sources.json` its `source/` holds is the record, whatever slug it carries;
+  with several and none named after the run, `sources` and `stale` refuse to pick one.
+  It is taken only when the diagrams were just read from the code, at the end of a scout
+  run and of a sync, because it says "the diagrams match these files"; a revision by revise
+  does not read the code and leaves it alone, and `--only` records a single scouted diagram
+  added to a run without touching the other entries. A hash was chosen over git because it
+  needs no repository, no history and no network, so `stale` runs in CI as it is. CRLF is hashed as LF, so a checkout that converts line endings does
+  not make every diagram look out of date. The project root is stored relative to the run
+  folder, so the record still finds the files in another checkout. A scouted diagram of an
+  older run, without `meta.sources`, is recorded from the paths in its `meta.notes` that
+  exist under the root, and the output says so.
+- **`stale` only reads.** It hashes the recorded files again and lists, per run and per
+  diagram, those that changed and those that are gone, plus the diagrams whose
+  `meta.sources` the record does not hold. The exit code carries the answer: 0 when the run
+  is current, 2 when it is out of date, 1 when a run has no record, which is a different
+  fact from "current" and must not pass a CI check as one.
+- **Only what the code changed changes.** The skill edits a copy of the delivered IR while
+  reading the changed files, and keeps every id, label and order the code still supports.
+  The user reads the change list to learn what happened in the code, so a label reworded
+  for no reason would be a false entry in it; every difference must be traced to a file,
+  and one without a cause is put back.
+- **A sync is a draft until confirmed.** The new IRs go to `drafts/a/` with a
+  `consult.json`, are compared with `diff`, and reach `source/` only on "apply", after a
+  `snapshot`. The snapshot keeps the sources record of the state it saves and `restore`
+  puts it back (or removes it when that revision had none), so undoing a sync leaves the
+  run honestly behind the code again. A change below the level of the diagram writes no
+  revision and emits nothing: only the record is renewed.
 
 ## Extension rule
 
 Adding a target means one new `emit-<target>.mjs`, one column in `feature-matrix.json`, one
 `references/target-<target>.md`, and fixtures. Nothing in the input flows changes. Adding a
 diagram kind means a schema branch, a kind entry in the matrix for every target, an emitter
-function per target, a question bank section, and fixtures. There is no plugin loader or
-registry: three emitters are a switch statement in `pipeline.mjs`.
+function per target, a function in `emit-doc.mjs` with its words in `doc-strings.mjs` for
+every language (the tests compare the keys of the languages and hold each kind to listing
+every element), a question bank section, and fixtures. The picture of a change, the native
+FigJam board and the SVG pictures need nothing: they work on the IR collections or on the
+draw.io XML, whatever the kind. The use case kind was added this way and is the eighth.
+There is no plugin loader or registry: three emitters are a switch statement in
+`pipeline.mjs`.
 
 ## Testing strategy
 
@@ -370,9 +627,36 @@ hints on a run, `drift.test.mjs` re-emits every fixture without drift and finds 
 reworded, copied and deleted cells (also on compressed pages and inside a bundle), and
 `revisions.test.mjs` covers rotation, multi-file restore, undoing an undo, the undo and redo
 line, kept extras and an interrupted snapshot. `fixes-e2e.test.mjs` runs the committed bundle
-as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that the three skills are installed side by side. For recook,
+as a user would, one scenario per fixed defect of the 2.0.3 end-to-end report. `install.test.mjs` checks that the four skills are installed side by side, and `install-ps1.test.mjs` runs `install.ps1` through the same cases and more when PowerShell 7 is found (`pwsh` on PATH or `ZUKAI_PWSH`), comparing on macOS and Linux the tree it leaves with the one `install.sh` leaves, file by file. For recook,
 `extract-drawio.test.mjs` extracts every fixture emitted to draw.io and asserts its kind hint
 and full coverage against its own IR, and reads hand-drawn files (compressed, SVG, PNG,
 several pages, loose edges, lanes); `extract-mermaid.test.mjs` does the same for Mermaid;
 `extract-figjam.test.mjs` runs the reader script against a stand-in for the Figma API that
-throws on any change.
+throws on any change. `extract-plantuml.test.mjs` reads a source of each diagram type the
+reader knows, with the spellings PlantUML allows for one thing, and
+`cli-recook-plantuml.test.mjs` takes PlantUML sources through `extract` and `cover` in the
+committed bundle, the unsupported types reported per page included. For sync,
+`sources.test.mjs` covers the hash with its line-ending rule, the path rule and the name of
+the record, and `sources-e2e.test.mjs` runs `sources` and `stale` through the bundle: the
+project root, the fallback to `meta.notes`, every exit code of `stale`, another checkout,
+and the record that goes back with a restored revision. `visual-diff.test.mjs` draws the cases of `visual-diff-cases.mjs`, at least one
+per kind, and checks the colour of every cell, the legend and the fallbacks;
+`visual-diff-e2e.test.mjs` does it through the CLI, with the refusals of `diff --drawio`
+and `drift`. `emit-doc.test.mjs` holds every kind to listing each element of each fixture
+in every language and to escaping whatever Markdown would read as markup, and
+`doc-e2e.test.mjs` writes the tables of a run with the bundle. `export-svg.test.mjs` checks
+what needs no renderer (the pages of a file, the file names, the standalone SVG and the
+read-back of the embedded diagram) and `export-e2e.test.mjs` exports with whichever
+renderer is installed and is skipped without one. `drawio-desktop.test.mjs` holds draw.io
+desktop to how it behaves: the failure text taken from what draw.io 26 prints, stand-ins
+for draw.io and `xvfb-run` for a missing display, an export that fails with exit code 0
+and an image an earlier preview left; with a draw.io desktop installed it also previews
+and exports a run with it. `usecase.test.mjs` covers the schema, the
+reference and model checks and the geometry of the layout, and `usecase-e2e.test.mjs` takes
+the kind through the bundle: validate, emit, a run with a linked part, the revise commands
+and a recook of its own file. `gcp-icons.test.mjs` runs the catalog generator on palette
+excerpts, checks the committed catalog against the reference page name for name, and holds
+a GCP diagram and one on both clouds to the geometry rules of the AWS ones (titles clear
+of connections, members inside their frames, stores beside their users);
+`gcp-e2e.test.mjs` takes such a diagram through the bundle on every target and checks that
+an AWS diagram comes out exactly as before.

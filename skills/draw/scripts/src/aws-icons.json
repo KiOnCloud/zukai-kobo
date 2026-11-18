@@ -7,6 +7,10 @@
     "logos": {
       "path": "src/main/webapp/js/diagramly/sidebar/Sidebar-GCP2.js",
       "sha256": "4505d64f9a0d8b93b075d9e135d812c9ecd31160b22c55b0668733865d6bdd71"
+    },
+    "gcp": {
+      "path": "src/main/webapp/shapes/mxGCP2.js",
+      "sha256": "c4c8137cfa0e7e4271e42a280273cc21dc3892006b476087ed3dc9646714b562"
     }
   },
   "icons": {
@@ -2414,6 +2418,1048 @@
       "fill": "#5184F3",
       "width": 73,
       "height": 78
+    }
+  },
+  "gcp": {
+    "icons": {
+      "advanced_solutions_lab": {
+        "title": "Advanced Solutions Lab",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "ai_hub": {
+        "title": "AI Hub",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "api_analytics": {
+        "title": "API Analytics",
+        "category": "API Management",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "api_monetization": {
+        "title": "API Monetization",
+        "category": "API Management",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "apigee_api_platform": {
+        "title": "Apigee API Platform",
+        "category": "API Management",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "apigee_sense": {
+        "title": "Apigee Sense",
+        "category": "API Management",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "app_engine": {
+        "title": "App Engine",
+        "category": "Compute",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "application": {
+        "title": "Application",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 46
+      },
+      "application_system": {
+        "title": "Application System(s)",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "automl_natural_language": {
+        "title": "AutoML Natural Language",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "automl_tables": {
+        "title": "AutoML Tables",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "automl_translation": {
+        "title": "AutoML Translation",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "automl_video_intelligence": {
+        "title": "AutoML Video Intelligence",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "automl_vision": {
+        "title": "AutoML Vision",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "beacon": {
+        "title": "Beacon",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 42,
+        "height": 57
+      },
+      "beyondcorp": {
+        "title": "BeyondCorp",
+        "category": "Security",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "bigquery": {
+        "title": "BigQuery",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "bucket": {
+        "title": "Bucket",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "circuit_board": {
+        "title": "Circuit-Board",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 51
+      },
+      "cloud_apis": {
+        "title": "Cloud APIs",
+        "category": "Operations",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_armor": {
+        "title": "Cloud Armor",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_bigtable": {
+        "title": "Cloud Bigtable",
+        "category": "Databases",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_cdn": {
+        "title": "Cloud CDN",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_code": {
+        "title": "Cloud Code",
+        "category": "CI - CD",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_data_catalog": {
+        "title": "Cloud Data Catalog",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_data_fusion": {
+        "title": "Cloud Data Fusion",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_dataflow": {
+        "title": "Cloud Dataflow",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_datalab": {
+        "title": "Cloud Datalab",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_dataprep": {
+        "title": "Cloud Dataprep",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_dataproc": {
+        "title": "Cloud Dataproc",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_datastore": {
+        "title": "Cloud Datastore",
+        "category": "Databases",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_deployment_manager": {
+        "title": "Deployment Manager",
+        "category": "Operations",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_dns": {
+        "title": "Cloud DNS",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_endpoints": {
+        "title": "Cloud Endpoints",
+        "category": "API Management",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_external_ip_addresses": {
+        "title": "Cloud External IP Addresses",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_filestore": {
+        "title": "Cloud Filestore",
+        "category": "Storage",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_firestore": {
+        "title": "Cloud Firestore",
+        "category": "Databases",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_firewall_rules": {
+        "title": "Cloud Firewall Rules",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_functions": {
+        "title": "Cloud Functions",
+        "category": "Compute",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_iam": {
+        "title": "Cloud IAM",
+        "category": "Security",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_inference_api": {
+        "title": "Cloud Inference API",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_iot_core": {
+        "title": "Cloud IoT Core",
+        "category": "Internet of Things",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_iot_edge": {
+        "title": "Cloud IoT Edge",
+        "category": "Internet of Things",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_jobs_api": {
+        "title": "Jobs API",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_load_balancing": {
+        "title": "Cloud Load Balancing",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_machine_learning": {
+        "title": "Cloud Machine Learning",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_memorystore": {
+        "title": "Cloud Memorystore",
+        "category": "Databases",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_nat": {
+        "title": "Cloud NAT",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_natural_language_api": {
+        "title": "Cloud Natural Language API",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_network": {
+        "title": "Cloud Network",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_pubsub": {
+        "title": "Cloud Pub/Sub",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_router": {
+        "title": "Cloud Router",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_routes": {
+        "title": "Cloud Routes",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_run": {
+        "title": "Cloud Run",
+        "category": "Compute",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_security_scanner": {
+        "title": "Cloud Security Scanner",
+        "category": "Security",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_service_mesh": {
+        "title": "Cloud Service Mesh",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_spanner": {
+        "title": "Cloud Spanner",
+        "category": "Databases",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_speech_api": {
+        "title": "Speech API",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_sql": {
+        "title": "Cloud SQL",
+        "category": "Databases",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_storage": {
+        "title": "Cloud Storage",
+        "category": "Storage",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_tasks": {
+        "title": "Cloud Tasks",
+        "category": "Integration Services",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_test_lab": {
+        "title": "Cloud Test Lab",
+        "category": "CI - CD",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_tools_for_powershell": {
+        "title": "Cloud Tools for PowerShell",
+        "category": "CI - CD",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_translation_api": {
+        "title": "Translation API",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_video_intelligence_api": {
+        "title": "Cloud Video Intelligence API",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_vision_api": {
+        "title": "Vision API",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cloud_vpn": {
+        "title": "Cloud VPN",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "cluster": {
+        "title": "Cluster",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "compute_engine": {
+        "title": "Compute Engine",
+        "category": "Compute",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "compute_engine_icon": {
+        "title": "Local-Compute",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 51
+      },
+      "container_builder": {
+        "title": "Cloud Build",
+        "category": "CI - CD",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "container_engine": {
+        "title": "Kubernetes Engine",
+        "category": "Compute",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "container_optimized_os": {
+        "title": "Container-Optimized OS",
+        "category": "Compute",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "container_registry": {
+        "title": "Container Registry",
+        "category": "CI - CD",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "data_loss_prevention_api": {
+        "title": "Data Loss Prevention API",
+        "category": "Security",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "data_studio": {
+        "title": "Data Studio",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "database": {
+        "title": "Database",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 51
+      },
+      "dedicated_game_server": {
+        "title": "Dedicated Game Server",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "dedicated_interconnect": {
+        "title": "Dedicated Interconnect",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "desktop": {
+        "title": "Desktop",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 51
+      },
+      "desktop_and_mobile": {
+        "title": "Desktop and Mobile",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 38
+      },
+      "developer_portal": {
+        "title": "Developer Portal",
+        "category": "API Management",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "error_reporting": {
+        "title": "Error Reporting",
+        "category": "Operations",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "external_payment_form": {
+        "title": "External Payment Form",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "frontend_platform_services": {
+        "title": "Frontend Platform Services",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "game": {
+        "title": "Game",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 31
+      },
+      "gateway": {
+        "title": "Gateway",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "gateway_icon": {
+        "title": "Gateway",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 25
+      },
+      "genomics": {
+        "title": "Genomics",
+        "category": "Data Analytics",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "gke_on_prem": {
+        "title": "GKE-on-Prem",
+        "category": "Compute",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "google_network_edge_cache": {
+        "title": "Google Edge POP",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "gpu": {
+        "title": "GPU",
+        "category": "Compute",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "identity_aware_proxy": {
+        "title": "Identity-Aware Proxy",
+        "category": "Security",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "image_services": {
+        "title": "Image Services",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "internal_payment_authorization": {
+        "title": "Internal Payment Authorization",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "key_management_service": {
+        "title": "Key Management Service",
+        "category": "Security",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "laptop": {
+        "title": "Laptop",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 38
+      },
+      "lightbulb": {
+        "title": "Lightbulb",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 40,
+        "height": 57
+      },
+      "list": {
+        "title": "List",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 51,
+        "height": 57
+      },
+      "live": {
+        "title": "Live",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 42,
+        "height": 57
+      },
+      "logging": {
+        "title": "Logging",
+        "category": "Operations",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "logs_api": {
+        "title": "Logs API",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "memcache": {
+        "title": "Memcache",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "mobile_devices": {
+        "title": "Mobile Devices",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 42
+      },
+      "nat": {
+        "title": "NAT",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "network_load_balancer": {
+        "title": "HTTPS Load Balancer",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "partner_interconnect": {
+        "title": "Partner Interconnect",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "payment": {
+        "title": "Payment",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 46
+      },
+      "persistent_disk": {
+        "title": "Persistent Disk",
+        "category": "Storage",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "persistent_disk_snapshot": {
+        "title": "Persistent Disk Snapshot",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "phone": {
+        "title": "Phone",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 36,
+        "height": 57
+      },
+      "premium_network_tier": {
+        "title": "Premium Network Tier",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "profiler": {
+        "title": "Profiler",
+        "category": "Operations",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "push_notification_service": {
+        "title": "Push Notification Service",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "recommendations_ai": {
+        "title": "Recommendations AI",
+        "category": "AI and Machine Learning",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "record": {
+        "title": "Record",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 38
+      },
+      "report": {
+        "title": "Report",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "retail": {
+        "title": "Retail",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 51
+      },
+      "scheduled_tasks": {
+        "title": "Scheduled Tasks",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "security_key_enforcement": {
+        "title": "Security Key Enforcement",
+        "category": "Security",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "service_discovery": {
+        "title": "Service Discovery",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "speaker": {
+        "title": "Speaker",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 40,
+        "height": 57
+      },
+      "squid_proxy": {
+        "title": "Squid Proxy",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "stackdriver": {
+        "title": "Stackdriver",
+        "category": "Operations",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "standard_network_tier": {
+        "title": "Standard Network Tier",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "storage": {
+        "title": "Storage",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 46
+      },
+      "stream": {
+        "title": "Stream",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 47
+      },
+      "task_queues": {
+        "title": "Task Queues",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "trace": {
+        "title": "Trace",
+        "category": "Operations",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "traffic_director": {
+        "title": "Traffic Director",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "transfer_appliance": {
+        "title": "Transfer Appliance",
+        "category": "Data Transfer",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "users": {
+        "title": "Users",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 36
+      },
+      "virtual_file_system": {
+        "title": "Virtual File System",
+        "category": "Service Cards",
+        "fill": "#757575",
+        "width": 57,
+        "height": 57
+      },
+      "virtual_private_cloud": {
+        "title": "Virtual Private Cloud",
+        "category": "Networking",
+        "fill": "#5184F3",
+        "width": 78,
+        "height": 69
+      },
+      "webcam": {
+        "title": "Webcam",
+        "category": "User and Device Cards",
+        "fill": "#757575",
+        "width": 28,
+        "height": 57
+      }
+    },
+    "groups": {
+      "account": {
+        "title": "Account",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#E8EAF6;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "external_data_sources": {
+        "title": "External data sources",
+        "style": "sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#FFF8E1;"
+      },
+      "external_infrastructure_1st_party": {
+        "title": "External infrastructure, 1st party",
+        "style": "sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#E1F5FE;"
+      },
+      "external_infrastructure_3rd_party": {
+        "title": "External infrastructure, 3rd party",
+        "style": "sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#E0F2F1;"
+      },
+      "external_saas": {
+        "title": "External SaaS providers",
+        "style": "sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#FFEBEE;"
+      },
+      "firewall": {
+        "title": "Firewall",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#FBE9E7;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "google_cloud": {
+        "title": "Google Cloud",
+        "style": "fillColor=#F6F6F6;strokeColor=none;shadow=0;gradientColor=none;fontSize=14;align=left;spacing=10;fontColor=#717171;verticalAlign=top;spacingTop=-4;fontStyle=0;spacingLeft=40;html=1;whiteSpace=wrap;",
+        "mark": {
+          "style": "shape=mxgraph.gcp2.google_cloud_platform;fillColor=#F6F6F6;strokeColor=none;shadow=0;gradientColor=none;",
+          "x": 20,
+          "y": 10,
+          "width": 23,
+          "height": 20
+        }
+      },
+      "infrastructure_system": {
+        "title": "Infrastructure system",
+        "style": "sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#F3E5F5;"
+      },
+      "instance_group": {
+        "title": "Instance Group",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#F9FBE7;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "kubernetes_cluster": {
+        "title": "Kubernetes cluster",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#FCE4EC;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "logical_group": {
+        "title": "Logical grouping of services or instances",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#E3F2FD;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "on_premises": {
+        "title": "On-premises (colo, data center)",
+        "style": "sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#EFEBE9;"
+      },
+      "optional_component": {
+        "title": "Optional Component",
+        "style": "rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=1;strokeColor=#4284F3;fontSize=10;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=0;spacingTop=3;fillColor=none;dashPattern=1 2;strokeWidth=2;fontStyle=0;spacingLeft=10;"
+      },
+      "pod": {
+        "title": "Pod",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#E8F5E9;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "project": {
+        "title": "Project",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#F6F6F6;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "region": {
+        "title": "Region",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#ECEFF1;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "replica_pool": {
+        "title": "Replica Pool",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#E0F7FA;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "subnet": {
+        "title": "Subnetwork",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#EDE7F6;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "system": {
+        "title": "System",
+        "style": "sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#F1F8E9;"
+      },
+      "vpc_network": {
+        "title": "VPC network",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#E3F2FD;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      },
+      "zone": {
+        "title": "Zone",
+        "style": "shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;spacingTop=3;fillColor=#FFF3E0;verticalAlign=top;fontSize=10;spacingLeft=10;spacing=0;"
+      }
     }
   }
 }

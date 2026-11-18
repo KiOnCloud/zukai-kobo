@@ -1,0 +1,173 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="booking-platform-on-google-cloud" name="Booking platform on Google Cloud">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="booking-platform-on-google-cloud:project" value="Production project" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#F6F6F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry x="264" y="12" width="1156" height="458" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:region" value="asia-northeast1 (Tokyo)" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#ECEFF1;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="booking-platform-on-google-cloud:project">
+          <mxGeometry x="180" y="42" width="964" height="404" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:vpc" value="VPC network" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#E3F2FD;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="booking-platform-on-google-cloud:region">
+          <mxGeometry x="22" y="188" width="452" height="204" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:proxy" value="Proxy-only subnet" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#EDE7F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="booking-platform-on-google-cloud:vpc">
+          <mxGeometry x="22" y="42" width="172" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:private" value="GKE subnet" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#EDE7F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="booking-platform-on-google-cloud:vpc">
+          <mxGeometry x="294" y="42" width="136" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:browser" value="Staff browser" style="shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=79;" vertex="1" parent="1">
+          <mxGeometry x="66" y="332" width="54" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:cdn" value="Cloud CDN" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_cdn;labelWidth=69;" vertex="1" parent="booking-platform-on-google-cloud:project">
+          <mxGeometry x="12" y="84" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:site" value="Cloud Storage web app" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_storage;labelWidth=134;" vertex="1" parent="booking-platform-on-google-cloud:region">
+          <mxGeometry x="60" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:lb" value="Application Load Balancer" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_load_balancing;labelWidth=148;" vertex="1" parent="booking-platform-on-google-cloud:proxy">
+          <mxGeometry x="47" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:api" value="Booking API (GKE)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.container_engine;labelWidth=111;" vertex="1" parent="booking-platform-on-google-cloud:private">
+          <mxGeometry x="29" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:tables" value="Firestore" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_firestore;labelWidth=56;" vertex="1" parent="booking-platform-on-google-cloud:region">
+          <mxGeometry x="836" y="197" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:files" value="Cloud Storage attachments" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_storage;labelWidth=154;" vertex="1" parent="booking-platform-on-google-cloud:region">
+          <mxGeometry x="602" y="283" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:idp" value="Identity provider" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#757575;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.application;labelWidth=94;" vertex="1" parent="1">
+          <mxGeometry x="432.5" y="628" width="57" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:realtime" value="Firebase Realtime Database" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#FFA000;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.firebase;labelWidth=161;" vertex="1" parent="1">
+          <mxGeometry x="635" y="628" width="56" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:client_logs" value="Client log collector" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#757575;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.application;labelWidth=107;" vertex="1" parent="1">
+          <mxGeometry x="64.5" y="628" width="57" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.341;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:browser" target="booking-platform-on-google-cloud:cdn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="199" y="347"/>
+              <mxPoint x="199" y="131"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c1:label" value="HTTPS" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c1">
+          <mxGeometry x="0.01" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.659;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:browser" target="booking-platform-on-google-cloud:lb">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c2:label" value="REST" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#F6F6F6;" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c2">
+          <mxGeometry x="0.13" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.342;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:browser" target="booking-platform-on-google-cloud:idp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="93" y="528"/>
+              <mxPoint x="452" y="528"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c3:label" value="sign in" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c3">
+          <mxGeometry x="0.05" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.339;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:browser" target="booking-platform-on-google-cloud:realtime">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="93" y="500"/>
+              <mxPoint x="654" y="500"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c4:label" value="listen for version" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c4">
+          <mxGeometry x="-0.03" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=22;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:browser" target="booking-platform-on-google-cloud:client_logs">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c5:label" value="client logs" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c5">
+          <mxGeometry x="0.57" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.507;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:cdn" target="booking-platform-on-google-cloud:site">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.507;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:lb" target="booking-platform-on-google-cloud:api">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c7:label" value="HTTP" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E3F2FD;" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c7">
+          <mxGeometry x="0.1" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.333;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:api" target="booking-platform-on-google-cloud:tables">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="953" y="349"/>
+              <mxPoint x="953" y="286"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c8:label" value="read / write" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c8">
+          <mxGeometry x="0.18" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:api" target="booking-platform-on-google-cloud:files">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c9:label" value="store files" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c9">
+          <mxGeometry x="0.07" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.675;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:api" target="booking-platform-on-google-cloud:idp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="828" y="556"/>
+              <mxPoint x="471" y="556"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c10:label" value="verify token" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c10">
+          <mxGeometry x="0.35" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.661;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="booking-platform-on-google-cloud:api" target="booking-platform-on-google-cloud:realtime">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="828" y="584"/>
+              <mxPoint x="672" y="584"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="booking-platform-on-google-cloud:c11:label" value="publish version" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="booking-platform-on-google-cloud:c11">
+          <mxGeometry x="0.33" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

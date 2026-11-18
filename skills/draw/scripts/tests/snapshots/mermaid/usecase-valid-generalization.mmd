@@ -1,0 +1,61 @@
+---
+title: "Online shop checkout"
+---
+flowchart LR
+  %% id: customer
+  n1["«actor»<br/>Customer"]
+  %% id: guest
+  n2["«actor»<br/>Guest"]
+  %% id: registered
+  n3["«actor»<br/>Registered customer"]
+  %% id: support
+  n4["«actor»<br/>Support agent"]
+  %% id: psp
+  n5["«system»<br/>Payment service provider"]
+  %% id: carrier
+  n6["«system»<br/>Carrier"]
+  %% id: shop
+  subgraph n15["Online shop"]
+    %% id: place-order
+    n7(["Place an order"])
+    %% id: pay
+    n8(["Pay for the order"])
+    %% id: pay-card
+    n9(["Pay by card"])
+    %% id: pay-transfer
+    n10(["Pay by bank transfer"])
+    %% id: apply-voucher
+    n11(["Apply a voucher"])
+    %% id: collect-points
+    n12(["Collect loyalty points"])
+    %% id: track
+    n13(["Track the delivery"])
+    %% id: refund
+    n14(["Refund an order"])
+  end
+  %% id: g1
+  n2 -->|"«generalization»"| n1
+  %% id: g2
+  n3 -->|"«generalization»"| n1
+  %% id: a1
+  n1 --- n7
+  %% id: a2
+  n1 --- n13
+  %% id: a3
+  n3 --- n12
+  %% id: a4
+  n4 --- n14
+  %% id: i1
+  n7 -.->|"«include»"| n8
+  %% id: x1
+  n11 -.->|"«extend»<br/>#91;the customer has a voucher code#93;"| n7
+  %% id: g3
+  n9 -->|"«generalization»"| n8
+  %% id: g4
+  n10 -->|"«generalization»"| n8
+  %% id: a5
+  n8 --- n5
+  %% id: a6
+  n14 --- n5
+  %% id: a7
+  n13 --- n6

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "architecture",
+  "title": "Orders on AWS: the topic calls back the API",
+  "direction": "LR",
+  "meta": {
+    "source": "manual",
+    "notes": ["A circle through a topic: the API publishes to it, and a subscription delivers the result back to the API. The connection that closes the circle is listed last."],
+    "omitted": ["SNS subscriptions: each is the connection from the topic to its subscriber"]
+  },
+  "components": [
+    { "id": "gateway", "label": "API Gateway", "icon": "aws:api_gateway" },
+    { "id": "order-api", "label": "order-api (Lambda)", "icon": "aws:lambda" },
+    { "id": "order-events", "label": "SNS order-events", "kind": "queue", "icon": "aws:sns" },
+    { "id": "fulfilment", "label": "fulfilment (Fargate)", "icon": "aws:fargate" },
+    { "id": "orders-db", "label": "RDS orders", "kind": "database", "icon": "aws:rds" },
+    { "id": "labels", "label": "S3 shipping-labels", "kind": "database", "icon": "aws:s3" },
+    { "id": "carrier", "label": "Carrier API", "kind": "external", "icon": "aws:generic_application" }
+  ],
+  "boundaries": [
+    { "id": "cloud", "label": "AWS Cloud", "group": "aws:aws_cloud", "children": ["region"] },
+    { "id": "region", "label": "eu-west-1", "group": "aws:region", "children": ["gateway", "order-api", "order-events", "labels", "vpc"] },
+    { "id": "vpc", "label": "VPC", "group": "aws:vpc", "children": ["fulfilment", "orders-db"] }
+  ],
+  "connections": [
+    { "id": "c-gateway-api", "from": "gateway", "to": "order-api", "label": "invoke" },
+    { "id": "c-api-topic", "from": "order-api", "to": "order-events", "label": "publish" },
+    { "id": "c-topic-fulfilment", "from": "order-events", "to": "fulfilment", "label": "deliver" },
+    { "id": "c-fulfilment-db", "from": "fulfilment", "to": "orders-db", "label": "SQL" },
+    { "id": "c-fulfilment-labels", "from": "fulfilment", "to": "labels", "label": "put objects" },
+    { "id": "c-fulfilment-carrier", "from": "fulfilment", "to": "carrier", "label": "HTTPS" },
+    { "id": "c-topic-api", "from": "order-events", "to": "order-api", "label": "deliver" }
+  ]
+}

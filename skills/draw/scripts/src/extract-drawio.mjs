@@ -39,7 +39,7 @@ export function drawioXmlOf(buf) {
   }
   if (/<mxfile\b/.test(text)) return { xml: inflatePages(text) };
   if (/<mxGraphModel\b/.test(text)) return { xml: `<mxfile><diagram id="page-1" name="Page-1">${text.slice(text.indexOf('<mxGraphModel'))}</diagram></mxfile>` };
-  return { error: 'not a diagram this skill can read: no draw.io XML (<mxfile> or <mxGraphModel>) and no Mermaid diagram; the sources are .drawio, .xml, .drawio.svg, .drawio.png, .mmd, Markdown with ```mermaid blocks, and a FigJam board read with --figjam-script' };
+  return { error: 'not a diagram this skill can read: no draw.io XML (<mxfile> or <mxGraphModel>), no Mermaid and no PlantUML diagram; the sources are .drawio, .xml, .drawio.svg, .drawio.png, .mmd, .puml, Markdown with ```mermaid or ```plantuml blocks, and a FigJam board read with --figjam-script' };
 }
 
 const safeDecode = (text) => { try { return decodeURIComponent(text); } catch { return text; } };
@@ -83,11 +83,30 @@ const awsGroupOf = (style) => {
   return (list.find((g) => g.stroke === String(style.strokeColor ?? '').toLowerCase()) ?? list[0])?.name;
 };
 const AWS_GROUP_BY_TITLE = new Map(Object.entries(catalog.groups).map(([name, g]) => [g.title.toLowerCase(), name]));
+/**
+ * A GCP group frame has no stencil: it is a rectangle without an outline, its title at the
+ * top, in the fill colour the palette gives that kind of frame. Two pairs of frames share a
+ * colour: the frame with the Google Cloud mark keeps room for the mark before its title, and
+ * a VPC network is the logical grouping whose title says so.
+ */
+const GCP_GROUPS_BY_FILL = Map.groupBy(Object.entries(catalog.gcp?.groups ?? {}).flatMap(([name, g]) => {
+  const fill = /(?:^|;)fillColor=(#[0-9A-Fa-f]{6});/.exec(g.style)?.[1]?.toLowerCase();
+  return fill ? [{ name, fill, marked: g.mark !== undefined }] : [];
+}), (g) => g.fill);
+const gcpGroupOf = (style, value) => {
+  if (String(style.strokeColor ?? '') !== 'none' || style.verticalAlign !== 'top' || style.shape?.startsWith('mxgraph.')) return undefined;
+  const list = GCP_GROUPS_BY_FILL.get(String(style.fillColor ?? '').toLowerCase());
+  if (!list) return undefined;
+  const marked = Number(style.spacingLeft ?? 0) >= 40;
+  const network = /\b(vpc|network)\b/i.test(plainLabel(value));
+  return (list.find((g) => g.marked === marked && (g.name === 'vpc_network') === network) ?? list.find((g) => g.marked === marked) ?? list[0]).name;
+};
+const GCP_ICONS = { ...(catalog.gcp?.icons ?? {}), ...(catalog.logos ?? {}) };
 const CLIENT_SHAPES = /^mxgraph\.(networks\.(monitor|pc|laptop|mobile|tablet)|ios|android|mockup)/;
 
 /**
  * What a vertex is, from its style alone. The words are those of the facts schema; `icon`
- * and `group` also say which (`aws:lambda`, `aws:vpc`) when the name is in Zukai's catalog.
+ * and `group` also say which (`aws:lambda`, `aws:vpc`, `gcp:cloud_run`, `gcp:region`) when the name is in Zukai's catalog.
  */
 function classify(style, value) {
   const shape = style.shape ?? '';
@@ -106,8 +125,11 @@ function classify(style, value) {
   }
   const aws = /^mxgraph\.aws4\.(.+)$/.exec(style.resIcon ?? '') ?? /^mxgraph\.aws4\.(.+)$/.exec(shape);
   if (aws) return { shape: 'icon', icon: Object.hasOwn(catalog.icons, aws[1]) ? `aws:${aws[1]}` : `drawio:mxgraph.aws4.${aws[1]}` };
-  const gcp = /^mxgraph\.gcp2\.(.+)$/.exec(shape);
-  if (gcp) return { shape: 'icon', icon: Object.hasOwn(catalog.logos ?? {}, gcp[1]) ? `gcp:${gcp[1]}` : `drawio:${shape}` };
+  // A GCP service is its own stencil, or the palette's hexagon shape that names the stencil in `prIcon`.
+  const gcp = shape === 'mxgraph.gcp2.hexIcon' && style.prIcon ? [shape, style.prIcon] : /^mxgraph\.gcp2\.(.+)$/.exec(shape);
+  if (gcp) return { shape: 'icon', icon: Object.hasOwn(GCP_ICONS, gcp[1]) ? `gcp:${gcp[1]}` : `drawio:mxgraph.gcp2.${gcp[1]}` };
+  const gcpGroup = gcpGroupOf(style, value);
+  if (gcpGroup) return { shape: 'group', group: `gcp:${gcpGroup}` };
   if (CLIENT_SHAPES.test(shape)) return { shape: 'client' };
   if (/^mxgraph\.(azure|mscae|gcp|kubernetes|cisco|veeam|citrix|office)/.test(shape) || has('image')) return { shape: 'icon', icon: `drawio:${shape || 'image'}` };
   if (has('swimlane') && style.childLayout === 'stackLayout') return { shape: 'table' };
@@ -140,6 +162,20 @@ export function stencilTag(style, value = '') {
   const kind = classify(style, value);
   const tag = kind.icon ?? kind.group ?? '';
   return /^(aws|gcp):/.test(tag) ? tag : '';
+}
+
+/**
+ * What the native FigJam board writes in brackets after the name of a cell's group, so that a
+ * board read back knows what the picture alone cannot tell: the stencil of an AWS or GCP
+ * picture, `client` for a client screen, `part` for a picture that is part of its frame (the
+ * Google Cloud mark in the corner of the frame) and no element of its own; '' for any other cell.
+ */
+export function boardTag(style, value = '') {
+  const tag = stencilTag(style, value);
+  if (tag) return tag;
+  if (CLIENT_SHAPES.test(style.shape ?? '')) return 'client';
+  if (style.part === '1' && !String(value).trim() && /^mxgraph\./.test(style.shape ?? '')) return 'part';
+  return '';
 }
 
 /** The visible text of a cell: HTML labels lose their tags, plain labels keep their breaks. */
@@ -192,10 +228,12 @@ function extractPage(id, name, pageXml) {
     const parent = byId.get(cell.parent);
     if (parent?.edge) {
       const text = textOf(cell);
-      if (text) (edgeTexts.get(parent.id) ?? edgeTexts.set(parent.id, []).get(parent.id)).push({ text, at: cell.geo.x });
+      if (text) (edgeTexts.get(parent.id) ?? edgeTexts.set(parent.id, []).get(parent.id)).push({ text, at: cell.geo.x, main: cell.id === `${parent.id}:label` });
       continue;
     }
     if (!cell.vertex) continue;
+    // A part of a frame without a text of its own (the Google Cloud mark in a frame's corner) is no element.
+    if (cell.style.part === '1' && parent?.vertex && !textOf(cell) && /^mxgraph\./.test(cell.style.shape ?? '')) continue;
     const kind = classify(cell.style, cell.value);
     if (kind.shape === 'edgeLabel') continue;
     vertices.set(cell.id, { cell, ...kind, label: textOf(cell), box: boxOf(cell) });
@@ -257,7 +295,9 @@ function extractPage(id, name, pageXml) {
     const roots = containers.filter((v) => !vertices.has(v.cell.parent));
     const steps = [...vertices.values()].filter((v) => FLOW_SHAPES.has(v.shape) && !owner.has(v.cell.id));
     const within = (v, c) => { for (let at = v.cell.parent; vertices.has(at); at = vertices.get(at).cell.parent) if (at === c.cell.id) return true; return false; };
-    if (roots.length === 1 && steps.length >= 3 && Object.hasOwn(roots[0].cell.style, 'swimlane') && steps.filter((v) => within(v, roots[0])).length >= 0.8 * steps.length) roots[0].shape = 'lane';
+    // Not so the system boundary of a use case diagram: stick figures beside a frame of labelled ovals.
+    const useCases = [...vertices.values()].some((v) => v.shape === 'actor') && steps.filter((v) => v.shape === 'ellipse' && v.label).length >= steps.length / 2;
+    if (!useCases && roots.length === 1 && steps.length >= 3 && Object.hasOwn(roots[0].cell.style, 'swimlane') && steps.filter((v) => within(v, roots[0])).length >= 0.8 * steps.length) roots[0].shape = 'lane';
   }
 
   // Nodes.
@@ -305,7 +345,10 @@ function extractPage(id, name, pageXml) {
     const edge = { id: cell.id, label: textOf(cell) };
     const extra = (edgeTexts.get(cell.id) ?? []).sort((a, b) => a.at - b.at);
     for (const t of extra) {
-      if (t.at <= -0.5) edge.startLabel = edge.startLabel ? `${edge.startLabel}\n${t.text}` : t.text;
+      // In a file Zukai wrote, the label of a line is the cell `<edge id>:label`, wherever
+      // along the line the layout found room for it; only an end text has another id.
+      if (t.main) edge.label = edge.label ? `${edge.label}\n${t.text}` : t.text;
+      else if (t.at <= -0.5) edge.startLabel = edge.startLabel ? `${edge.startLabel}\n${t.text}` : t.text;
       else if (t.at >= 0.5) edge.endLabel = edge.endLabel ? `${edge.endLabel}\n${t.text}` : t.text;
       else edge.label = edge.label ? `${edge.label}\n${t.text}` : t.text;
     }
@@ -374,6 +417,9 @@ function arrowName(name, fill) {
   return name;
 }
 
+/** The label of an include or extend relation, as UML tools and people write it. */
+export const USECASE_STEREOTYPE = /(?:«|<<|&lt;&lt;)\s*(?:include|extend)s?\s*(?:»|>>|&gt;&gt;)/i;
+
 /**
  * Which kinds a page looks like, best first, each with the evidence that scored it. The
  * agent proposes the best one in its opening question; the user decides.
@@ -425,6 +471,15 @@ export function kindHints(nodes, edges) {
   const eventLabels = edges.filter((e) => /\[[^\]]+\]|\s\/\s/.test(e.label ?? '')).length;
   if (initial > 0 && lanes.length === 0 && lifelines < 2) add('state', 6 * initial + 2 * final + rounded, `${plural(initial, 'initial state')}${final ? `, ${plural(final, 'final state')}` : ''}${rounded ? `, ${plural(rounded, 'rounded box', )}` : ''}`);
   if (eventLabels > 0) add('state', 2 * eventLabels, `${plural(eventLabels, 'edge')} labelled "[guard]" or "event / action"`);
+
+  // A use case diagram: labelled ovals with stick figures beside them, or joined by lines
+  // marked «include» or «extend». An oval alone is a step of a flowchart.
+  const figures = of('actor');
+  const ovals = count((n) => n.shape === 'ellipse' && n.label);
+  const stereotyped = edges.filter((e) => USECASE_STEREOTYPE.test(e.label ?? '')).length;
+  if (lifelines < 2 && ovals > 0 && (figures > 0 || stereotyped > 0)) {
+    add('usecase', 6 * figures + 4 * ovals + 5 * stereotyped, [plural(ovals, 'oval'), figures ? plural(figures, 'actor figure') : '', stereotyped ? `${plural(stereotyped, 'line')} marked «include» or «extend»` : ''].filter(Boolean).join(', '));
+  }
 
   const steps = count((n) => FLOW_SHAPES.has(n.shape) && !laneIds.has(n.parent));
   if (decisions > 0 && lanes.length === 0) add('flowchart', 4 * decisions + steps, `${plural(decisions, 'decision')} among ${plural(steps, 'step')}`);

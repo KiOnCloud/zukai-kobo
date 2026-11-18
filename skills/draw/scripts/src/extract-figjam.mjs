@@ -1,4 +1,5 @@
 import { kindHints, markLanes } from './extract-drawio.mjs';
+import { dataBlock } from './figma-script-data.mjs';
 
 /**
  * The facts of a FigJam board, read in two steps because only the Figma MCP tool `use_figma`
@@ -25,9 +26,10 @@ export const READ_LIMIT = 45000;
 /** Script for `use_figma`: read the current page, or one section of it (by name or node id), from node `from` on, and return it as JSON. */
 export function figjamReaderScript({ section, from = 0 } = {}) {
   return `// Zukai recook: reads the board and returns it as JSON. Changes nothing on the board.
-const SECTION = ${JSON.stringify(section ?? null)};
-const FROM = ${Number(from) || 0};
-const LIMIT = ${READ_LIMIT};
+// Pass this text unchanged to the Figma MCP tool use_figma, with the file key of the board.
+${dataBlock({ section: section ?? null, from: Number(from) || 0, limit: READ_LIMIT }, 'zukai recook')}const SECTION = D.section;
+const FROM = D.from;
+const LIMIT = D.limit;
 const page = figma.currentPage;
 let root = page;
 if (SECTION !== null) {
@@ -128,6 +130,9 @@ const CAPS = { NONE: 'none', ARROW_LINES: 'open', ARROW_EQUILATERAL: 'block', TR
 const DRAWN = new Set(['RECTANGLE', 'ELLIPSE', 'VECTOR', 'LINE', 'TEXT', 'POLYGON', 'STAR']);
 const NEAR = 8;
 const DRAWN_NEAR = 16;
+const FLOW_SHAPES = new Set(['box', 'rounded', 'decision', 'terminal', 'io', 'subroutine', 'initial', 'final', 'ellipse', 'bar', 'document']);
+/** The name of a group that draws part of its frame: tagged by the native board, or (on a board drawn before the tag) the id of the Google Cloud mark. */
+const PART = /\s\[part\]$|:mark$/;
 
 /**
  * Facts of the board JSON the reader script returned.
@@ -168,7 +173,12 @@ export function extractFigjamBoard(board) {
     else if (n.type === 'SECTION' || n.type === 'FRAME') Object.assign(node, { label: lines(n.name ?? ''), shape: 'container' });
     else if (n.type === 'TABLE') Object.assign(node, { label: lines(n.name ?? ''), shape: 'table', texts: (n.rows ?? []).map((row) => row.map((c) => lines(c).replace(/\n/g, ' ')).filter(Boolean).join(' ')).filter(Boolean) });
     else if (n.type === 'TEXT') Object.assign(node, { label: lines(n.text ?? ''), shape: 'text' });
-    else if (n.type === 'GROUP') {
+    else if (n.type === 'GROUP' && PART.test(n.name ?? '') && !textsBelow(n.id).length) {
+      // A picture that is part of its frame (the Google Cloud mark in its corner): the frame's.
+      absorbed.add(n.id);
+      for (const k of board.nodes.filter((m) => m.parent === n.id)) absorbed.add(k.id);
+      continue;
+    } else if (n.type === 'GROUP') {
       const kids = childrenOf(n.id);
       const groups = kids.filter((k) => k.type === 'GROUP');
       const round = (k) => (k.type === 'ELLIPSE' || (k.type === 'SHAPE_WITH_TEXT' && k.shapeType === 'ELLIPSE' && !k.text)) && k.box.w <= 40;
@@ -185,6 +195,7 @@ export function extractFigjamBoard(board) {
         const kind = frameKind(own, groups.map((g) => ({ g, kids: childrenOf(g.id) })));
         Object.assign(node, { label, shape: kind.shape });
         if (kind.heads) node.heads = kind.heads;
+        if (kind.header) node.header = true;
         if (kind.rows) {
           // The rows of a class or entity box are lines of it, not nodes of their own.
           node.texts = kind.rows.map((r) => r.text);
@@ -195,7 +206,7 @@ export function extractFigjamBoard(board) {
         // One drawn thing: a node of shapes and texts, or an edge of lines and texts.
         kids.forEach((k) => absorbed.add(k.id));
         const texts = kids.filter((k) => k.type === 'TEXT' && k.text).sort(byPlace);
-        const drawn = drawnKind(kids);
+        const drawn = drawnKind(kids, n.name);
         if (drawn.edge) {
           edges.push({
             id: n.id, label: lines(drawn.labelTexts.sort(byPlace).map((t) => t.text).join('\n')), ends: drawn.edge.ends, dashed: drawn.edge.dashed === 1,
@@ -209,6 +220,7 @@ export function extractFigjamBoard(board) {
         if (drawn.heads) node.heads = drawn.heads;
         if (drawn.icon) node.icon = drawn.icon;
         if (drawn.dashed) node.dashed = true;
+        if (drawn.detail) node.detail = drawn.detail;
       }
     } else if (n.type === 'CONNECTOR') {
       edges.push({ id: n.id, label: lines(n.text ?? ''), start: n.start, end: n.end, box: n.box, dashed: n.dashed === 1, startArrow: CAPS[n.startCap] ?? 'none', endArrow: CAPS[n.endCap] ?? 'none' });
@@ -222,8 +234,9 @@ export function extractFigjamBoard(board) {
       continue;
     }
     // A board Zukai drew names each picture's stencil after its group's label: `Order API [aws:lambda]`.
-    const tag = n.type === 'GROUP' && /\s\[((?:aws|gcp):[a-z0-9_]+)\]$/.exec(n.name ?? '')?.[1];
-    if (tag) {
+    const tag = n.type === 'GROUP' && /\s\[((?:aws|gcp):[a-z0-9_]+|client)\]$/.exec(n.name ?? '')?.[1];
+    if (tag === 'client') { Object.assign(node, { shape: 'client' }); delete node.icon; }
+    else if (tag) {
       if (node.shape === 'group' || node.shape === 'container') Object.assign(node, { shape: 'group', group: tag });
       else Object.assign(node, { shape: 'icon', icon: tag });
     }
@@ -236,6 +249,17 @@ export function extractFigjamBoard(board) {
     if (parent && nodes.some((m) => m.id === parent)) node.parent = parent;
   }
   markLanes(nodes.filter((m) => m.shape === 'container'), (m) => m.parent ?? '');
+  // A single frame with a header that holds nearly every step of the page is a lane too (an
+  // activity diagram of one actor), as in a draw.io file; not so the system boundary of a use
+  // case diagram, a frame of labelled ovals with stick figures beside it.
+  if (!nodes.some((m) => m.shape === 'lane')) {
+    const roots = nodes.filter((m) => m.shape === 'container' && !m.parent);
+    const steps = nodes.filter((m) => FLOW_SHAPES.has(m.shape));
+    const useCases = nodes.some((m) => m.shape === 'actor') && steps.filter((m) => m.shape === 'ellipse' && m.label).length >= steps.length / 2;
+    const inside = (m, c) => { for (let at = m.parent; at; at = nodes.find((o) => o.id === at)?.parent) if (at === c.id) return true; return false; };
+    if (!useCases && roots.length === 1 && roots[0].header && steps.length >= 3 && steps.filter((m) => inside(m, roots[0])).length >= 0.8 * steps.length) roots[0].shape = 'lane';
+  }
+  for (const m of nodes) delete m.header;
 
   const inside = (p, b, pad = 0) => p.x >= b.x - pad && p.x <= b.x + b.w + pad && p.y >= b.y - pad && p.y <= b.y + b.h + pad;
   const area = (b) => b.w * b.h;
@@ -339,11 +363,15 @@ export function extractFigjamBoard(board) {
   };
   const FRAMES = new Set(['container', 'lane', 'group', 'frame']);
   const at = ([x, y], pad = NEAR) => {
-    const smallest = (list) => list.sort((a, b) => area(a.box) - area(b.box))[0]?.id;
+    const gap = (b) => Math.hypot(Math.max(b.x - x, 0, x - (b.x + b.w)), Math.max(b.y - y, 0, y - (b.y + b.h)));
+    // The nearest; of those the end lies in, or as near to, the smallest.
+    const smallest = (list) => list.sort((a, b) => gap(a.box) - gap(b.box) || area(a.box) - area(b.box))[0]?.id;
     const near = (p) => kept.filter((m) => m.shape !== 'text' && inside({ x, y }, m.box, p));
+    // A frame whose border the end lies on: a line drawn to a composite state or a boundary.
+    const onBorder = kept.filter((m) => FRAMES.has(m.shape) && inside({ x, y }, m.box, 2) && !inside({ x, y }, { x: m.box.x + 2, y: m.box.y + 2, w: m.box.w - 4, h: m.box.h - 4 }));
     // A shape near the end wins over the frame around it; a drawn line may stop farther from
     // its shape (a UML end marker), so look a little wider before settling on a frame.
-    return smallest(near(0).filter((m) => !FRAMES.has(m.shape))) ?? smallest(near(pad).filter((m) => !FRAMES.has(m.shape))) ?? (pad === DRAWN_NEAR ? smallest(near(2 * pad).filter((m) => !FRAMES.has(m.shape))) : undefined) ?? smallest(near(pad));
+    return smallest(near(0).filter((m) => !FRAMES.has(m.shape))) ?? (pad === DRAWN_NEAR ? smallest(onBorder) : undefined) ?? smallest(near(pad).filter((m) => !FRAMES.has(m.shape))) ?? (pad === DRAWN_NEAR ? smallest(near(2 * pad).filter((m) => !FRAMES.has(m.shape))) : undefined) ?? smallest(near(pad));
   };
   let loose = 0;
   // A plain line from one border of a frame to the other divides it (the branches of a block).
@@ -475,6 +503,7 @@ const diag = (b) => Math.hypot(b.w, b.h);
 const isOpen = (k) => (k.type === 'VECTOR' || k.type === 'LINE') && k.ends && dist(k.ends) >= 12 && dist(k.ends) >= 0.85 * diag(k.box);
 const boxInside = (a, b, pad = 2) => a.x >= b.x - pad && a.y >= b.y - pad && a.x + a.w <= b.x + b.w + pad && a.y + a.h <= b.y + b.h + pad;
 const LABEL_BACK = 18;
+const MULTIPLICITY = /^[0-9*nNmM]+(\s*\.\.\s*[0-9*nNmM]+)?$/;
 
 /**
  * What one group of plain drawings is, by its geometry (a board drawn by emit --native, or by
@@ -483,7 +512,7 @@ const LABEL_BACK = 18;
  * a note is an outline; a state's start and end are small circles; an icon is a square with
  * a picture in it and its name below.
  */
-function drawnKind(kids) {
+function drawnKind(kids, name = '') {
   const rects = kids.filter((k) => k.type === 'RECTANGLE' || k.type === 'POLYGON');
   const ellipses = kids.filter((k) => k.type === 'ELLIPSE');
   const strokes = kids.filter((k) => (k.type === 'VECTOR' || k.type === 'LINE') && k.ends);
@@ -493,17 +522,43 @@ function drawnKind(kids) {
   // A long dashed line below a box: a lifeline.
   const head = rects.find((r) => strokes.some((k) => k.dashed === 1 && k.box.w <= 2 && k.box.h > 3 * r.box.h && Math.abs(k.box.y - (r.box.y + r.box.h)) <= 4));
   if (head) return { shape: 'lifeline', heads: [head.box] };
+  // A stick figure with its name under it: a round head, the strokes of its body below the
+  // head, the name below both (draw.io's actor). Without a name it is a pictogram (the figure
+  // above a lifeline), read further down.
+  const skull = ellipses.length === 1 && rects.length === 0 && strokes.length >= 1 && texts.length > 0 ? ellipses[0] : undefined;
+  if (skull) {
+    const centre = skull.box.x + skull.box.w / 2;
+    const body = strokes.every((k) => k.box.y >= skull.box.y + skull.box.h - 2 && k.box.x <= centre && k.box.x + k.box.w >= centre);
+    const bottom = Math.max(...strokes.map((k) => k.box.y + k.box.h));
+    if (body && texts.every((t) => t.box.y >= bottom - 2)) return { shape: 'actor' };
+  }
   // A line: long and straight or bent, or any line that ends in a small arrowhead (a message
   // to itself turns back, so its ends lie close), with at most a small back for its label.
   // An arrowhead, or the triangle or diamond of a UML end, is small beside its line.
   const small = (k) => k.box.w <= 26 && k.box.h <= 26;
   const line = main ?? strokes.filter((k) => !small(k)).sort((a, b) => diag(b.box) - diag(a.box))[0];
   const arrow = line && strokes.some((k) => k !== line && small(k));
-  // A picture with its name written under it (a client screen) is not a line with a label.
-  const caption = texts.length > 0 && strokes.length > 0 && texts.every((t) => strokes.every((k) => t.box.y >= k.box.y + k.box.h - 2));
+  // A picture with its name written under it (a client screen) is not a line with a label. A
+  // label of a line that happens to stand below the line has a back of its own (the colour
+  // behind it, so the line does not cross the text), and a dashed line is never a picture.
+  // A back fits its text: as high as the text, however many lines that has. A board drawn
+  // before the script sized backs from the text as Figma finally sets it can have a back
+  // narrower than its text (Figma set the text in a wider fallback face after the back was
+  // sized): it is still the label's back when it lies in the same row as a text of the group,
+  // within the text's width, on the line or right beside it.
+  const sameRow = (t, r) => Math.abs(t.box.y - r.box.y) <= 2 && Math.abs(t.box.h - r.box.h) <= 2 && r.box.x >= t.box.x - 2 && r.box.x + r.box.w <= t.box.x + t.box.w + 2;
+  const byLine = (r) => line && r.box.x <= line.box.x + line.box.w && r.box.x + r.box.w >= line.box.x && r.box.y <= line.box.y + line.box.h + r.box.h && r.box.y + r.box.h >= line.box.y - r.box.h;
+  const isBack = (r) => texts.some((t) => (boxInside(t.box, r.box) && t.box.h >= r.box.h - 2) || (sameRow(t, r) && byLine(r)));
+  const backed = rects.some(isBack);
+  const caption = !backed && !(main && main.dashed === 1) && texts.length > 0 && strokes.length > 0 && texts.every((t) => strokes.every((k) => t.box.y >= k.box.y + k.box.h - 2));
   const tinyEllipses = ellipses.every((e) => e.box.w <= 10 && e.box.h <= 10);
-  if (line && !caption && rects.every((r) => r.box.h <= LABEL_BACK) && tinyEllipses && ((main && dist(main.ends) >= 20) || arrow)) {
-    return { edge: line, arrow, ...edgeEnds(line, [...strokes.filter((k) => k !== line && small(k)), ...ellipses], texts) };
+  // A closed outline that holds every other stroke and the text is a shape, whatever lines it
+  // draws inside (the lid of a cylinder runs from one side to the other like a line).
+  const shell = strokes.filter((k) => k.closed === 1 && !small(k)).sort((a, b) => b.box.w * b.box.h - a.box.w * a.box.h)[0];
+  const centreIn = (t, b) => t.box.x + t.box.w / 2 >= b.x && t.box.x + t.box.w / 2 <= b.x + b.w && t.box.y + t.box.h / 2 >= b.y && t.box.y + t.box.h / 2 <= b.y + b.h;
+  const enclosed = shell && rects.length === 0 && strokes.every((k) => k === shell || boxInside(k.box, shell.box)) && texts.every((t) => centreIn(t, shell.box));
+  if (line && !enclosed && !caption && rects.every((r) => r.box.h <= LABEL_BACK || isBack(r)) && tinyEllipses && ((main && dist(main.ends) >= 20) || arrow)) {
+    return { edge: line, arrow, ...edgeEnds(line, [...strokes.filter((k) => k !== line && small(k)), ...ellipses], texts, name) };
   }
   if (texts.length === 0 && rects.length === 0 && ellipses.length >= 1 && ellipses.every((e) => e.box.w <= 40)) {
     if (strokes.length > 0) return { pictogram: true };
@@ -533,7 +588,12 @@ function drawnKind(kids) {
     // the board does not name; its label says what it is.
     if (texts.length > 0 && texts.every((t) => t.box.y >= b.y + b.h - 2) && strokes.length >= 2) return { shape: 'icon', icon: 'drawio:unknown' };
     if (strokes.some((k) => k !== outline && k.box.w <= 16 && k.box.h <= 16 && k.box.x + k.box.w >= b.x + b.w - 2 && k.box.y <= b.y + 2)) return { shape: 'note' };
+    // A cylinder: its lid runs from one side of the outline to the other, near the top.
+    if (strokes.some((k) => k !== outline && isOpen(k) && Math.abs(k.box.w - b.w) <= 2 && k.box.y + k.box.h <= b.y + b.h / 2)) return { shape: 'store' };
     if (Math.abs(x0 - (b.x + b.w / 2)) <= 0.1 * b.w && Math.abs(y0 - b.y) <= 2) return { shape: 'decision' };
+    // A hexagon: its outline starts at the top, a corner in from the left, and ends at the middle of the left side.
+    const [x1, y1] = outline.ends[1];
+    if (Math.abs(x1 - b.x) <= 2 && Math.abs(y1 - (b.y + b.h / 2)) <= 2 && x0 > b.x + 2 && Math.abs(y0 - b.y) <= 2) return { shape: 'box', detail: 'hexagon' };
     return { shape: 'io' };
   }
   return { shape: 'text' };
@@ -545,7 +605,7 @@ function drawnKind(kids) {
  * near the start end is the start arrow. Without the closed / filled marks of the reader
  * (an older read), an arrowhead is `classic`.
  */
-function edgeEnds(line, markers, texts) {
+function edgeEnds(line, markers, texts, groupName = '') {
   const [a, b] = line.ends;
   const centre = (k) => [k.box.x + k.box.w / 2, k.box.y + k.box.h / 2];
   const near = (k, p) => dist([centre(k), p]);
@@ -597,9 +657,20 @@ function edgeEnds(line, markers, texts) {
     return m.closed === 1 ? 'block' : 'open';
   };
   const out = { startArrow: name(at.start), endArrow: name(at.end) };
-  // A text close to an end belongs to that end; the others are the label.
+  // A text close to an end belongs to that end; the others are the label. The native board
+  // names the group of an edge like the edge's own label, so a text that reads like the name
+  // is the label wherever it stands (a label set near one end to keep clear of other lines).
+  // A multiplicity is never taken for the label so: a board drawn before that naming may have
+  // named the group like a text at one end.
+  const own = (t) => {
+    const flat = t.text.replace(/\s+/g, ' ').trim();
+    const shown = groupName.replace(/\s\[[^\]]*\]$/, '');
+    if (!shown || MULTIPLICITY.test(flat)) return false;
+    return flat === shown || (shown.endsWith('…') && flat.startsWith(shown.slice(0, -1)));
+  };
   const label = [];
   for (const t of texts) {
+    if (own(t)) { label.push(t); continue; }
     const da = near(t, a);
     const db = near(t, b);
     const d = Math.min(da, db);
@@ -625,6 +696,9 @@ function frameKind(own, children) {
     return { shape: 'table', rows, absorb: children.filter((c) => !c.kids.some((k) => k.type === 'TEXT')).map((c) => c.g) };
   }
   const box = own.find((k) => k.type === 'RECTANGLE');
+  // A header: a band across the top of the box, or a line across it under the title (a swimlane).
+  const header = box && own.some((k) => k !== box && Math.abs(k.box.x - box.box.x) <= 2 && Math.abs(k.box.w - box.box.w) <= 2 && k.box.y < box.box.y + 60
+    && ((k.type === 'RECTANGLE' && Math.abs(k.box.y - box.box.y) <= 2 && k.box.h < box.box.h / 2) || ((k.type === 'VECTOR' || k.type === 'LINE') && k.box.h <= 1 && k.box.y > box.box.y + 2)));
   const corner = box && own.some((k) => k.type === 'VECTOR' && k.box.w <= 30 && k.box.h <= 30 && k.box.x <= box.box.x + 8 && k.box.y <= box.box.y + 8);
-  return { shape: corner ? 'group' : 'container' };
+  return { shape: corner ? 'group' : 'container', ...(header ? { header: true } : {}) };
 }

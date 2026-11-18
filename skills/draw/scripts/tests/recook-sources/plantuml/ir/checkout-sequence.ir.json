@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "kind": "sequence",
+  "title": "Checkout: place an order",
+  "participants": [
+    {
+      "id": "c",
+      "label": "Customer",
+      "kind": "actor"
+    },
+    {
+      "id": "web",
+      "label": "Web shop"
+    },
+    {
+      "id": "gw",
+      "label": "API gateway",
+      "kind": "boundary"
+    },
+    {
+      "id": "order-service",
+      "label": "OrderService",
+      "kind": "control"
+    },
+    {
+      "id": "db",
+      "label": "Orders DB",
+      "kind": "database"
+    },
+    {
+      "id": "q",
+      "label": "order-events"
+    },
+    {
+      "id": "workers",
+      "label": "Workers"
+    }
+  ],
+  "messages": [
+    {
+      "id": "e1",
+      "from": "c",
+      "to": "web",
+      "label": "Press \"Place order\""
+    },
+    {
+      "id": "e2",
+      "from": "web",
+      "to": "gw",
+      "label": "POST /orders"
+    },
+    {
+      "id": "e3",
+      "from": "gw",
+      "to": "order-service",
+      "label": "createOrder(cart)"
+    },
+    {
+      "id": "e4",
+      "from": "order-service",
+      "to": "order-service",
+      "label": "checkStock()"
+    },
+    {
+      "id": "e5",
+      "from": "order-service",
+      "to": "db",
+      "label": "INSERT order"
+    },
+    {
+      "id": "e6",
+      "from": "db",
+      "to": "order-service",
+      "label": "order id",
+      "kind": "return"
+    },
+    {
+      "id": "e7",
+      "from": "order-service",
+      "to": "q",
+      "label": "OrderPlaced",
+      "kind": "async"
+    },
+    {
+      "id": "e8",
+      "from": "order-service",
+      "to": "gw",
+      "label": "201 Created",
+      "kind": "return"
+    },
+    {
+      "id": "e9",
+      "from": "order-service",
+      "to": "gw",
+      "label": "409 Out of stock",
+      "kind": "return"
+    },
+    {
+      "id": "e10",
+      "from": "gw",
+      "to": "web",
+      "label": "response",
+      "kind": "return"
+    },
+    {
+      "id": "e11",
+      "from": "q",
+      "to": "workers",
+      "label": "reserve stock",
+      "kind": "async"
+    },
+    {
+      "id": "e12",
+      "from": "workers",
+      "to": "c",
+      "label": "Confirmation mail",
+      "kind": "async"
+    },
+    {
+      "id": "e13",
+      "from": "gw",
+      "to": "web",
+      "label": "order status"
+    },
+    {
+      "id": "e14",
+      "from": "web",
+      "to": "c",
+      "label": "Show \"Thank you\""
+    }
+  ],
+  "blocks": [
+    {
+      "id": "b1",
+      "kind": "alt",
+      "label": "all items in stock",
+      "messages": [
+        "e5",
+        "e6",
+        "e7",
+        "e8"
+      ],
+      "branches": [
+        {
+          "label": "an item is missing",
+          "messages": [
+            "e9"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b2",
+      "kind": "loop",
+      "label": "for each line",
+      "messages": [
+        "e11"
+      ]
+    },
+    {
+      "id": "b3",
+      "kind": "opt",
+      "label": "customer opted in",
+      "messages": [
+        "e12"
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "id": "phase-submit",
+      "label": "Submit",
+      "participants": [
+        "c",
+        "workers"
+      ]
+    },
+    {
+      "id": "n1",
+      "label": "Validates the cart and locks the prices",
+      "participants": [
+        "order-service"
+      ],
+      "position": "right",
+      "after": "e3"
+    },
+    {
+      "id": "phase-fulfil",
+      "label": "Fulfil",
+      "participants": [
+        "c",
+        "workers"
+      ],
+      "after": "e10"
+    },
+    {
+      "id": "delay",
+      "label": "up to 5 minutes later",
+      "participants": [
+        "c",
+        "workers"
+      ],
+      "after": "b3"
+    },
+    {
+      "id": "n2",
+      "label": "Polling every 10 s",
+      "participants": [
+        "web",
+        "gw"
+      ],
+      "after": "b3"
+    }
+  ],
+  "meta": {
+    "source": "recook",
+    "notes": [
+      "recooked from checkout-sequence.puml, page \"Checkout: place an order\""
+    ],
+    "omitted": [
+      "\"«React»\": stereotype of the Web shop participant; a sequence participant shows its kind only"
+    ]
+  }
+}

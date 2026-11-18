@@ -1,6 +1,8 @@
 /**
  * Render a .drawio or .mmd file to a temporary PNG that the agent looks at to judge the layout
- * and fix the IR. The image is not a deliverable for the user. Optional step:
+ * and fix the IR. A draw.io file of several pages shows its first page, or the page `--page`
+ * names; an editable picture (`.drawio.svg`) is rendered from the diagram it carries, so the
+ * image shows what draw.io would open. The image is not a deliverable for the user. Optional step:
  * it needs a renderer that is not bundled. In order of preference:
  *   1. the draw.io desktop CLI (`drawio` on PATH) for .drawio files, fully offline;
  *   2. Playwright with Chromium (project-local, global, or NODE_PATH), which loads the
@@ -10,11 +12,13 @@
  */
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
-import { basename, dirname, extname, join, resolve } from 'node:path';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, rmSync, accessSync, constants } from 'node:fs';
+import { basename, delimiter, dirname, extname, join, resolve } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { pngSize, decodePng, cropPng, encodePng } from './png.mjs';
+import { drawioPages, selectPages } from './export-svg.mjs';
+import { drawioXmlOf } from './extract-drawio.mjs';
 
 export { pngSize };
 
@@ -61,6 +65,8 @@ function trimTile(file, margin, vertical) {
 const MARGIN = 20;
 /** The viewer fits the drawing to the window minus `border`, so a window of extent + 2 * MARGIN shows it at scale 1. */
 const DRAWIO_VIEWER = `https://viewer.diagrams.net/?lightbox=1&nav=0&layers=0&highlight=none&edit=_blank&border=${MARGIN}`;
+/** draw.io's viewer as a script for a page of our own: the same code, with the drawing handed back instead of shown. */
+export const DRAWIO_VIEWER_SCRIPT = 'https://viewer.diagrams.net/js/viewer-static.min.js';
 
 let globalRoot;
 /** The global node_modules folder (`npm root -g`), looked up once; null when npm is missing. */
@@ -90,6 +96,78 @@ export function loadPlaywright(cwd = process.cwd()) {
 }
 
 /**
+ * What to say when Playwright is not installed: where it was looked for, and how to get it.
+ * `preview` and `export` share the renderers, so they share these words.
+ */
+export function playwrightMissing(cwd = process.cwd()) {
+  const root = npmGlobalRoot();
+  return {
+    attempt: `Playwright not found (looked in ${cwd}, next to the CLI${root ? `, and in ${root}` : ''})`,
+    install: `run \`npm install -g playwright && npx playwright install chromium\`; if it is already installed under another npm prefix, run the CLI with \`NODE_PATH="$(npm root -g)"\``,
+  };
+}
+
+/** Arguments draw.io desktop needs after its own on Linux, where it runs without a display server's sandbox. */
+export const drawioDesktopFlags = (platform = process.platform) => (platform === 'linux' ? ['--no-sandbox', '--disable-gpu'] : []);
+
+/** The executable `name` on the PATH of `env`, or null. */
+function onPath(name, env) {
+  for (const dir of (env.PATH ?? '').split(delimiter)) {
+    if (!dir) continue;
+    try {
+      accessSync(join(dir, name), constants.X_OK);
+      return join(dir, name);
+    } catch {
+      // not in this folder
+    }
+  }
+  return null;
+}
+
+/**
+ * How to start draw.io desktop with `args`. draw.io is an Electron app: even `--version` and
+ * an export need a display. On Linux without one (no DISPLAY, no WAYLAND_DISPLAY) it is
+ * started under `xvfb-run -a`, which lends it a virtual display for the one call, when
+ * xvfb-run is on PATH; without xvfb-run the call is made as it is and `noDisplay` is set, so
+ * the failure can say what is missing.
+ */
+export function drawioCommand(bin, args, platform = process.platform, env = process.env) {
+  const all = [...args, ...drawioDesktopFlags(platform)];
+  if (platform !== 'linux' || env.DISPLAY || env.WAYLAND_DISPLAY) return { cmd: bin, args: all };
+  const xvfb = onPath('xvfb-run', env);
+  return xvfb ? { cmd: xvfb, args: ['-a', bin, ...all] } : { cmd: bin, args: all, noDisplay: true };
+}
+
+/** Run draw.io desktop; the result of spawnSync, with `noDisplay` from `drawioCommand`. */
+export function runDrawio(bin, args, timeout = 120_000) {
+  const c = drawioCommand(bin, args);
+  return { ...spawnSync(c.cmd, c.args, { encoding: 'utf8', timeout }), noDisplay: c.noDisplay === true };
+}
+
+// A log line of Chromium inside draw.io: "[pid:date/time:LEVEL:file(line)] text".
+const CHROMIUM_LOG = /^\[(?:\d+:)*\d+\/[\d.]+:([A-Z0-9_]+):[^\]]*\]\s*/;
+// Lines draw.io and Xvfb print on every start, whether the export works or not.
+const STARTUP_NOISE = /^(Checking for beta autoupdate|Found package-type|XIO:|after \d+ requests|X connection to )/;
+
+/**
+ * Why a draw.io desktop call failed, in draw.io's own words: its `Error:` lines (an export
+ * that fails still exits 0 and only says so), else the fatal lines of Chromium (no display,
+ * root without a sandbox), else what remains once the log of every start is taken out, else
+ * the exit code or signal. Without a display and without xvfb-run, it says what to install.
+ */
+export function drawioFailure(r) {
+  if (r.error) return r.error.code === 'ETIMEDOUT' ? 'draw.io did not finish in time' : r.error.message;
+  const lines = `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((l) => l.trim()).filter(Boolean);
+  const own = lines.filter((l) => /^Error:/.test(l));
+  const fatal = lines.filter((l) => CHROMIUM_LOG.test(l) && (l.match(CHROMIUM_LOG)[1] === 'FATAL' || /Missing X server|platform failed to initialize/.test(l))).map((l) => l.replace(CHROMIUM_LOG, ''));
+  let why = [...own, ...fatal].join('; ') || lines.filter((l) => !CHROMIUM_LOG.test(l) && !STARTUP_NOISE.test(l)).join('; ');
+  if (!why) why = r.signal ? `draw.io stopped on signal ${r.signal}` : r.status ? `draw.io exited with code ${r.status}` : 'draw.io wrote no file';
+  why = why.slice(0, 300);
+  if (r.noDisplay) why += '; draw.io desktop needs a display: no DISPLAY is set and xvfb-run is not on PATH (install the xvfb package, or run the CLI under xvfb-run -a)';
+  return why;
+}
+
+/**
  * Where the draw.io desktop app installs its executable when it adds nothing to PATH: the
  * macOS app bundle (system or per-user), the Windows installers (per machine or per user),
  * and the Linux .deb, snap and flatpak-less tarball locations.
@@ -107,20 +185,37 @@ export function drawioInstallPaths(platform = process.platform, env = process.en
 
 /**
  * The draw.io desktop executable: `drawio` or `draw.io` on PATH, else the first default
- * install path that exists. Returns the command and the list of places tried.
+ * install path that exists. Returns the command, the list of places tried, and under `broken`
+ * each command on PATH that is there but does not start (`--version` fails), with the reason.
  */
 export function findDrawioBinary() {
   const tried = [];
+  const broken = [];
   for (const bin of ['drawio', 'draw.io']) {
     tried.push(`${bin} on PATH`);
-    const r = spawnSync(bin, ['--version'], { encoding: 'utf8', timeout: 10_000 });
-    if (!r.error && r.status === 0) return { bin, tried };
+    const r = runDrawio(bin, ['--version'], 30_000);
+    if (!r.error && r.status === 0) return { bin, tried, broken };
+    if (r.error?.code !== 'ENOENT') broken.push(`${bin} on PATH did not start: ${drawioFailure(r)}`);
   }
   for (const candidate of drawioInstallPaths()) {
     tried.push(candidate);
-    if (existsSync(candidate)) return { bin: candidate, tried };
+    if (existsSync(candidate)) return { bin: candidate, tried, broken };
   }
-  return { bin: null, tried };
+  return { bin: null, tried, broken };
+}
+
+/** What `preview` and `export` say when `findDrawioBinary` gave no command to run. */
+export function drawioMissing(found) {
+  return found.broken.length > 0
+    ? `draw.io desktop found but it did not start (${found.broken.join('; ')}); looked for ${found.tried.join(', ')}`
+    : `draw.io desktop not found; looked for ${found.tried.join(', ')}`;
+}
+
+/** The first words of the hint when no renderer worked: what to do about draw.io desktop. */
+export function drawioHint(found) {
+  if (found.bin) return 'the message says why draw.io desktop drew nothing (on Linux without a display it needs xvfb-run, from the xvfb package)';
+  if (found.broken.length > 0) return 'make draw.io desktop start (on Linux without a display it needs xvfb-run, from the xvfb package)';
+  return 'install draw.io desktop in one of the places above or put its executable on PATH';
 }
 
 /** Frame draw.io desktop draws around an export, in output pixels, whatever the scale. */
@@ -159,10 +254,11 @@ export function tileFrames(width, height, maxLen, overlap = 0) {
  */
 function renderDrawioDesktop(bin, file, xml, out, maxPx) {
   const run = (scale) => {
-    const args = ['-x', '-f', 'png', '-s', String(scale), '-b', String(BORDER), '-o', out, file];
-    if (process.platform === 'linux') args.push('--no-sandbox', '--disable-gpu');
-    const r = spawnSync(bin, args, { encoding: 'utf8', timeout: 120_000 });
-    if (r.error || r.status !== 0) return { ok: false, message: (r.stderr || r.error?.message || 'draw.io export failed').trim().slice(0, 300) };
+    // draw.io exits 0 when an export fails and writes nothing: only a file written by this
+    // call counts, never an image an earlier preview left at the same path.
+    rmSync(out, { force: true });
+    const r = runDrawio(bin, ['-x', '-f', 'png', '-s', String(scale), '-b', String(BORDER), '-o', out, file]);
+    if (r.error || r.status !== 0 || !existsSync(out)) return { ok: false, message: drawioFailure(r) };
     return { ok: true, scale, files: [out] };
   };
   let r = run(2);
@@ -238,7 +334,7 @@ export function drawioExtent(xml) {
   const extend = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
   for (const v of drawioVertices(xml)) { extend(v.x, v.y); extend(v.x + v.width, v.y + v.height); }
   for (const c of pageCells(xml)) {
-    if (/\sedge="1"/.test(c.attrs)) for (const p of c.body.matchAll(/<mxPoint x="(-?[\d.]+)" y="(-?[\d.]+)"/g)) extend(+p[1], +p[2]);
+    if (/\sedge="1"/.test(c.attrs)) for (const p of c.body.matchAll(/<mxPoint x="(-?[\d.]+)" y="(-?[\d.]+)"(?![^>]*\sas="offset")/g)) extend(+p[1], +p[2]);
   }
   if (!Number.isFinite(minX)) return { width: 800, height: 600 };
   return { width: Math.ceil(maxX - minX), height: Math.ceil(maxY - minY) };
@@ -432,10 +528,12 @@ async function renderMermaidWeb(pw, text, out, maxPx) {
  * renders to the same path, so a second run replaces the first image, while `x.drawio` and
  * `x.mmd`, or two projects with a diagram of the same name, never share one.
  */
-export function defaultPreviewPath(input) {
+export function defaultPreviewPath(input, page) {
   const ext = extname(input).toLowerCase();
-  const hash = createHash('sha256').update(input).digest('hex').slice(0, 8);
-  return join(tmpdir(), 'zukai-preview', `${basename(input, ext)}-${ext.slice(1) || 'file'}-${hash}.png`);
+  // A page asked for by name is an image of its own, beside the one of the file's first page.
+  const hash = createHash('sha256').update(page === undefined ? input : `${input}#${page}`).digest('hex').slice(0, 8);
+  const pagePart = page === undefined ? '' : `-${String(page).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'page'}`;
+  return join(tmpdir(), 'zukai-preview', `${basename(input, ext)}${pagePart}-${ext.slice(1) || 'file'}-${hash}.png`);
 }
 
 /** The fenced `mermaid` blocks of a Markdown document, in order. */
@@ -476,8 +574,9 @@ async function previewMarkdown(file, text, out, cwd, maxPx) {
 }
 
 /**
- * @param {string} file path to a .drawio or .mmd file, or to the combined .md of a Mermaid run
- * @param {{ out?: string, cwd?: string, maxPx?: number, renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
+ * @param {string} file path to a .drawio, .drawio.svg or .mmd file, or to the combined .md of a Mermaid run
+ * @param {{ out?: string, cwd?: string, maxPx?: number, page?: string, renderer?: 'drawio-desktop' | 'drawio-web' }} [options]
+ *   `page` is the id or the name of the page of a draw.io file to draw (default: its first page).
  *   `maxPx` caps the longest side of every PNG, border included; a very tall or wide diagram
  *   that would fall below scale 0.6 is instead cut into tiles at scale 1 that overlap by the
  *   largest node (`overlap`, px), with both renderers. `renderer` forces one of the two
@@ -489,9 +588,14 @@ export async function preview(file, options = {}) {
   const input = resolve(cwd, file);
   const ext = extname(input).toLowerCase();
   // The PNG is for the agent's own inspection, not a deliverable: keep it out of the project.
-  const out = options.out ? resolve(cwd, options.out) : defaultPreviewPath(input);
-  if (ext !== '.drawio' && ext !== '.mmd' && ext !== '.md') {
-    return { ok: false, errors: [{ path: file, message: 'preview takes a .drawio or .mmd file, or the combined .md file of a Mermaid run' }] };
+  // An editable picture holds its diagram: it is previewed as the draw.io file it carries.
+  const picture = ext === '.svg' && /\.drawio\.svg$/i.test(input);
+  if (ext !== '.drawio' && ext !== '.mmd' && ext !== '.md' && !picture) {
+    return { ok: false, errors: [{ path: file, message: 'preview takes a .drawio or .mmd file, an editable picture (.drawio.svg), or the combined .md file of a Mermaid run' }] };
+  }
+  const drawio = ext === '.drawio' || picture;
+  if (options.page !== undefined && !drawio) {
+    return { ok: false, errors: [{ path: '--page', message: '--page names a page of a draw.io file', hint: ext === '.md' ? 'the combined .md of a Mermaid run renders every block to an image of its own, listed under "files"' : 'a .mmd file holds one diagram' }] };
   }
   let text;
   try {
@@ -499,33 +603,70 @@ export async function preview(file, options = {}) {
   } catch (e) {
     return { ok: false, errors: [{ path: file, message: `cannot read file: ${e.message}` }] };
   }
+  // The file given, or a file of the one page to draw: the page asked for, or the diagram of a picture.
+  let source = input;
+  let shown;
+  let pageCount;
+  let work;
+  if (drawio && (picture || options.page !== undefined)) {
+    let xml = text;
+    if (picture) {
+      const inside = drawioXmlOf(Buffer.from(text, 'utf8'));
+      if (inside.error) return { ok: false, errors: [{ path: file, message: inside.error, hint: 'preview draws the diagram a .drawio.svg carries; a plain SVG is already a picture' }] };
+      xml = inside.xml;
+    }
+    const split = drawioPages(xml);
+    if (split.error) return { ok: false, errors: [{ path: file, message: split.error }] };
+    const picked = selectPages(split.pages, options.page === undefined ? undefined : [options.page]);
+    if (picked.error) return { ok: false, errors: [{ path: '--page', ...picked.error }] };
+    pageCount = split.pages.length;
+    shown = picked.pages[0];
+    text = shown.xml;
+  } else if (drawio) {
+    const split = drawioPages(text);
+    if (!split.error) { pageCount = split.pages.length; shown = split.pages[0]; }
+  }
+  const pageInfo = shown ? { page: { id: shown.id, name: shown.name }, pages: pageCount } : {};
+  const out = options.out ? resolve(cwd, options.out) : defaultPreviewPath(input, options.page === undefined ? undefined : shown?.id);
   mkdirSync(dirname(out), { recursive: true });
   if (ext === '.md') return previewMarkdown(file, text, out, cwd, options.maxPx);
   const attempts = [];
-  if (ext === '.drawio' && options.renderer !== 'drawio-web') {
-    const { bin, tried } = findDrawioBinary();
+  let found = { bin: null, tried: [], broken: [] };
+  if (drawio && options.renderer !== 'drawio-web') {
+    found = findDrawioBinary();
+    const { bin } = found;
     if (bin) {
-      const r = renderDrawioDesktop(bin, input, text, out, options.maxPx);
-      if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: 'drawio-desktop', errors: [] };
-      attempts.push(`draw.io desktop (${bin}): ${r.message}`);
+      try {
+        if (picture || options.page !== undefined) {
+          // draw.io desktop takes a file: the one page goes into a file of its own.
+          work = mkdtempSync(join(tmpdir(), 'zukai-preview-page-'));
+          source = join(work, 'page.drawio');
+          writeFileSync(source, text, 'utf8');
+        }
+        const r = renderDrawioDesktop(bin, source, text, out, options.maxPx);
+        if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: 'drawio-desktop', ...pageInfo, errors: [] };
+        attempts.push(`draw.io desktop (${bin}): ${r.message}`);
+      } finally {
+        if (work) rmSync(work, { recursive: true, force: true });
+      }
     } else {
-      attempts.push(`draw.io desktop not found; looked for ${tried.join(', ')}`);
+      attempts.push(drawioMissing(found));
     }
     if (options.renderer === 'drawio-desktop') return { ok: false, errors: [{ path: file, message: `draw.io desktop could not render the file (${attempts.join('; ')})` }] };
   }
   const pw = loadPlaywright(cwd);
   if (!pw) {
-    const root = npmGlobalRoot();
-    attempts.push(`Playwright not found (looked in ${cwd}, next to the CLI${root ? `, and in ${root}` : ''})`);
-    const playwright = `run \`npm install -g playwright && npx playwright install chromium\`; if it is already installed under another npm prefix, run the CLI with \`NODE_PATH="$(npm root -g)"\``;
-    const hint = ext === '.drawio'
-      ? `install draw.io desktop in one of the places above or put its executable on PATH, or ${playwright}; the preview step is optional, and a review without an image must say so`
+    const missing = playwrightMissing(cwd);
+    attempts.push(missing.attempt);
+    const playwright = missing.install;
+    const hint = drawio
+      ? `${drawioHint(found)}, or ${playwright}; the preview step is optional, and a review without an image must say so`
       : `Mermaid previews need Playwright: ${playwright}; the preview step is optional, and a review without an image must say so`;
     return { ok: false, errors: [{ path: file, message: `no renderer available (${attempts.join('; ')})`, hint }] };
   }
   try {
-    const r = ext === '.drawio' ? await renderDrawioWeb(pw, text, out, options.maxPx) : await renderMermaidWeb(pw, text, out, options.maxPx);
-    if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: ext === '.drawio' ? 'drawio-web' : 'mermaid-web', errors: [] };
+    const r = drawio ? await renderDrawioWeb(pw, text, out, options.maxPx) : await renderMermaidWeb(pw, text, out, options.maxPx);
+    if (r.ok) return { ok: true, out: r.files[0], files: r.files, tiled: r.tiled === true, overlap: r.overlap, scale: r.scale, renderer: drawio ? 'drawio-web' : 'mermaid-web', ...pageInfo, errors: [] };
     return { ok: false, errors: [{ path: file, message: r.message }] };
   } catch (e) {
     attempts.push(`browser render: ${String(e.message).slice(0, 200)}`);

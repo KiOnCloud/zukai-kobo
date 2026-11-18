@@ -156,7 +156,7 @@ describe('FigJam reader script', () => {
     expect(r.ok).toBe(true);
     expect(r.facts.pages[0].nodes).toHaveLength(5);
     expect(extractFacts(Buffer.from('{"a":1}'), 'x.json')).toMatchObject({ ok: false, error: expect.stringMatching(/zukaiBoard/) });
-    const ir = { schemaVersion: 1, kind: 'flowchart', title: 'Checkout', nodes: [{ id: 'a', label: 'Enter card' }, { id: 'b', label: 'Card valid?' }], edges: [], meta: { omitted: ['"Draft", "Payments DB", "yes", the table (id uuid, amount decimal) and the sticky "Ask PM about 3DS": out of the flow'] } };
+    const ir = { schemaVersion: 1, kind: 'flowchart', title: 'Checkout', nodes: [{ id: 'a', label: 'Enter card' }, { id: 'b', label: 'Card valid?' }], edges: [{ id: 'ab', from: 'a', to: 'b' }], meta: { omitted: ['"Draft", "Payments DB", "yes", the table (id uuid, amount decimal) and the sticky "Ask PM about 3DS": out of the flow'] } };
     expect(cover(r.facts, [{ name: 'checkout', ir }])).toMatchObject({ ok: true });
   });
 

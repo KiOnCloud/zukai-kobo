@@ -158,6 +158,60 @@ describe('combined fragments of a sequence diagram in draw.io', () => {
     expect(L.warnings).toEqual([]);
   });
 
+  it('closes frames nested in each other close below their last message, and leaves a frame that ends alone as it was', () => {
+    const calls = ['m1', 'm2', 'm3', 'm4'].map((id) => ({ id, from: 'a', to: 'b', label: id, kind: 'async' }));
+    const ir = (blocks) => ({ schemaVersion: 1, kind: 'sequence', title: 'Closes', participants: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], messages: calls, blocks });
+    // Three frames end below m3: the innermost just under the room the arrow keeps, each outer one a gap further.
+    const nested = layoutSequence(ir([
+      { id: 'outer', kind: 'alt', label: 'given', messages: ['m1'], branches: [{ label: 'missing', messages: ['m2', 'm3'] }] },
+      { id: 'middle', kind: 'alt', label: 'known', messages: ['m2', 'm3'] },
+      { id: 'inner', kind: 'opt', label: 'changed', messages: ['m3'] },
+    ]));
+    const bottom = (L, id) => { const f = L.frames.find((x) => x.id === id); return f.y + f.height; };
+    const last = nested.messageY('m3');
+    expect(bottom(nested, 'inner') - last).toBe(M.rowPitch / 2 + M.nestedCloseHeight);
+    expect(bottom(nested, 'middle') - bottom(nested, 'inner')).toBe(M.blockGap);
+    expect(bottom(nested, 'outer') - bottom(nested, 'middle')).toBe(M.blockGap);
+    // The whole band below the last message is shorter than one row of the diagram used to be for two frames.
+    expect(bottom(nested, 'outer') - last).toBeLessThan(M.rowPitch / 2 + 2 * M.blockCloseHeight);
+    expect(nested.messageY('m4') - bottom(nested, 'outer')).toBeGreaterThanOrEqual(M.rowPitch / 2);
+    expect(nested.warnings).toEqual([]);
+    // A frame that ends alone, also one inside another that ends later, keeps its close row.
+    const alone = layoutSequence(ir([{ id: 'outer', kind: 'loop', label: 'all', messages: ['m1', 'm2', 'm3'] }, { id: 'inner', kind: 'opt', label: 'x', messages: ['m2'] }]));
+    expect(bottom(alone, 'inner') - alone.messageY('m2')).toBe(M.rowPitch / 2 + M.blockCloseHeight);
+    expect(bottom(alone, 'outer') - alone.messageY('m3')).toBe(M.rowPitch / 2 + M.blockCloseHeight);
+  });
+
+  it('ends the bar of a call without a reply above the label of a later message that passes its lifeline', async () => {
+    const ir = {
+      schemaVersion: 1, kind: 'sequence', title: 'Bars',
+      participants: [{ id: 'svc', label: 'Service' }, { id: 'policy', label: 'Policy' }, { id: 'audit', label: 'Audit log' }, { id: 'far', label: 'Far' }],
+      messages: [
+        { id: 'reset', from: 'svc', to: 'policy', label: 'reset(user)' },
+        // Its label is centred between Service and Far, which puts its first letters on the lifeline of Policy.
+        { id: 'record', from: 'svc', to: 'far', label: "record('login_succeeded', email, user.id)" },
+        { id: 'notify', from: 'svc', to: 'policy', label: 'notify(user)' },
+        // Its label lies between Audit log and Far and never reaches the lifeline of Policy.
+        { id: 'store', from: 'audit', to: 'far', label: 'store' },
+      ],
+    };
+    const { r, cells, box } = await sequenceCells(ir);
+    expect(r.warnings).toEqual([]);
+    const L = layoutSequence(ir);
+    const barOf = (id) => { const c = cells.find((x) => x.id === `sq:act-${id}`); const b = cellBounds(c); const life = box(c.parent.slice(3)); return { left: life.x + b.x, right: life.x + b.x + b.width, top: life.y + b.y, bottom: life.y + b.y + b.height }; };
+    const labelOf = (id) => { const msg = ir.messages.find((x) => x.id === id); const w = textWidth(msg.label); const mid = (L.participants.get(msg.from).centerX + L.participants.get(msg.to).centerX) / 2; return { left: mid - w / 2, right: mid + w / 2, top: L.messageY(id) - M.labelHeight - 2, bottom: L.messageY(id) - 2 }; };
+    const bar = barOf('reset');
+    const label = labelOf('record');
+    // The label does cross that lifeline, and the bar stops above it.
+    expect(label.left).toBeLessThan(bar.right);
+    expect(label.right).toBeGreaterThan(bar.left);
+    expect(bar.bottom).toBeLessThanOrEqual(label.top);
+    expect(bar.bottom - bar.top).toBeGreaterThanOrEqual(M.rowPitch / 4);
+    // A bar no label reaches keeps its full row.
+    const free = barOf('notify');
+    expect(free.bottom - free.top).toBe(M.rowPitch);
+  });
+
   it('never draws an edge of one frame within the gap of an edge of another, in any fixture', async () => {
     const nested = {
       schemaVersion: 1, kind: 'sequence', title: 'Rows',
@@ -165,7 +219,7 @@ describe('combined fragments of a sequence diagram in draw.io', () => {
       messages: ['m1', 'm2', 'm3', 'm4'].map((id, i) => ({ id, from: i % 2 ? 'b' : 'a', to: i % 2 ? 'c' : 'b', label: id })),
       blocks: [{ id: 'o', kind: 'loop', label: 'all', messages: ['m1', 'm2'] }, { id: 'i1', kind: 'opt', label: 'p', messages: ['m1'] }, { id: 'i2', kind: 'opt', label: 'q', messages: ['m2'] }, { id: 's1', kind: 'opt', label: 'r', messages: ['m3'] }, { id: 's2', kind: 'par', label: 's', messages: ['m4'] }],
     };
-    for (const ir of [nested, ...['valid', 'valid-loop-note-alt', 'valid-invoice-export', 'valid-ref-parts', 'valid-participant-kinds'].map((name) => loadFixture('sequence', name))]) {
+    for (const ir of [nested, ...['valid', 'valid-loop-note-alt', 'valid-invoice-export', 'valid-ref-parts', 'valid-participant-kinds', 'valid-deep-blocks-long-note'].map((name) => loadFixture('sequence', name))]) {
       const { box } = await sequenceCells(ir);
       const frames = (ir.blocks ?? []).map((b) => ({ id: b.id, ...box(b.id) }));
       for (const f of frames) for (const g of frames) {
@@ -386,5 +440,66 @@ describe('activations of a sequence diagram in draw.io', () => {
     // A nested call that returns inside an inner block of the outer call's block.
     const nested = calls([['a', 'b'], ['b', 'x'], ['x', 'b', 'return'], ['b', 'x'], ['x', 'b', 'return'], ['b', 'a', 'return']], [opt('k', 'm3')]);
     expect(await spans(nested)).toEqual({ m2: 'x m2..m3', m4: 'x m4..m5', m1: 'b m1..m6' });
+  });
+});
+
+describe('the label of a self-message in draw.io', () => {
+  const lockout = {
+    schemaVersion: 1, kind: 'sequence', title: 'Record a failed attempt',
+    participants: [{ id: 'svc', label: 'AuthService' }, { id: 'pol', label: 'LockoutPolicy' }, { id: 'repo', label: 'UserRepository', kind: 'database' }],
+    messages: [
+      { id: 'm1', from: 'svc', to: 'pol', label: 'recordFailure(user)' },
+      { id: 'm2', from: 'pol', to: 'pol', label: 'n += 1' },
+      { id: 'm3', from: 'pol', to: 'pol', label: 'lockedUntil = now + 30 min' },
+      { id: 'm4', from: 'pol', to: 'pol', label: 'lockedUntil = null' },
+      { id: 'm5', from: 'pol', to: 'repo', label: 'save(user)' },
+      { id: 'm6', from: 'repo', to: 'pol', label: 'saved', kind: 'return' },
+      { id: 'm7', from: 'pol', to: 'pol', label: 'Counting a failed attempt for the business view of the login' },
+      { id: 'm8', from: 'pol', to: 'svc', label: 'done', kind: 'return' },
+    ],
+    blocks: [
+      { id: 'b1', kind: 'alt', label: 'failedAttempts >= 3', messages: ['m3'], branches: [{ label: 'fewer than 3', messages: ['m4'] }] },
+      { id: 'b2', kind: 'opt', label: 'audit', messages: ['m7'] },
+    ],
+  };
+  /** Where draw.io writes the label of a self-message: from the loop's far side, moved by the offset, left-aligned or centred. */
+  const labelSpan = (cell, lifelineX, text) => {
+    const w = Math.ceil(textWidth(text));
+    const offset = Number(cell.mxGeometry.mxPoint?.find((p) => p.as === 'offset')?.x ?? 0);
+    const anchor = lifelineX + 50 + offset;
+    return /(?:^|;)align=left;/.test(cell.style) ? { left: anchor, right: anchor + w } : { left: anchor - w / 2, right: anchor + w / 2 };
+  };
+
+  it('starts right of the activation bar when it is too wide to stand centred over the loop, and the frame holds it', async () => {
+    const { r, cells, box } = await sequenceCells(lockout);
+    expect(r.warnings).toEqual([]);
+    const lifeline = box('pol');
+    const centre = lifeline.x + lifeline.width / 2;
+    const bar = centre + M.activationWidth / 2;
+    const frames = { m3: box('b1'), m4: box('b1'), m7: box('b2') };
+    for (const msg of lockout.messages.filter((x) => x.from === x.to)) {
+      const span = labelSpan(cells.find((c) => c.id === `sq:${msg.id}`), centre, msg.label);
+      // Clear of the activation bar on the lifeline it belongs to.
+      expect(span.left, msg.id).toBeGreaterThanOrEqual(bar + 4);
+      const frame = frames[msg.id];
+      if (frame) expect(span.right, `${msg.id} inside its frame`).toBeLessThanOrEqual(frame.x + frame.width - 4);
+    }
+    // The two frames are wider than the loop alone would make them.
+    expect(frames.m3.x + frames.m3.width).toBeGreaterThan(centre + 60 + 16);
+  });
+
+  it('makes the gap to the next lifeline as wide as the label needs, with room before that lifeline', async () => {
+    const { cells, box } = await sequenceCells(lockout);
+    const centre = box('pol').x + box('pol').width / 2;
+    const next = box('repo').x + box('repo').width / 2;
+    const span = labelSpan(cells.find((c) => c.id === 'sq:m7'), centre, lockout.messages[6].label);
+    expect(span.right).toBeLessThanOrEqual(next - M.activationWidth / 2 - 4);
+  });
+
+  it('keeps a short label centred over the loop, written as before', async () => {
+    const { cells } = await sequenceCells(lockout);
+    const short = cells.find((c) => c.id === 'sq:m2');
+    expect(short.style).not.toContain('align=left;');
+    expect(short.mxGeometry.mxPoint?.some((p) => p.as === 'offset') ?? false).toBe(false);
   });
 });

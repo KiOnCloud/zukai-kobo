@@ -29,11 +29,12 @@ Errors come back as JSON on stderr with a JSON-pointer `path`, a `message` and u
 | Field | Required | Values |
 |---|---|---|
 | `schemaVersion` | yes | `1` |
-| `kind` | yes | `flowchart`, `sequence`, `state`, `er`, `class`, `architecture`, `activity` |
+| `kind` | yes | `flowchart`, `sequence`, `state`, `er`, `class`, `architecture`, `activity`, `usecase` |
 | `title` | yes | 1 to 500 characters; becomes the diagram name |
-| `direction` | no | `TB` (default), `BT`, `LR`, `RL`; ignored by sequence and by Mermaid's `architecture-beta`; draw.io lays an architecture out in the given direction |
+| `direction` | no | `TB` (default), `BT`, `LR`, `RL`; ignored by sequence and by Mermaid's `architecture-beta`; draw.io lays an architecture out in the given direction; a `usecase` diagram defaults to `LR` (actors left and right of the system) |
 | `meta.source` | no | `clarify`, `scout`, `brainstorm`, `recook`, `manual` |
 | `meta.notes` | no | free text, for example the file paths a scout derived the diagram from |
+| `meta.sources` | no | the files the diagram was derived from, one path each, relative to the project root, with forward slashes (`src/auth/login-handler.ts`); files only, no folders, no absolute path and no `..`. The scout mode writes it, and `sources` / `stale` follow it to tell when the code moved on |
 | `meta.audience` | no | `technical` (default) or `business`; the review applies the audience items of the checklist (see `variants.md`) |
 | `meta.lang` | no | BCP 47 tag (`vi`, `ja`, `en-GB`) of the label language, set on a translated variant |
 | `meta.omitted` | no | what the diagram leaves out on purpose, one string each with a short reason; the review never asks for these back, and the report and Markdown bundle list them as "not shown on purpose" |
@@ -49,7 +50,8 @@ Rules that apply everywhere:
 - Every `from`, `to`, child and block reference must name an existing element.
 - `ref` ties an element of a main diagram to the sub-diagram that details it (scope
   `detailed`). Every kind has one element that carries it: a flowchart node, an activity
-  action, a sequence message, a state, an architecture component, a class, an ER entity. The
+  action, a sequence message, a state, an architecture component, a class, an ER entity, a
+  use case. The
   value is the diagram id of the part: its IR file name without `.ir.json`. The element
   shows `↳ <title of the part>` as a second label line in a bundle (the id alone in a single
   emit), and in draw.io it links to the part's page. No other element takes `ref`; never
@@ -149,6 +151,21 @@ Collections: `states` (at least one), `transitions`.
 Put an `initial` and a `final` state inside a composite when its inner flow has a start and
 an end. Nothing leaves a `final` state and nothing enters an `initial` one.
 
+`initial` and `final` are markers, the filled circle and the end circle, and no target
+draws a label on them. A status the thing can end in is therefore a state of its own, with
+its name, and a transition from it to an unlabelled `final` state:
+
+```json
+{
+  "states": [{ "id": "cancelled", "label": "Cancelled" }, { "id": "end", "kind": "final" }],
+  "transitions": [{ "id": "t7", "from": "paid", "to": "cancelled", "event": "cancel" }, { "id": "t8", "from": "cancelled", "to": "end" }]
+}
+```
+
+Never write the status as `{ "id": "cancelled", "label": "Cancelled", "kind": "final" }`:
+it validates, the picture shows an anonymous end circle, and the CLI says so with a
+`model:` warning that names the state. The same holds for a label on an `initial` state.
+
 ```json
 {
   "schemaVersion": 1, "kind": "state", "title": "Order lifecycle",
@@ -244,8 +261,8 @@ Collections: `components` (at least one), `boundaries` (optional), `connections`
 
 | Element | Fields |
 |---|---|
-| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external`; `ref`: diagram id of the sub-diagram that details this component (its IR file name without `.ir.json`), shown as a second label line; `icon` (optional): an AWS service icon or general resource, `aws:<name>`, or a product logo, `gcp:<name>` |
-| boundary | `id`, `label`, `children`: component or boundary ids (a deployment unit, network or team boundary); `group` (optional): an AWS group frame, `aws:<name>` |
+| component | `id`, `label`, `kind`: `service` (default), `database`, `queue`, `cache`, `client`, `external`; `ref`: diagram id of the sub-diagram that details this component (its IR file name without `.ir.json`), shown as a second label line; `icon` (optional): a service icon or resource figure of AWS or GCP, `aws:<name>` or `gcp:<name>` (a product logo is a `gcp:<name>` too) |
+| boundary | `id`, `label`, `children`: component or boundary ids (a deployment unit, network or team boundary); `group` (optional): a group frame of AWS or GCP, `aws:<name>` or `gcp:<name>` |
 | connection | `id`, `from`, `to`, `label` (protocol or purpose), `bidirectional` (default `false`) |
 
 A connection runs the way the request or the data moves, and the layout follows it: `from`
@@ -333,12 +350,14 @@ give it its own diagram of the kind that shows it and link it with `ref`, instea
 loading the architecture diagram with it. That holds for a "detailed architecture diagram"
 too: the architecture diagram stays as it is and the detail becomes its parts.
 
-### AWS icons
+### AWS and GCP icons
 
-`icon` and `group` turn the diagram into an AWS architecture diagram on the draw.io target.
+`icon` and `group` turn the diagram into a cloud architecture diagram on the draw.io target.
 The values are listed in `aws-icons.md` (every service icon and group frame of draw.io's AWS
-library, its general resources, and the product logos); copy them from there. A name that is not listed fails validation, and the error
-names the nearest ones. `kind` keeps its meaning beside `icon`: draw.io draws the icon in
+library, its general resources, and the product logos) and in `gcp-icons.md` (the service
+icons, resource figures and group frames of draw.io's GCP library); copy them from there. A
+name that is not listed fails validation, and the error names the nearest ones of the same
+provider. Both providers follow the same rules and may stand in one diagram. `kind` keeps its meaning beside `icon`: draw.io draws the icon in
 place of the shape of the kind, Mermaid and FigJam draw the shape of the kind and warn once
 that the icons and frames were lost. Components and boundaries without the fields keep their
 generic look in the same diagram.
@@ -348,6 +367,8 @@ not as a note: its product logo when `aws-icons.md` lists one (`gcp:firebase`), 
 general resource of the AWS library, `aws:generic_application` for another party's API or a
 SaaS product and `aws:traditional_server` for a system on its own machines. These are drawn
 dark and without the coloured square of a service, so nobody takes them for an AWS service.
+In a GCP diagram the grey resource figures of `gcp-icons.md` do the same (`gcp:application`,
+`gcp:database`, `gcp:users`), beside the blue hexagons of the services.
 draw.io places such a system where its callers are: beside the frames and level with the
 one component that calls it, or in a row along the frames between the components it talks
 to: when a client outside the frames calls it too, and when it both calls into the frames
@@ -376,6 +397,36 @@ and is called from them.
     { "id": "c3", "from": "api", "to": "db", "label": "SQL" },
     { "id": "c4", "from": "api", "to": "queue", "label": "order placed" },
     { "id": "c5", "from": "api", "to": "psp", "label": "capture payment" }
+  ]
+}
+```
+
+The same system on Google Cloud. A GCP frame is a tinted area, a service a blue hexagon; the
+outermost frame is `gcp:google_cloud` (with the Google Cloud mark) or `gcp:project`, and a
+VPC network is `gcp:vpc_network`:
+
+```json
+{
+  "schemaVersion": 1, "kind": "architecture", "title": "Order platform on Google Cloud", "direction": "LR",
+  "components": [
+    { "id": "browser", "label": "Customer browser", "kind": "client" },
+    { "id": "lb", "label": "Application Load Balancer", "icon": "gcp:cloud_load_balancing" },
+    { "id": "api", "label": "Order API (Cloud Run)", "icon": "gcp:cloud_run" },
+    { "id": "db", "label": "Cloud SQL for PostgreSQL", "kind": "database", "icon": "gcp:cloud_sql" },
+    { "id": "topic", "label": "Pub/Sub orders", "kind": "queue", "icon": "gcp:cloud_pubsub" },
+    { "id": "psp", "label": "Payment provider", "kind": "external", "icon": "gcp:application" }
+  ],
+  "boundaries": [
+    { "id": "project", "label": "Project shop-prod", "group": "gcp:project", "children": ["lb", "region"] },
+    { "id": "region", "label": "asia-northeast1", "group": "gcp:region", "children": ["api", "topic", "vpc"] },
+    { "id": "vpc", "label": "VPC network", "group": "gcp:vpc_network", "children": ["db"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "browser", "to": "lb", "label": "HTTPS" },
+    { "id": "c2", "from": "lb", "to": "api", "label": "HTTP" },
+    { "id": "c3", "from": "api", "to": "db", "label": "SQL" },
+    { "id": "c4", "from": "api", "to": "topic", "label": "order placed" },
+    { "id": "c5", "from": "api", "to": "psp", "label": "HTTPS" }
   ]
 }
 ```
@@ -424,8 +475,89 @@ leaves a `final` node and nothing enters an `initial` one.
 }
 ```
 
+## usecase
+
+Collections: `actors` (at least one), `useCases` (at least one), `boundaries` (optional),
+`relations`.
+
+| Element | Fields |
+|---|---|
+| actor | `id`, `label` (the role, not a person's name); `kind`: `person` (default, a stick figure) or `system` (an outside system that takes part, a box marked «system»); `role`: `primary` (starts use cases to reach a goal; drawn before the boundary) or `supporting` (the system calls on it; drawn after the boundary). Without `role` a person is primary and a system is supporting |
+| use case | `id`, `label` (a goal of an actor, as a verb phrase); `ref`: diagram id of the sub-diagram that details this use case (its IR file name without `.ir.json`), shown as a second label line |
+| boundary | `id`, `label` (the system or subsystem), `children`: use case ids. Actors are never children, and a use case is in at most one boundary |
+| relation | `id`, `from`, `to`, `kind`: `association`, `include`, `extend`, `generalization`; `condition` (only on `extend`): the condition or the extension point under which the extension takes part |
+
+What each relation joins, and which way it points:
+
+- `association`: an actor and a use case it starts or takes part in. Either end may be
+  `from`; the line has no arrowhead.
+- `include`: `from` is the use case that always runs the other one as a part of itself, `to`
+  the included one (dashed arrow to the included use case, «include»). Use it for behaviour
+  two or more use cases share, or that the reader must see is always there.
+- `extend`: `from` is the use case that adds optional behaviour, `to` the use case it
+  extends (dashed arrow to the extended use case, «extend», the condition in brackets).
+- `generalization`: `from` is the special one, `to` the general one, both actors or both
+  use cases (hollow triangle at the general one). A special actor takes part in everything
+  the general one does, so it needs associations only for what it alone does.
+
+The reference check refuses a relation that joins the wrong things, a relation of an element
+to itself and a loop of generalizations. `validate` and every emit warn about a use case
+that no actor reaches (directly, or through a use case that includes it, that it extends or
+that it is a kind of) and about an actor with no use case.
+
+Level of detail. A use case is a goal an actor has with the system and reaches in one
+sitting: "Borrow a book", "Pay a late fee". It is not a step ("Scan the card"), a screen
+("Loan page"), a button or a function of the code ("validateLoan"); several steps towards one
+goal are one use case. The test: the actor would say they came to do this, and would be
+done when it ends. The steps of a use case belong to a part of another kind (an `activity`
+or `sequence` diagram, a `flowchart`) linked with `ref` on the use case under the scope
+`detailed`. Keep `include` and `extend` rare: a diagram where most use cases include others
+has turned into a flowchart. The CLI cannot tell a goal from a step, so this rule is the
+author's to keep and the reviewer's to check.
+
+draw.io draws the diagram left to right by default: primary actors left of the boundaries,
+supporting actors and outside systems right of them; `"direction": "TB"` puts them above
+and below. The actors of a side stand in the order `actors` lists them, and the use cases
+are placed from the order of the model as well, never by a search for the fewest crossings:
+the same model always gives the same picture, and one added element moves its neighbours
+and nothing else. List an actor next to the actors whose use cases it shares; a line that
+crosses another is then fixed by reordering `actors`, not by the layout. Mermaid has no use case diagram and gets a flowchart with warnings; FigJam gets
+the board drawn by `emit --native` (`target-mermaid.md`, `target-figjam.md`).
+
+```json
+{
+  "schemaVersion": 1, "kind": "usecase", "title": "Library lending",
+  "actors": [
+    { "id": "member", "label": "Member" },
+    { "id": "librarian", "label": "Librarian" },
+    { "id": "payment", "label": "Payment provider", "kind": "system" }
+  ],
+  "useCases": [
+    { "id": "search", "label": "Search the catalogue" },
+    { "id": "borrow", "label": "Borrow a book", "ref": "library-lending-01-borrow" },
+    { "id": "return", "label": "Return a book" },
+    { "id": "check-card", "label": "Check the library card" },
+    { "id": "pay-fine", "label": "Pay a late fee" },
+    { "id": "register", "label": "Register a new member" }
+  ],
+  "boundaries": [
+    { "id": "library", "label": "Library system", "children": ["search", "borrow", "return", "check-card", "pay-fine", "register"] }
+  ],
+  "relations": [
+    { "id": "r1", "from": "member", "to": "search", "kind": "association" },
+    { "id": "r2", "from": "member", "to": "borrow", "kind": "association" },
+    { "id": "r3", "from": "member", "to": "return", "kind": "association" },
+    { "id": "r4", "from": "librarian", "to": "register", "kind": "association" },
+    { "id": "r5", "from": "borrow", "to": "check-card", "kind": "include" },
+    { "id": "r6", "from": "pay-fine", "to": "return", "kind": "extend", "condition": "the book is overdue" },
+    { "id": "r7", "from": "payment", "to": "pay-fine", "kind": "association" }
+  ]
+}
+```
+
 ## What each target cannot show
 
-The feature matrix (`docs/feature-matrix.md` in the repository) lists, per kind and target,
+The feature matrix (`scripts/src/feature-matrix.json` of the draw skill; as a table at
+https://github.com/KiOnCloud/zukai-kobo/blob/main/docs/feature-matrix.md) lists, per kind and target,
 what is `supported`, `degraded` (emitted with a warning that names the element and what was
 lost) or `unsupported` (the emit fails for that target). Print every warning to the user.

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "usecase",
+  "title": "Library lending",
+  "meta": { "source": "clarify" },
+  "actors": [
+    { "id": "member", "label": "Member" },
+    { "id": "librarian", "label": "Librarian" },
+    { "id": "payment", "label": "Payment provider", "kind": "system" }
+  ],
+  "useCases": [
+    { "id": "search", "label": "Search the catalogue" },
+    { "id": "borrow", "label": "Borrow a book" },
+    { "id": "return", "label": "Return a book" },
+    { "id": "check-card", "label": "Check the library card" },
+    { "id": "pay-fine", "label": "Pay a late fee" },
+    { "id": "register", "label": "Register a new member" }
+  ],
+  "boundaries": [
+    { "id": "library", "label": "Library system", "children": ["search", "borrow", "return", "check-card", "pay-fine", "register"] }
+  ],
+  "relations": [
+    { "id": "r1", "from": "member", "to": "search", "kind": "association" },
+    { "id": "r2", "from": "member", "to": "borrow", "kind": "association" },
+    { "id": "r3", "from": "member", "to": "return", "kind": "association" },
+    { "id": "r4", "from": "librarian", "to": "register", "kind": "association" },
+    { "id": "r5", "from": "borrow", "to": "check-card", "kind": "include" },
+    { "id": "r6", "from": "pay-fine", "to": "return", "kind": "extend", "condition": "the book is overdue" },
+    { "id": "r7", "from": "payment", "to": "pay-fine", "kind": "association" }
+  ]
+}

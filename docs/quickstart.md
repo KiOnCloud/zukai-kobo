@@ -31,8 +31,10 @@ Open Claude Code in the project the diagram is about and run one of:
 - `brainstorm`: you have an idea; the skill proposes which diagrams would help and you pick.
 
 The skill then asks one question with up to four parts: which **kind** (sequence,
-flowchart, activity swimlanes, state, ER, class, architecture; an architecture on AWS is
-drawn with AWS service icons and VPC or subnet frames in draw.io), which **scope** (`overview`:
+flowchart, activity swimlanes, state, ER, class, architecture, use case; an architecture on
+AWS or Google Cloud is drawn with that provider's service icons and its frames (VPC and
+subnet, project, region and zone) in draw.io, and a use case
+diagram, which shows who uses the system and for what, is best drawn in draw.io), which **scope** (`overview`:
 one diagram of about 15 steps; `detailed`: one main diagram plus a sub-diagram per sub-flow,
 linked from the main one), **which view** (`technical`: for developers, keeps code and data
 names; `business`: for a PM, client or operations, business rules only; `both`: one of each
@@ -50,6 +52,7 @@ diagrams/20261109_login-flow/
                          shows them all side by side, and each "↳" step links to its page
   drawio/<diagram>.drawio   each diagram on its own
   source/<diagram>.ir.json  the model the diagrams were generated from (edit this, not the XML)
+  source/<run>.sources.json a scout run only: a hash of every source file the diagrams were read from
 ```
 
 Open the `.drawio` file in draw.io desktop or at app.diagrams.net; every shape is editable.
@@ -62,9 +65,11 @@ Put them after the mode:
 |---|---|
 | `--to mermaid` | Mermaid text in a `.md` file instead of draw.io (for wikis and Markdown) |
 | `--to figjam` | A FigJam board; needs the Figma connector in the session |
-| `--kind activity` | Skip the kind question |
+| `--kind activity` | Skip the kind question (`--kind usecase` for a use case diagram) |
 | `--scope detailed` | Skip the scope question |
 | `--audience technical\|business\|both` | Skip the reader question; `business` is a view for non-technical readers (no code names or implementation steps, every business rule kept), `both` makes one of each |
+| `--svg` | Also write `svg/<diagram>.drawio.svg` for every diagram: a picture to put into a README or a wiki, which draw.io still opens for editing. draw.io runs only; needs draw.io desktop or Playwright |
+| `--doc` | Also write `<run>.doc.md`: every element of every diagram as Markdown tables, for a specification or a design document |
 
 Example: `/zukai:draw scout --kind activity --scope overview the refund flow`.
 
@@ -83,7 +88,10 @@ Example: `/zukai:draw scout --kind activity --scope overview the refund flow`.
   what-if gets two or three drafts under `drafts/` to compare; nothing delivered changes
   until you confirm one. A new diagram is asked about like any `draw` request (kind, scope,
   view) and joins the run, linked from the step it details. If you moved boxes in draw.io, a label change keeps your layout
-  and any other change asks before redrawing.
+  and any other change asks before redrawing. For a draw.io run each change also comes with
+  a picture of it under `drafts/` (`changes-<rNNN>.diff.drawio`): added is green, changed
+  or moved is amber, removed is red and dashed. It is there to check the change and is not
+  part of the delivery.
 - By hand: edit `source/<diagram>.ir.json` and ask the skill to emit again, or run the CLI
   yourself:
 
@@ -95,21 +103,50 @@ Example: `/zukai:draw scout --kind activity --scope overview the refund flow`.
   `cli.mjs relabel <file.drawio> --map labels.vi.json --out <file>.vi.drawio`. Boxes keep
   their size; the CLI lists labels that no longer fit.
 
-## 6. Bring in a diagram drawn elsewhere
+## 6. Keep a diagram in step with the code
 
-An old draw.io file, a FigJam board or a Mermaid chart can be rebuilt the Zukai way:
+A diagram made with `scout` remembers which files it was read from. After the code has
+changed:
+
+```text
+/zukai:sync
+```
+
+Zukai says which of those files changed, reads them again, and shows what that changes in
+each diagram, with the file behind every entry. Elements the code still has keep their
+labels and places. Nothing is overwritten until you answer "apply"; `/zukai:revise undo`
+takes an applied sync back. When no file changed, it says so and writes nothing.
+
+To ask the same question without an agent, for example in CI:
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs stale diagrams/20261109_login-flow
+```
+
+Exit code 0 means the diagrams are current, 2 that a source file changed or is gone, 1 that
+the run has no record of its sources (a run made before version 2.3.0, or one that was not
+drawn from code). `<skill-dir>` is the folder of the draw skill: the path that ends in
+`skills/draw` in the `emit` command above.
+
+## 7. Bring in a diagram drawn elsewhere
+
+An old draw.io file, a FigJam board, a Mermaid chart or PlantUML text can be rebuilt the
+Zukai way:
 
 ```text
 /zukai:recook docs/legacy/order-flow.drawio
+/zukai:recook docs/design/checkout.puml
 ```
 
 Zukai reads the file, tells you what it found on each page and which kind it looks like,
 asks the same questions as `draw` with that kind suggested, and delivers a run folder like
 the one above. Every label is kept as written; anything it leaves out is listed with the
 reason. Your file is never changed or copied; a password or address in it never reaches the
-diagrams.
+diagrams. From PlantUML it reads sequence, class, state, activity (the new syntax),
+component, deployment, use case and ER diagrams; another type, such as a mind map or a
+Gantt chart, is named with the reason and left out, and an `!include` is not followed.
 
-## 7. Update the plugin
+## 8. Update the plugin
 
 ```bash
 claude plugin marketplace update zukai

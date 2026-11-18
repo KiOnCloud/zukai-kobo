@@ -1,4 +1,5 @@
-import { awsIcon, awsGroup, nearestAwsNames } from './aws-icons.mjs';
+import { PROVIDERS, cloudIcon, cloudGroup, cloudAlias, cloudNameElsewhere, suggestCloudNames, providerOf } from './aws-icons.mjs';
+import { sourcePathProblem } from './sources.mjs';
 /**
  * Referential-integrity checks that JSON Schema cannot express: unique ids across the
  * document, every endpoint and child exists, containment has no cycles, and the
@@ -14,6 +15,7 @@ const COLLECTIONS = {
   class: ['classes', 'relations'],
   architecture: ['components', 'boundaries', 'connections'],
   activity: ['lanes', 'actions', 'controls', 'flows'],
+  usecase: ['actors', 'useCases', 'boundaries', 'relations'],
 };
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -25,6 +27,15 @@ export function checkReferences(ir) {
   const err = (path, message, hint) => errors.push(hint ? { path, message, hint } : { path, message });
   const names = COLLECTIONS[ir.kind];
   if (!names) return { ok: true, errors };
+
+  // Source paths are followed from the project root on any machine, so each one has to be
+  // relative to it and stay inside it.
+  (Array.isArray(ir.meta?.sources) ? ir.meta.sources : []).forEach((p, i) => {
+    const problem = sourcePathProblem(p);
+    if (problem === 'absolute') err(`/meta/sources/${i}`, `absolute path "${p}"`, 'write the path from the project root, such as "src/auth/login.ts"');
+    else if (problem === 'backslash') err(`/meta/sources/${i}`, `backslash in path "${p}"`, 'write the path with forward slashes, such as "src/auth/login.ts"');
+    else if (problem === 'outside') err(`/meta/sources/${i}`, `path "${p}" leaves the project`, 'a source lies inside the project: remove the ".." segment and write the path from the project root');
+  });
 
   // Unique ids across every collection of the document.
   const seen = new Map();
@@ -45,6 +56,7 @@ export function checkReferences(ir) {
     case 'class': checkClass(ir, err); break;
     case 'architecture': checkArchitecture(ir, err); break;
     case 'activity': checkActivity(ir, err); break;
+    case 'usecase': checkUsecase(ir, err); break;
     default: break;
   }
   return { ok: errors.length === 0, errors };
@@ -244,19 +256,39 @@ function checkArchitecture(ir, err) {
   const boundaries = idSet(list(ir, 'boundaries'));
   checkEndpoints(ir, 'connections', components, 'component', err);
   checkContainment(ir, 'boundaries', new Set([...components, ...boundaries]), 'components or boundaries', err);
-  checkAwsNames(ir, 'components', 'icon', 'icons', awsIcon, err);
-  checkAwsNames(ir, 'boundaries', 'group', 'groups', awsGroup, err);
+  checkCloudNames(ir, 'components', 'icon', 'icons', cloudIcon, err);
+  checkCloudNames(ir, 'boundaries', 'group', 'groups', cloudGroup, err);
 }
 
 /** An icon or group frame must be a name of the catalog: draw.io draws an unknown one as an empty box. */
-function checkAwsNames(ir, collection, field, table, lookup, err) {
+function checkCloudNames(ir, collection, field, table, lookup, err) {
   (Array.isArray(ir[collection]) ? ir[collection] : []).forEach((el, i) => {
     // A value of the wrong shape is the schema's error; only a well-formed name is looked up.
-    const shape = field === 'icon' ? /^(aws|gcp):[a-z0-9_]{1,64}$/ : /^aws:[a-z0-9_]{1,64}$/;
-    if (!isObj(el) || typeof el[field] !== 'string' || !shape.test(el[field]) || lookup(el[field])) return;
-    const near = nearestAwsNames(table, el[field]);
-    const what = field === 'icon' ? (el[field].startsWith('gcp:') ? 'product logo' : 'AWS icon') : 'AWS group frame';
-    err(`/${collection}/${i}/${field}`, `unknown ${what} "${el[field]}"`, `${near.length ? `did you mean ${near.join(', ')}? ` : ''}the names are listed in references/aws-icons.md; leave "${field}" out when none fits`);
+    const provider = isObj(el) && typeof el[field] === 'string' && /^[a-z]+:[a-z0-9_]{1,64}$/.test(el[field]) ? PROVIDERS[providerOf(el[field])] : undefined;
+    if (!provider || lookup(el[field])) return;
+    const what = `${provider.title} ${field === 'icon' ? 'icon' : 'group frame'}`;
+    const listed = `the names are listed in ${provider.reference}; leave "${field}" out when none fits`;
+    // What the name is known as comes before what it merely looks like: a near name that is
+    // valid and wrong (`gcp:gke_on_prem` for `gcp:gke`) would be drawn without a complaint.
+    const alias = cloudAlias(table, el[field]);
+    const elsewhere = alias ? undefined : cloudNameElsewhere(table, el[field]);
+    let hint;
+    if (alias && alias.name === null) {
+      hint = `draw.io has no stencil for this service: leave "${field}" out, and the ${field === 'icon' ? 'component keeps its generic shape' : 'boundary is a plain frame'}; ${listed}`;
+    } else if (alias) {
+      hint = `did you mean ${alias.name}? That is draw.io's name for it; ${listed}`;
+    } else if (elsewhere && elsewhere.provider === providerOf(el[field])) {
+      hint = elsewhere.table === 'groups'
+        ? `${el[field]} is a group frame, not an icon: write it as "group" of the boundary that holds the components; ${listed}`
+        : `${el[field]} is an icon, not a group frame: write it as "icon" of a component; ${listed}`;
+    } else if (elsewhere) {
+      const near = suggestCloudNames(table, el[field]);
+      hint = `this name is ${PROVIDERS[elsewhere.provider].title}'s: write ${elsewhere.value} when the ${field === 'icon' ? 'component runs' : 'frame is'} on ${PROVIDERS[elsewhere.provider].title}${near.length ? `; the nearest ${provider.title} names are ${near.join(', ')}` : ''}; ${listed}`;
+    } else {
+      const near = suggestCloudNames(table, el[field]);
+      hint = `${near.length ? `did you mean ${near.join(', ')}? ` : ''}${listed}`;
+    }
+    err(`/${collection}/${i}/${field}`, `unknown ${what} "${el[field]}"`, hint);
   });
 }
 
@@ -276,6 +308,71 @@ function checkActivity(ir, err) {
     if (kindOf.get(f.from) === 'final') err(`/flows/${i}/from`, `flow "${f.id}" leaves a final node`, 'final nodes have no outgoing flows');
     if (kindOf.get(f.to) === 'initial') err(`/flows/${i}/to`, `flow "${f.id}" enters an initial node`, 'initial nodes have no incoming flows');
   });
+}
+
+/** What each relation of a use case diagram may join, and how the error says it. */
+const USECASE_ENDS = {
+  include: { hint: 'from is the use case that always runs the other one, to is the one it includes' },
+  extend: { hint: 'from is the use case that adds optional behaviour, to is the use case it extends' },
+};
+
+function checkUsecase(ir, err) {
+  const actors = idSet(list(ir, 'actors'));
+  const useCases = idSet(list(ir, 'useCases'));
+  // A boundary is the system: it holds use cases, and the actors stand outside it.
+  const parentOf = new Map();
+  list(ir, 'boundaries').forEach((b, i) => {
+    (Array.isArray(b.children) ? b.children : []).forEach((child, j) => {
+      const path = `/boundaries/${i}/children/${j}`;
+      if (typeof child !== 'string') return;
+      if (actors.has(child)) { err(path, `actor "${child}" cannot be inside boundary "${b.id}"`, 'a boundary is the system and holds use cases only; an actor is outside the system by definition'); return; }
+      if (!useCases.has(child)) { err(path, `unknown use case "${child}"`, 'children must be ids of use cases'); return; }
+      if (parentOf.has(child)) { err(path, `use case "${child}" is already in boundary "${parentOf.get(child)}"`, 'a use case belongs to at most one boundary'); return; }
+      parentOf.set(child, b.id);
+    });
+  });
+  checkEndpoints(ir, 'relations', new Set([...actors, ...useCases]), 'actor or use case', err);
+  const generalizes = [];
+  list(ir, 'relations').forEach((r, i) => {
+    const path = `/relations/${i}`;
+    if (r.condition !== undefined && r.kind !== 'extend') err(`${path}/condition`, `relation "${r.id}" is ${/^[aei]/.test(r.kind) ? 'an' : 'a'} ${r.kind} and cannot carry a condition`, 'only an extend relation has a condition; remove the field or change the kind');
+    const known = (id) => actors.has(id) || useCases.has(id);
+    if (typeof r.from !== 'string' || typeof r.to !== 'string' || !known(r.from) || !known(r.to)) return;
+    if (r.from === r.to) { err(path, `relation "${r.id}" joins "${r.from}" to itself`, 'a relation joins two different elements'); return; }
+    const what = (id) => (actors.has(id) ? 'actor' : 'use case');
+    switch (r.kind) {
+      case 'association':
+        if (actors.has(r.from) === actors.has(r.to)) err(path, `association "${r.id}" joins two ${what(r.from)}s ("${r.from}" and "${r.to}")`, actors.has(r.from) ? 'an association joins an actor and a use case; one actor that is a kind of another is a generalization' : 'an association joins an actor and a use case; between two use cases use include, extend or generalization');
+        break;
+      case 'include':
+      case 'extend':
+        for (const field of ['from', 'to']) if (actors.has(r[field])) err(`${path}/${field}`, `${r.kind} "${r.id}" ${field === 'from' ? 'starts at' : 'ends at'} actor "${r[field]}"`, `${r.kind} joins two use cases: ${USECASE_ENDS[r.kind].hint}`);
+        break;
+      case 'generalization':
+        if (actors.has(r.from) !== actors.has(r.to)) err(path, `generalization "${r.id}" joins ${what(r.from)} "${r.from}" and ${what(r.to)} "${r.to}"`, 'a generalization joins two actors or two use cases: from is the special one, to the general one');
+        else generalizes.push({ r, path });
+        break;
+      default: break;
+    }
+  });
+  // Nothing is a kind of itself: the generalizations form no loop.
+  const general = new Map();
+  for (const { r } of generalizes) (general.get(r.from) ?? general.set(r.from, []).get(r.from)).push(r.to);
+  const reaches = (from, target) => {
+    const seen = new Set();
+    const stack = [...(general.get(from) ?? [])];
+    while (stack.length > 0) {
+      const id = stack.pop();
+      if (id === target) return true;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      stack.push(...(general.get(id) ?? []));
+    }
+    return false;
+  };
+  for (const { r, path } of generalizes) {
+    if (reaches(r.to, r.from)) err(path, `generalization cycle through "${r.from}" and "${r.to}"`, 'from is the special element and to the general one; nothing is a kind of itself');
+  }
 }
 
 export { COLLECTIONS };

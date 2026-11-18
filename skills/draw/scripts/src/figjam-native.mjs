@@ -1,7 +1,8 @@
-import { brotliDecompressSync } from 'node:zlib';
 import { parseAttrs } from './relabel.mjs';
 import stencilData from './stencil-paths.json' with { type: 'json' };
-import { stencilTag } from './extract-drawio.mjs';
+import { boardTag } from './extract-drawio.mjs';
+import { unpackStencils } from './stencil-pack.mjs';
+import { dataBlock, SETTLE_TEXTS } from './figma-script-data.mjs';
 
 /**
  * A FigJam board drawn at the coordinates of the draw.io file, as scripts for the Figma MCP
@@ -16,7 +17,7 @@ import { stencilTag } from './extract-drawio.mjs';
  *
  * All the knowledge about draw.io shapes is here, where it can be tested without Figma; the
  * part that runs inside Figma only creates what the data block lists. The pictograms of
- * draw.io's stencils (AWS services and groups, product logos, the client screen) come from
+ * draw.io's stencils (AWS and GCP services and groups, product logos, the client screen) come from
  * stencil-paths.json, which tools/generate-stencil-paths.mjs makes from draw.io's own bundle.
  */
 
@@ -28,7 +29,7 @@ let unpacked;
  * @returns {Record<string, { w: number, h: number, a?: 1, s?: number, paint: Array<Array<string>> }>}
  */
 export function stencilTable() {
-  unpacked ??= JSON.parse(brotliDecompressSync(Buffer.from(stencilData.stencils, 'base64')).toString('utf8'));
+  unpacked ??= unpackStencils(stencilData.stencils);
   return unpacked;
 }
 const STENCIL_UNIT = stencilData.unit;
@@ -36,7 +37,11 @@ const STENCIL_UNIT = stencilData.unit;
 /** `use_figma` takes at most this many characters of code. */
 export const SCRIPT_LIMIT = 50000;
 
-/** Every node the script creates carries this name, so a second run can replace the first. */
+/**
+ * Every node the script creates carries this name, followed by the run folder it was drawn
+ * for (`zukai-native 20261118_clinic-booking`) when the IR lies in one, so a second run of the
+ * same run can replace the first and a script of another run never takes its section.
+ */
 export const NATIVE_TAG = 'zukai-native';
 
 /** Free room between the border of the section and the drawing. */
@@ -441,9 +446,11 @@ function drawCells(cells) {
           else labelIn(cell, b);
           return;
         }
-        const radius = s.rounded === '1' ? Math.min(w, h) * (num(s.arcSize, 15) / 100) : 0;
+        const radius = s.rounded === '1' ? (s.absoluteArcSize === '1' ? num(s.arcSize, 15) / 2 : Math.min(w, h) * (num(s.arcSize, 15) / 100)) : 0;
         rect(x, y, w, h, fill, stroke, { ...line, radius });
         if (below) labelBelow(cell, b);
+        // A frame without a header strip (a GCP group, an Availability Zone) has its title at its top, not in its middle.
+        else if (s.container === '1' && s.verticalAlign === 'top') labelIn(cell, { ...b, y: y + num(s.spacing, 2) + num(s.spacingTop), h: 0 }, { v: 't' });
         else labelIn(cell, b);
       }
     }
@@ -626,8 +633,11 @@ function drawCells(cells) {
       // draw.io sets a step in the middle by the boxes, not by a port moved onto a round outline, and in tenths of a pixel.
       const tenth = (v) => Math.round(v * 10) / 10;
       const raw = (endCell, prefix, p) => { if (!endCell || s[`${prefix}X`] === undefined) return p; const b = edgeBox(endCell); return { x: b.x + num(s[`${prefix}X`]) * b.w + num(s[`${prefix}Dx`]), y: b.y + num(s[`${prefix}Y`]) * b.h + num(s[`${prefix}Dy`]) }; };
-      const midY = tenth((raw(source, 'exit', start).y + raw(target, 'entry', end).y) / 2);
-      const midX = tenth((raw(source, 'exit', start).x + raw(target, 'entry', end).x) / 2);
+      // The step lies midway between the room each end keeps for its line end, not midway between
+      // the ports: past a long marker (the diamond of a composition) it stands further along.
+      const between = (from, to) => { const sense = Math.sign(to - from); return tenth((from + sense * jetty(s, 'start') + to - sense * jetty(s, 'end')) / 2); };
+      const midY = between(raw(source, 'exit', start).y, raw(target, 'entry', end).y);
+      const midX = between(raw(source, 'exit', start).x, raw(target, 'entry', end).x);
       const out = [points[0]];
       for (let i = 1; i < points.length; i++) {
         const a = out.at(-1);
@@ -862,8 +872,11 @@ function drawCells(cells) {
     marker(endArrow, points.at(-1), points.at(-2), s.endFill !== '0', endSize, stroke, width);
     const p = along(points, 0.5);
     // The label of the edge itself stands on the middle of the line, or a little above it so that its background leaves the line whole.
+    // A label the emitter moved off the middle (the wide label of a self-message, which starts
+    // beside the activation bar) carries the move as an offset and runs the way its alignment says.
     const above = s.verticalAlign === 'bottom';
-    text(p.x, p.y - (above ? 3 : 0), 0, 0, plainLabel(cell.value), { ...fontOf(cell, EDGE_FONT_SIZE), ...(above ? { v: 'b' } : {}) });
+    const moved = cell.geo.offset ?? { x: 0, y: 0 };
+    text(p.x + moved.x, p.y + moved.y - (above ? 3 : 0), 0, 0, plainLabel(cell.value), alignOf(s, { ...fontOf(cell, EDGE_FONT_SIZE), ...(above ? { v: 'b' } : {}) }));
   };
 
   /** A label that belongs to an edge: a point of the route plus an offset; `align` says which side of it the text runs to. */
@@ -882,11 +895,13 @@ function drawCells(cells) {
   const children = new Map();
   for (const cell of cells) children.set(cell.parent, [...(children.get(cell.parent) ?? []), cell]);
   const nameOf = (cell) => {
-    const labels = [cell, ...(cell.edge ? children.get(cell.id) ?? [] : [])].map((c) => plainLabel(c.value).replace(/\s+/g, ' ').trim());
+    // An edge is named like its own label, never like a text at one of its ends (a
+    // multiplicity, a role), so a reader of the board can tell the label from the end texts.
+    const labels = [cell, ...(cell.edge ? (children.get(cell.id) ?? []).filter((c) => c.id === `${cell.id}:label`) : [])].map((c) => plainLabel(c.value).replace(/\s+/g, ' ').trim());
     const label = labels.find((l) => l !== '') ?? cell.id;
     const short = label.length > GROUP_NAME_LENGTH ? `${label.slice(0, GROUP_NAME_LENGTH - 1)}…` : label;
-    // The stencil a picture stands for, which the picture itself cannot tell a reader of the board.
-    const tag = cell.vertex ? stencilTag(cell.style, cell.value) : '';
+    // What a picture stands for, which the picture itself cannot tell a reader of the board.
+    const tag = cell.vertex ? boardTag(cell.style, cell.value) : '';
     return tag ? `${short} [${tag}]` : short;
   };
   const draw = (cell) => {
@@ -982,14 +997,18 @@ function place(item, dx, dy) {
 
 /**
  * @param {string} drawioXml the single-diagram file `emitDrawio` wrote
- * @param {{ title: string, limit?: number }} options the name of the section the board is drawn
- *   into, and the most characters one script may have (what `use_figma` takes, unless given)
- * @returns {{ parts: string[], offset: { x: number, y: number }, width: number, height: number }}
+ * @param {{ title: string, run?: string, limit?: number }} options the name of the section the
+ *   board is drawn into, the name of the run folder the IR lies in (the drawing is tagged with
+ *   it, and only a section tagged so is drawn over), and the most characters one script may
+ *   have (what `use_figma` takes, unless given)
+ * @returns {{ parts: string[], data: object[], created: number[], offset: { x: number, y: number }, width: number, height: number }}
  *   `parts` are the scripts for `use_figma`, to be run in order (one unless the drawing is
- *   larger than `use_figma` takes at once); a point (x, y) of the draw.io file lies at
+ *   larger than `use_figma` takes at once), `data` the drawing each of them carries (for
+ *   `combineNative`), and `created` the number of shapes, lines and texts each one creates,
+ *   which is the `created` its call returns; a point (x, y) of the draw.io file lies at
  *   (x + offset.x, y + offset.y) of the section, which is `width` by `height`.
  */
-export function figjamNative(drawioXml, { title, limit = SCRIPT_LIMIT }) {
+export function figjamNative(drawioXml, { title, run, limit = SCRIPT_LIMIT }) {
   const drawn = drawCells(parseCells(drawioXml));
   const b = boundsOf(drawn);
   // Whole pixels, so that a coordinate of the board differs from the one in the file by a round number.
@@ -1001,39 +1020,85 @@ export function figjamNative(drawioXml, { title, limit = SCRIPT_LIMIT }) {
   /** The stencil paths a list of drawings refers to, by key. */
   const stencilPath = (key) => { const [name, index] = key.split('#'); return stencilTable()[name].paint[index][1]; };
   const stencilsOf = (chunk) => Object.fromEntries([...new Set(chunk.filter((item) => item[0] === 'g').map((item) => item[1]))].map((key) => [key, stencilPath(key)]));
-  const script = (chunk, part, parts) => `${RUNTIME_HEAD}const D = ${JSON.stringify({ title, part, parts, width, height, offset: [offset.x, offset.y], stencils: stencilsOf(chunk), items: chunk })};\n${RUNTIME}`;
+  const dataOf = (chunk, part, parts) => ({ title, run, part, parts, width, height, offset: [offset.x, offset.y], stencils: stencilsOf(chunk), items: chunk });
+  const script = (chunk, part, parts) => scriptOf(dataOf(chunk, part, parts));
   // Every part carries the whole runtime and the stencil paths its own drawings use, so each
-  // one runs on its own; the room left is for the drawings.
-  const room = limit - script([], 99, 99).length;
-  const chunks = [[]];
-  let used = 0;
-  let carried = new Set();
-  /** Characters an item adds to the part being filled: itself, and its stencil path when the part does not carry it yet. */
-  const cost = (item) => JSON.stringify(item).length + 1 + (item[0] === 'g' && !carried.has(item[1]) ? JSON.stringify(item[1]).length + JSON.stringify(stencilPath(item[1])).length + 2 : 0);
-  // The groups that are open where a part ends are closed there and opened again in the next
-  // part; one that has drawings on the board already is marked so that the script goes on in it.
-  const open = [];
-  const size = (list) => list.reduce((sum, item) => sum + JSON.stringify(item).length + 1, 0);
-  const closeSize = JSON.stringify([']']).length + 1;
-  for (const item of items) {
-    if (item[0] === ']') { open.pop(); used += closeSize; chunks.at(-1).push(item); continue; }
-    const drawsHere = chunks.at(-1).some((i) => i[0] !== '[' && i[0] !== ']');
-    // Room is kept for closing every group that is open, the one this item opens included.
-    const closing = (open.length + (item[0] === '[' ? 1 : 0)) * closeSize;
-    if (used + cost(item) + closing > room && drawsHere) {
-      chunks.at(-1).push(...open.map(() => [']']));
-      const again = open.map((g) => (g.drawn ? ['[', g.name, 1] : ['[', g.name]));
-      chunks.push([...again]);
-      used = size(again);
-      carried = new Set();
-    }
-    used += cost(item);
-    chunks.at(-1).push(item);
-    if (item[0] === '[') open.push({ name: item[1], drawn: false });
-    else for (const g of open) g.drawn = true;
-    if (item[0] === 'g') carried.add(item[1]);
+  // one runs on its own; the room left is for the drawings. The room is counted in the JSON of
+  // the drawings, and the lines the data is written over take a little more: when a part comes
+  // out too long, the parts are made again with the room made smaller by what it lacked.
+  let room = limit - script([], 99, 99).length;
+  for (;;) {
+    const data = pack(room).map((chunk, i, all) => dataOf(chunk, i + 1, all.length));
+    const parts = data.map(scriptOf);
+    const over = Math.max(...parts.map((p) => p.length)) - limit;
+    if (over <= 0 || room <= over) return { parts, data, created: data.map(createdBy), offset, width, height };
+    room -= over;
   }
-  return { parts: chunks.map((chunk, i) => script(chunk, i + 1, chunks.length)), offset, width, height };
+
+  /** The drawings cut into parts whose JSON takes at most `room` characters each. */
+  function pack(room) {
+    const chunks = [[]];
+    let used = 0;
+    let carried = new Set();
+    /** Characters an item adds to the part being filled: itself, and its stencil path when the part does not carry it yet. */
+    const cost = (item) => JSON.stringify(item).length + 1 + (item[0] === 'g' && !carried.has(item[1]) ? JSON.stringify(item[1]).length + JSON.stringify(stencilPath(item[1])).length + 2 : 0);
+    // The groups that are open where a part ends are closed there and opened again in the next
+    // part; one that has drawings on the board already is marked so that the script goes on in it.
+    const open = [];
+    const size = (list) => list.reduce((sum, item) => sum + JSON.stringify(item).length + 1, 0);
+    const closeSize = JSON.stringify([']']).length + 1;
+    for (const item of items) {
+      if (item[0] === ']') { open.pop(); used += closeSize; chunks.at(-1).push(item); continue; }
+      const drawsHere = chunks.at(-1).some((i) => i[0] !== '[' && i[0] !== ']');
+      // Room is kept for closing every group that is open, the one this item opens included.
+      const closing = (open.length + (item[0] === '[' ? 1 : 0)) * closeSize;
+      if (used + cost(item) + closing > room && drawsHere) {
+        chunks.at(-1).push(...open.map(() => [']']));
+        const again = open.map((g) => (g.drawn ? ['[', g.name, 1] : ['[', g.name]));
+        chunks.push([...again]);
+        used = size(again);
+        carried = new Set();
+      }
+      used += cost(item);
+      chunks.at(-1).push(item);
+      if (item[0] === '[') open.push({ name: item[1], drawn: false });
+      else for (const g of open) g.drawn = true;
+      if (item[0] === 'g') carried.add(item[1]);
+    }
+    return chunks;
+  }
+}
+
+/** The script that draws one drawing, or several one after the other (a list). */
+const scriptOf = (data) => `${RUNTIME_HEAD}${dataBlock(data, 'zukai native')}${RUNTIME}`;
+
+/** How many shapes, lines and texts a drawing creates: one per item, and one more behind a label with a background. */
+function createdBy(data) {
+  return data.items.reduce((n, item) => n + (item[0] === '[' || item[0] === ']' ? 0 : item[0] === 't' && item[6]?.g ? 2 : 1), 0);
+}
+
+/**
+ * Fewer calls for several diagrams: the drawings of `figjamNative` (its `data`, of one diagram
+ * or of several, in the order they are to be drawn) packed into as few scripts as `limit`
+ * allows, each script drawing its drawings one after the other into their own sections. The
+ * parts of one diagram stay in their order. A script of several drawings returns the list of
+ * the results each drawing returns.
+ * @returns {{ parts: string[], created: number[][], drawings: number[] }} the scripts, for each
+ *   script how many shapes, lines and texts each of its drawings creates (in the order its
+ *   results come back), and how many drawings each holds
+ */
+export function combineNative(data, { limit = SCRIPT_LIMIT } = {}) {
+  const groups = [];
+  for (const d of data) {
+    const last = groups.at(-1);
+    if (last && scriptOf([...last, d]).length <= limit) last.push(d);
+    else groups.push([d]);
+  }
+  return {
+    parts: groups.map((g) => scriptOf(g.length === 1 ? g[0] : g)),
+    created: groups.map((g) => g.map(createdBy)),
+    drawings: groups.map((g) => g.length),
+  };
 }
 
 const RUNTIME_HEAD = `// Zukai: draws a diagram on a FigJam board at the coordinates of its draw.io file.
@@ -1046,13 +1111,24 @@ const RUNTIME_HEAD = `// Zukai: draws a diagram on a FigJam board at the coordin
  * the coordinates its path is written in, so nothing here knows where the section lies. */
 const RUNTIME = String.raw`const TAG = '${NATIVE_TAG}';
 const page = figma.currentPage;
-// What this script drew carries the tag as its name, also inside a group; a group is named like its cell.
+${SETTLE_TEXTS}// Every text drawn, to be placed again once Figma has set it in the faces it finally uses.
+const fits = [];
+// One drawing, or a list of drawings drawn one after the other, each into its own section.
+const draw = async (D) => {
+// What this script drew carries the tag and its run as its name, also inside a group; a group is named like its cell.
+const tag = D.run ? TAG + ' ' + D.run : TAG;
 const ours = (n, found = []) => {
-  for (const c of n.children || []) { if (c.name === TAG) found.push(c); else ours(c, found); }
+  for (const c of n.children || []) { if (c.name === tag) found.push(c); else ours(c, found); }
   return found;
 };
-const isOurs = (n) => n.type === 'SECTION' && n.name === D.title && (n.children.length === 0 || ours(n).length > 0);
-let S = page.children.filter(isOurs).pop();
+// A section is taken only when this run drew into it, never for its title alone: a section of
+// that title drawn by hand, by generate_diagram or for another run (the source of a recook) stays.
+const named = (n) => n.name === D.title || (n.name.startsWith(D.title + ' (') && /^ \(\d+\)$/.test(n.name.slice(D.title.length)));
+const isOurs = (n) => n.type === 'SECTION' && named(n) && ours(n).length > 0;
+// The last section of this run is drawn into; another one (a copy a user made on the board)
+// keeps its drawing and is named in the result.
+const copies = page.children.filter(isOurs);
+let S = copies.pop();
 let replaced = 0;
 if (D.part === 1) {
   if (S) {
@@ -1063,14 +1139,17 @@ if (D.part === 1) {
   } else {
     const others = page.children;
     S = figma.createSection();
-    S.name = D.title;
+    // Beside a section that has the title already, the new one is "<title> (2)", or the next number free.
+    let name = D.title;
+    for (let i = 2; others.some((n) => n !== S && n.type === 'SECTION' && n.name === name); i++) name = D.title + ' (' + i + ')';
+    S.name = name;
     S.x = others.length === 0 ? 0 : Math.max(...others.map((n) => n.x + n.width)) + 200;
     S.y = others.length === 0 ? 0 : Math.min(...others.map((n) => n.y));
   }
   S.resizeWithoutConstraints(D.width, D.height);
   S.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
 } else if (!S || S.children.length === 0) {
-  throw new Error('zukai native: no section named "' + D.title + '" drawn by part 1 on this board; run part 1 first. Nothing was changed.');
+  throw new Error('zukai native: no section named "' + D.title + '" drawn by part 1 of this run on this board; run part 1 first. Nothing was changed.');
 }
 
 // Arimo has the widths of Helvetica and Arial, the faces draw.io sizes its boxes for.
@@ -1083,14 +1162,16 @@ const paint = (hex) => {
   if (!hex) return [];
   if (hex.length === 6) return [{ type: 'SOLID', color: rgb(hex) }];
   const down = hex[6] === '>';
-  return [{ type: 'GRADIENT_LINEAR', gradientTransform: down ? [[0, 1, 0], [-1, 0, 1]] : [[1, 0, 0], [0, 1, 0]], gradientStops: [{ position: 0, color: { ...rgb(hex), a: 1 } }, { position: 1, color: { ...rgb(hex.slice(7)), a: 1 } }] }];
+  const gradientTransform = down ? [[0, 1, 0], [-1, 0, 1]] : [[1, 0, 0], [0, 1, 0]];
+  const gradientStops = [{ position: 0, color: { ...rgb(hex), a: 1 } }, { position: 1, color: { ...rgb(hex.slice(7)), a: 1 } }];
+  return [{ type: 'GRADIENT_LINEAR', gradientTransform, gradientStops }];
 };
 let created = 0;
 // The drawings of one cell of the draw.io file are one group, and the group of a cell in a
 // container lies in the group of the container. A group keeps the coordinates of the section.
 const open = [];
 const collect = (n) => { if (open.length > 0) open[open.length - 1].nodes.push(n); return n; };
-const add = (n) => { S.appendChild(n); n.name = TAG; created++; return collect(n); };
+const add = (n) => { S.appendChild(n); n.name = tag; created++; return collect(n); };
 const openGroup = (name, goesOn) => {
   let node = null;
   if (goesOn) {
@@ -1168,26 +1249,47 @@ for (const item of D.items) {
     }
     t.fills = paint(o.c || '000000');
     t.textAlignHorizontal = o.a === 'l' ? 'LEFT' : o.a === 'r' ? 'RIGHT' : 'CENTER';
-    // A text wider than its box was wrapped in draw.io and is wrapped here, at the same width.
-    const room = o.r ? h : w;
-    if (room > 0 && t.width > room) { t.textAutoResize = 'HEIGHT'; t.resize(room, t.height); }
-    if (o.r) {
-      // Turned a quarter, the text reads upwards and its box grows up and to the right of (x, y).
-      t.rotation = 90;
-      t.x = x + (w - t.height) / 2;
-      t.y = y + (h + t.width) / 2;
-    } else {
-      t.x = o.a === 'l' ? x : o.a === 'r' ? x + w - t.width : x + (w - t.width) / 2;
-      t.y = o.v === 't' ? y : o.v === 'b' ? y + h - t.height : y + (h - t.height) / 2;
-    }
+    // The text and its back are placed from the size the text has; settle places them again
+    // when the text grows later.
+    const place = () => {
+      // A text wider than its box was wrapped in draw.io and is wrapped here, at the same width.
+      const room = o.r ? h : w;
+      if (room > 0 && t.width > room) { t.textAutoResize = 'HEIGHT'; t.resize(room, t.height); }
+      if (o.r) {
+        // Turned a quarter, the text reads upwards and its box grows up and to the right of (x, y).
+        t.rotation = 90;
+        t.x = x + (w - t.height) / 2;
+        t.y = y + (h + t.width) / 2;
+      } else {
+        t.x = o.a === 'l' ? x : o.a === 'r' ? x + w - t.width : x + (w - t.width) / 2;
+        t.y = o.v === 't' ? y : o.v === 'b' ? y + h - t.height : y + (h - t.height) / 2;
+      }
+      if (back) {
+        back.x = t.x - 2;
+        back.y = t.y;
+        back.resize(t.width + 4, t.height);
+      }
+    };
+    place();
+    fits.push({ t, place, w: t.width, h: t.height });
     if (back) {
-      back.x = t.x - 2;
-      back.y = t.y;
-      back.resize(t.width + 4, t.height);
       back.fills = paint(o.g);
       back.strokes = [];
     }
   }
 }
-return { section: S.id, name: S.name, part: D.part, parts: D.parts, created, replaced };
+const result = { section: S.id, name: S.name, part: D.part, parts: D.parts, created, replaced };
+if (copies.length > 0) {
+  const one = copies.length === 1;
+  result.warning = (one ? 'section ' : 'sections ') + copies.map((n) => n.id).join(', ')
+    + (one ? ' also holds' : ' also hold') + ' shapes of this run (a copy made on the board?) and '
+    + (one ? 'keeps the drawing it had' : 'keep the drawings they had') + '; only section ' + S.id + ' was drawn.'
+    + ' Tell the user, who can delete ' + (one ? 'the copy' : 'the copies') + ' when no longer wanted.';
+}
+return result;
+};
+const results = [];
+for (const one of Array.isArray(D) ? D : [D]) results.push(await draw(one));
+await settle(fits);
+return Array.isArray(D) ? results : results[0];
 `;

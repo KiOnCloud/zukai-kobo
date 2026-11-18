@@ -1,0 +1,46 @@
+@startuml leave-request
+title Leave request
+skinparam activity {
+  BackgroundColor #FEFECE
+}
+|Employee|
+start
+:Fill in the leave form;
+-> submitted;
+|#AntiqueWhite|Manager|
+:Review the request;
+note right
+  Within 2 working days
+end note
+if (Team coverage ok?) then (yes)
+  :Approve;
+elseif (Can dates move?) then (yes)
+  |Employee|
+  :Propose new dates;
+  |Manager|
+  :Approve changed dates;
+else (no)
+  :Reject with a reason;
+  |Employee|
+  :Read the rejection;
+  stop
+endif
+|HR system|
+fork
+  :Update the leave balance;
+fork again
+  :Block the dates
+  in the team calendar;
+end fork
+while (Payroll run open?) is (yes)
+  :Wait for the next run;
+endwhile (no)
+partition "Payroll" {
+  repeat
+    :Recalculate salary;
+  repeat while (More months affected?) is (yes) not (no)
+}
+|Employee|
+:Receive confirmation;
+stop
+@enduml

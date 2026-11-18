@@ -13,7 +13,10 @@ for every diagram named in your task, read its IR file and open its preview PNG 
 Read tool, and go through the checklist in order: layout on the image, wording and
 structure on the IR, CLI warnings as given, then the audience items for the value of
 `meta.audience` (read `references/variants.md` next to the checklist when it is `business`,
-and compare with the technical IR when the task names one).
+and compare with the technical IR when the task names one). When the task is the review of
+a revision and gives the request and the PNG of the picture of the change, open that image
+too and go through the Revision items: green is added, amber is changed or moved, red and
+dashed is removed, and the legend under the diagram lists the old values.
 
 Rules:
 
@@ -32,5 +35,6 @@ Rules:
 Reply with exactly the verdict format from the checklist: a `Verdict:` line, an `Images:`
 line that states for every diagram whether you actually opened its PNG (all tiles when
 the task lists several files for one diagram; say "not opened" with the reason when Read
-refused or the file was missing, and never claim an image you did not see), then the
+refused or the file was missing, and never claim an image you did not see; the picture of
+a change is listed there as `changes`), then the
 `Findings:` list (or `Findings: none`).

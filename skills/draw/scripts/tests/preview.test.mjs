@@ -101,9 +101,12 @@ describe('preview', () => {
     expect(drawioInstallPaths('darwin', {}, '/Users/me')).toEqual(['/Applications/draw.io.app/Contents/MacOS/draw.io', '/Users/me/Applications/draw.io.app/Contents/MacOS/draw.io']);
     expect(drawioInstallPaths('win32', { ProgramFiles: 'C:\\PF', LOCALAPPDATA: 'C:\\U\\me\\AppData\\Local' }, 'C:\\U\\me')).toEqual([join('C:\\PF', 'draw.io', 'draw.io.exe'), join('C:\\U\\me\\AppData\\Local', 'Programs', 'draw.io', 'draw.io.exe')]);
     expect(drawioInstallPaths('linux', {}, '/home/me')).toContain('/opt/drawio/drawio');
+    // Every place in order, up to the one that has draw.io desktop on this machine.
     const found = findDrawioBinary();
-    expect(found.tried[0]).toBe('drawio on PATH');
-    expect(found.tried.length).toBeGreaterThan(2);
+    const places = ['drawio on PATH', 'draw.io on PATH', ...drawioInstallPaths()];
+    const last = found.bin === null ? places.length : places.indexOf(found.bin === 'drawio' || found.bin === 'draw.io' ? `${found.bin} on PATH` : found.bin) + 1;
+    expect(last).toBeGreaterThan(0);
+    expect(found.tried).toEqual(places.slice(0, last));
   });
 
   it.skipIf(hasPlaywright)('names every place it looked for draw.io when no renderer renders a .drawio file', async () => {

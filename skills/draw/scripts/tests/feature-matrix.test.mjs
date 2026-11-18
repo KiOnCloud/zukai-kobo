@@ -39,12 +39,17 @@ function expectedFeatures() {
     architecture: [
       ...enumOf(def('architecture').components.items.properties.kind).map((k) => `component.kind.${k}`),
       'boundary', 'boundary.nested', 'connection.label', 'connection.bidirectional', 'component.ref',
-      'component.icon.aws', 'boundary.group.aws',
+      'component.icon.aws', 'boundary.group.aws', 'component.icon.gcp', 'boundary.group.gcp',
     ],
     activity: [
       'lane', 'action.ref',
       ...enumOf(def('activity').controls.items.properties.kind).map((k) => `control.kind.${k}`),
       'flow.guard',
+    ],
+    usecase: [
+      ...enumOf(def('usecase').actors.items.properties.kind).map((k) => `actor.kind.${k}`),
+      ...enumOf(def('usecase').relations.items.properties.kind).map((k) => `relation.kind.${k}`),
+      'boundary', 'relation.condition', 'useCase.ref',
     ],
   };
   return out;

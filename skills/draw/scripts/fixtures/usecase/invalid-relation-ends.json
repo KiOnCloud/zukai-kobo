@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "usecase",
+  "title": "Relations that join the wrong things",
+  "actors": [
+    { "id": "member", "label": "Member" },
+    { "id": "librarian", "label": "Librarian" },
+    { "id": "staff", "label": "Staff" }
+  ],
+  "useCases": [
+    { "id": "borrow", "label": "Borrow a book" },
+    { "id": "return", "label": "Return a book" },
+    { "id": "renew", "label": "Renew a loan" }
+  ],
+  "boundaries": [
+    { "id": "desk", "label": "Lending desk", "children": ["borrow", "return", "member"] },
+    { "id": "online", "label": "Online catalogue", "children": ["return", "renew", "ghost"] }
+  ],
+  "relations": [
+    { "id": "r1", "from": "borrow", "to": "return", "kind": "association" },
+    { "id": "r2", "from": "member", "to": "librarian", "kind": "association" },
+    { "id": "r3", "from": "member", "to": "borrow", "kind": "include" },
+    { "id": "r4", "from": "renew", "to": "librarian", "kind": "extend" },
+    { "id": "r5", "from": "member", "to": "renew", "kind": "generalization" },
+    { "id": "r6", "from": "librarian", "to": "staff", "kind": "generalization" },
+    { "id": "r7", "from": "staff", "to": "librarian", "kind": "generalization" },
+    { "id": "r8", "from": "borrow", "to": "renew", "kind": "include", "condition": "the loan is due" },
+    { "id": "r9", "from": "renew", "to": "renew", "kind": "extend" },
+    { "id": "r10", "from": "member", "to": "nowhere", "kind": "association" }
+  ]
+}

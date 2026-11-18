@@ -1,7 +1,8 @@
 # Brainstorm protocol
 
 Turn a raw idea into a choice of diagrams, let the user pick, then route into the clarify
-protocol. Read-only; may run in a subagent (Claude Code: the `diagram-brainstorm` agent),
+protocol. Read-only; may run in a subagent (the `diagram-brainstorm` agent, where it is
+available; otherwise the main session follows this file itself, as `closing-contract.md`, "Agents that may not be there" says),
 which returns the candidate list inline. The user's choice and everything after it happen
 in the main session.
 
@@ -26,6 +27,14 @@ in the main session.
      where and what talks to what?"`
    - `state: order lifecycle for operations, answers "which statuses exist and what moves an
      order between them?"`
+   - `usecase: the booking portal for the client, answers "who uses it and what can each
+     role get done?"`
+
+   An idea about a whole product or system ("an app for ...", "a portal where ...") with
+   several kinds of user usually gets a `usecase` candidate first: it fixes the scope and
+   the roles before any flow is drawn. A typical set for such an idea is `usecase` (who and
+   what for), `activity` or `sequence` for the one goal that matters most (how), and
+   `architecture` or `er` (with what). An idea about one flow does not need it.
 3. Ask the user to pick one (or several, which become several IR files of one run, each a
    diagram of its own with its own slug; the first one picked gives the run its slug).
    Offer a default: the candidate that best matches the words the user used.

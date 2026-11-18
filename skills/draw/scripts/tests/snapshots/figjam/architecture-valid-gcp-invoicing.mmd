@@ -1,0 +1,43 @@
+flowchart TB
+  %% id: users
+  n1(("Users"))
+  %% id: tax-rate-api
+  n5>"Third-party tax rate API"]
+  %% id: project
+  subgraph n9["Project invoicing-prod"]
+    %% id: lb
+    n2["External Application Load Balancer"]
+    %% id: region
+    subgraph n10["asia-northeast1"]
+      %% id: invoice-api
+      n3["Invoice API (Cloud Run)"]
+      %% id: vpc
+      subgraph n11["VPC network"]
+        %% id: private-subnet
+        subgraph n12["Private subnet 10.8.0.0/24"]
+          %% id: invoice-db
+          n4[("Cloud SQL for PostgreSQL")]
+        end
+      end
+      %% id: invoice-topic
+      n6[["Pub/Sub topic"]]
+      %% id: pdf-renderer
+      n7["PDF renderer (Cloud Run)"]
+      %% id: pdf-bucket
+      n8[("Cloud Storage bucket")]
+    end
+  end
+  %% id: users-to-lb
+  n1 -->|"HTTPS"| n2
+  %% id: lb-to-api
+  n2 -->|"forwards requests"| n3
+  %% id: api-to-db
+  n3 -->|"reads and writes"| n4
+  %% id: api-to-tax
+  n3 -->|"gets tax rates (HTTPS)"| n5
+  %% id: api-to-topic
+  n3 -->|"invoice issued"| n6
+  %% id: topic-to-renderer
+  n6 -->|"push"| n7
+  %% id: renderer-to-bucket
+  n7 -->|"stores rendered PDF"| n8

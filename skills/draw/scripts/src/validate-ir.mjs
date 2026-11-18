@@ -29,7 +29,7 @@ function hintFor(error) {
     case 'required':
       return `add the "${params.missingProperty}" field`;
     case 'pattern':
-      if (/^\/(components\/\d+\/icon|boundaries\/\d+\/group)$/.test(instancePath)) return 'write "aws:<name>" with a name listed in references/aws-icons.md';
+      if (/^\/(components\/\d+\/icon|boundaries\/\d+\/group)$/.test(instancePath)) return 'write "aws:<name>" or "gcp:<name>" with a name listed in references/aws-icons.md or references/gcp-icons.md';
       return instancePath.endsWith('/id') || /\/(from|to|after|children\/\d+|participants\/\d+|messages\/\d+)$/.test(instancePath)
         ? ID_HINT
         : `must match ${params.pattern}`;

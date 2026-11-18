@@ -1,0 +1,143 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="order-platform-on-google-cloud" name="Order platform on Google Cloud">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="order-platform-on-google-cloud:cloud" value="Google Cloud" style="fillColor=#F6F6F6;strokeColor=none;shadow=0;gradientColor=none;align=left;fontColor=#717171;verticalAlign=top;fontStyle=0;html=1;whiteSpace=wrap;fontSize=12;spacing=0;spacingTop=6;spacingLeft=50;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry x="210" y="116" width="1376" height="470" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:cloud:mark" value="" style="shape=mxgraph.gcp2.google_cloud_platform;fillColor=#F6F6F6;strokeColor=none;shadow=0;gradientColor=none;part=1;pointerEvents=0;" vertex="1" connectable="0" parent="order-platform-on-google-cloud:cloud">
+          <mxGeometry x="20" y="10" width="23" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:region" value="asia-northeast1" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#ECEFF1;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="order-platform-on-google-cloud:cloud">
+          <mxGeometry x="268" y="42" width="1096" height="416" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:vpc" value="VPC network 10.0.0.0/16" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#E3F2FD;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="order-platform-on-google-cloud:region">
+          <mxGeometry x="22" y="42" width="692" height="362" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:proxy" value="Proxy-only subnet" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#EDE7F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=10;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="order-platform-on-google-cloud:vpc">
+          <mxGeometry x="22" y="54" width="136" height="166" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:private" value="Private subnet" style="shape=rect;strokeColor=none;strokeWidth=2;shadow=0;gradientColor=none;fontColor=#757575;align=left;html=1;fontStyle=0;fillColor=#EDE7F6;verticalAlign=top;fontSize=12;spacing=0;spacingTop=6;spacingLeft=101;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;" vertex="1" parent="order-platform-on-google-cloud:vpc">
+          <mxGeometry x="258" y="42" width="412" height="308" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:browser" value="Customer browser" style="shape=mxgraph.networks.monitor;fillColor=#ffffff;strokeColor=#000000;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=wrap;html=1;outlineConnect=0;labelWidth=107;" vertex="1" parent="1">
+          <mxGeometry x="39" y="309" width="54" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:cdn" value="Cloud CDN" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_cdn;labelWidth=69;" vertex="1" parent="order-platform-on-google-cloud:cloud">
+          <mxGeometry x="56" y="180" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:assets" value="Static assets (Cloud Storage)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_storage;labelWidth=165;" vertex="1" parent="order-platform-on-google-cloud:cloud">
+          <mxGeometry x="56" y="326" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:lb" value="Internal Application Load Balancer" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_load_balancing;labelWidth=111;" vertex="1" parent="order-platform-on-google-cloud:proxy">
+          <mxGeometry x="29" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:api" value="Order API (GKE)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.container_engine;labelWidth=99;" vertex="1" parent="order-platform-on-google-cloud:private">
+          <mxGeometry x="50" y="54" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:db" value="Cloud SQL for PostgreSQL" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_sql;labelWidth=153;" vertex="1" parent="order-platform-on-google-cloud:private">
+          <mxGeometry x="50" y="200" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:cache" value="Memorystore for Redis" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_memorystore;labelWidth=130;" vertex="1" parent="order-platform-on-google-cloud:private">
+          <mxGeometry x="284" y="42" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:queue" value="Pub/Sub orders" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_pubsub;labelWidth=92;" vertex="1" parent="order-platform-on-google-cloud:region">
+          <mxGeometry x="815" y="212" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:worker" value="Fulfilment worker" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#5184F3;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.gcp2.cloud_functions;labelWidth=100;" vertex="1" parent="order-platform-on-google-cloud:region">
+          <mxGeometry x="995" y="212" width="78" height="69" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:psp" value="Payment provider" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="786" y="12" width="122" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-on-google-cloud:browser" target="order-platform-on-google-cloud:cdn">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c1:label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform-on-google-cloud:c1">
+          <mxGeometry x="-0.17" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-on-google-cloud:cdn" target="order-platform-on-google-cloud:assets">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c2:label" value="static files" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#F6F6F6;" vertex="1" connectable="0" parent="order-platform-on-google-cloud:c2">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.507;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-on-google-cloud:cdn" target="order-platform-on-google-cloud:lb">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c3:label" value="/api" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#F6F6F6;" vertex="1" connectable="0" parent="order-platform-on-google-cloud:c3">
+          <mxGeometry x="-0.14" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.507;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-on-google-cloud:lb" target="order-platform-on-google-cloud:api">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c4:label" value="HTTP" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#E3F2FD;" vertex="1" connectable="0" parent="order-platform-on-google-cloud:c4">
+          <mxGeometry x="-0.12" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=27;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-on-google-cloud:api" target="order-platform-on-google-cloud:db">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c5:label" value="SQL" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#EDE7F6;" vertex="1" connectable="0" parent="order-platform-on-google-cloud:c5">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.333;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-on-google-cloud:api" target="order-platform-on-google-cloud:cache">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c6:label" value="cache" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#EDE7F6;" vertex="1" connectable="0" parent="order-platform-on-google-cloud:c6">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-on-google-cloud:api" target="order-platform-on-google-cloud:queue">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="949" y="342"/>
+              <mxPoint x="949" y="405"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c7:label" value="order placed" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#EDE7F6;" vertex="1" connectable="0" parent="order-platform-on-google-cloud:c7">
+          <mxGeometry x="0.01" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.507;exitDx=0;exitDy=0;entryX=0;entryY=0.507;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-on-google-cloud:queue" target="order-platform-on-google-cloud:worker">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c8:label" value="trigger" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#ECEFF1;" vertex="1" connectable="0" parent="order-platform-on-google-cloud:c8">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform-on-google-cloud:api" target="order-platform-on-google-cloud:psp">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="order-platform-on-google-cloud:c9:label" value="capture payment" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="order-platform-on-google-cloud:c9">
+          <mxGeometry x="0.74" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

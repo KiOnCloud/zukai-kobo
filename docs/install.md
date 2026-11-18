@@ -1,6 +1,7 @@
 # Install Zukai
 
-One source folder, `skills/draw/`, is distributed two ways. Pick one channel per
+One source folder, `skills/draw/`, is distributed two ways, together with the three skills
+that work on its runs (`skills/revise/`, `skills/recook/` and `skills/sync/`). Pick one channel per
 machine: installing both the plugin and a project copy makes two copies of the same skill
 compete for routing.
 
@@ -46,6 +47,50 @@ npm install -g playwright && npx playwright install chromium
 Without either, the skill skips the visual check and says so. The diagram is always rendered
 inside the local browser; only the renderer page or library is fetched from the network.
 
+The SVG pictures (`--svg`, or `cli.mjs export <file.drawio|file.drawio.svg|run-folder>`) need the same
+renderers, and unlike the visual check they are a deliverable, so without a renderer
+`export` exits 1, names every place it looked and writes no picture. draw.io desktop is
+tried first and Playwright second. Labels are written as SVG text only when Playwright is
+installed, because that step needs a browser: with draw.io desktop alone the pictures are
+written with HTML labels, which only a browser draws, and the output says so
+(`text: "html"` and a warning per file). Install Playwright beside draw.io desktop when the
+pictures go into a PDF or a wiki that renders SVG itself.
+
+#### draw.io desktop on Linux without a display
+
+draw.io desktop is an Electron app: it needs a display even to print its version, and run
+as root it also needs Chromium's sandbox turned off. On Linux the CLI always adds
+`--no-sandbox --disable-gpu` after its own arguments, and when neither `DISPLAY` nor
+`WAYLAND_DISPLAY` is set (a server, a container, CI) it starts draw.io under `xvfb-run -a`,
+which lends it a virtual display for that one call. So a headless machine needs only the
+`xvfb` package beside draw.io (`apt-get install xvfb`); the `.deb` installs draw.io at
+`/opt/drawio/drawio`, where the CLI finds it, or put `drawio` on `PATH`. Without `xvfb-run`
+the output says that draw.io found no display and what to install, and a `drawio` on
+`PATH` that does not start is reported as found but not starting, with the reason. The
+`Failed to connect to the bus` lines draw.io prints on such a machine are harmless and are
+left out of the messages.
+
+What was verified, with draw.io desktop 26.0.9 (the `.deb` of its release page) on Linux
+without a display, as root, through `xvfb-run`:
+
+- The calls the CLI makes are `drawio -x -f png -s <scale> -b 20 -o <out.png> <file>` for
+  `preview` and `drawio -x -f svg -b <border> -o <out.svg> <page-file>` for `export` (one
+  file per page), each followed by `--no-sandbox --disable-gpu`; `drawio --version` finds the
+  app. All of these flags are in `drawio --help` of 26.0.9.
+- draw.io exits 0 when an export fails: it prints `Error: Export failed: <file>` and writes
+  nothing. The CLI takes only a file that the call itself wrote as a result (`preview`
+  deletes the image at its output path first), and reports draw.io's own error line.
+- `preview` and `export` with draw.io alone and with Playwright beside it, on a single-page
+  file, a run with a canvas page and steps that refer to other pages, a use case diagram,
+  and architecture diagrams on AWS and on Google Cloud, with `--page` by id and by name, a
+  page that does not exist (exit 1 with the list of pages), an editable picture as input,
+  and `preview --max-px` (a wide diagram cut into tiles within the cap). Each picture
+  carries exactly its page in `content`, `extract` and `cover` read it back, and the
+  pictures and previews were looked at.
+- draw.io 26 writes the SVG with `viewBox="-0.5 -0.5 <width> <height>"` and, beside each
+  HTML label, a PNG of the label for viewers that cannot draw HTML. With Playwright both are
+  replaced by SVG text, which also makes the file five to eight times smaller.
+
 ## Claude Code (plugin)
 
 Add the marketplace and install the plugin. The repository is public, so no GitHub account
@@ -63,8 +108,8 @@ On Claude Code 2.1.275 or later the two steps collapse into one:
 ```
 
 The same commands work from a shell as `claude plugin marketplace add ...` and
-`claude plugin install ...`. After install, `/zukai:draw` and `/zukai:revise` appear in
-the skill list.
+`claude plugin install ...`. After install, `/zukai:draw`, `/zukai:revise`, `/zukai:recook`
+and `/zukai:sync` appear in the skill list.
 
 ### Uninstall
 
@@ -120,17 +165,27 @@ git clone git@github.com:KiOnCloud/zukai-kobo.git
 On Windows:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\zukai\install.ps1 -Target codex -Dest C:\path\to\your-project
+powershell -ExecutionPolicy Bypass -File .\zukai-kobo\install.ps1 -Target codex -Dest C:\path\to\your-project
 ```
 
+`install.ps1` runs in Windows PowerShell 5.1 and in PowerShell 7 (`pwsh -File ...`, also on
+macOS and Linux). It takes `-Target` and `-Dest` where `install.sh` takes `--target` and
+`--dest`, says the same, ends with the same exit codes and leaves the same files, byte for
+byte: the copies keep the line feeds of the repository, and the version files and renamed
+`SKILL.md` files are written without a byte-order mark. Without `-Dest` the current folder
+is the project.
+
 The installer copies `skills/draw/` to `<project>/.agents/skills/zukai/`,
-`skills/revise/` to `<project>/.agents/skills/zukai-revise/` and `skills/recook/` to
-`<project>/.agents/skills/zukai-recook/`, changes the `name` line of each copied `SKILL.md`
-(`draw` to `zukai`, `revise` to `zukai-revise`, `recook` to `zukai-recook`) so it matches the
-folder, and writes a version file next to each (`.zukai-version`, `.zukai-revise-version`,
-`.zukai-recook-version`). The three belong together: `zukai-revise` and `zukai-recook` run
-the CLI of the sibling `zukai/` folder, so a run installs whichever of them is missing or
-older and leaves one already at this version alone. It copies into a temporary sibling and moves the
+`skills/revise/` to `<project>/.agents/skills/zukai-revise/`, `skills/recook/` to
+`<project>/.agents/skills/zukai-recook/` and `skills/sync/` to
+`<project>/.agents/skills/zukai-sync/`, changes the `name` line of each copied `SKILL.md`
+(`draw` to `zukai`, `revise` to `zukai-revise`, `recook` to `zukai-recook`, `sync` to
+`zukai-sync`) so it matches the folder, and writes a version file next to each
+(`.zukai-version`, `.zukai-revise-version`, `.zukai-recook-version`,
+`.zukai-sync-version`). The four belong together: `zukai-revise`, `zukai-recook` and
+`zukai-sync` run the CLI of the sibling `zukai/` folder, and `zukai-sync` also reads the
+draft rules of the sibling `zukai-revise/` folder, so a run installs whichever of them is
+missing or older and leaves one already at this version alone. It copies into a temporary sibling and moves the
 copies into place only when all of them are complete, so an interrupted copy never leaves a
 half-copied folder; if a move itself fails (a locked folder on Windows), one skill can end up
 updated and another not, and running the installer again finishes the job. It never runs `npm`, never touches the network, and never deletes an existing copy:
@@ -139,7 +194,7 @@ a differing one is moved out of the skills folder first, to
 be a skill named `zukai` and compete with the new one). Backups that an earlier version left
 as `<name>.bak-<timestamp>` inside `skills/` are moved there on the next run. The copy holds
 what the skills run with (`SKILL.md`, `references/`, `scripts/bin/cli.mjs` and the feature
-matrix, about 2.8 MB); the sources, tests and fixtures of the CLI stay in the repository.
+matrix, about 3 MB); the sources, tests and fixtures of the CLI stay in the repository.
 
 To update, pull the repository and run the installer again. Exit codes:
 
@@ -149,22 +204,31 @@ To update, pull the repository and run the installer again. Exit codes:
 | 1 | Usage or I/O error, or a prerelease version marker that cannot be compared |
 | 3 | An installed copy is newer than the source; nothing changed |
 
-In Codex, invoke the skills with `$zukai`, `$zukai-revise` and `$zukai-recook`, or let them
-route from their descriptions. To uninstall, delete the three folders (`zukai/`,
-`zukai-revise/` and `zukai-recook/`) and the
-`zukai-backups/` folder beside `skills/` when you no longer need its copies.
+In Codex, invoke the skills with `$zukai`, `$zukai-revise`, `$zukai-recook` and
+`$zukai-sync`, or let them route from their descriptions. To uninstall, delete the four
+folders (`zukai/`, `zukai-revise/`, `zukai-recook/` and `zukai-sync/`) and the
+`zukai-backups/` folder beside `skills/` when you no longer need its copies. Delete all
+four together: `zukai-revise/`, `zukai-recook/` and `zukai-sync/` stop at their first step
+without the CLI of `zukai/`. The run folders under `diagrams/` belong to the project and
+are not touched by an install or an uninstall.
 
 ## Claude Code without the plugin (fallback)
 
-If a machine cannot add the marketplace, the same installer copies the three skills into
+If a machine cannot add the marketplace, the same installer copies the four skills into
 `.claude/skills/` of a project:
 
 ```bash
 ./zukai-kobo/install.sh --target claude-project --dest /path/to/your-project
 ```
 
-Invoke the copies with `/zukai`, `/zukai-revise` and `/zukai-recook`. The script warns that this channel
-competes with the plugin if both are present.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\zukai-kobo\install.ps1 -Target claude-project -Dest C:\path\to\your-project
+```
+
+Invoke the copies with `/zukai`, `/zukai-revise`, `/zukai-recook` and `/zukai-sync`. The
+script warns that this channel competes with the plugin if both are present. To uninstall,
+delete the same four folders from `.claude/skills/`, and `.claude/zukai-backups/` when you
+no longer need its copies.
 
 ## Upgrading to 2.0.0
 
@@ -346,6 +410,228 @@ delivered diagram that has one comes out arranged differently when it is emitted
 `emit --to figjam --native` is made from the same layout, so the board follows. Nothing
 changes in how a run is written or read.
 
+## Upgrading to 2.3.0
+
+Version 2.3.0 adds a fourth skill, an eighth diagram kind, two outputs beside the targets,
+a picture of every change, a fourth source for recook and Google Cloud icons for
+architecture diagrams. Existing `.ir.json` files, run
+folders and CLI commands keep working unchanged, and a diagram emitted again to draw.io or
+Mermaid comes out as 2.2.2 drew it, except for the drawings listed below: a sequence
+diagram with a self-message whose label is too wide to stand centred over its loop, a
+class diagram with a general class or an interface, and the start node of a swimlane
+diagram in Mermaid.
+
+- **`/zukai:sync`** (`$zukai-sync` and `/zukai-sync` in a copied install) brings a run that
+  `scout` drew up to date with the code. The IR has a new optional field, `meta.sources`:
+  the files a diagram was read from, as paths from the project root with forward slashes.
+  `sources <run-dir> [--root <project>] [--only <id,id,...>]` writes
+  `source/<run-slug>.sources.json` with a SHA-256 of each of those files, and
+  `stale <run-dir>... [--root <project>]` compares that record with the files and writes
+  nothing: exit 0 when no recorded file changed, 2 when one changed or is gone or a diagram
+  names sources the record does not hold, 1 when a run has no record. A `scout` run now ends
+  by recording its sources; `snapshot` keeps the record with the revision and `restore`
+  puts it back.
+- **`export <file.drawio|file.drawio.svg|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]`** writes each page of a draw.io
+  file as `<name>.drawio.svg`, an SVG picture with the page's diagram embedded, so a wiki
+  shows it and draw.io still opens it. For a run folder the pictures go to
+  `svg/<slug>.drawio.svg`, with `svg/canvas.drawio.svg` for the page that shows the
+  diagrams side by side. `--page` writes the pictures of the pages named only. Given an
+  editable picture, it draws the diagram the picture holds again, by default over the
+  picture itself, as `preview` and `extract` read it. The skills take `--svg`. The command
+  needs a renderer (see the optional renderer section above).
+- **`preview` takes `--page <id|name>`** for a draw.io file of several pages (a combined
+  file, the picture of a change); without it the first page is rendered, as before, and a
+  name the file does not have exits 1 with the list of its pages. It also renders an
+  editable picture (`.drawio.svg`) from the diagram it carries. Its output gained `page`
+  and `pages`.
+- **A command refuses an option it does not take** (exit 1, with the options it does
+  take). Up to 2.2.2 such an option was read and dropped: `preview --page`, for one, did
+  nothing and said nothing. A script that passes a stray option to a command now fails
+  there.
+- **`emit --to doc <ir.json>` and `bundle --to doc --lang <en|ja|vi> --out <file.md> <run-dir>`**
+  write the description tables: every element of a diagram as Markdown tables, for a
+  specification or a design document. A run has them as `<run-slug>.doc.md`; the skills
+  take `--doc`. They are no target and have no column in the feature matrix. `--lang` sets
+  the language of the headings and column headers (default `en`); labels stay as the IR
+  has them.
+- **`diff <old> <new> --drawio <out.diff.drawio>`** writes a picture of the change beside
+  the list: one page per diagram that changed, added elements green, changed or moved ones
+  amber, removed ones red with a dashed outline, and a legend. Revise writes it for every
+  change of a draw.io run, as `drafts/<a|b|c>/changes.diff.drawio` for each draft of a
+  what-if and as `drafts/changes-<rNNN>.diff.drawio` for an applied change; sync writes the
+  same file for an applied sync. It is a review aid: the CLI does not write it over another
+  draw.io file, and `drift` refuses to read it. A diagram that differs in `meta` fields
+  alone gets no page and is listed under `unchanged`.
+- **The list of `diff` says what a field was.** Each entry of `changed` gained `values`:
+  per changed field, `from` and `to` (one of them left out when the field was not set).
+  Every key the list had is still there. A block of a sequence diagram is no longer
+  listed as changed because a message was put into it or taken out of it: the message is
+  listed, and the frames around it are not coloured in the picture.
+- **The kind `usecase`**: actors (a person or an outside system, primary or supporting),
+  use cases, system boundaries, and the relations `association`, `include`, `extend` (with
+  an optional `condition`) and `generalization`. draw.io draws it as UML does. Mermaid has
+  no use case diagram and gets a flowchart form with `degraded` warnings; the FigJam text
+  target refuses the kind, and `emit --to figjam --native` draws the board. A use case takes
+  `ref`, so the scope `detailed` links it to the part that shows its steps. `validate` and
+  every emit warn about a use case no actor reaches and an actor without a use case. The
+  actors of a side stand in the order of the IR and the use cases are placed from that
+  order too, so one added element does not rearrange the picture.
+- **Two more `model:` warnings** on `validate` and on every emit: an `initial` or `final`
+  state that carries a label (no target draws it: a terminal status is an ordinary state
+  with a transition to an unlabelled `final` state), and a boundary or group without a
+  member (it is drawn as an empty frame). Both are warnings; nothing that validated before
+  is refused.
+- **`/zukai:recook` reads PlantUML**: `.puml`, `.plantuml`, `.pu` and `.iuml` files and
+  Markdown with `plantuml` fences. Sequence, class, state, activity (the new syntax),
+  component, deployment, use case and ER diagrams are read; any other type (a mind map, a
+  Gantt chart, the legacy activity syntax) comes back as a page marked `unsupported` with
+  its type and the reason, and no diagram is made from it. An `!include` is not followed
+  and is reported in a warning. PlantUML is a source only; such a recook defaults to
+  `--to drawio`.
+- **Google Cloud in architecture diagrams**: a component takes `icon: "gcp:<name>"` and a
+  boundary `group: "gcp:<name>"` (`gcp:project`, `gcp:region`, `gcp:zone`,
+  `gcp:vpc_network`, `gcp:subnet`, `gcp:google_cloud`, `gcp:kubernetes_cluster` and
+  others), by the same rule as `aws:`. The names are listed in
+  `skills/draw/references/gcp-icons.md`; an unknown one fails validation with the nearest
+  names, or, for a name people write for a service draw.io names otherwise
+  (`gcp:cloud_scheduler`, `gcp:gke`, `gcp:secret_manager`), with the catalog name or the
+  statement that draw.io has no stencil for it (the table at the end of that file). A system on both clouds shows both in one diagram. draw.io draws the icons and
+  frames; Mermaid and the FigJam text draw the generic shapes, with one `degraded` warning
+  per provider; `emit --to figjam --native` draws the GCP stencils on the board. `scout`
+  reads Terraform `google_*` resources, Cloud Run and GKE manifests, `gcloud` deploy
+  scripts and Google client libraries as evidence of the services.
+
+What changes for a run you already have:
+
+- Nothing breaks. No IR has to be edited and no file has to be emitted again.
+- A run scouted before 2.3.0 has no sources record, so `stale` exits 1 for it until one is
+  written. Run `/zukai:sync` on it once: it asks whether the diagrams still match the code
+  (then it records them as they are) or should be compared with the code now. Its diagrams
+  have no `meta.sources` either; `sources` then takes the file paths cited in their
+  `meta.notes` that exist under the project root and says so (`fallback`), and a sync
+  writes the field.
+- A run that was not drawn from code (`clarify`, `brainstorm`, `recook`) has no record and
+  needs none: `sources` refuses it and `/zukai:sync` points to `/zukai:revise`. Leave such
+  runs out of a CI check.
+- A `drafts/` folder counts as an open consult only when it holds `consult.json`, for
+  revise and for sync alike. One that holds only `changes-<rNNN>.diff.drawio` files is the
+  pictures of earlier changes: the skills leave them where they are when a consult is
+  confirmed or dropped, remove the picture of a change that an undo took back, and you can
+  delete them at any time. The rules are in one place, the section "The drafts folder" of
+  the closing contract.
+- A sequence diagram with a self-message whose label is too wide to stand centred over its
+  loop is drawn differently: the label starts right of the activation bar instead of
+  running under it, and the frames around the message and the gap to the next lifeline are
+  as wide as the label needs. `drift` reports a file of such a diagram delivered by an
+  older version as moved; emit it again when you want the new drawing. The description
+  tables of an architecture diagram list queues under a heading of their own and call a
+  bucket storage; they are written again on the next change.
+- An architecture diagram whose connections form a circle (a topic that pushes back to the
+  service that publishes to it) is laid out with the connection that closes the circle,
+  the later one in `connections`, drawn against the flow. A diagram without such a circle
+  is drawn as before.
+- A class diagram puts the general class above its subclasses and an interface above the
+  classes that realise it. A class diagram with either comes out arranged differently when
+  it is emitted again, so `/zukai:revise` reports it as changed since delivery before it
+  redraws it.
+- The start node of a swimlane diagram in Mermaid is a filled circle (`f-circ`), as UML
+  draws it; Mermaid drew the circle written before hollow whatever its style said. A
+  swimlane diagram emitted again to Mermaid differs in that line, and `extract` reads the
+  filled circle back as the start node.
+- An architecture connection that runs through the header bar of a plain frame, beside its
+  title, is reported as a `layout:` warning on every emit to draw.io. Nothing is refused.
+- In the picture of a change, a boundary, a group or a composite state that only gained or
+  lost a member is no longer coloured amber: the member that came or went is coloured.
+- The description tables: the Condition column says what a block means (`If …`,
+  `Otherwise, if …`, `Repeated: …`), and an ordinary state is called 通常 in Japanese and
+  Thông thường in Vietnamese.
+- `bundle --to doc` prints each `model:` and `detail:` warning once; it printed the
+  warnings of the diagrams a second time.
+- `sources` and `stale` find the record of a run folder that was renamed or copied under
+  another name, where the record keeps the old slug. A folder that holds several records
+  and none named after the run exits 1 and names them: keep the one that belongs to the
+  run, or delete them and record again.
+- Revise and sync rebuild every target a run folder holds (draw.io, Mermaid, the FigJam
+  files, the pictures, the description tables), not only the one the request named.
+- The translated IRs of a language variant live in `source/<lang>/<slug>.ir.json`. A run
+  that keeps them as `source/<slug>.<lang>.ir.json` beside the originals has them counted
+  as further diagrams by every command that takes the run folder: move them.
+- A run that has an `svg/` folder gets its pictures written again on every change by
+  revise, asked for or not, so a picture in a wiki never shows the diagram as it was. The
+  description tables of a run are written again the same way, in the language their first
+  line records.
+- Forks and wrappers: the closing contract (`skills/draw/references/closing-contract.md`)
+  has a new step 5, the pictures. The report moved from step 5 to step 6 and the offer of
+  other targets from step 6 to step 7, and the file gained the sections "Sources of a
+  scouted run" and "Description tables". The review checklist gained an item for the use case
+  kind (item 12) and a section "Revision" for the picture of a change (items 17 to 19). The
+  closing contract also gained the sections "Agents that may not be there" and "The drafts
+  folder", which the other texts refer to instead of repeating the rule. A fork that refers to those steps by number has to follow.
+- The copied install has a fourth folder, `zukai-sync`, with the marker
+  `.zukai-sync-version`; run the installer again to get it. A fork that installs the skills
+  by hand has to copy `skills/sync/` beside the others, next to both `zukai/` and
+  `zukai-revise/`.
+- A `gcp:` name that is not in the catalog is now reported as an unknown GCP icon. The
+  product logos (`gcp:firebase` and the like) keep their names, and an AWS diagram with a
+  logo is drawn as before.
+- The scripts for `use_figma` (`--native`, `--overlay`, `extract --figjam-script`) write
+  their data over lines of at most 200 characters and check its length and hash before they
+  touch the board: a copy that lost or changed a character throws and changes nothing; pass
+  the script again from its file.
+- A native script that finds two sections holding shapes of its run (a copy made on the
+  board) draws into the last, as before, and its result carries a `warning` naming the other.
+- On a board drawn by `emit --to figjam --native`, the title of a frame without a header
+  strip (an Availability Zone, a GCP frame) now stands at the top of the frame, so such a
+  board comes out differently when it is drawn again.
+- Maintainers: the catalog generator takes two more files,
+  `npm run gen:icons -- <path to Sidebar-AWS4.js> [tag] [path to Sidebar-GCP2.js] [path to mxGCP2.js]`
+  (`gen:aws-icons` still works), and writes `gcp-icons.md` beside `aws-icons.md`.
+- `cover` now also checks lines: every edge of the source whose two ends are known must be
+  joined by a relation of the IR between the elements that carry those texts, or be left out
+  in `meta.omitted`. A lost edge makes `cover` exit 2 and is listed under `lostEdges` by its
+  ends and label. The keys `units`, `covered` and `missing` are unchanged; `edges` is added.
+- `emit --to figjam --native` now prints `calls`, `created` and `bytes`: the number of
+  `use_figma` calls, the count each call must return as `created`, and the size of each
+  script. The new `bundle --to figjam --native <file.js> <run-folder>` draws the boards of a
+  whole run with as few calls as fit, which matters on Figma's Starter plan (about twenty
+  MCP calls).
+- A native script (`emit --native`, `bundle --to figjam --native`) draws over a section only
+  when it drew that section for the same run folder: its shapes are named `zukai-native
+  <yyyymmdd>_<run-slug>`. Beside a section of the same title that it did not draw for the
+  run (drawn by hand, by `generate_diagram`, or for another run, such as the board a recook
+  read) it makes a new section, `<title> (2)` or the next number free, so a recook drawn back
+  onto its board never overwrites the source. A board drawn by an earlier version is drawn
+  again into a new section; delete the old one by hand.
+- `bundle --to figjam --native` prints `created` per diagram, as each script returns it: for
+  each script a list with one number per diagram in it (`[[88, 108]]`), no longer one sum.
+- `target-figjam.md` section 8 says that `figma-generate-design`, which the Figma server
+  makes mandatory before a `use_figma` call that changes the board, is one more call to
+  count, and that its design-system workflow does not apply to Zukai's scripts.
+- A board drawn by `emit --native` from 2.3.0 on names the group of a line after its own
+  label and tags client screens (`[client]`) and the Google Cloud mark (`[part]`). Recook
+  reads use case, GCP and multi-cloud boards back completely, boards drawn by earlier
+  versions included.
+- In the FigJam text of a sequence diagram, a self-message whose label wraps beyond one row
+  keeps further empty rows, as a long note does.
+- A native or overlay script fits the white back of a label to its text as Figma finally sets it, waiting up to 3 s for a fallback face (Japanese, Chinese, Korean), and recook reads a labelled line of an older board whose back came out narrower than its text as a line, no longer as a box.
+- The committed CLI bundle grew, and its size budget in the tests is now 3 MiB.
+
+To fail a CI job when a committed diagram has fallen behind the code, run `stale` on the
+scouted runs. It needs Node, the checkout and nothing else. A GitHub Actions step for a
+project that holds a folder copy of the skill:
+
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: 22
+- name: Diagrams are up to date with the code
+  run: node .agents/skills/zukai/scripts/bin/cli.mjs stale diagrams/20261109_login-flow
+```
+
+The step fails with exit code 2 and prints, per diagram, the files that changed or are
+gone; name every scouted run folder in the one call. The answer to a failure is
+`/zukai:sync` on that run, which records the sources again once the diagrams match.
+
 ## Upgrading from it-diagrams
 
 Zukai was published as `it-diagrams` up to version 1.0.0. The IR format and the CLI did
@@ -371,6 +657,13 @@ CI only when the Claude Code CLI installs there, otherwise it is a local step.
 ```bash
 cd skills/draw/scripts && npm ci && npm test
 ```
+
+The tests run `install.ps1` only when PowerShell 7 is on `PATH` as `pwsh` or `ZUKAI_PWSH`
+names its executable, and are skipped otherwise; on macOS and Linux they also compare its
+result with that of `install.sh` for every case, file by file. The Linux runner of CI has
+`pwsh`, so they run there; the Windows job of CI installs both targets with Windows
+PowerShell 5.1 and with PowerShell 7 and runs the installed CLI. Locally, run the tests
+once with `pwsh` on `PATH` before a release that touches either installer.
 
 ```bash
 claude plugin validate . --strict

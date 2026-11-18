@@ -1,0 +1,57 @@
+---
+title: "Order platform on Google Cloud"
+---
+flowchart LR
+  %% id: browser
+  n1(("Customer browser"))
+  %% id: psp
+  n10>"Payment provider"]
+  %% id: cloud
+  subgraph n11["Google Cloud"]
+    %% id: cdn
+    n2["Cloud CDN"]
+    %% id: assets
+    n3[("Static assets (Cloud Storage)")]
+    %% id: region
+    subgraph n12["asia-northeast1"]
+      %% id: vpc
+      subgraph n13["VPC network 10.0.0.0/16"]
+        %% id: proxy
+        subgraph n14["Proxy-only subnet"]
+          %% id: lb
+          n4["Internal Application Load Balancer"]
+        end
+        %% id: private
+        subgraph n15["Private subnet"]
+          %% id: api
+          n5["Order API (GKE)"]
+          %% id: db
+          n6[("Cloud SQL for PostgreSQL")]
+          %% id: cache
+          n7(["Memorystore for Redis"])
+        end
+      end
+      %% id: queue
+      n8[["Pub/Sub orders"]]
+      %% id: worker
+      n9["Fulfilment worker"]
+    end
+  end
+  %% id: c1
+  n1 -->|"HTTPS"| n2
+  %% id: c2
+  n2 -->|"static files"| n3
+  %% id: c3
+  n2 -->|"/api"| n4
+  %% id: c4
+  n4 -->|"HTTP"| n5
+  %% id: c5
+  n5 -->|"SQL"| n6
+  %% id: c6
+  n5 -->|"cache"| n7
+  %% id: c7
+  n5 -->|"order placed"| n8
+  %% id: c8
+  n8 -->|"trigger"| n9
+  %% id: c9
+  n5 -->|"capture payment"| n10

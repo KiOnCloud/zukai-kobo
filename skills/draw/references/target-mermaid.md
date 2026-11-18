@@ -27,7 +27,8 @@ into the IR and a `message` that names the element and what changed. Print every
 the user verbatim, as a bulleted list, before showing the diagram. Never drop one, never
 summarise several into "some features were degraded".
 
-Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
+Expected degradations on Mermaid (full list in `scripts/src/feature-matrix.json` of the
+draw skill, as a table at https://github.com/KiOnCloud/zukai-kobo/blob/main/docs/feature-matrix.md):
 
 - architecture connection labels are dropped (`architecture-beta` has no edge labels), and
   `queue` and `cache` components use the server icon. Sides are placement constraints in
@@ -39,9 +40,10 @@ Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
   flowchart keeps the connection labels, draws two-way connections as `<-->`, shows every
   component kind as a shape, and carries none of the architecture-beta matrix warnings.
   `--to drawio` draws every architecture faithfully.
-- AWS icons and group frames (`icon`, `group`) are not drawn in either form: each component
-  gets the icon or shape of its `kind`, each frame is a plain group, and one warning per
-  field says so. Use `--to drawio` for an AWS architecture diagram.
+- AWS and GCP icons and group frames (`icon`, `group`) are not drawn in either form: each
+  component gets the icon or shape of its `kind`, each frame is a plain group, and one
+  warning per field and provider says so. Use `--to drawio` for an AWS or GCP architecture
+  diagram.
 - sequence participants of kind `database`, `boundary`, `control`, `entity` are written as
   Mermaid participant types (`participant id@{ "type" : "database" } as Label`, Mermaid 11.x
   or newer). With `--mermaid-stable`, and in the figjam profile, they are plain participants.
@@ -56,7 +58,25 @@ Expected degradations on Mermaid (full list in `docs/feature-matrix.md`):
   of blanks, painted by `style` lines at the end of the text. A classic node takes its size
   from its label, so a bar is as thick as a line of text, not thin, and Mermaid 12 draws the
   upright bar of a left-to-right diagram as a block, because it gives every box a minimum
-  width. Offer `--to drawio` for a real swimlane diagram with thin bars.
+  width. Offer `--to drawio` for a real swimlane diagram with thin bars. In `swimlane-beta`
+  the initial node is Mermaid's filled circle (`f-circ`), since its "start" circle
+  (`sm-circ`) is drawn hollow whatever the style says.
+- Mermaid's renderer, not the emitter, lays out every Mermaid picture, and some of what it
+  draws no line of the text can change. These are expected and are not defects of the IR:
+  in `swimlane-beta` a branch can leave its decision sideways, run over a lane header or
+  round the outer edge of the lanes before it reaches its target; in a `sequenceDiagram`
+  the dashed lifelines run through the text of a long message and through the condition of
+  a block (`[every 5 minutes]`), because Mermaid writes those texts without a background.
+  Shorter labels help a little; `--to drawio` lays the diagram out itself, routes the
+  branches between the lanes and keeps labels clear of the lifelines.
+- use case diagrams have no Mermaid equivalent either. The output is a `flowchart` (left to
+  right unless the IR says otherwise): an actor is a box whose first line is «actor» (a
+  person) or «system», a use case a stadium node, a boundary a subgraph, an association a
+  line without an arrowhead, `include` and `extend` dotted arrows labelled «include» and
+  «extend» (the condition in brackets on a second line), a generalization a solid arrow
+  labelled «generalization». The emit warns once for the kind, once for each person (no
+  stick figure) and once for each generalization (no hollow triangle). Offer `--to drawio`
+  for the UML picture.
 - the `swimlane-beta` text carries no title. Mermaid draws a front-matter title where
   `swimlane-beta` puts its lane header row, so the title would sit on top of the lane names
   (and, with lanes as rows, inside the first lane). A single emit warns at `/title`; the
