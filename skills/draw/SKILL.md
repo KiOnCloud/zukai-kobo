@@ -22,11 +22,14 @@ name, you are in another runtime: use the path where you read this file (for Cod
 node "<skill-dir>/scripts/bin/cli.mjs" validate <ir.json>
 node "<skill-dir>/scripts/bin/cli.mjs" emit --to <mermaid|drawio|figjam|doc> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--lang <en|ja|vi>] [--mermaid-stable]
 node "<skill-dir>/scripts/bin/cli.mjs" bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <en|ja|vi>] [--canvas all|<id,id,...>] [--mermaid-stable] <run-folder>
+node "<skill-dir>/scripts/bin/cli.mjs" bundle --to figjam --native <file.js> <run-folder>
 node "<skill-dir>/scripts/bin/cli.mjs" preview <file.drawio|file.drawio.svg|file.mmd|run.md> [--page <id|name>] [--max-px <n>]
 node "<skill-dir>/scripts/bin/cli.mjs" export <run-folder|file.drawio> [--page <id|name>[,...]]
 ```
 
-`--lang` goes with `--to doc` only, `--overlay` and `--native` with `--to figjam` only, and
+`--lang` goes with `--to doc` only, `--overlay` and `--native` with `--to figjam` only (`bundle
+--to figjam` takes `--native` alone and writes the native boards of a run in as few scripts as
+fit, to save Figma calls; `references/target-figjam.md` section 7), and
 `--mermaid-stable` with the Mermaid text of `emit` and `bundle`. A command refuses an option
 it does not take (exit 1, with the options it does take), so an option is never read and
 dropped.

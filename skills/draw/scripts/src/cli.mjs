@@ -10,6 +10,7 @@
  *      --overlay, with --to figjam: the script for use_figma that draws what generate_diagram leaves out of a sequence diagram;
  *      --native, with --to figjam: the script(s) for use_figma that draw the whole board at the draw.io coordinates, for every kind)
  *   node cli.mjs bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <en|ja|vi>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] [--mermaid-stable] <run-dir|ir.json>...
+ *   node cli.mjs bundle --to figjam --native <file.js> [--allow-sensitive] <run-dir|ir.json>...   (the native boards of several diagrams in as few use_figma scripts as fit)
  *     (one file holding every diagram; a run folder stands for its IRs with the main diagram first;
  *      --canvas adds a first draw.io page with those diagrams side by side;
  *      --to doc writes the description tables of every diagram into one Markdown document)
@@ -31,6 +32,7 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { validateIr } from './validate-ir.mjs';
 import { emit, bundle, inspect, EMIT_TARGETS, DOC_TARGET, DOC_LANGS } from './pipeline.mjs';
+import { combineNative } from './figjam-native.mjs';
 import { preview } from './preview.mjs';
 import { exportSvg } from './export-svg.mjs';
 import { relabelDrawio } from './relabel.mjs';
@@ -48,6 +50,7 @@ const USAGE = `usage:
   cli.mjs validate <ir.json>
   cli.mjs emit --to <${EMIT_TARGETS.join('|')}> <ir.json> [--out <file>] [--overlay <file.js>] [--native <file.js>] [--lang <${DOC_LANGS.join('|')}>] [--allow-sensitive] [--mermaid-stable]
   cli.mjs bundle --to <drawio|mermaid|doc> --out <file> [--title <text>] [--lang <${DOC_LANGS.join('|')}>] [--canvas all|<id,id,...> [--gap <px>]] [--allow-sensitive] [--mermaid-stable] <run-dir|ir.json>...
+  cli.mjs bundle --to figjam --native <file.js> [--allow-sensitive] <run-dir|ir.json>...
   cli.mjs relabel <file.drawio> --map <labels.json> --out <file.drawio>
   cli.mjs preview <file.drawio|file.drawio.svg|file.mmd|run.md> [--page <id|name>] [--out <file.png>] [--max-px <n>]
   cli.mjs export <file.drawio|file.drawio.svg|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]
@@ -78,7 +81,11 @@ board (block frames, self-messages, notes); no file is written when the board ne
 --native goes with --to figjam too: it writes the script for use_figma that draws the whole
 board at the coordinates of the draw.io layout (<file>.js, then <file>.2.js, ... when one
 script would be too long; run them in order). It works for every kind, class and activity
-included; for those two no Mermaid text is written.
+included; for those two no Mermaid text is written. Each script is one use_figma call: the
+result line says how many (calls), and for each script the number of shapes, lines and texts
+its call must report as created (created) and its size in bytes (bytes). bundle --to figjam
+--native writes the native boards of several diagrams into as few scripts as the size of one
+call allows, each diagram into its own section, to save calls on a plan that limits them.
 export writes each page of a draw.io file as a picture that still opens in draw.io; given
 such a picture (.drawio.svg), it draws the diagram the picture holds again.
 diff --drawio writes a picture of the change beside the list: a draw.io file of the new version
@@ -93,7 +100,10 @@ of the headings and column headers (${DOC_LANGS.join(', ')}; default en). Labels
 extract reads a diagram made elsewhere into facts (pages, nodes, edges, kind hints) for the
 recook skill; --figjam-script writes the read-only use_figma script whose JSON result extract
 then reads (a large board comes back in parts: run the script again with --from <next> and
-pass every part to extract). --page keeps only the pages named, by id or name. cover exits 2 when a text of the facts is in none of the IRs.
+pass every part to extract; each part is one more use_figma call). --page keeps only the pages named, by id or name. cover exits 2 when a text of the facts is in none of the IRs,
+or when an edge of the facts joins two texts that no relation of the IRs joins (lostEdges).
+The result line keeps units, covered and missing for the texts and adds edges (how many were
+checked) and lostEdges (each by its two ends and its label).
 sources writes source/<run-slug>.sources.json: for every diagram of the run, the files its
 meta.sources names (paths from the project root) with a SHA-256 of each. CRLF is hashed as
 LF, so a checkout that converts line endings changes nothing. --root is the project root;
@@ -124,7 +134,7 @@ const FLAGS = { '--allow-sensitive': 'allowSensitive', '--mermaid-stable': 'merm
 const COMMAND_OPTIONS = {
   validate: [],
   emit: ['--to', '--out', '--overlay', '--native', '--lang', '--allow-sensitive', '--mermaid-stable'],
-  bundle: ['--to', '--out', '--title', '--lang', '--canvas', '--gap', '--allow-sensitive', '--mermaid-stable'],
+  bundle: ['--to', '--out', '--title', '--lang', '--canvas', '--gap', '--allow-sensitive', '--mermaid-stable', '--native'],
   relabel: ['--map', '--out'],
   preview: ['--page', '--out', '--max-px'],
   export: ['--page', '--out'],
@@ -293,6 +303,9 @@ export async function main(argv) {
         return fail(1, { ok: false, errors: [{ path: opts.native, message: `cannot write file: ${e.message}` }] });
       }
     }
+    // What the board costs and how to check each call: one use_figma call per script, and the
+    // number of shapes, lines and texts the call must report as created.
+    const nativeInfo = nativePaths ? { native: nativePaths, calls: nativePaths.length, created: result.nativeCreated, bytes: result.native.map((script) => Buffer.byteLength(script)) } : undefined;
     // The overlay script carries the same labels as the text, so it is written only past the same gates.
     let overlayPath;
     if (result.overlay && opts.overlay) {
@@ -309,7 +322,7 @@ export async function main(argv) {
     if (result.warnings.length > 0) process.stderr.write(JSON.stringify({ warnings: result.warnings }) + '\n');
     // generate_diagram rejects this kind, so there is no Mermaid text to write: only the native scripts.
     if (result.output === undefined) {
-      process.stdout.write(JSON.stringify({ ok: true, out: null, text: `not written: there is no Mermaid text for a ${ir.kind} diagram on FigJam (generate_diagram does not draw this kind); the native script${nativePaths.length === 1 ? ' draws' : 's draw'} the board`, overlay: null, native: nativePaths, warnings: result.warnings.length }) + '\n');
+      process.stdout.write(JSON.stringify({ ok: true, out: null, text: `not written: there is no Mermaid text for a ${ir.kind} diagram on FigJam (generate_diagram does not draw this kind); the native script${nativePaths.length === 1 ? ' draws' : 's draw'} the board`, overlay: null, ...nativeInfo, warnings: result.warnings.length }) + '\n');
       return 0;
     }
     if (opts.out) {
@@ -320,20 +333,23 @@ export async function main(argv) {
       } catch (e) {
         return fail(1, { ok: false, errors: [{ path: opts.out, message: `cannot write file: ${e.message}` }] });
       }
-      process.stdout.write(JSON.stringify({ ok: true, out: outPath, ...(opts.to === 'figjam' ? { overlay: overlayPath ?? null } : {}), ...(nativePaths ? { native: nativePaths } : {}), warnings: result.warnings.length }) + '\n');
+      process.stdout.write(JSON.stringify({ ok: true, out: outPath, ...(opts.to === 'figjam' ? { overlay: overlayPath ?? null } : {}), ...(nativeInfo ?? {}), warnings: result.warnings.length }) + '\n');
       return 0;
     }
     // With --native and no --out the scripts are the result; the Mermaid text is not printed between them.
     if (nativePaths) {
-      process.stdout.write(JSON.stringify({ ok: true, out: null, text: 'not written: no --out given', overlay: overlayPath ?? null, native: nativePaths, warnings: result.warnings.length }) + '\n');
+      process.stdout.write(JSON.stringify({ ok: true, out: null, text: 'not written: no --out given', overlay: overlayPath ?? null, ...nativeInfo, warnings: result.warnings.length }) + '\n');
       return 0;
     }
     process.stdout.write(result.output);
     return 0;
   }
   if (opts.command === 'bundle') {
-    if (opts.positional.length === 0 || !opts.to || !opts.out) return fail(1, { ok: false, errors: [{ path: '/', message: 'bundle needs --to <target>, --out <file> and at least one IR file' }], usage: USAGE });
-    if (opts.to !== 'drawio' && opts.to !== 'mermaid' && opts.to !== DOC_TARGET) return fail(1, { ok: false, errors: [{ path: '/', message: `bundle supports drawio and mermaid, and doc for the description tables, not "${opts.to}"`, hint: 'FigJam has no combined file: emit each diagram with --to figjam' }], usage: USAGE });
+    const nativeBundle = opts.to === 'figjam';
+    if (nativeBundle && (!opts.native || opts.out || opts.title || opts.lang || opts.canvas || opts.gap || opts.mermaidStable || opts.positional.length === 0)) return fail(1, { ok: false, errors: [{ path: '/', message: 'bundle --to figjam takes --native <file.js> and the IR files or run folder, and no other option but --allow-sensitive' }], usage: USAGE });
+    if (!nativeBundle && opts.native) return fail(1, { ok: false, errors: [{ path: '/', message: `--native goes with --to figjam, not "${opts.to}"` }], usage: USAGE });
+    if (!nativeBundle && (opts.positional.length === 0 || !opts.to || !opts.out)) return fail(1, { ok: false, errors: [{ path: '/', message: 'bundle needs --to <target>, --out <file> and at least one IR file' }], usage: USAGE });
+    if (!nativeBundle && opts.to !== 'drawio' && opts.to !== 'mermaid' && opts.to !== DOC_TARGET) return fail(1, { ok: false, errors: [{ path: '/', message: `bundle supports drawio and mermaid, and doc for the description tables, not "${opts.to}"`, hint: 'FigJam has no combined file; bundle --to figjam --native writes the native boards of several diagrams into as few scripts as fit' }], usage: USAGE });
     if (langError(opts)) return fail(1, { ok: false, errors: [langError(opts)], usage: USAGE });
     // A folder stands for its IR files in run order; files given one by one keep the order given.
     const files = [];
@@ -359,6 +375,30 @@ export async function main(argv) {
       const n = (seen.get(base) ?? 0) + 1;
       seen.set(base, n);
       entries.push({ ir, id: n === 1 ? base : `${base}-${n}`, ...sourcePathOf(file) });
+    }
+    if (nativeBundle) {
+      // Each diagram past the same gates as emit --native; then the drawings packed into as few scripts as fit.
+      const data = [];
+      const warnings = [];
+      for (const e of entries) {
+        const r = await emit(e.ir, 'figjam', { allowSensitive: opts.allowSensitive, diagramId: e.id, native: true, nativeOnly: true });
+        if (!r.ok) return fail(2, { ok: false, diagram: e.id, errors: r.errors, warnings: r.warnings });
+        warnings.push(...r.warnings.map((w) => ({ diagram: e.id, ...w })));
+        data.push(...r.nativeData);
+      }
+      const packed = combineNative(data);
+      const first = resolve(opts.native);
+      const stem = first.slice(0, first.length - extname(first).length);
+      const paths = packed.parts.map((_, i) => (i === 0 ? first : `${stem}.${i + 1}${extname(first)}`));
+      try {
+        mkdirSync(dirname(first), { recursive: true });
+        packed.parts.forEach((script, i) => writeFileSync(paths[i], script, 'utf8'));
+      } catch (e) {
+        return fail(1, { ok: false, errors: [{ path: opts.native, message: `cannot write file: ${e.message}` }] });
+      }
+      if (warnings.length > 0) process.stderr.write(JSON.stringify({ warnings }) + '\n');
+      process.stdout.write(JSON.stringify({ ok: true, native: paths, calls: paths.length, created: packed.created, bytes: packed.parts.map((script) => Buffer.byteLength(script)), drawings: packed.drawings, diagrams: entries.length, order: entries.map((e) => e.id), warnings: warnings.length }) + '\n');
+      return 0;
     }
     const canvas = opts.canvas === undefined ? undefined : opts.canvas === 'all' ? 'all' : opts.canvas.split(',').map((s) => s.trim()).filter(Boolean);
     const gap = opts.gap === undefined ? undefined : Number(opts.gap);
@@ -541,7 +581,7 @@ export async function main(argv) {
       } catch (e) {
         return fail(1, { ok: false, errors: [{ path: opts.figjamScript, message: `cannot write file: ${e.message}` }] });
       }
-      process.stdout.write(JSON.stringify({ ok: true, script: opts.figjamScript, section: opts.section ?? null, from, next: 'run the script unchanged with use_figma on the board and save the JSON it returns to a file; when that JSON has "next" set, write the script again with --from <next> and read the next part; then run extract on every part' }) + '\n');
+      process.stdout.write(JSON.stringify({ ok: true, script: opts.figjamScript, section: opts.section ?? null, from, calls: 1, next: 'run the script unchanged with use_figma on the board and save the JSON it returns to a file; when that JSON has "next" set, write the script again with --from <next> and read the next part; then run extract on every part' }) + '\n');
       return 0;
     }
     if (opts.page !== undefined && opts.figjamScript !== undefined) return fail(1, { ok: false, errors: [{ path: '/', message: '--page goes with reading a file, not with --figjam-script' }], usage: USAGE });
@@ -603,7 +643,7 @@ export async function main(argv) {
     if (irs.length === 0) return fail(1, { ok: false, errors: [{ path: targets[0], message: 'no IR files found' }] });
     const result = cover(read.ir, irs);
     if (!result.ok) {
-      process.stderr.write(JSON.stringify({ ok: false, units: result.units, covered: result.covered, missing: result.missing, hint: 'put each missing text into the IR, or add a meta.omitted entry that quotes the text and gives the reason, in the form «"<text>": <reason>» (merged into another element, collapsed into a step, left out on purpose); a meta.notes entry does not count' }) + '\n');
+      process.stderr.write(JSON.stringify({ ok: false, units: result.units, covered: result.covered, missing: result.missing, edges: result.edges, lostEdges: result.lostEdges, hint: 'put each missing text into the IR, or add a meta.omitted entry that quotes the text and gives the reason, in the form «"<text>": <reason>» (merged into another element, collapsed into a step, left out on purpose); a meta.notes entry does not count. Each lost edge is a line of the source between the two texts named that no relation of the IR joins: add the relation, or a meta.omitted entry that quotes its label (or its two ends when it has none) and gives the reason' }) + '\n');
       return 2;
     }
     process.stdout.write(JSON.stringify(result) + '\n');

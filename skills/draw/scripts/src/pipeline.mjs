@@ -31,8 +31,9 @@ export const EMIT_TARGETS = [...TARGETS, DOC_TARGET];
  *   `native` (figjam only) also makes the scripts that draw the board at the draw.io coordinates;
  *   a kind generate_diagram rejects is then emitted too, without the Mermaid text. With
  *   `nativeOnly` the text is not wanted at all, so its warnings are not returned.
- * @returns {Promise<{ ok: boolean, output?: string, overlay?: string, native?: string[], textSkipped?: string, errors: Array<object>, warnings: Array<object> }>}
- *   `overlay` is set for a FigJam sequence diagram that needs the overlay script; `native` holds
+ * @returns {Promise<{ ok: boolean, output?: string, overlay?: string, native?: string[], nativeData?: object[], nativeCreated?: number[], textSkipped?: string, errors: Array<object>, warnings: Array<object> }>}
+ *   `overlay` is set for a FigJam sequence diagram that needs the overlay script; `nativeCreated`
+ *   counts what each native script creates and `nativeData` holds its drawing; `native` holds
  *   the scripts for use_figma in the order to run them; `textSkipped` says why there is no `output`
  */
 export async function emit(ir, target, options = {}) {
@@ -85,7 +86,10 @@ export async function emit(ir, target, options = {}) {
       } else result = { warnings: [] };
       if (native) {
         const drawn = await emitDrawio(ir, { diagramId: options.diagramId });
-        result.native = figjamNative(drawn.output, { title: ir.title }).parts;
+        const board = figjamNative(drawn.output, { title: ir.title });
+        result.native = board.parts;
+        result.nativeData = board.data;
+        result.nativeCreated = board.created;
         result.nativeWarnings = drawn.warnings;
       }
       break;
@@ -118,7 +122,7 @@ export async function emit(ir, target, options = {}) {
     kept.length = 0;
     kept.push(...rest, ...text, ...board);
   }
-  return { ok: true, output: result.output, ...(result.overlay ? { overlay: result.overlay } : {}), ...(result.native ? { native: result.native } : {}), ...(textSkipped === undefined ? {} : { textSkipped }), errors: [], warnings: kept };
+  return { ok: true, output: result.output, ...(result.overlay ? { overlay: result.overlay } : {}), ...(result.native ? { native: result.native, nativeData: result.nativeData, nativeCreated: result.nativeCreated } : {}), ...(textSkipped === undefined ? {} : { textSkipped }), errors: [], warnings: kept };
 }
 
 /**

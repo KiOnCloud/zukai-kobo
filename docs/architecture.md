@@ -96,6 +96,16 @@ brainstorm (idea) ─> clarify ┘                                              
   that went in, number for number, and a script carries only the paths its diagram shows.
   On the native board the title of a frame without a header strip (a GCP group, an
   Availability Zone) stands at the top of the frame, as draw.io draws it.
+  Each script is one `use_figma` call, and a Figma plan may limit calls (the Starter plan
+  stops after about twenty), so the CLI prints what a board costs: `calls`, and for each
+  script the number of shapes, lines and texts its call must report as `created`, and its
+  size in `bytes`, so the agent can tell a script that arrived whole from one that did not.
+  `combineNative` packs the drawings of several diagrams into as few scripts as one call
+  takes (`bundle --to figjam --native`); each drawing still goes into its own section. The
+  group of a cell is named so that a board read back keeps what the picture cannot tell: an
+  edge by its own label (never by a text at one of its ends), a stencil picture by its
+  stencil, a client screen by `[client]`, a picture that is part of its frame (the Google
+  Cloud mark) by `[part]`.
 - **The CLI** (`cli.mjs`, bundled by esbuild into the committed `bin/cli.mjs`) exposes
   `validate`, `emit`, `bundle` (both also with `--to doc`), `relabel`, `preview` and
   `export`, plus `diff` (with `--drawio` for the picture of a change), `drift`, `snapshot`,
@@ -488,7 +498,13 @@ of its own; it adds two commands to the draw skill's.
   and turns the joined parts into facts: connectors keep their ends, a sequence diagram that
   `generate_diagram` drew (two boxes and a line per participant, the overlay's frames as
   shapes) is read back as lifelines and frames, a board drawn by `emit --native` is read back
-  from its groups, and a whole page splits into one facts page per diagram on it.
+  from its groups, and a whole page splits into one facts page per diagram on it. On a
+  native board a group of a round head, body strokes and a name under them is an actor, a
+  line whose label stands below it on a back of its own is still a line, and a closed outline
+  that holds every other stroke is a shape (a cylinder's lid is no line). The round trip
+  `emit --native` -> board -> `extract` is tested for every valid fixture on a stand-in of the
+  Plugin API (`tests/figma-stand-in.mjs`), checked against a real board, as the round trips
+  through draw.io and Mermaid are.
   `extract-plantuml.mjs` reads PlantUML text (a file of one or several
   `@startuml ... @enduml` blocks, or Markdown fences) with a tolerant line reader, not with
   PlantUML itself, so nothing is installed and nothing is executed. PlantUML has no header
@@ -518,8 +534,16 @@ of its own; it adds two commands to the draw skill's.
   the run folder, and `cover` asks only for the words around a `<redacted ...>` placeholder.
   Each IR names its source page in a `meta.notes` entry (`page "<name>"`), and a page's
   texts are looked for only in the IRs of that page, so a word of one diagram cannot stand in
-  for the same word dropped from another; an omission counts only as `"<text>": <reason>`. The skill
-  loops until the check passes, then runs the closing contract unchanged.
+  for the same word dropped from another; an omission counts only as `"<text>": <reason>`.
+  Texts alone do not prove that a line was kept: two connections often carry one label, and
+  the label of a dropped one is then found in the one that stayed. So every edge of the facts
+  whose two ends are known must also be joined in the IRs, by an element with `from` and `to`
+  whose ends carry the texts of the edge's ends (either way round), by an element that
+  carries one end and names the other by id, or by an omission that quotes its label (its two
+  ends when it has none) or leaves out one of its ends. A lost edge is reported under
+  `lostEdges` by its two ends and its label; `units`, `covered` and `missing` keep their
+  meaning for texts, and `edges` says how many edges were checked. The skill loops until the
+  check passes, then runs the closing contract unchanged.
 - **Zukai's rules over the source's structure.** A page that mixes kinds or draws the inside
   of resources is split into a main diagram and `ref` parts, as the user chose for this
   skill, rather than redrawn as it was; the change list in the report says what moved.

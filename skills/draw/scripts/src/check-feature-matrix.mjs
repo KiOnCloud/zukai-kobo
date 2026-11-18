@@ -154,7 +154,7 @@ export function checkFeatureMatrix(ir, target) {
   if (!kindCell || kindCell.status === 'unsupported') {
     return {
       ok: false,
-      errors: [{ path: '/kind', message: `kind "${ir.kind}" is unsupported on target "${target}"${kindCell?.note ? `: ${kindCell.note}` : ''}`, hint: 'choose another target with --to' }],
+      errors: [{ path: '/kind', message: `kind "${ir.kind}" is unsupported on target "${target}"${kindCell?.note ? `: ${kindCell.note}` : ''}`, hint: target === 'figjam' ? 'emit --to figjam --native <file.js> draws this kind on a FigJam board with use_figma; or choose another target with --to' : 'choose another target with --to' }],
       warnings,
     };
   }
