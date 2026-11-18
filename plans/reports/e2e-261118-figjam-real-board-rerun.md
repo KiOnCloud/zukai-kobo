@@ -362,3 +362,127 @@ No High or Medium finding.
 
 No long-running process was started. `ps` shows only the MCP PDF server that was running
 before.
+
+## Confirmation of the script self-check
+
+Date: 2026-11-18 (UTC). Tester: delegated agent, on the same board,
+https://www.figma.com/board/eogYZmhMNnhYdRxA95Wdpx ("Zukai e2e 2.3.0 (3)"). No other file was
+opened, nothing was created as a file and nothing was deleted. Nothing in the repository was
+changed except this section.
+
+What is being checked: every script the CLI writes for `use_figma` now starts with `const D = …`
+(written over lines of at most 200 characters) and `const CHECK = [length, hash]`. Before it
+touches the board, it turns `D` back into JSON and recomputes the length and an FNV-1a hash
+(`figma-script-data.mjs`). The risk was that Figma's JavaScript engine might serialise JSON
+differently from Node. If so, every script would throw on a real board.
+
+### Setup
+
+- Installed commit `0c9c5167b7e361e13021f6c82e19f39145aae6a7` (HEAD of
+  `claude/blissful-noether-5terit`, plugin 2.3.0). It came from `git archive HEAD` into
+  `<scratchpad>/e2e-figjam5/src`.
+- `clinic` and `invoicing` were copied from `e2e-figjam4`, with their installed skills removed.
+  They were then installed with `install.sh --target claude-project`. The installed `cli.mjs` is
+  identical to the repository's (`cmp`). Node 22.23.4.
+- `<scratchpad>` = `/tmp/claude-0/-home-user-zukai-kobo/dfd23dcb-7283-57de-90e1-1d422710abbb/scratchpad`.
+  - Scripts and reads: `<scratchpad>/e2e-figjam5/tmp/`.
+  - Screenshot: `<scratchpad>/e2e-figjam5/shots/page.png`, with crops `sec-14-62.png`,
+    `sec-19-312.png`, `sec-21-62.png` and `zoom-extend-label.png`.
+- Non-ASCII labels. None of the clinic or invoicing runs has Japanese or Vietnamese text; they
+  have only `«»`. The repository fixture `skills/draw/scripts/fixtures/usecase/valid-long-labels.json`
+  has both: the title "経費精算", the actor "従業員", "Phê duyệt viên cấp phòng ban và cấp công ty", and
+  an «extend» with the condition "承認済みの申請がある". It was copied unchanged into a new run folder,
+  `clinic/diagrams/20261118_expense-usecases-ja-vi`. Results:
+  - `validate`: 0 warnings;
+  - `emit --native`: `created: [32]`.
+- The emit results:
+  - `emit --native` of the clinic use case IR: `calls: 1`, `created: [56]`, 13 497 bytes,
+    `CHECK = [3911, '72377eab']`.
+  - `bundle --to figjam --native` of `invoicing-gcp`, `invoicing-multicloud` and the JA/VI run:
+    `calls: 1`, `created: [[88,108,32]]`, 46 509 bytes (46 269 characters), 388 lines, the
+    longest 200 characters, `CHECK = [36319, '43b87c01']`. Adding the JA/VI run to the
+    invoicing bundle kept it at one call and put non-ASCII data inside a bundle.
+  - `extract --figjam-script --section "経費精算"`: the section name itself is non-ASCII data,
+    `CHECK = [41, '934b7efe']`.
+  - `emit --to figjam --out --overlay` of `booking-cancellation`: 6 warnings, all naming the
+    overlay script. Overlay `CHECK = [1018, 'd0d69d88']`; its data holds `…` from the filler row.
+- In Node, the check block of each script passes. A tampered copy, with "Pay a deposit" changed
+  to "Pay a depos1t" in the text item, throws with `3911` and hash `674f37b3`.
+- Each script was printed in whole lines (the bundle in three line ranges) and passed to
+  `use_figma` without changes. No line had to be sliced.
+- The call count was stated before the first Figma call: 14, at most 16.
+
+### Steps
+
+| Step | What ran | Result | Verdict |
+|---|---|---|---|
+| 1 Native | the clinic use case script, unchanged | `{"section":"14:62","name":"Clinic booking use cases (2)","created":56,"replaced":56}`. No throw. It replaced its own section "(2)" in place, and `created` matches the CLI's 56 | PASS |
+| 2 Bundle | the 3-diagram bundle, unchanged | `[{"section":"17:62",…,"created":88,"replaced":88},{"section":"17:175",…,"created":108,"replaced":108},{"section":"19:312","name":"経費精算","created":32,"replaced":0}]`. No throw. Each `created` equals the number at the same place in `[[88,108,32]]`. Both invoicing "(2)" sections were replaced in place; 経費精算 is new | PASS |
+| 3 Reader | `extract --figjam-script --section "経費精算"`, unchanged | No throw: 47 nodes, `total` 47, `next: null`, all Japanese and Vietnamese texts back as written. `extract`: 10 nodes, 5 edges, hint `usecase` 37 first. `cover`: `{"units":13,"covered":13,"missing":[],"edges":5,"lostEdges":[]}`, exit 0. See finding S1: the «extend» line came back as a box | PASS (self-check). Reading defect in S1 |
+| 4 Overlay | `generate_diagram` (`name` "Cancel an appointment", `.mmd` unchanged), then the overlay script, unchanged | `generate_diagram` was accepted. The overlay did not throw: `section` `21:62` (the newer of the two sections of that title), 19 nodes created, removed `["21:107","21:119","21:123"]`, `replacedNodeIds: 0`. The older `7:2` was untouched (same digest before and after) | PASS |
+| 5 Tamper | the clinic script with one character of a label changed | It threw `zukai native: this copy of the script is not the one the CLI wrote: its data has 3911 characters and hash 674f37b3, the CLI wrote 3911 and 72377eab. A character was lost or changed in the copy. Nothing was changed. Pass the script to use_figma again from its file, unchanged.` The figures equal Node's for the same copy. In the reads before and after, all 10 sections have the same descendant counts, first and last ids, and digests: `14:62` is 81 / `18:88`–`18:141` / `ee7afaa` both times. No section was added | PASS |
+
+**JSON in Figma's engine.** The read calls also ran a probe:
+`JSON.stringify(["«extend» ↳ 経費精算 Phê duyệt", "  ", "\u0007\u001f\u007f", "\ud800", "😀", "\"\\/", [0.1+0.2, 1e21, 1e-7, -0, 761.88, 2**53+2]])`.
+Figma's engine and Node give the same 131 characters:
+
+- non-ASCII, U+2028/2029, DEL and the emoji stay raw;
+- `\u0007` and `\u001f` are escaped, and the lone surrogate is written `\ud800`;
+- the numbers read `0.30000000000000004`, `1e+21`, `1e-7`, `0`, `761.88` and `9007199254740994`.
+
+So the length and hash the CLI computes are the ones the board computes. This held for
+Latin-1, CJK, Vietnamese and `…` in steps 1 to 4.
+
+**Screenshot** (one, page `0:1`, 18 909 × 1 308 at 12 000 px wide), looked at:
+
+- `14:62` shows the whole clinic drawing. It reads "Pay a deposit", not the tampered "Pay a
+  depos1t".
+- `17:62` and `17:175` show the GCP and multi-cloud drawings as before.
+- `19:312` shows the JA/VI use case drawing:
+  - the boundary title "経費精算システム (Expense reimbursement system of the whole group)";
+  - "出張旅費および交際費の経費精算申請を提出する" wrapped on two lines in its ellipse;
+  - "Duyệt yêu cầu hoàn ứng", and "Phê duyệt viên cấp phòng ban và cấp công ty" under its figure;
+  - the dashed «include», and the dashed «extend» with "[承認済みの申請がある]" under it;
+  - the «system» box.
+
+  Figma sets the CJK glyphs in its fallback face, since Arimo has none.
+- `21:62` shows the whole overlay:
+  - the actor figure, and «control» and «database» at the head and foot;
+  - three activation bars and the yellow note;
+  - the alt frame, its "else" divider, and the self-message loop with its 4-line label.
+
+### Figma calls: 14, as stated
+
+| # | Call | Purpose |
+|---|---|---|
+| 1 | `create_session` | board key |
+| 2–4 | `get_figma_skill` figma-use, figma-use-figjam, figma-generate-design | before `use_figma` |
+| 5 | `use_figma` | step 1 clinic native script |
+| 6 | `use_figma` | step 2 bundle (3 diagrams) |
+| 7 | `use_figma` | step 3 reader 経費精算 |
+| 8 | `get_figma_skill` figma-generate-diagram | before `generate_diagram` |
+| 9 | `generate_diagram` | step 4 sequence |
+| 10 | `use_figma` | step 4 overlay |
+| 11 | `use_figma` | read before tamper (+ JSON probe) |
+| 12 | `use_figma` | step 5 tampered script (threw, as intended) |
+| 13 | `use_figma` | read after tamper (+ JSON probe) |
+| 14 | `get_screenshot` 0:1 | one look |
+
+No call was refused. One call I made under a wrong tool name was rejected locally and never
+reached Figma.
+
+### Findings
+
+| Id | Grade | What | Evidence |
+|---|---|---|---|
+| — | — | The self-check works in Figma's engine. Native, bundle, reader and overlay scripts with Latin-1, CJK and Vietnamese data pass it on a real board. A one-character change in a label stops the script before anything is read or changed, with the CLI's message and the same hash Node computes | Steps 1–5, JSON probe |
+| N4 | FIXED | The 46 KB bundle has no line over 200 characters. It was printed in three whole-line ranges and passed on first try, and the check passing on the board proves the copy was exact | Step 2 |
+| S1 | Medium (not the self-check; found on the board) | On a native board, a label of a line that holds CJK text gets a white back narrower than the text itself. «extend» [承認済みの申請がある]: text 117 px wide, back 93 px = the text width measured at creation (89) + 4. The text grows after the script measures it, presumably when Figma sets the CJK glyphs in its fallback face; that cause is a guess. The reader then fails `isBack` (text not inside the back, `extract-figjam.mjs` `drawnKind`), so `extract` reads the whole group as a `box` node "«extend»\n[承認済みの申請がある]" and loses the extend relation (5 of 6 relations come back). `cover` still passes, since it checks only that each text and edge of the facts is in the IR, not that each relation of the IR is in the facts. A recook of such a board would turn the relation into a box without a warning. On the board itself nothing looks wrong (the label sits below the line) | `tmp/read-ja-vi.part0.json` nodes `19:353` and `19:354`; `tmp/facts-ja-vi.json`; `zoom-extend-label.png` |
+| S2 | Low | `cover` has no check of IR relations missing from the facts. That is why S1 passes `cover`, and it would also hide any other edge the reader misses | `cover` output in step 3: `edges: 5` checked out of 6 relations |
+
+No High finding.
+
+### Processes
+
+No long-running process was started. `ps` shows only the MCP PDF server that was running
+before.
