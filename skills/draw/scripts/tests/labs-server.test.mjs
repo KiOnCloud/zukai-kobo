@@ -133,9 +133,9 @@ describe('request checks', () => {
 });
 
 describe('parameters', () => {
-  const bad = ['..', '%2E%2E', '%2Fetc%2Fpasswd', '20261113_link', 'notes', '20261114_file', 'nope', '%ZZ'];
+  const bad = ['..', '%2E%2E', '%2Fetc%2Fhosts', '20261113_link', 'notes', '20261114_file', 'nope', '%ZZ'];
   it.each(bad)('a run named %s is 404 on every run route', async (name) => {
-    for (const path of [`/api/runs/${name}`, `/api/runs/${name}/diagrams/secret`, `/api/runs/${name}/diagrams/secret/picture`, `/api/runs/${name}/doc`, `/api/runs/${name}/revisions/r001/changes`, `/api/runs/${name}/files/passwd`, `/api/glossary/check?run=${name}`]) {
+    for (const path of [`/api/runs/${name}`, `/api/runs/${name}/diagrams/secret`, `/api/runs/${name}/diagrams/secret/picture`, `/api/runs/${name}/doc`, `/api/runs/${name}/revisions/r001/changes`, `/api/runs/${name}/files/outside.txt`, `/api/glossary/check?run=${name}`]) {
       expect((await raw({ path })).status, path).toBe(404);
     }
   });
@@ -147,7 +147,7 @@ describe('parameters', () => {
       `${run}/doc?lang=fr`, `${run}/doc?lang=..`,
       `${run}/revisions/r999/changes`, `${run}/revisions/..%2Fr001/changes`,
       `${run}/files/${encodeURIComponent('../20261109_login-flow/source/login-flow.ir.json')}`,
-      `${run}/files/${encodeURIComponent('/etc/passwd')}`, `${run}/files/source%2Fleak.txt`,
+      `${run}/files/${encodeURIComponent('/etc/hosts')}`, `${run}/files/source%2Fleak.txt`,
       `${run}/files/${encodeURIComponent('history/r001/revision.json')}`, `${run}/files/..`,
     ]) expect((await raw({ path })).status, path).toBe(404);
     for (const method of ['PATCH', 'DELETE']) expect((await raw({ method, path: '/api/glossary/entries/g-00000000', body: method === 'PATCH' ? { status: 'confirmed' } : undefined })).status).toBe(404);

@@ -57,7 +57,7 @@ describe('labs runs', () => {
 
   it('finds a file only by a name of the listing whose real path lies inside the run', () => {
     expect(filePath(p.root, p.runs.checkout, 'svg/checkout.drawio.svg')).toBe(join(runPath(p.root, p.runs.checkout), 'svg', 'checkout.drawio.svg'));
-    for (const name of ['source/leak.txt', '../20261109_login-flow/source/login-flow.ir.json', '/etc/passwd', 'history/r001/revision.json', 'svg/../checkout.drawio', '']) {
+    for (const name of ['source/leak.txt', '../20261109_login-flow/source/login-flow.ir.json', '/etc/hosts', 'history/r001/revision.json', 'svg/../checkout.drawio', '']) {
       expect(filePath(p.root, p.runs.checkout, name)).toBeUndefined();
     }
     expect(runPath(p.root, '20261113_link')).toBeUndefined();

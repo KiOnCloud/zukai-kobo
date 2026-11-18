@@ -53,7 +53,7 @@ describe('checks when a job is queued', () => {
     ['a revision the run lacks', 'restore', { run: '20261110_checkout', target: 'r009' }],
     ['an IR that fails validation', 'apply-edit', { run: '20261110_checkout', diagram: 'checkout', baseRev: 'a'.repeat(64), ir: { kind: 'flowchart' } }],
     ['a target not in the list', 'draw', { mode: 'scout', request: 'x', to: 'pdf' }],
-    ['a source outside the project', 'recook', { source: '/etc/passwd' }],
+    ['a source outside the project', 'recook', { source: '/etc/hosts' }],
   ])('refuses %s', (_, kind, params) => {
     expect(jobErrors(kind, params, ctx).length).toBeGreaterThan(0);
   });
@@ -62,7 +62,7 @@ describe('checks when a job is queued', () => {
     const errorsFor = (source) => { try { jobs.queue('recook', { source }); return []; } catch (e) { return e.extra.errors; } };
     expect(errorsFor('src/pay.js')).toEqual([]);
     expect(errorsFor('https://www.figma.com/board/AbCdEf0123456789/Team')).toEqual([]);
-    for (const bad of ['../etc/passwd', '/etc/passwd', 'src', 'nope.drawio', 'http://evil.example/x']) expect(errorsFor(bad).length).toBeGreaterThan(0);
+    for (const bad of ['../etc/hosts', '/etc/hosts', 'src', 'nope.drawio', 'http://evil.example/x']) expect(errorsFor(bad).length).toBeGreaterThan(0);
     expect(real).toBeDefined();
   });
   it('refuses a question file outside its schema', () => {

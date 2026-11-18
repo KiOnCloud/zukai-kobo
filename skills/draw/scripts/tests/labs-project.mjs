@@ -55,13 +55,13 @@ export function labsProject() {
   // What a listing leaves out.
   const outside = mkdtempSync(join(tmpdir(), 'zukai-labs-outside-'));
   write(join(outside, 'source', 'secret.ir.json'), loadFixture('flowchart', 'valid'));
-  write(join(outside, 'passwd'), 'root:x:0:0\n');
+  write(join(outside, 'outside.txt'), 'a file outside the project\n');
   // Windows creates a link only with the right to; without it there is no link to leave out.
   const link = (target, path, type) => { try { symlinkSync(target, path, type); } catch { /* no right to create links */ } };
   link(outside, join(diagrams, '20261113_link'), 'junction');
   write(join(diagrams, '20261114_file'), 'not a folder\n');
   write(join(diagrams, 'notes', 'source', 'x.ir.json'), loadFixture('flowchart', 'valid'));
-  link(join(outside, 'passwd'), join(checkout, 'source', 'leak.txt'), 'file');
+  link(join(outside, 'outside.txt'), join(checkout, 'source', 'leak.txt'), 'file');
 
   return { root, outside, runs: { login: '20261109_login-flow', checkout: '20261110_checkout', lifecycle: '20261111_order-lifecycle', board: '20261112_team-board' } };
 }
