@@ -246,3 +246,119 @@ server that was running before this run.
 1. N1: should a recook drawn back to FigJam go into a new section? That is a product decision.
    It was not tried on the board, to keep the source section.
 2. The Starter-plan refusal path of section 8 was not exercised: the plan used has no limit.
+
+## Confirmation of the section marker
+
+Date: 2026-11-18 (UTC). Tester: delegated agent, on the same board,
+https://www.figma.com/board/eogYZmhMNnhYdRxA95Wdpx ("Zukai e2e 2.3.0 (3)"). No other file was
+opened, nothing was created as a file and nothing was deleted. Nothing in the repository was
+changed except this section.
+
+What is being checked: the fix for N1. Native scripts now name every shape
+`zukai-native <yyyymmdd>_<run-slug>`. A script draws over a section only when that section holds
+shapes of its own run, and otherwise draws into `<title> (2)`, `(3)` and so on.
+`bundle --to figjam --native` prints `created` per drawing.
+
+### Setup
+
+- Installed commit `e0282fe43b49f0e43da78f936b02bd7c446c1572` (HEAD of
+  `claude/blissful-noether-5terit`, plugin 2.3.0). It came from `git archive HEAD` into
+  `<scratchpad>/e2e-figjam4/src`.
+- `clinic` and `invoicing` were copied from `e2e-figjam3`, with their installed skills removed.
+  They were then installed with `install.sh --target claude-project`. Only the installed CLI was
+  used (Node 22.23.4). The installed `cli.mjs` is identical to the repository's.
+- `<scratchpad>` = `/tmp/claude-0/-home-user-zukai-kobo/dfd23dcb-7283-57de-90e1-1d422710abbb/scratchpad`.
+  - Board reads: `<scratchpad>/e2e-figjam4/tmp/read0.json` and `read-final.json`. The read script
+    is `tmp/read-sections.js`.
+  - Screenshot: `<scratchpad>/e2e-figjam4/shots/c-page.png`, with crops `c-overview.png`,
+    `c-sec-1-2.png`, `c-sec-14-62.png` and `c-sec-16-62.png`.
+- The emit results:
+  - `emit --to figjam .../20261118_clinic-booking-usecases/source/clinic-booking-usecases.ir.json --native ...`
+    gave `calls: 1`, `created: [56]`, 11 887 bytes. Every shape is tagged
+    `zukai-native 20261118_clinic-booking-usecases`.
+  - Second run folder `20261118_clinic-usecases-recook`: a copy of the first, files renamed to
+    the new slug, IR byte-identical (`cmp`). It gave `created: [56]`, 11 886 bytes. Diffed with
+    the first script, only `"run"` differs.
+  - `bundle --to figjam --native <file> 20261118_invoicing-gcp 20261118_invoicing-multicloud`
+    gave `calls: 1`, **`created: [[88,108]]`**, `drawings: [2]`, 41 730 bytes. The runs in
+    the script are `20261118_invoicing-gcp` and `20261118_invoicing-multicloud`.
+- The call count was stated before the first Figma call: 12, at most 13. Each `use_figma` call
+  passed `skillNames`. The drawing calls passed the three skills; the reads passed `figma-use`
+  and `figma-use-figjam`.
+
+### What the board held before
+
+The board still held the sections of the earlier round, drawn by a build without run markers.
+Their shapes are named plain `zukai-native`.
+
+| Section | Descendants | Shapes tagged | first / last id | Digest |
+|---|---|---|---|---|
+| `1:2` Clinic booking use cases | 81 | `zukai-native` 56 | 9:88 / 9:141 | `ed09666d` |
+| `3:2` Invoicing on Google Cloud | 112 | `zukai-native` 88 | 3:49 / 3:113 | `1873b434` |
+| `3:115` Invoicing on Google Cloud and AWS | 138 | `zukai-native` 108 | 3:162 / 3:252 | `577a61af` |
+| `7:2` Cancel an appointment | 38 | none | 7:3 / 8:90 | `8a162b18` |
+
+The digest is a hash over id, type, name, x, y, width and height of every descendant, in tree
+order.
+
+### Steps
+
+| Step | What ran | Result | Verdict |
+|---|---|---|---|
+| (a) | the use case script, unchanged | `{"section":"14:62","name":"Clinic booking use cases (2)","created":56,"replaced":0}`. `created` matches the CLI's 56. Placed to the right of everything, at x 8015 | PASS |
+| (b) | the same script again, unchanged | `{"section":"14:62","name":"Clinic booking use cases (2)","created":56,"replaced":56}`. Same section id, `replaced` = `created`. The section still has 81 descendants (no empty groups left behind); its shapes now have ids 15:88–15:141 | PASS |
+| (c) | the script of the second run folder, unchanged | `{"section":"16:62","name":"Clinic booking use cases (3)","created":56,"replaced":0}`. All 56 shapes are tagged `zukai-native 20261118_clinic-usecases-recook` | PASS |
+| (d) | the bundle script, unchanged | `[{"section":"17:62","name":"Invoicing on Google Cloud (2)","created":88,"replaced":0},{"section":"17:175","name":"Invoicing on Google Cloud and AWS (2)","created":108,"replaced":0}]`. Each `created` equals the number at the same place in the CLI's `[[88,108]]`. The old `3:2` and `3:115` were not reused | PASS |
+
+The reads after (c) and after (d) show the same four old sections, unchanged.
+`1:2`, `3:2`, `3:115` and `7:2` have the same descendant counts, first and last ids and digests
+as before (a). Section `14:62` was not touched by (c) or (d): it keeps 81 descendants, ids
+15:88–15:141 and digest `5139ae90`. The new sections have the same structure as the old ones
+of the same diagram:
+
+- `16:62`: 81 descendants;
+- `17:62`: 112 descendants, 88 tagged `zukai-native 20261118_invoicing-gcp`;
+- `17:175`: 138 descendants, 108 tagged `zukai-native 20261118_invoicing-multicloud`.
+
+Screenshot after (c), page `0:1` at 8192 px wide, looked at:
+
+- the old `1:2` is still at the left, and the invoicing and sequence sections follow it;
+- `14:62` and `16:62` are side by side at the right;
+- both new sections show the whole use case drawing: four actors with the hollow
+  generalization triangle at Patient, eight ellipses in the "Clinic booking system" boundary,
+  the three dashed «include» lines and the dashed «extend» line with open arrowheads and labels,
+  and the «system» SMS gateway box;
+- the two new drawings look the same, and the same as the old one.
+
+### Figma calls: 12, as stated
+
+| # | Call | Purpose |
+|---|---|---|
+| 1 | `create_session` | board key |
+| 2–4 | `get_figma_skill` figma-use, figma-use-figjam, figma-generate-design | before `use_figma` |
+| 5 | `use_figma` | read before (a) |
+| 6 | `use_figma` | (a) use case script |
+| 7 | `use_figma` | (b) same script again |
+| 8 | `use_figma` | (c) script of the second run folder |
+| 9 | `use_figma` | read after (c) |
+| 10 | `get_screenshot` 0:1 | look after (c) |
+| 11 | `use_figma` | (d) bundle script |
+| 12 | `use_figma` | read after (d) |
+
+No call was refused.
+
+### Findings
+
+| Id | Grade | What | Evidence |
+|---|---|---|---|
+| N1 | FIXED | A script no longer draws over a section of the same title from another run or from an older build. It draws into `<title> (2)`, `(3)` and so on, and it replaces in place only its own run | Steps (a) to (d) above. Old sections unchanged by digest |
+| N2 | FIXED | `bundle` prints `created` per drawing (`[[88,108]]`), in the order the script returns its results | Step (d) |
+| N4 | Low | The bundle script's data is one line of 33 785 characters. When an agent prints the script to pass it on, the harness cuts the output ("Output too large"). It then has to read the line in slices and join them by hand; here one join fell on a space inside a label (`"SQL (private IP)"`). The per-drawing `created` check would catch a bad join that drops or changes items. It would not catch a changed label text or coordinate. Here the counts matched and the drawings look right | Wrapping the `D` data over several lines (for example one item per line) would let the script be read and passed on without slicing. The per-script `bytes` the CLI prints could also be stated as a check of the text before the call |
+| N5 | Low (found by reading the code, not run on the board) | When two sections hold shapes of the same run, the script redraws only the last one in page order (`page.children.filter(isOurs).pop()`). This can happen when a user duplicates a Zukai section in FigJam, since copies keep their names. The other copy keeps the old drawing without a warning | `isOurs` and `.pop()` in every native script. This is probably acceptable; the result's `section` id names the one that was redrawn |
+
+No High or Medium finding.
+
+### Processes
+
+No long-running process was started. `ps` shows only the MCP PDF server that was running
+before.
