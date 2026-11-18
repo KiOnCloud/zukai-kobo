@@ -69,11 +69,17 @@ export function openInDrawio({ run, name, embed, notice, wait = WAIT_MS, win = w
   return stop;
 }
 
-/** The button: secondary by default, a ghost icon button inside a table row. */
-export function openButton({ run, name, store, notice, compact = false }) {
+/**
+ * The button, styled for its place: `header` (the run's combined file) is secondary like the
+ * header's other actions; `diagram` (the Picture bar, one diagram's file) is ghost like the bar's
+ * light controls and named apart from the header's; `row` (a row of Files) is a ghost icon
+ * button like Download beside it.
+ * @param {{ place?: 'header' | 'diagram' | 'row' }} options
+ */
+export function openButton({ run, name, store, notice, place = 'header' }) {
   const title = name.split('/').pop();
   const onClick = () => openInDrawio({ run, name, embed: embedOf(store), notice });
-  return compact
-    ? S().Button({ label: `Open ${title} in draw.io`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'external', onClick })
-    : S().Button({ label: 'Open in draw.io', variant: 'secondary', size: 'sm', icon: 'external', onClick });
+  if (place === 'row') return S().Button({ label: `Open ${title} in draw.io`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'external', onClick });
+  if (place === 'diagram') return S().Button({ label: 'Open this diagram in draw.io', variant: 'ghost', size: 'sm', icon: 'external', onClick });
+  return S().Button({ label: 'Open in draw.io', variant: 'secondary', size: 'sm', icon: 'external', onClick });
 }

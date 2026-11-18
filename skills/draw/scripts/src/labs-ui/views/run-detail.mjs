@@ -60,7 +60,7 @@ export function runDetail({ store, run, tab = 'picture', diagram: startDiagram, 
   // A run's draw.io files: the combined <run-slug>.drawio, and drawio/<id>.drawio per diagram.
   const hasFile = (name) => detail.files.some((f) => f.name === name);
   const combinedName = () => `${run.replace(/^\d{8}_/, '')}.drawio`;
-  const openIn = (name, compact) => openButton({ run, name, store, notice, compact });
+  const openIn = (name, place) => openButton({ run, name, store, notice, place });
 
   // ---------------------------------------------------------------- picture
   const fresh = (id) => {
@@ -78,7 +78,7 @@ export function runDetail({ store, run, tab = 'picture', diagram: startDiagram, 
       h('div', { class: 'zl-row' },
         svg ? S().Tabs({ variant: 'segment', panel: false, label: 'Size of the picture', value: fit ? 'fit' : 'full', items: [{ value: 'fit', label: 'Fit' }, { value: 'full', label: 'Actual size' }], onChange: (v) => { fit = v === 'fit'; frame.firstChild?.classList.toggle('zl-picture-full', !fit); } }) : null,
         h('span', { class: 'caption zl-muted' }, svg ? `From svg/ · ${ago(svg.modified)}` : 'Drawn live from the model'),
-        hasFile(`drawio/${diagram}.drawio`) ? openIn(`drawio/${diagram}.drawio`) : null));
+        hasFile(`drawio/${diagram}.drawio`) ? openIn(`drawio/${diagram}.drawio`, 'diagram') : null));
     replace(panel, bar, frame);
     if (!svg) {
       if (extraTabs.livePicture) { replace(frame, extraTabs.livePicture.render({ run, diagram, onExport: exportPictures, onTables: () => switchTo('tables') })); return; }
@@ -172,7 +172,7 @@ export function runDetail({ store, run, tab = 'picture', diagram: startDiagram, 
         S().Button({ label: `Preview ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'search', onClick: () => { replace(preview, h('div', { class: 'zl-row zl-spread' }, h('h3', { class: 'heading-sm' }, h('span', { class: 'code' }, f.name)), S().Button({ label: 'Close the preview', variant: 'ghost', size: 'sm', onClick: () => replace(preview) })), fileView({ run, name: f.name })); preview.scrollIntoView?.({ block: 'nearest' }); } }),
         S().Button({ label: 'Copy path', variant: 'ghost', size: 'sm', onClick: () => copyText(`diagrams/${run}/${f.name}`, (t) => say('warning', `The browser did not allow copying. The path is ${t}.`)).then((ok) => { if (ok) say('success', `Copied diagrams/${run}/${f.name}`); }) }),
         S().Button({ label: `Download ${f.name}`, variant: 'ghost', size: 'sm', iconOnly: true, icon: 'download', onClick: () => download(f.name) }),
-        f.name.endsWith('.drawio') ? openIn(f.name, true) : null) },
+        f.name.endsWith('.drawio') ? openIn(f.name, 'row') : null) },
     ];
     if (detail.files.length === 0) { replace(panel, h('p', { class: 'body zl-muted' }, 'This run has no files yet.')); return; }
     replace(panel, keys.map((k) => h('section', { class: 'zl-stack' }, h('h3', { class: 'eyebrow' }, `${k} · ${groups.get(k).length}`), S().Table({ columns, rows: groups.get(k), caption: `Files of diagrams/${run}${k === 'Run folder' ? '' : `/${k}`}`, dense: true }))), preview);

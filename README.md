@@ -326,8 +326,9 @@ console (a `/zukai:revise` in another terminal) asks `labs holds <run>` before i
 run and stops when a console job is working on it. That check only warns; it is not a lock,
 so do not change one run from two sessions at once.
 
-A run with a draw.io file shows **Open in draw.io** in its header, on each `.drawio` row of
-Files and in the Picture of each diagram. It opens draw.io on the web in a window of its
+A run with a draw.io file shows **Open in draw.io** in its header (the whole run), **Open
+this diagram in draw.io** above the Picture of a diagram, and an open icon on each `.drawio`
+row of Files. Each opens draw.io on the web in a window of its
 own and hands it the file, as the chat's `open` does; Save downloads the file. If nothing
 opens, allow pop-ups for the console's address.
 

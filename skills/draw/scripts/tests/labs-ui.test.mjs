@@ -229,8 +229,14 @@ describe('Open in draw.io', () => {
     const store = mods.store.createStore({ state: { drawio: { embed: EMBED } }, asking: false });
     const view = mods.detail.runDetail({ store, run: '20261110_checkout' });
     await flush();
+    // One button per name: the header opens the run's combined file, Picture the diagram's own.
     expect(buttons(header(view.element), 'Open in draw.io')).toHaveLength(1);
-    expect(buttons(view.element.querySelector('[role="tabpanel"]'), 'Open in draw.io')).toHaveLength(1);
+    expect(buttons(view.element, 'Open in draw.io')).toHaveLength(1);
+    const own = buttons(view.element.querySelector('[role="tabpanel"]'), 'Open this diagram in draw.io');
+    expect(own).toHaveLength(1);
+    expect(own[0].classList.contains('sn-btn-ghost')).toBe(true);
+    // Secondary is Sienna's default variant: no class of its own, and not ghost.
+    expect(buttons(header(view.element), 'Open in draw.io')[0].classList.contains('sn-btn-ghost')).toBe(false);
     const files = mods.detail.runDetail({ store, run: '20261110_checkout', tab: 'files' });
     await flush();
     expect(buttons(files.element, 'Open checkout.drawio in draw.io')).toHaveLength(2);
@@ -241,6 +247,7 @@ describe('Open in draw.io', () => {
     const none = mods.detail.runDetail({ store, run: '20261110_checkout' });
     await flush();
     expect(buttons(none.element, 'Open in draw.io')).toHaveLength(0);
+    expect(buttons(none.element, 'Open this diagram in draw.io')).toHaveLength(0);
   });
 
   it('opens the embed page from the click, loads the file only for that window and origin, and downloads a save', async () => {
