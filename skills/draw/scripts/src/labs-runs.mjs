@@ -13,7 +13,8 @@ import { lstatSync, readFileSync, readdirSync, realpathSync, existsSync } from '
 import { createHash } from 'node:crypto';
 import { join, relative, sep } from 'node:path';
 import { validateIr } from './validate-ir.mjs';
-import { bundle, inspect, DOC_LANGS } from './pipeline.mjs';
+import { bundle, emit, inspect, DOC_LANGS } from './pipeline.mjs';
+import { drawioPages, withoutDataLinks } from './export-svg.mjs';
 import { orderIrFiles, runSlugOf } from './run-order.mjs';
 import { listRevisions } from './revisions.mjs';
 import { staleRun, RECORD_SUFFIX } from './sources.mjs';
@@ -220,4 +221,34 @@ export function changesSince(root, run, rev) {
   if (!revisionNames(root, run).includes(rev)) return undefined;
   const dir = runPath(root, run);
   return diffRun(entriesOf(join(dir, 'history', rev, 'source')), entriesOf(join(dir, 'source')));
+}
+
+/**
+ * What the viewer frame draws for a diagram, with nothing in it that would reach outside: the
+ * draw.io page of the run when it has one (hand edits included), else its Mermaid text, else
+ * the page emitted from the IR in memory. Data links are taken off as `export` takes them off,
+ * and every picture address that is not `data:` is taken out of the cell styles and labels.
+ */
+export function cleanForViewer(xml) {
+  return withoutDataLinks(xml)
+    .replace(/(style="[^"]*?)(?:^|(?<=[";]))image=(?!data:)[^;"]*;?/g, '$1')
+    .replace(/((?:&lt;|<)img\b[^>]*?\bsrc=(?:&quot;|"|'))(?!data:)[^"'&]*/gi, '$1');
+}
+
+export async function diagramPicture(root, run, id) {
+  if (!diagramIds(root, run).includes(id)) return undefined;
+  const dir = runPath(root, run);
+  const file = (rel) => { const p = filePath(root, run, rel); return p ? readFileSync(p, 'utf8') : undefined; };
+  const drawio = file(`drawio/${id}.drawio`);
+  if (drawio !== undefined) {
+    const pages = drawioPages(drawio);
+    if (!pages.error) return { ok: true, kind: 'drawio', from: `drawio/${id}.drawio`, text: cleanForViewer(pages.pages[0].xml) };
+  }
+  const mmd = file(`mermaid/${id}.mmd`);
+  if (mmd !== undefined) return { ok: true, kind: 'mermaid', from: `mermaid/${id}.mmd`, text: mmd };
+  const ir = readJson(join(dir, 'source', `${id}.ir.json`));
+  if (!ir || !validateIr(ir).ok) return { ok: false, errors: [{ path: '/', message: 'the IR does not pass validation' }] };
+  const r = await emit(ir, 'drawio', { allowSensitive: true, diagramId: id });
+  if (!r.ok) return { ok: false, errors: r.errors };
+  return { ok: true, kind: 'drawio', from: `source/${id}.ir.json`, text: cleanForViewer(r.output) };
 }

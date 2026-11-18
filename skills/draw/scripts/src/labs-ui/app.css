@@ -105,3 +105,8 @@
   .zl-rail { grid-column: 1; }
   .zl-main { padding: var(--space-6) var(--space-4); }
 }
+
+.zl-frame { display: block; border: 0; background: #ffffff; max-width: 100%; }
+.zl-labels { display: flex; flex-direction: column; gap: var(--space-3); }
+.zl-json textarea { font-family: var(--font-mono); }
+.zl-findings { display: flex; flex-direction: column; gap: var(--space-2); }

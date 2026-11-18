@@ -63,9 +63,9 @@ jobs:
         working-directory: skills/draw/scripts
         run: npm test
 
-      - name: Assert the bundle is committed
+      - name: Assert the bundle and the console pages are committed
         if: ${{ hashFiles('skills/draw/scripts/package.json') != '' }}
-        run: git ls-files --error-unmatch skills/draw/scripts/bin/cli.mjs
+        run: git ls-files --error-unmatch skills/draw/scripts/bin/cli.mjs skills/draw/scripts/bin/labs-ui/index.html skills/draw/scripts/bin/labs-ui/app.js skills/draw/scripts/bin/labs-ui/app.css skills/draw/scripts/bin/labs-ui/viewer.html
 
       - name: Install the Claude Code CLI for strict validation
         id: claude_cli

@@ -70,7 +70,7 @@ describe('the file', () => {
     ['a token pattern', { en: 'key AKIAABCDEFGHIJKLMNOP' }],
     ['a mail address', { en: 'mail jane.doe@acme.co.jp' }],
     ['a line break', { en: 'two\nlines' }],
-    ['a direction mark', { en: 'office‮' }],
+    ['a direction mark', { en: 'office\u202E' }],
     ['81 characters', { en: 'x'.repeat(81) }],
   ])('refuses a term that holds %s, and leaves the file unchanged', (_, terms) => {
     const root = copyProject();

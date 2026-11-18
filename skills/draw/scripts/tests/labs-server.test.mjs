@@ -8,12 +8,14 @@ import { request as httpRequest } from 'node:http';
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createLabsServer, makeLogger, CONSOLE_CSP, proofOf, originError } from '../src/labs-server.mjs';
+import { createLabsServer, makeLogger, CONSOLE_CSP, proofOf, originError, viewerScriptHash } from '../src/labs-server.mjs';
+import { cleanForViewer } from '../src/labs-runs.mjs';
 import { readGlossary } from '../src/glossary.mjs';
 import { createJobs } from '../src/labs-jobs.mjs';
 import { labsProject, hashTree } from './labs-project.mjs';
 
 const TOKEN = 'test-token-0123456789abcdefghijklmnopqrstuv';
+const VIEWER_PAGE = '<!doctype html><title>v</title><div id="drawing"></div><script>window.parent.postMessage({ ready: true }, "*");</script>';
 const p = labsProject();
 const logDir = mkdtempSync(join(tmpdir(), 'zukai-labs-log-'));
 const logPath = join(logDir, 'server.log');
@@ -52,6 +54,7 @@ const ROUTES = () => [
   { method: 'GET', path: `/api/runs/${p.runs.checkout}` },
   { method: 'GET', path: `/api/runs/${p.runs.checkout}/diagrams/checkout` },
   { method: 'GET', path: `/api/runs/${p.runs.checkout}/doc?lang=ja` },
+  { method: 'GET', path: `/api/runs/${p.runs.checkout}/diagrams/checkout/picture` },
   { method: 'GET', path: `/api/runs/${p.runs.checkout}/revisions/r001/changes` },
   { method: 'GET', path: `/api/runs/${p.runs.checkout}/files/${encodeURIComponent('svg/checkout.drawio.svg')}` },
   { method: 'POST', path: '/api/validate', body: { ir: IR } },
@@ -69,7 +72,7 @@ const ROUTES = () => [
 ];
 
 beforeAll(async () => {
-  const pages = new Map([['/index.html', { type: 'text/html; charset=utf-8', bytes: Buffer.from('<!doctype html><title>t</title>') }]]);
+  const pages = new Map([['/index.html', { type: 'text/html; charset=utf-8', bytes: Buffer.from('<!doctype html><title>t</title>') }], ['/viewer.html', { type: 'text/html; charset=utf-8', bytes: Buffer.from(VIEWER_PAGE) }]]);
   pages.set('/', pages.get('/index.html'));
   const jobs = createJobs({ root: p.root });
   jobs.started();
@@ -131,7 +134,7 @@ describe('request checks', () => {
 describe('parameters', () => {
   const bad = ['..', '%2E%2E', '%2Fetc%2Fpasswd', '20261113_link', 'notes', '20261114_file', 'nope', '%ZZ'];
   it.each(bad)('a run named %s is 404 on every run route', async (name) => {
-    for (const path of [`/api/runs/${name}`, `/api/runs/${name}/diagrams/secret`, `/api/runs/${name}/doc`, `/api/runs/${name}/revisions/r001/changes`, `/api/runs/${name}/files/passwd`, `/api/glossary/check?run=${name}`]) {
+    for (const path of [`/api/runs/${name}`, `/api/runs/${name}/diagrams/secret`, `/api/runs/${name}/diagrams/secret/picture`, `/api/runs/${name}/doc`, `/api/runs/${name}/revisions/r001/changes`, `/api/runs/${name}/files/passwd`, `/api/glossary/check?run=${name}`]) {
       expect((await raw({ path })).status, path).toBe(404);
     }
   });
@@ -139,7 +142,7 @@ describe('parameters', () => {
   it('looks up diagrams, revisions, languages, files and entries in listings', async () => {
     const run = `/api/runs/${p.runs.checkout}`;
     for (const path of [
-      `${run}/diagrams/..%2Fcheckout`, `${run}/diagrams/checkout.ir.json`, `${run}/diagrams/nope`,
+      `${run}/diagrams/..%2Fcheckout`, `${run}/diagrams/checkout.ir.json`, `${run}/diagrams/nope`, `${run}/diagrams/nope/picture`, `${run}/diagrams/..%2Fcheckout/picture`,
       `${run}/doc?lang=fr`, `${run}/doc?lang=..`,
       `${run}/revisions/r999/changes`, `${run}/revisions/..%2Fr001/changes`,
       `${run}/files/${encodeURIComponent('../20261109_login-flow/source/login-flow.ir.json')}`,
@@ -202,5 +205,29 @@ describe('what the server never does', () => {
     expect(log).not.toContain(marker);
     expect(log).not.toContain(TOKEN);
     expect(log).toMatch(/"route":"\/api\/runs\/:run","status":404/);
+  });
+});
+
+describe('the viewer frame', () => {
+  it('sends the viewer page sandboxed, framed by the console alone, its one script allowed by hash', async () => {
+    const page = await raw({ path: '/viewer.html', token: null });
+    expect(page.status).toBe(200);
+    const hash = viewerScriptHash(VIEWER_PAGE);
+    expect(page.headers['content-security-policy']).toBe(`sandbox allow-scripts; default-src 'none'; script-src 'sha256-${hash}' https://viewer.diagrams.net https://cdn.jsdelivr.net/npm/mermaid@12.3.0/; style-src 'unsafe-inline'; img-src data: blob:; connect-src https://viewer.diagrams.net; frame-ancestors 'self'`);
+    expect(page.headers['x-frame-options']).toBe('SAMEORIGIN');
+  });
+
+  it('refuses a call from inside the frame, whose Origin is null', async () => {
+    expect((await raw({ path: '/api/state', headers: { Origin: 'null' } })).status).toBe(403);
+  });
+
+  it('gives the picture of a diagram without data links or foreign picture addresses', async () => {
+    const r = await raw({ path: `/api/runs/${p.runs.checkout}/diagrams/checkout/picture` });
+    expect(r.json).toMatchObject({ ok: true, kind: 'drawio', from: 'source/checkout.ir.json' });
+    expect(r.json.text).toContain('<mxfile');
+    const cleaned = cleanForViewer('<mxCell style="shape=image;image=https://evil.example/x.png;html=1" value="&lt;img src=&quot;https://evil.example/t.gif&quot;&gt;ok"/><mxCell style="image=data:image/png,AAA;"/><UserObject label="a" link="data:page/id,x">');
+    expect(cleaned).not.toContain('evil.example');
+    expect(cleaned).not.toContain('link="data:');
+    expect(cleaned).toContain('image=data:image/png,AAA;');
   });
 });

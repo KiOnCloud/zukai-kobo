@@ -56,7 +56,7 @@ describe('Sienna in the console', () => {
     // 1px is the hairline width Sienna's own stylesheet writes (it has no token for a border
     // width); 100vh is the height of the window; the white ground of a picture is the one
     // colour that must not follow the theme, since a diagram is drawn for a white page.
-    const allowed = (d) => /^border(-(left|right|top|bottom))?: 1px solid var\(--border\)$/.test(d.decl) || d.decl === 'min-height: 100vh' || (d.selector === '.zl-picture' && d.decl === 'background: #ffffff');
+    const allowed = (d) => /^border(-(left|right|top|bottom))?: 1px solid var\(--border\)$/.test(d.decl) || d.decl === 'min-height: 100vh' || (['.zl-picture', '.zl-frame'].includes(d.selector) && d.decl === 'background: #ffffff');
     const offenders = declarations.filter((d) => literal.test(d.decl.replace(/var\([^)]*\)/g, '')) && !allowed(d));
     expect(offenders).toEqual([]);
   });

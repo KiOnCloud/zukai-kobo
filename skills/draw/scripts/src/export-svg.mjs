@@ -77,7 +77,7 @@ export function selectPages(pages, wanted) {
 }
 
 /** The page as the renderer gets it: links to other pages and draw.io actions taken off. */
-const withoutDataLinks = (xml) => xml.replace(/(<UserObject\b[^>]*?)\s+link="data:[^"]*"/g, '$1');
+export const withoutDataLinks = (xml) => xml.replace(/(<UserObject\b[^>]*?)\s+link="data:[^"]*"/g, '$1');
 
 const fileSafe = (text) => String(text).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}._-]+/gu, '-').replace(/^[-.]+|[-.]+$/g, '');
 

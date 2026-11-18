@@ -169,3 +169,39 @@ write is sent, and again by the server.
   that the diagram does not leave the machine.
 - The model editor sends an IR to the server for validation only; it is stored only as
   part of a job the user queued.
+
+## Viewer trial (2026-11-18)
+
+Run with Playwright's Chromium against the labs server, one fixture of each draw.io kind,
+the AWS architecture fixture and a Mermaid run, each posted to `viewer.html` in a frame with
+`sandbox="allow-scripts"` under the frame's own policy.
+
+| Case | Drawn | Size | Blocked by the policy |
+|---|---|---|---|
+| flowchart/valid | yes | 481 × 985 | nothing |
+| sequence/valid | yes | 766 × 802 | nothing |
+| state/valid | yes | 465 × 1316 | nothing |
+| er/valid | yes | 483 × 770 | nothing |
+| class/valid | yes | 405 × 1106 | nothing |
+| architecture/valid | yes | 2128 × 463 | nothing |
+| activity/valid-two-lanes | yes | 702 × 860 | nothing |
+| usecase/valid | yes | 983 × 447 | nothing |
+| architecture/valid-aws | yes, icons missing | 1602 × 637 | `connect-src 'none'` blocked `stencils/aws4.xml` and `stencils/networks.xml` of viewer.diagrams.net |
+| Mermaid state | yes | 300 × 720 | nothing |
+
+Outcome: the second of step 2. `connect-src https://viewer.diagrams.net` is allowed and
+nothing else; with it the AWS fixture draws with every icon. The script comes from the same
+host, so no further party sees the diagram.
+
+Three findings changed how the frame is built, none its rules:
+
+- A sandboxed page has an origin of its own, so a script it fetches from the console's host
+  is a cross-origin response: a module script fails for want of CORS, a classic one is
+  refused by Opaque Response Blocking. The server sends no CORS header, ever, so the
+  viewer's script is inlined into `viewer.html` and the policy allows it by its SHA-256 hash
+  in place of `'self'`, which is narrower.
+- The frame's policy adds `frame-ancestors 'self'` and the page is sent with
+  `X-Frame-Options: SAMEORIGIN`, since every other response of the server says `DENY`.
+- draw.io's viewer lays nothing out in a box without width; the frame draws in a block of
+  its own and shows the SVG of the page, as `export` does. Inside the sandbox the viewer's
+  `localStorage` throws `SecurityError` and the viewer carries on without it.

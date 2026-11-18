@@ -25,8 +25,8 @@ import { basename, dirname, extname, join } from 'node:path';
 import { validateIr } from './validate-ir.mjs';
 import { inspect, DOC_LANGS } from './pipeline.mjs';
 import { labelsOf } from './ir-labels.mjs';
-import { readGlossary, writeGlossary, addEntries, checkRuns, STATUSES, newEntryErrors, projectRoot } from './glossary.mjs';
-import { listRuns, runNames, runPath, runDetail, diagramIds, diagramDetail, runDoc, revisionNames, changesSince, filePath, diagramsDir } from './labs-runs.mjs';
+import { readGlossary, writeGlossary, addEntries, checkRuns, checkGlossary, STATUSES, newEntryErrors, projectRoot } from './glossary.mjs';
+import { listRuns, runNames, runPath, runDetail, diagramIds, diagramDetail, runDoc, revisionNames, changesSince, filePath, diagramsDir, diagramPicture } from './labs-runs.mjs';
 
 export const APP = 'zukai-labs';
 export const MAX_BODY = 1024 * 1024;
@@ -34,6 +34,21 @@ const LOG_CAP = 1024 * 1024;
 
 export const CONSOLE_CSP = "default-src 'none'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' blob: data:; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
 const API_CSP = "default-src 'none'; frame-ancestors 'none'";
+/**
+ * The page inside the viewer frame: sandboxed (an origin of its own, so no storage of the
+ * console, no token and an Origin the API refuses), its one inline script by hash and the
+ * scripts of the two renderers, and connections to the viewer's own host only, which serves
+ * the stencil files of AWS and other shape libraries (the trial before the frame was built
+ * showed them blocked otherwise). The script comes from that host too, so no further party
+ * can receive the diagram. It may be framed by the console alone.
+ */
+export const viewerCsp = (scriptHash) => `sandbox allow-scripts; default-src 'none'; script-src 'sha256-${scriptHash}' https://viewer.diagrams.net https://cdn.jsdelivr.net/npm/mermaid@12.3.0/; style-src 'unsafe-inline'; img-src data: blob:; connect-src https://viewer.diagrams.net; frame-ancestors 'self'`;
+
+/** The SHA-256 (base64) of the one inline script of the viewer page, which its policy allows. */
+export function viewerScriptHash(html) {
+  const m = /<script>([\s\S]*?)<\/script>/.exec(html ?? '');
+  return m ? createHash('sha256').update(m[1], 'utf8').digest('base64') : 'none';
+}
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -148,6 +163,7 @@ export function createLabsServer(options) {
   const now = options.now ?? Date.now;
   const idleMs = options.idleMs ?? 30 * 60_000;
   const jobs = options.jobs;
+  const viewerPolicy = viewerCsp(viewerScriptHash(pages.get('/viewer.html')?.bytes.toString('utf8')));
   let counter = 0;
   let lastActivity = now();
   let closing = false;
@@ -201,6 +217,13 @@ export function createLabsServer(options) {
       if (!diagramIds(root, run).includes(params.id)) throw notFound();
       return { body: diagramDetail(root, run, params.id) };
     }],
+    ['GET', '/api/runs/:run/diagrams/:id/picture', async ({ params }) => {
+      const run = runOf(params);
+      if (!diagramIds(root, run).includes(params.id)) throw notFound();
+      const picture = await diagramPicture(root, run, params.id);
+      if (!picture.ok) throw new HttpError(422, 'invalid', 'this diagram cannot be drawn', { errors: picture.errors });
+      return { body: picture };
+    }],
     ['GET', '/api/runs/:run/doc', async ({ params, query }) => {
       const run = runOf(params);
       const lang = query.get('lang') ?? 'en';
@@ -223,7 +246,10 @@ export function createLabsServer(options) {
     ['POST', '/api/validate', ({ req }) => {
       const ir = body(req).ir;
       const result = validateIr(ir);
-      return { body: { ok: result.ok, errors: result.errors, warnings: result.ok ? inspect(ir) : [], labels: result.ok ? labelsOf(ir) : [] } };
+      // The glossary's findings for the labels of the edited IR: the avoided words of confirmed entries.
+      const read = result.ok ? readGlossary(root) : undefined;
+      const glossary = read?.ok && read.exists ? checkGlossary(read.glossary, [{ run: 'edit', originals: [{ id: 'edit', ir }], variants: [], maps: [] }]).findings : [];
+      return { body: { ok: result.ok, errors: result.errors, warnings: result.ok ? inspect(ir) : [], labels: result.ok ? labelsOf(ir) : [], glossary } };
     }],
     ['GET', '/api/glossary', () => {
       const read = readGlossary(root);
@@ -324,7 +350,8 @@ export function createLabsServer(options) {
       if (req.method !== 'GET') { refuse(res, 405, 'method', 'method not allowed'); return done(405); }
       const page = pages.get(path) ?? (path === '/' && pages.size === 0 ? { type: TYPES['.html'], bytes: NO_PAGES } : undefined);
       if (!page) { refuse(res, 404, 'not-found', 'no such page'); return done(404); }
-      send(res, 200, page.bytes, { 'Content-Type': page.type, 'Content-Security-Policy': options.pageCsp?.(path) ?? CONSOLE_CSP });
+      const viewer = path === '/viewer.html';
+      send(res, 200, page.bytes, { 'Content-Type': page.type, 'Content-Security-Policy': viewer ? viewerPolicy : CONSOLE_CSP, ...(viewer ? { 'X-Frame-Options': 'SAMEORIGIN' } : {}) });
       return done(200);
     }
     if (!sameToken(req.headers['x-zukai-token'], tokenOf())) { refuse(res, 403, 'forbidden', 'the token is missing or wrong', { hint: 'open the URL that labs status prints' }); return done(403); }

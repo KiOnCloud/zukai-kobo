@@ -17,7 +17,7 @@ export const RUN_TABS = [
 
 export function runDetail({ store, run, tab = 'picture', extraTabs = {} }) {
   const element = h('div', { class: 'zl-page' });
-  const tabs = [...RUN_TABS, ...Object.values(extraTabs).map((t) => t.tab)];
+  const tabs = [...RUN_TABS, ...Object.values(extraTabs).filter((t) => t.tab).map((t) => t.tab)];
   let detail = null;
   let current = tabs.some((t) => t.value === tab) ? tab : 'picture';
   let diagram = null;
@@ -50,7 +50,7 @@ export function runDetail({ store, run, tab = 'picture', extraTabs = {} }) {
     const show = async () => {
       const svg = fresh(diagram);
       if (!svg) {
-        if (extraTabs.livePicture) { replace(frame, extraTabs.livePicture.render({ run, diagram, onExport: exportPictures })); return; }
+        if (extraTabs.livePicture) { replace(frame, extraTabs.livePicture.render({ run, diagram, onExport: exportPictures, onTables: () => switchTo('tables') })); return; }
         replace(frame, h('div', { class: 'zl-empty' }, h('p', { class: 'display-sm' }, 'No picture yet'), S().Button({ label: 'Export pictures', variant: 'secondary', onClick: exportPictures })));
         return;
       }
@@ -165,9 +165,16 @@ export function runDetail({ store, run, tab = 'picture', extraTabs = {} }) {
     h('div', { class: 'zl-row' }, S().Checkbox({ label: 'Show me drafts first', onChange: (e) => { state.preview = e.target.checked; } }), send));
   }
 
+  let tabList = null;
+  function switchTo(value) {
+    current = value;
+    window.history.replaceState(null, '', `#/diagrams/${encodeURIComponent(run)}/${value}`);
+    render();
+  }
+
   function render() {
     if (!detail) { replace(element, h('p', { class: 'body zl-muted' }, 'Reading the run')); return; }
-    const tabList = S().Tabs({ items: tabs, value: current, panel: false, label: 'Views of this run', onChange: (v) => { current = v; window.history.replaceState(null, '', `#/diagrams/${encodeURIComponent(run)}/${v}`); showTab(); } });
+    tabList = S().Tabs({ items: tabs, value: current, panel: false, label: 'Views of this run', onChange: (v) => { current = v; window.history.replaceState(null, '', `#/diagrams/${encodeURIComponent(run)}/${v}`); showTab(); } });
     element.dataset.asking = String(Boolean(store.get().asking));
     replace(element, header(), tabList, panel);
     showTab();

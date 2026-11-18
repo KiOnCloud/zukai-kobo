@@ -54,7 +54,7 @@ const DRAW_TARGETS = TARGETS;
 const REV_RE = /^r\d{3,}$/;
 const HEX64 = /^[0-9a-f]{64}$/;
 const BOARD_LINK = /^https:\/\/(www\.)?figma\.com\/board\/[A-Za-z0-9]{10,}(\/[^\s]*)?$/;
-const CONTROL = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F؜‎‏‪-‮⁦-⁩]/;
+const CONTROL = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/;
 
 /** A job's parameters, by kind: the name of each and the check of its value. */
 function kindSpecs(ctx) {

@@ -41,6 +41,10 @@ beforeAll(async () => {
     detail: await import('../src/labs-ui/views/run-detail.mjs'),
     main: await import('../src/labs-ui/main.mjs'),
     words: await import('../src/labs-ui/words.mjs'),
+    editor: await import('../src/labs-ui/views/model-editor.mjs'),
+    glossary: await import('../src/labs-ui/views/glossary.mjs'),
+    frame: await import('../src/labs-ui/viewer/frame.mjs'),
+    nav: await import('../src/labs-ui/nav.mjs'),
   };
 });
 
@@ -197,5 +201,87 @@ describe('views', () => {
     const page = mods.main.noTokenPage();
     expect(page.textContent).toContain('Open the console with its URL');
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('the second half of the console', () => {
+  const stateIr = { schemaVersion: 1, kind: 'state', title: 'Order', states: [{ id: 'a', label: 'Open' }, { id: 'b', label: 'Paid' }], transitions: [{ id: 't1', from: 'a', to: 'b', event: 'pay', guard: 'card valid' }] };
+  const labels = [
+    { path: '/title', collection: null, id: null, field: 'title', text: 'Order' },
+    { path: '/states/0/label', collection: 'states', id: 'a', field: 'label', text: 'Open' },
+    { path: '/states/1/label', collection: 'states', id: 'b', field: 'label', text: 'Paid' },
+    { path: '/transitions/0/event', collection: 'transitions', id: 't1', field: 'event', text: 'pay' },
+    { path: '/transitions/0/guard', collection: 'transitions', id: 't1', field: 'guard', text: 'card valid' },
+  ];
+
+  it('shows every label in the form, a guard included, and keeps Save disabled until a changed IR passed validation', async () => {
+    let valid = false;
+    routes = [
+      ['GET', /\/diagrams\/order$/, () => respond(200, { id: 'order', rev: 'a'.repeat(64), ir: stateIr, labels, errors: [], warnings: [] })],
+      ['POST', /\/api\/validate$/, () => respond(200, valid ? { ok: true, errors: [], warnings: [], labels, glossary: [] } : { ok: false, errors: [{ path: '/transitions/0/guard', message: 'must not be empty' }], warnings: [], labels: [], glossary: [] })],
+    ];
+    const panel = document.createElement('div');
+    const queued = [];
+    mods.editor.modelEditor({ panel, run: 'r', detail: { diagrams: [{ id: 'order', title: 'Order' }] }, queue: (kind, params) => queued.push({ kind, params }) });
+    await flush();
+    const inputs = [...panel.querySelectorAll('input.sn-input')];
+    expect(inputs.map((i) => i.value)).toEqual(['Order', 'Open', 'Paid', 'pay', 'card valid']);
+    const save = [...panel.querySelectorAll('button')].find((b) => b.textContent === 'Save changes');
+    expect(save.disabled).toBe(true);
+    inputs[4].value = '';
+    inputs[4].dispatchEvent(new window.Event('input', { bubbles: true }));
+    [...panel.querySelectorAll('button')].find((b) => b.textContent === 'Validate').click();
+    await flush();
+    expect(panel.textContent).toContain('must not be empty');
+    expect([...panel.querySelectorAll('button')].find((b) => b.textContent === 'Save changes').disabled).toBe(true);
+    valid = true;
+    const field = [...panel.querySelectorAll('input.sn-input')][4];
+    field.value = 'card checked';
+    field.dispatchEvent(new window.Event('input', { bubbles: true }));
+    [...panel.querySelectorAll('button')].find((b) => b.textContent === 'Validate').click();
+    await flush();
+    const enabled = [...panel.querySelectorAll('button')].find((b) => b.textContent === 'Save changes');
+    expect(enabled.disabled).toBe(false);
+    enabled.click();
+    expect(queued).toEqual([{ kind: 'apply-edit', params: { diagram: 'order', baseRev: 'a'.repeat(64), ir: { ...stateIr, transitions: [{ ...stateIr.transitions[0], guard: 'card checked' }] } } }]);
+  });
+
+  it('refuses a term of 81 characters or with a line break in the form', () => {
+    expect(mods.glossary.termProblem('x'.repeat(80))).toBeUndefined();
+    expect(mods.glossary.termProblem('x'.repeat(81))).toBe('At most 80 characters.');
+    expect(mods.glossary.termProblem('a\nb')).toMatch(/One line/);
+    expect(mods.glossary.termProblem('n'.repeat(281), 280)).toBe('At most 280 characters.');
+  });
+
+  it('sends no write from the entry dialog for a term of 81 characters', async () => {
+    routes = [['GET', /\/api\/glossary$/, () => respond(200, { exists: true, rev: 'r1', glossary: { schemaVersion: 1, entries: [] } })], ['GET', /\/api\/runs$/, () => respond(200, { runs: [] })]];
+    const view = mods.glossary.glossarySection({ store: mods.store.createStore({}) });
+    document.body.appendChild(view.element);
+    await flush();
+    [...view.element.querySelectorAll('button')].find((b) => b.textContent.includes('Add entry')).click();
+    const dialog = document.querySelector('.sn-dialog');
+    const term = dialog.querySelector('input.sn-input');
+    term.value = 'x'.repeat(81);
+    term.dispatchEvent(new window.Event('input', { bubbles: true }));
+    [...dialog.querySelectorAll('button')].find((b) => b.textContent === 'Add the entry').click();
+    await flush();
+    expect(dialog.textContent).toContain('At most 80 characters.');
+    expect(calls.filter((c) => c.method !== 'GET')).toEqual([]);
+  });
+
+  it('takes a reply only from its own frame', async () => {
+    let fell = 0;
+    const figure = mods.frame.viewerFrame({ kind: 'drawio', text: '<mxfile/>', fallback: () => { fell += 1; return document.createElement('p'); }, wait: 200 });
+    document.body.appendChild(figure);
+    const frame = figure.querySelector('iframe');
+    expect(frame.getAttribute('sandbox')).toBe('allow-scripts');
+    window.dispatchEvent(new window.MessageEvent('message', { data: { seq: 1, ok: true, width: 10, height: 10 }, source: window }));
+    expect(frame.style.height).toBe('');
+    await new Promise((r) => setTimeout(r, 300));
+    expect(fell).toBe(1);
+  });
+
+  it('joins Glossary through one entry of the navigation', () => {
+    expect(mods.nav.SECTIONS.map((x) => x.id)).toEqual(['diagrams', 'glossary']);
   });
 });
