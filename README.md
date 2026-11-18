@@ -393,12 +393,13 @@ sources.
 
 ## Status
 
-Version 2.3.2 is the open beta; it states the FigJam call budget more exactly. Version
-2.3.1 drew an architecture whose main flow ran along the bottom of its frames through their
+Version 2.3.3 is the open beta; it says how to finish a FigJam board a call limit stopped
+midway, and version 2.3.2 states the FigJam call budget more exactly. Version 2.3.1 drew an architecture whose main flow ran along the bottom of its frames through their
 middle. Version 2.3.0 added `/zukai:sync`, the use case kind, the SVG pictures,
 the description tables, the picture of a change, the PlantUML reader and Google Cloud icons
 for architecture diagrams; version 2.2.0 added
 `/zukai:recook` and version 2.0.0 added `/zukai:revise`. Forks of the skill should read
+[Upgrading to 2.3.3](docs/install.md#upgrading-to-233),
 [Upgrading to 2.3.2](docs/install.md#upgrading-to-232),
 [Upgrading to 2.3.1](docs/install.md#upgrading-to-231),
 [Upgrading to 2.3.0](docs/install.md#upgrading-to-230),
