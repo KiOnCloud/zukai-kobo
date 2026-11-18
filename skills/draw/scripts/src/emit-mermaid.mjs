@@ -666,7 +666,9 @@ function emitActivity(ir, emit, t, stable, bundled) {
     const id = ids.get(c.id);
     const label = c.label ? t.label(c.label, `/controls/${i}/label`) : '';
     switch (c.kind) {
-      case 'initial': return stable ? `${id}((" "))` : `${id}@{ shape: sm-circ }`;
+      // Mermaid draws its "start" circle (`sm-circ`) hollow and paints it with no `style`, so
+      // the filled circle (`f-circ`) is UML's start node.
+      case 'initial': return stable ? `${id}((" "))` : `${id}@{ shape: f-circ }`;
       case 'final': return stable ? `${id}(((" ")))` : `${id}@{ shape: fr-circ }`;
       case 'fork': return stable ? `${id}[["${bar}"]]` : `${id}@{ shape: fork }`;
       case 'join': return stable ? `${id}[["${bar}"]]` : `${id}@{ shape: join }`;

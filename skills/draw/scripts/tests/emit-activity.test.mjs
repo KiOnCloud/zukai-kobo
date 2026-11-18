@@ -26,7 +26,9 @@ describe('activity kind', () => {
       expect(r.output).toContain('swimlane-beta TB');
       expect(r.output).toContain('@{ shape: fork }');
       expect(r.output).toContain('@{ shape: join }');
-      expect(r.output).toContain('@{ shape: sm-circ }');
+      // The start node is the filled circle: Mermaid draws its "start" circle hollow whatever the style says.
+      expect(r.output).toContain('@{ shape: f-circ }');
+      expect(r.output).not.toContain('sm-circ');
       expect(r.output).toContain('@{ shape: fr-circ }');
       expect(r.output).toContain('-->|"yes"|');
       expect(r.warnings.map((w) => w.feature ?? w.stage)).toEqual(['kind', 'emit']);

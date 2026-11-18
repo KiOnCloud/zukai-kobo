@@ -58,7 +58,17 @@ draw skill, as a table at https://github.com/KiOnCloud/zukai-kobo/blob/main/docs
   of blanks, painted by `style` lines at the end of the text. A classic node takes its size
   from its label, so a bar is as thick as a line of text, not thin, and Mermaid 12 draws the
   upright bar of a left-to-right diagram as a block, because it gives every box a minimum
-  width. Offer `--to drawio` for a real swimlane diagram with thin bars.
+  width. Offer `--to drawio` for a real swimlane diagram with thin bars. In `swimlane-beta`
+  the initial node is Mermaid's filled circle (`f-circ`), since its "start" circle
+  (`sm-circ`) is drawn hollow whatever the style says.
+- Mermaid's renderer, not the emitter, lays out every Mermaid picture, and some of what it
+  draws no line of the text can change. These are expected and are not defects of the IR:
+  in `swimlane-beta` a branch can leave its decision sideways, run over a lane header or
+  round the outer edge of the lanes before it reaches its target; in a `sequenceDiagram`
+  the dashed lifelines run through the text of a long message and through the condition of
+  a block (`[every 5 minutes]`), because Mermaid writes those texts without a background.
+  Shorter labels help a little; `--to drawio` lays the diagram out itself, routes the
+  branches between the lanes and keeps labels clear of the lifelines.
 - use case diagrams have no Mermaid equivalent either. The output is a `flowchart` (left to
   right unless the IR says otherwise): an actor is a box whose first line is «actor» (a
   person) or «system», a use case a stadium node, a boundary a subgraph, an association a

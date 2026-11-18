@@ -375,6 +375,14 @@ function parseFlowchart(lines, g, kind) {
     parseChain(s, line, g, stack.at(-1));
   });
   if (stack.length) g.warn(lines.at(-1)?.line ?? 0, `subgraph "${stack.at(-1)}" is not closed with "end"`);
+  // A filled circle is a junction where lines meet, or, with nothing coming in and something
+  // going out, the filled start node of an activity, which is how the emitter writes one.
+  const page = g.page;
+  for (const n of page.nodes) {
+    if (!n.dot) continue;
+    delete n.dot;
+    if (n.shape === 'bar' && !page.edges.some((e) => e.to === n.id) && page.edges.some((e) => e.from === n.id)) n.shape = 'initial';
+  }
 }
 
 function parseSubgraphHead(rest, g) {
@@ -450,9 +458,11 @@ function parseFlowNode(s, pos, g, parent) {
     const close = findClosingBrace(s, end + 1);
     if (close < 0) return null;
     const props = parseProps(s.slice(end + 2, close));
-    const shape = AT_SHAPES[String(props.shape ?? 'rect').toLowerCase()] ?? 'box';
+    const name = String(props.shape ?? 'rect').toLowerCase();
+    const shape = AT_SHAPES[name] ?? 'box';
     def = { shape, label: props.label !== undefined ? decodeLabel(props.label) : SILENT_SHAPES.has(shape) ? '' : id };
     if (props.icon) def.icon = props.icon;
+    if (name === 'f-circ' || name === 'filled-circle') def.dot = true;
     end = close + 1;
   } else {
     for (const [open, closers, shape] of FLOW_SHAPES) {
@@ -470,6 +480,7 @@ function parseFlowNode(s, pos, g, parent) {
     n.label = def.label;
     n.shape = def.shape;
     if (def.icon) n.icon = def.icon;
+    if (def.dot) n.dot = true;
   }
   return { id, end };
 }
