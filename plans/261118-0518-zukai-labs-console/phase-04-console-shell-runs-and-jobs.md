@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Phase 4: Console shell, runs and jobs"
-status: todo
+status: done
 priority: P1
 effort: "2.5d"
 dependencies: [2, 3]
@@ -63,19 +63,19 @@ it is one of the user's Design System artifacts and is found there by its name):
 
 ## Requirements
 
-- [ ] The token is read from the URL fragment once, kept for the tab, removed from the address bar and sent as `X-Zukai-Token`.
-- [ ] No data from the server is ever set as HTML; every text goes in as a text node, and no data is used as a link address, a class or a style.
-- [ ] Every colour, length, radius and shadow in the console's own styles is a Sienna token; no value is written out.
-- [ ] Every control is a Sienna component; the console adds layout, never a second button or table style.
-- [ ] The copied Sienna files are not edited; a check holds them to the version they were copied from.
-- [ ] The console loads nothing from another host: its fonts are its own files.
-- [ ] Light and dark follow the system's setting through `data-theme`.
-- [ ] The state of the agent is always visible; with no agent the page says "No agent attached" and how to attach one.
-- [ ] A job that waits for the user shows its text and its questions and takes the answers in the page.
-- [ ] A failed job says why, and which revisions of its run were written while it ran.
-- [ ] A run shows its picture from `svg/` without the network.
-- [ ] A further section joins through one entry in the navigation list and one view module.
-- [ ] The built files are deterministic and equal a fresh build, byte for byte.
+- [x] The token is read from the URL fragment once, kept for the tab, removed from the address bar and sent as `X-Zukai-Token`.
+- [x] No data from the server is ever set as HTML; every text goes in as a text node, and no data is used as a link address, a class or a style.
+- [x] Every colour, length, radius and shadow in the console's own styles is a Sienna token; no value is written out.
+- [x] Every control is a Sienna component; the console adds layout, never a second button or table style.
+- [x] The copied Sienna files are not edited; a check holds them to the version they were copied from.
+- [x] The console loads nothing from another host: its fonts are its own files.
+- [x] Light and dark follow the system's setting through `data-theme`.
+- [x] The state of the agent is always visible; with no agent the page says "No agent attached" and how to attach one.
+- [x] A job that waits for the user shows its text and its questions and takes the answers in the page.
+- [x] A failed job says why, and which revisions of its run were written while it ran.
+- [x] A run shows its picture from `svg/` without the network.
+- [x] A further section joins through one entry in the navigation list and one view module.
+- [x] The built files are deterministic and equal a fresh build, byte for byte.
 
 ## Design
 
@@ -238,18 +238,18 @@ once (phase 2); tests pass the folder in.
 
 ## Todo
 
-- [ ] Sienna copied and locked
-- [ ] Tokens compiled and tested
-- [ ] Fonts taken in, with licences and the coverage check
-- [ ] Page build and drift test
-- [ ] DOM, store and API helpers with tests
-- [ ] Token handling, theme and shell
-- [ ] Navigation and runs list
-- [ ] Run detail tabs
-- [ ] Job panel and question card
-- [ ] Run actions, draw and recook forms
-- [ ] Failed-job view
-- [ ] Sienna pass over every view
+- [x] Sienna copied and locked
+- [x] Tokens compiled and tested
+- [x] Fonts taken in, with licences and the coverage check
+- [x] Page build and drift test
+- [x] DOM, store and API helpers with tests
+- [x] Token handling, theme and shell
+- [x] Navigation and runs list
+- [x] Run detail tabs
+- [x] Job panel and question card
+- [x] Run actions, draw and recook forms
+- [x] Failed-job view
+- [x] Sienna pass over every view
 
 ## Success Criteria
 

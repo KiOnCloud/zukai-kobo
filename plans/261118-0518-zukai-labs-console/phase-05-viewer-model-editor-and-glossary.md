@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Phase 5: Viewer, model editor and Glossary section"
-status: todo
+status: done
 priority: P1
 effort: "2.5d"
 dependencies: [4]
@@ -34,13 +34,13 @@ first, because the rest of the Picture tab depends on whether it works.
 
 ## Requirements
 
-- [ ] The frame cannot read the token, call the API or open a connection to any host.
-- [ ] The frame gets the diagram with data links and foreign picture addresses removed.
-- [ ] The console takes a message only from its own frame; the frame only from its parent.
-- [ ] Without the network, or when the frame does not draw, the Picture tab says so and offers what still works.
-- [ ] An IR can be saved only when the server's validation passes; the save is a job.
-- [ ] The label form shows every label `labelsOf` returns, a transition's guard and an entity's rows included.
-- [ ] Glossary joins the console through one navigation entry, one view module, one route group and one job kind.
+- [x] The frame cannot read the token, call the API or open a connection to any host.
+- [x] The frame gets the diagram with data links and foreign picture addresses removed.
+- [x] The console takes a message only from its own frame; the frame only from its parent.
+- [x] Without the network, or when the frame does not draw, the Picture tab says so and offers what still works.
+- [x] An IR can be saved only when the server's validation passes; the save is a job.
+- [x] The label form shows every label `labelsOf` returns, a transition's guard and an entity's rows included.
+- [x] Glossary joins the console through one navigation entry, one view module, one route group and one job kind.
 
 ## Design
 
@@ -132,14 +132,14 @@ write is sent, and again by the server.
 
 ## Todo
 
-- [ ] Viewer trial, recorded
-- [ ] Picture route with cleaned text
-- [ ] Frame, viewer page and message checks
-- [ ] Mermaid in the viewer
-- [ ] Model editor
-- [ ] Glossary section
-- [ ] Playwright test
-- [ ] Keyboard and colour pass
+- [x] Viewer trial, recorded
+- [x] Picture route with cleaned text
+- [x] Frame, viewer page and message checks
+- [x] Mermaid in the viewer
+- [x] Model editor
+- [x] Glossary section
+- [x] Playwright test
+- [x] Keyboard and colour pass
 
 ## Success Criteria
 

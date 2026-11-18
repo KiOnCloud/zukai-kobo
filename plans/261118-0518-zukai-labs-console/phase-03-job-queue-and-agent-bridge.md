@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Phase 3: Job queue and agent bridge"
-status: todo
+status: done
 priority: P1
 effort: "2d"
 dependencies: [2]
@@ -42,17 +42,17 @@ other session see that a job holds a run before it starts a change of its own.
 
 ## Requirements
 
-- [ ] One job runs at a time; the next is handed out only when the one before is closed.
-- [ ] One agent session is attached at a time; a second is refused while the first is alive.
-- [ ] A job is validated when it is queued; an invalid one is refused and never reaches the agent.
-- [ ] The queue is bounded: 20 waiting jobs, then 429.
-- [ ] Job state survives a restart of the server; a job that was open then is closed as failed, with the reason.
-- [ ] A job that died is never taken up again; the console says which revisions were written while it ran.
-- [ ] The console can tell "no agent", "agent waiting", "agent working" and "agent silent on a job".
-- [ ] One ask can hold up to four questions and a text to read first; a call that ends before the answer is never an answer.
-- [ ] Every result of a `labs` command is one JSON object with exit code 0, 1 or 2; no new code is added.
-- [ ] Any session can ask whether a job holds a run, without writing anything.
-- [ ] Finished jobs are pruned to the latest 50, with their folders.
+- [x] One job runs at a time; the next is handed out only when the one before is closed.
+- [x] One agent session is attached at a time; a second is refused while the first is alive.
+- [x] A job is validated when it is queued; an invalid one is refused and never reaches the agent.
+- [x] The queue is bounded: 20 waiting jobs, then 429.
+- [x] Job state survives a restart of the server; a job that was open then is closed as failed, with the reason.
+- [x] A job that died is never taken up again; the console says which revisions were written while it ran.
+- [x] The console can tell "no agent", "agent waiting", "agent working" and "agent silent on a job".
+- [x] One ask can hold up to four questions and a text to read first; a call that ends before the answer is never an answer.
+- [x] Every result of a `labs` command is one JSON object with exit code 0, 1 or 2; no new code is added.
+- [x] Any session can ask whether a job holds a run, without writing anything.
+- [x] Finished jobs are pruned to the latest 50, with their folders.
 
 ## Design
 
@@ -213,16 +213,16 @@ Console routes: `POST /api/jobs` (queue), `GET /api/jobs`, `GET /api/jobs/:id`,
 
 ## Todo
 
-- [ ] State machine and its transition test
-- [ ] Checks per kind
-- [ ] Persistence, jobs closed at start, pruning
-- [ ] Sessions, contact and takeover
-- [ ] Held routes with the cap
-- [ ] Question file and attachments
-- [ ] `wait`, `progress`, `ask`, `done`, `holds` and the error codes
-- [ ] `revisionsSince`
-- [ ] Bridge e2e through the bundle
-- [ ] Rebuilt bundle
+- [x] State machine and its transition test
+- [x] Checks per kind
+- [x] Persistence, jobs closed at start, pruning
+- [x] Sessions, contact and takeover
+- [x] Held routes with the cap
+- [x] Question file and attachments
+- [x] `wait`, `progress`, `ask`, `done`, `holds` and the error codes
+- [x] `revisionsSince`
+- [x] Bridge e2e through the bundle
+- [x] Rebuilt bundle
 
 ## Success Criteria
 

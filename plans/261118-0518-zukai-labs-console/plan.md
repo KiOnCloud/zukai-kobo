@@ -1,7 +1,7 @@
 ---
 title: "Zukai Labs: local console, agent job bridge and project glossary"
 description: "A fifth skill, /zukai:labs, serves a console on 127.0.0.1 to browse runs, queue changes for the attached agent and manage a project glossary of preferred terms per language."
-status: pending
+status: in-progress
 priority: P1
 effort: 14.5d
 branch: claude/wizardly-babbage-o4mmey
@@ -82,12 +82,12 @@ adversarial reviewers and revised (see Red Team Review).
 
 | # | Phase | Effort | Depends on | Status |
 |---|-------|--------|------------|--------|
-| 1 | [Glossary contract and CLI](./phase-01-glossary-contract-and-cli.md) | 2d | none | Pending |
-| 2 | [Labs server and read API](./phase-02-labs-server-and-read-api.md) | 2.5d | 1 | Pending |
-| 3 | [Job queue and agent bridge](./phase-03-job-queue-and-agent-bridge.md) | 2d | 2 | Pending |
-| 4 | [Console shell, runs and jobs](./phase-04-console-shell-runs-and-jobs.md) | 2.5d | 2, 3 | Pending |
-| 5 | [Viewer, model editor and Glossary section](./phase-05-viewer-model-editor-and-glossary.md) | 2.5d | 4 | Pending |
-| 6 | [Labs skill and distribution](./phase-06-labs-skill-and-distribution.md) | 1.5d | 3 | Pending |
+| 1 | [Glossary contract and CLI](./phase-01-glossary-contract-and-cli.md) | 2d | none | Done |
+| 2 | [Labs server and read API](./phase-02-labs-server-and-read-api.md) | 2.5d | 1 | Done |
+| 3 | [Job queue and agent bridge](./phase-03-job-queue-and-agent-bridge.md) | 2d | 2 | Done |
+| 4 | [Console shell, runs and jobs](./phase-04-console-shell-runs-and-jobs.md) | 2.5d | 2, 3 | Done |
+| 5 | [Viewer, model editor and Glossary section](./phase-05-viewer-model-editor-and-glossary.md) | 2.5d | 4 | Done |
+| 6 | [Labs skill and distribution](./phase-06-labs-skill-and-distribution.md) | 1.5d | 3 | Done |
 | 7 | [End-to-end, docs and release](./phase-07-end-to-end-docs-and-release.md) | 1.5d | 1 to 6 | Pending |
 
 Phase 6 touches no file of phases 4 and 5 and can run beside them once phase 3 is merged.
@@ -131,14 +131,18 @@ registry or loader is added, as the Extension rule of `docs/architecture.md` has
 1. Whether Codex in a cloud task sets a variable the CLI can read. `[UNVERIFIED]`; the
    skill text covers that case in words until it is known.
 2. Whether the viewer needs a connection to its own host for shape files. Settled by the
-   trial that opens phase 5.
+   trial that opens phase 5: yes, for the AWS and network stencils; `connect-src
+   https://viewer.diagrams.net` is allowed and nothing else (phase 5, "Viewer trial").
 3. Whether the glossary is released alone as 2.4.0 with the console as 2.5.0. Decided
    when phase 1 is merged; the plan is written for one release.
 4. How Vietnamese and Japanese labels look in Sienna's sans family, which is published
-   for Latin text only. Shown by the font check of phase 4; a fix belongs in Sienna.
+   for Latin text only. Shown by the font check of phase 4: a Vietnamese label takes its
+   accented letters from a system font inside the word, a Japanese one every letter. A fix
+   belongs in Sienna and waits for the user's decision.
 5. Whether Newsreader and JetBrains Mono are published with Vietnamese letters, and the
-   licence of each of the three families. `[UNVERIFIED]` beyond Instrument Sans (SIL
-   Open Font License 1.1, `latin` and `latin-ext`); recorded when the files are taken in.
+   licence of each of the three families. Settled when the files were taken in: both have a
+   `vietnamese` subset; all three are under the SIL Open Font License 1.1 with no Reserved
+   Font Name (`src/labs-ui/fonts/fonts.json`).
 
 ## Red Team Review
 

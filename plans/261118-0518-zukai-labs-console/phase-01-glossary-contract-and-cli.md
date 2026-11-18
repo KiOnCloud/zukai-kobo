@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Phase 1: Glossary contract and CLI"
-status: todo
+status: done
 priority: P1
 effort: "2d"
 dependencies: []
@@ -41,15 +41,15 @@ phase has no server and no console in it and can be released on its own.
 
 ## Requirements
 
-- [ ] `.zukai/glossary.json` has a JSON Schema and every command refuses a file that does not match it.
-- [ ] Entries are symmetric: no language is the source of another.
-- [ ] A suggestion never changes what a command applies; only a confirmed entry does.
-- [ ] A rejected entry is kept, so the same suggestion is not made again.
-- [ ] Two writers (the CLI and, later, the server) cannot lose each other's change, a stale lock included.
-- [ ] The file is stable under git: sorted, two-space JSON, LF, final newline.
-- [ ] A term, an avoided term or a note is refused when it is too long, holds a control or direction character, or the secret scan finds anything in it, personal data included.
-- [ ] A blocking finding comes only from data the change flow keeps up to date.
-- [ ] One function gives the labels of an IR for every kind, and the check, the pairs and the console's editor all use it.
+- [x] `.zukai/glossary.json` has a JSON Schema and every command refuses a file that does not match it.
+- [x] Entries are symmetric: no language is the source of another.
+- [x] A suggestion never changes what a command applies; only a confirmed entry does.
+- [x] A rejected entry is kept, so the same suggestion is not made again.
+- [x] Two writers (the CLI and, later, the server) cannot lose each other's change, a stale lock included.
+- [x] The file is stable under git: sorted, two-space JSON, LF, final newline.
+- [x] A term, an avoided term or a note is refused when it is too long, holds a control or direction character, or the secret scan finds anything in it, personal data included.
+- [x] A blocking finding comes only from data the change flow keeps up to date.
+- [x] One function gives the labels of an IR for every kind, and the check, the pairs and the console's editor all use it.
 
 ## Design
 
@@ -202,16 +202,16 @@ changes nothing.
 
 ## Todo
 
-- [ ] `labelsOf` and its fixture test
-- [ ] Schema, limits and reader
-- [ ] Comparison helpers and their table test
-- [ ] Locked, atomic store with stale takeover
-- [ ] `add`, `set`, `list`
-- [ ] `pairs`
-- [ ] `check` with both levels and three exit codes
-- [ ] Two-word option keys, CLI wiring, rebuilt bundle
-- [ ] E2E through the bundle
-- [ ] Skill text in draw, revise and recook
+- [x] `labelsOf` and its fixture test
+- [x] Schema, limits and reader
+- [x] Comparison helpers and their table test
+- [x] Locked, atomic store with stale takeover
+- [x] `add`, `set`, `list`
+- [x] `pairs`
+- [x] `check` with both levels and three exit codes
+- [x] Two-word option keys, CLI wiring, rebuilt bundle
+- [x] E2E through the bundle
+- [x] Skill text in draw, revise and recook
 
 ## Success Criteria
 

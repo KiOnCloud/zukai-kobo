@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Phase 2: Labs server and read API"
-status: todo
+status: done
 priority: P1
 effort: "2.5d"
 dependencies: [1]
@@ -39,18 +39,18 @@ phase 3 and the pages in phases 4 and 5.
 
 ## Requirements
 
-- [ ] One server per project root; a second start reuses it and starts no process.
-- [ ] The port is the same for a project every time; a busy port is never answered by taking the next one.
-- [ ] The server listens on `127.0.0.1` only, whatever the options, and sends no `Access-Control-*` header.
-- [ ] Every `/api` and `/agent` route needs the token in `X-Zukai-Token`.
-- [ ] The CLI sends the token only to a server that has proved it holds the same token.
-- [ ] A `Host` whose name is not `127.0.0.1` or `localhost`, or an `Origin` that is not the origin of that `Host`, is refused before anything else is read.
-- [ ] No route writes under `diagrams/`. The server writes `.zukai/labs/` and, through the glossary store, `.zukai/glossary.json`.
-- [ ] Every path parameter is looked up in a listing the server built itself; none is joined into a path.
-- [ ] The log holds method, route pattern, status, duration and, for an error, its name and code; never a message, a body, a query string or the token.
-- [ ] `server.json` is removed only by the process that proved it stale; a live server never loses it to a start.
-- [ ] The server ends itself when it has been idle and on `labs stop`; never while a job is open.
-- [ ] `labs start` refuses a cloud session unless `--skip-cloud-check` is given.
+- [x] One server per project root; a second start reuses it and starts no process.
+- [x] The port is the same for a project every time; a busy port is never answered by taking the next one.
+- [x] The server listens on `127.0.0.1` only, whatever the options, and sends no `Access-Control-*` header.
+- [x] Every `/api` and `/agent` route needs the token in `X-Zukai-Token`.
+- [x] The CLI sends the token only to a server that has proved it holds the same token.
+- [x] A `Host` whose name is not `127.0.0.1` or `localhost`, or an `Origin` that is not the origin of that `Host`, is refused before anything else is read.
+- [x] No route writes under `diagrams/`. The server writes `.zukai/labs/` and, through the glossary store, `.zukai/glossary.json`.
+- [x] Every path parameter is looked up in a listing the server built itself; none is joined into a path.
+- [x] The log holds method, route pattern, status, duration and, for an error, its name and code; never a message, a body, a query string or the token.
+- [x] `server.json` is removed only by the process that proved it stale; a live server never loses it to a start.
+- [x] The server ends itself when it has been idle and on `labs stop`; never while a job is open.
+- [x] `labs start` refuses a cloud session unless `--skip-cloud-check` is given.
 
 ## Design
 
@@ -209,17 +209,17 @@ folder (`source/<lang>/`) is listed as a variant, not as further diagrams
 
 ## Todo
 
-- [ ] Read models of runs
-- [ ] Listener, checks, policy headers and route table
-- [ ] Security table test
-- [ ] No-write test
-- [ ] Parameter test
-- [ ] Log test
-- [ ] Glossary routes
-- [ ] Lifecycle: port, token, proof, start, status, stop
-- [ ] Lifecycle e2e through the bundle
-- [ ] CLI wiring and rebuilt bundle
-- [ ] Windows job runs the lifecycle e2e
+- [x] Read models of runs
+- [x] Listener, checks, policy headers and route table
+- [x] Security table test
+- [x] No-write test
+- [x] Parameter test
+- [x] Log test
+- [x] Glossary routes
+- [x] Lifecycle: port, token, proof, start, status, stop
+- [x] Lifecycle e2e through the bundle
+- [x] CLI wiring and rebuilt bundle
+- [x] Windows job runs the lifecycle e2e
 
 ## Success Criteria
 
