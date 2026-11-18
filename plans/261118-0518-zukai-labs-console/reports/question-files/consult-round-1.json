@@ -1,0 +1,22 @@
+{
+  "id": "consult-1",
+  "body": "What if approval came before payment? Two drafts of the run 20261110_checkout.\n\nA: approval before payment\n- added: \"Approve order\" before \"Charge card\"\n- reordered: \"Charge card\" now follows \"Approve order\"\n- touched: checkout, checkout-business\n\nB: approval only above a limit\n- added: decision \"Total above 500?\", \"Approve order\" on its yes branch\n- touched: checkout\n- hint: the business view checkout-business is not changed by this draft\n\nIn each picture of the change, green is added, amber is changed or moved (the old value is in the legend under the page), red and dashed is removed.",
+  "questions": [
+    {
+      "header": "Draft",
+      "question": "Which draft do you want? You can also write a change to one draft in your own words.",
+      "multiSelect": false,
+      "options": [
+        { "label": "A: approval before payment", "description": "Approve order is added before Charge card, in the main diagram and its business view" },
+        { "label": "B: approval only above a limit", "description": "A decision on the total; only orders above 500 are approved" },
+        { "label": "Drop all drafts", "description": "The run stays as it is" }
+      ]
+    }
+  ],
+  "attachments": [
+    "drafts/a/checkout.drawio",
+    "drafts/a/changes.diff.drawio",
+    "drafts/b/checkout.drawio",
+    "drafts/b/changes.diff.drawio"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "ir-draft",
+  "body": "Bản nháp IR của diagram \"Đăng nhập bằng OTP\" (sequence, tổng quan, kỹ thuật). Các ô để mặc định được ghi trong meta.notes.\n\n```json\n{\n  \"schemaVersion\": 1,\n  \"kind\": \"sequence\",\n  \"title\": \"Đăng nhập bằng OTP\",\n  \"meta\": { \"source\": \"clarify\", \"audience\": \"technical\", \"notes\": [\"assumed: sync vs async = all synchronous\"] },\n  \"participants\": [\n    { \"id\": \"user\", \"label\": \"Người dùng\", \"kind\": \"actor\" },\n    { \"id\": \"app\", \"label\": \"Ứng dụng\" },\n    { \"id\": \"auth\", \"label\": \"Auth API\" },\n    { \"id\": \"sms\", \"label\": \"Cổng SMS\" }\n  ],\n  \"messages\": [\n    { \"id\": \"m1\", \"from\": \"user\", \"to\": \"app\", \"label\": \"Nhập số điện thoại\" },\n    { \"id\": \"m2\", \"from\": \"app\", \"to\": \"auth\", \"label\": \"Yêu cầu OTP\" },\n    { \"id\": \"m3\", \"from\": \"auth\", \"to\": \"sms\", \"label\": \"Gửi OTP\" },\n    { \"id\": \"m4\", \"from\": \"user\", \"to\": \"app\", \"label\": \"Nhập OTP\" },\n    { \"id\": \"m5\", \"from\": \"app\", \"to\": \"auth\", \"label\": \"Xác minh OTP\" },\n    { \"id\": \"m6\", \"from\": \"auth\", \"to\": \"app\", \"label\": \"Phiên đăng nhập\", \"kind\": \"return\" }\n  ]\n}\n```",
+  "questions": [
+    {
+      "header": "Bản nháp IR",
+      "question": "Xuất bản nháp này sang drawio, hay sửa gì đó?",
+      "multiSelect": false,
+      "options": [
+        { "label": "Xuất sang drawio", "description": "Ghi IR vào run, validate, emit, bundle, review rồi báo cáo" },
+        { "label": "Sửa trước khi xuất", "description": "Ghi điều cần sửa vào ô câu trả lời riêng của bạn" }
+      ]
+    }
+  ]
+}

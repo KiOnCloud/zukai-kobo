@@ -38,7 +38,7 @@ jobs:
           node -e '
             const fs = require("fs");
             const allowed = new Set(["name", "description", "license", "compatibility", "metadata", "allowed-tools"]);
-            for (const name of ["draw", "revise", "recook", "sync"]) {
+            for (const name of ["draw", "revise", "recook", "sync", "labs"]) {
               const text = fs.readFileSync("skills/" + name + "/SKILL.md", "utf8");
               const m = text.match(/^---\n([\s\S]*?)\n---/);
               if (!m) throw new Error(name + "/SKILL.md has no frontmatter");
@@ -94,7 +94,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $version = (Get-Content -LiteralPath .claude-plugin/plugin.json -Raw | ConvertFrom-Json).version
-          $expected = 'zukai,zukai-recook,zukai-revise,zukai-sync'
+          $expected = 'zukai,zukai-labs,zukai-recook,zukai-revise,zukai-sync'
           # Windows PowerShell 5.1 is what docs/install.md tells users to run; PowerShell 7 too.
           foreach ($shell in @('powershell', 'pwsh')) {
             foreach ($target in @('codex', 'claude-project')) {
