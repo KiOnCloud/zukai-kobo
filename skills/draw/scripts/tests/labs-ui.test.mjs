@@ -45,6 +45,9 @@ beforeAll(async () => {
     glossary: await import('../src/labs-ui/views/glossary.mjs'),
     frame: await import('../src/labs-ui/viewer/frame.mjs'),
     nav: await import('../src/labs-ui/nav.mjs'),
+    create: await import('../src/labs-ui/views/new-diagram.mjs'),
+    jobs: await import('../src/labs-ui/views/jobs.mjs'),
+    overview: await import('../src/labs-ui/views/overview.mjs'),
   };
 });
 
@@ -99,7 +102,7 @@ describe('store and api', () => {
   it('reads the token from the fragment once, keeps it for the tab and removes it from the address bar', () => {
     const w = new JSDOM('', { url: `http://127.0.0.1:4999/#t=${'a'.repeat(43)}` }).window;
     expect(mods.api.readToken(w)).toBe('a'.repeat(43));
-    expect(w.location.hash).toBe('#/diagrams');
+    expect(w.location.hash).toBe('#/overview');
     expect(w.sessionStorage.getItem('zukai-labs-token') ?? window.sessionStorage.getItem('zukai-labs-token')).toBe('a'.repeat(43));
   });
 
@@ -281,7 +284,84 @@ describe('the second half of the console', () => {
     expect(fell).toBe(1);
   });
 
-  it('joins Glossary through one entry of the navigation', () => {
-    expect(mods.nav.SECTIONS.map((x) => x.id)).toEqual(['diagrams', 'glossary']);
+  it('joins each section through one entry of the navigation', () => {
+    expect(mods.nav.SECTIONS.map((x) => x.id)).toEqual(['overview', 'diagrams', 'jobs', 'glossary']);
   });
 });
+
+describe('the screens of the redesign', () => {
+  const pick = (root, name, value) => {
+    const input = root.querySelector(`input[name="${name}"][value="${value}"]`);
+    input.checked = true;
+    input.dispatchEvent(new window.Event('change', { bubbles: true }));
+  };
+
+  it('starts a new diagram with every open choice as "Ask me later" and says what the agent will ask', async () => {
+    const store = mods.store.createStore({ state: { agent: { attached: false } } });
+    const view = mods.create.newDiagram({ store });
+    document.body.appendChild(view.element);
+    for (const name of ['kind', 'scope', 'audience', 'mode']) expect(view.element.querySelector(`input[name="${name}"]:checked`).value).toBe('');
+    expect(view.element.querySelector('input[name="target"]:checked').value).toBe('drawio');
+    const summary = view.element.querySelector('.zl-summary').textContent;
+    expect(summary).toContain('The agent will ask you the input, the kind, the level of detail and the view');
+    expect(summary).toContain('No agent is attached');
+    pick(view.element, 'kind', 'usecase');
+    pick(view.element, 'target', 'mermaid');
+    expect(view.element.textContent).toContain('Mermaid has no use case diagram');
+    expect(view.element.querySelector('.zl-summary').textContent).toContain('Use case');
+  });
+
+  it('queues nothing without a request, then only the choices that were made', async () => {
+    routes = [['POST', /\/api\/jobs$/, () => respond(200, { job: { id: 'j20261118-000000-abcd' } })]];
+    const view = mods.create.newDiagram({ store: mods.store.createStore({}), mode: 'scout' });
+    document.body.appendChild(view.element);
+    const form = view.element.querySelector('form');
+    form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    await flush();
+    expect(calls).toEqual([]);
+    expect(view.element.textContent).toContain('Write what the diagram should explain');
+    const request = view.element.querySelector('textarea');
+    request.value = 'The login flow';
+    request.dispatchEvent(new window.Event('input', { bubbles: true }));
+    pick(view.element, 'kind', 'sequence');
+    pick(view.element, 'scope', 'detailed');
+    form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    await flush();
+    expect(calls.map((c) => c.body)).toEqual([{ kind: 'draw', params: { mode: 'scout', request: 'The login flow', to: 'drawio', kind: 'sequence', scope: 'detailed' } }]);
+    expect(view.element.querySelector('a[href="#/jobs/j20261118-000000-abcd"]')).not.toBeNull();
+  });
+
+  it('answers on the job page and leaves the panel a pointer, so one clay element is in view', async () => {
+    routes = [
+      ['GET', /\/api\/jobs\/j1$/, () => respond(200, { ...askJob, asked: [{ id: 'old', body: '', questions: [{ question: 'Which kind?' }], answers: [{ selected: ['flowchart'] }] }], createdAt: new Date().toISOString(), startedAt: new Date().toISOString() })],
+      ['GET', /\/api\/jobs$/, () => respond(200, { jobs: [] })],
+    ];
+    const store = mods.store.createStore({ asking: false });
+    const page = mods.jobs.jobsSection({ store, parts: ['j1'] });
+    const panel = mods.panel.createJobPanel({ store });
+    document.body.append(page.element, panel.element);
+    await flush();
+    expect(store.get().answeringHere).toBe('j1');
+    await panel.render({ agent: { attached: true }, jobs: { queued: 0, queue: [], open: { id: 'j1', kind: 'revise', run: '20261110_checkout', state: 'needs-input' } } });
+    expect(page.element.querySelectorAll('fieldset')).toHaveLength(3);
+    expect(panel.element.querySelectorAll('fieldset')).toHaveLength(0);
+    expect(document.querySelectorAll('.sn-btn-accent')).toHaveLength(1);
+    expect(page.element.textContent).toContain('Answered questions (1)');
+    expect(page.element.textContent).toContain('flowchart');
+    expect(page.element.querySelector('img')).toBeNull();
+  });
+
+  it('lists what needs the reader on the overview, counted from the server', async () => {
+    routes = [['GET', /\/api\/runs$/, () => respond(200, { runs: [] })], ['GET', /\/api\/jobs$/, () => respond(200, { jobs: [] })]];
+    const store = mods.store.createStore({ state: { project: MARKUP, agent: { attached: true }, glossary: { ok: true, counts: { suggested: 2, confirmed: 1, rejected: 0 } }, jobs: { queued: 0, open: { id: 'j1', kind: 'sync', run: 'r', state: 'needs-input' } } } });
+    const view = mods.overview.overviewSection({ store });
+    await flush();
+    const text = view.element.textContent;
+    expect(text).toContain('The agent asks you a question');
+    expect(text).toContain('2 glossary suggestions to review');
+    expect(text).toContain(MARKUP);
+    expect(view.element.querySelector('img')).toBeNull();
+    expect(view.element.querySelector('a[href="#/jobs/j1"]')).not.toBeNull();
+  });
+});
+
