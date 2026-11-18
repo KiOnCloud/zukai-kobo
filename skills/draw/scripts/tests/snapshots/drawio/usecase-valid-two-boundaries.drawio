@@ -72,8 +72,8 @@
         <mxCell id="clinic-appointments:a4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.029;entryY=0.667;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:receptionist" target="clinic-appointments:book">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="194" y="427"/>
-              <mxPoint x="194" y="185"/>
+              <mxPoint x="187" y="427"/>
+              <mxPoint x="187" y="185"/>
               <mxPoint x="219" y="185.33"/>
             </Array>
           </mxGeometry>
@@ -85,16 +85,16 @@
         <mxCell id="clinic-appointments:a6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:doctor" target="clinic-appointments:record">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="194" y="549"/>
-              <mxPoint x="194" y="607"/>
+              <mxPoint x="201" y="549"/>
+              <mxPoint x="201" y="607"/>
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="clinic-appointments:a7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;jumpStyle=arc;jumpSize=8;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="clinic-appointments:receptionist" target="clinic-appointments:invoice">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="194" y="427"/>
-              <mxPoint x="194" y="517"/>
+              <mxPoint x="187" y="427"/>
+              <mxPoint x="187" y="517"/>
             </Array>
           </mxGeometry>
         </mxCell>

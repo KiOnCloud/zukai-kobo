@@ -22,9 +22,25 @@ async function cardinalities(ir) {
     expect(Boolean(cell), `${rel.id} ${end}`).toBe(Boolean(rel[`${end}Cardinality`]));
     if (!cell) continue;
     const path = paths.get(`c:${rel.id}`);
-    const at = end === 'from' ? path[0] : path.at(-1);
-    const next = end === 'from' ? path[1] : path.at(-2);
-    labels.push({ rel, end, cell, box: endLabelBox(cell, path), at, vertical: Math.abs(next.y - at.y) >= Math.abs(next.x - at.x), dir: Math.sign(next.y - at.y) || Math.sign(next.x - at.x) });
+    const fromEnd = end === 'from' ? path : [...path].reverse();
+    const box = endLabelBox(cell, path);
+    // The stretch of the line the label stands beside: the first one from its end, or, where
+    // that one is too short for the marker and the text, the one round the bend. `before` is
+    // the length of the line up to that stretch.
+    const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    let before = 0;
+    let stretch;
+    for (let i = 1; i < fromEnd.length && !stretch; i++) {
+      const a = fromEnd[i - 1];
+      const b = fromEnd[i];
+      const vertical = Math.abs(b.y - a.y) >= Math.abs(b.x - a.x);
+      const [lo, hi] = vertical ? [Math.min(a.y, b.y), Math.max(a.y, b.y)] : [Math.min(a.x, b.x), Math.max(a.x, b.x)];
+      const c = vertical ? centre.y : centre.x;
+      if (c >= lo && c <= hi) stretch = { at: a, vertical, dir: Math.sign(vertical ? b.y - a.y : b.x - a.x), before };
+      before += Math.hypot(b.x - a.x, b.y - a.y);
+    }
+    expect(Boolean(stretch), `${rel.id} ${end} beside a stretch of its line`).toBe(true);
+    labels.push({ rel, end, cell, box, ...stretch });
   }
   const classes = ir.classes.map((c) => abs.get(`c:${c.id}`));
   return { r, labels, classes, paths };
@@ -41,10 +57,20 @@ describe('class cardinalities in draw.io', () => {
       // Anchored at the end point itself, so the place does not depend on the length of the path.
       expect(Math.abs(Number(l.cell.mxGeometry.x)), name).toBe(1);
       // Along the line: the whole text lies past the marker, and starts within 6 px of its tip.
-      const near = l.vertical ? (l.dir > 0 ? l.box.y - l.at.y : l.at.y - (l.box.y + l.box.height)) : (l.dir > 0 ? l.box.x - l.at.x : l.at.x - (l.box.x + l.box.width));
+      // Measured along the line, also round a bend.
+      const near = l.before + (l.vertical ? (l.dir > 0 ? l.box.y - l.at.y : l.at.y - (l.box.y + l.box.height)) : (l.dir > 0 ? l.box.x - l.at.x : l.at.x - (l.box.x + l.box.width)));
       const marker = MARKER[l.rel.kind][l.end];
       expect(near, `${name} clears its marker`).toBeGreaterThanOrEqual(marker);
-      expect(near, `${name} stays at its end`).toBeLessThanOrEqual(marker + 6);
+      if (near > marker + 6) {
+        // A label further along has moved there in steps of 10 px, and only because the place
+        // one step nearer its end lies on a line, a class or another label.
+        expect(near, `${name} stays at its end`).toBeLessThanOrEqual(marker + 6 + 30);
+        const back = l.vertical ? { ...l.box, y: l.box.y - l.dir * 10 } : { ...l.box, x: l.box.x - l.dir * 10 };
+        const taken = classes.some((c) => intersects(back, c))
+          || labels.some((o) => o !== l && intersects(back, o.box))
+          || [...paths.values()].some((path) => path.some((p, i) => i > 0 && intersects(back, { x: Math.min(path[i - 1].x, p.x) - 1, y: Math.min(path[i - 1].y, p.y) - 1, width: Math.abs(path[i - 1].x - p.x) + 2, height: Math.abs(path[i - 1].y - p.y) + 2 })));
+        expect(taken, `${name} is as near its end as it can be`).toBe(true);
+      }
       // Across the line: beside it, a few pixels away, not on it.
       const across = l.vertical ? Math.min(Math.abs(l.box.x - l.at.x), Math.abs(l.box.x + l.box.width - l.at.x)) : Math.min(Math.abs(l.box.y - l.at.y), Math.abs(l.box.y + l.box.height - l.at.y));
       expect(across, `${name} beside its line`).toBeGreaterThanOrEqual(3);
@@ -81,5 +107,67 @@ describe('class cardinalities in draw.io', () => {
     expect(warned(middle)).toHaveLength(1);
     expect(warned(middle)[0].message).toBe(`layout: cardinality "0..* {ordered}" of relation "${middle.rel.id}" at "product" has no free place beside its line; it may sit on a neighbouring line or label`);
     expect(warned(middle)[0].stage).toBe('emit');
+  });
+});
+
+describe('a class hierarchy in draw.io', () => {
+  const boxes = async (ir) => {
+    const r = await emit(ir, 'drawio', { diagramId: 'c' });
+    expect(r.ok).toBe(true);
+    const { problems, cells } = checkDrawioStructure(r.output);
+    expect(problems).toEqual([]);
+    const abs = absoluteBounds(cells);
+    return { at: (id) => abs.get(`c:${id}`), paths: edgePaths(cells, abs) };
+  };
+  const hierarchy = (direction) => ({
+    schemaVersion: 1, kind: 'class', title: 'People', ...(direction ? { direction } : {}),
+    classes: [
+      // The special classes are listed first, as a source often declares them.
+      { id: 'patient', label: 'Patient', attributes: [{ name: 'dateOfBirth', type: 'Date' }] },
+      { id: 'doctor', label: 'Doctor', attributes: [{ name: 'specialty', type: 'String' }] },
+      { id: 'person', label: 'Person', stereotype: 'abstract', attributes: [{ name: 'fullName', type: 'String' }] },
+      { id: 'sms', label: 'SmsNotifier' },
+      { id: 'notifier', label: 'Notifier', stereotype: 'interface', methods: [{ name: 'send', params: 'to: Person' }] },
+      { id: 'appointment', label: 'Appointment' },
+    ],
+    relations: [
+      { id: 'g1', from: 'patient', to: 'person', kind: 'inheritance' },
+      { id: 'g2', from: 'doctor', to: 'person', kind: 'inheritance' },
+      { id: 'i1', from: 'sms', to: 'notifier', kind: 'realization' },
+      { id: 'a1', from: 'patient', to: 'appointment', kind: 'association', label: 'has' },
+      { id: 'd1', from: 'appointment', to: 'notifier', kind: 'dependency', label: 'uses' },
+    ],
+  });
+
+  it('draws the general class above the special ones and the interface above what realises it', async () => {
+    const { at, paths } = await boxes(hierarchy());
+    for (const [special, general] of [['patient', 'person'], ['doctor', 'person'], ['sms', 'notifier']]) {
+      expect(at(general).y + at(general).height, `${general} above ${special}`).toBeLessThan(at(special).y);
+    }
+    // The line still runs from the special class to the general one, so the hollow triangle points up.
+    for (const id of ['g1', 'g2', 'i1']) {
+      const path = paths.get(`c:${id}`);
+      expect(path.at(-1).y, id).toBeLessThan(path[0].y);
+    }
+    // The other relations keep the reading order of their ends.
+    expect(at('patient').y).toBeLessThan(at('appointment').y);
+    expect(at('appointment').y).toBeLessThan(at('notifier').y);
+  });
+
+  it('puts the general class before the special ones in a left-to-right diagram', async () => {
+    const { at } = await boxes(hierarchy('LR'));
+    for (const [special, general] of [['patient', 'person'], ['doctor', 'person'], ['sms', 'notifier']]) {
+      expect(at(general).x + at(general).width, `${general} before ${special}`).toBeLessThan(at(special).x);
+    }
+  });
+
+  it('does so in every class fixture', async () => {
+    for (const name of ['valid', 'valid-order-domain', 'valid-cardinality-ends']) {
+      const ir = loadFixture('class', name);
+      const { at } = await boxes(ir);
+      for (const r of ir.relations.filter((x) => x.kind === 'inheritance' || x.kind === 'realization')) {
+        expect(at(r.to).y + at(r.to).height, `${name}: ${r.to} above ${r.from}`).toBeLessThan(at(r.from).y);
+      }
+    }
   });
 });

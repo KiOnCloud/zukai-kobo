@@ -32,7 +32,7 @@
           <mxGeometry x="55" y="80" width="10" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="participant-kinds:act-m3" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;" vertex="1" parent="participant-kinds:order">
-          <mxGeometry x="55" y="160" width="10" height="40" as="geometry"/>
+          <mxGeometry x="55" y="160" width="10" height="20" as="geometry"/>
         </mxCell>
         <mxCell id="participant-kinds:m1" value="Submit order" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="participant-kinds:user" target="participant-kinds:web">
           <mxGeometry relative="1" as="geometry">

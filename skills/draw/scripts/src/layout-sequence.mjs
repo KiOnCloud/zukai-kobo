@@ -26,6 +26,9 @@ export const SEQUENCE_METRICS = {
   blockOpenHeight: 34,
   sectionHeight: 30,
   blockCloseHeight: 16,
+  // Frames that end below one message: the innermost closes this far below the room the
+  // message keeps under its arrow, and each frame around it one `blockGap` further down.
+  nestedCloseHeight: 4,
   blockGap: 12,
   noteHeight: 36,
   noteRowGap: 12,
@@ -205,8 +208,12 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
     // A label of several lines (a `ref` adds one) stands above its arrow, so its row grows.
     rows.push({ type: 'message', id: msg.id, height: m.rowPitch + m.labelHeight * (lineCount(msg.label) - 1) });
     for (const note of notes) if (note.after === msg.id) rows.push(noteRow(note));
-    for (const b of blocks.filter((b) => b.end === i).sort(innerFirst)) {
-      rows.push({ type: 'block-close', block: b.id, height: m.blockCloseHeight });
+    // Frames nested in each other that end at this message would each add a full close row,
+    // and the innermost would stand over a band of empty frame that grows with the depth. They
+    // close in short steps instead; a frame that ends alone keeps its row.
+    const closing = blocks.filter((b) => b.end === i).sort(innerFirst);
+    for (const [k, b] of closing.entries()) {
+      rows.push({ type: 'block-close', block: b.id, height: closing.length === 1 ? m.blockCloseHeight : k === 0 ? m.nestedCloseHeight : m.blockGap, ...(closing.length > 1 ? { nested: true } : {}) });
       // A note that follows the block stands below its frame (and inside the frames around it).
       for (const note of notes) if (note.after === b.id) rows.push(noteRow(note));
     }
@@ -236,6 +243,31 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
   // the participant is called again before it has done anything, since that call starts a
   // new activation; at the participant's last message when no further return follows; and
   // never later than the end of a block the call is in.
+  //
+  // A call that gets no reply shows a bar one row long. It stops short of what the next rows
+  // draw on its lifeline: the label of a later message whose arrow passes this lifeline (the
+  // label stands above the arrow, where the end of the bar would lie under its first letters),
+  // and the bottom of nested frames that close in short steps right below the call.
+  const labelBoxOf = (msg) => {
+    const w = Math.ceil(widestLine(msg.label));
+    const h = m.labelHeight * lineCount(msg.label);
+    const mid = (participants.get(msg.from).centerX + participants.get(msg.to).centerX) / 2;
+    return { left: mid - w / 2, right: mid + w / 2, top: messageY(msg.id) - h - 2, bottom: messageY(msg.id) - 2 };
+  };
+  const unansweredEnd = (a) => {
+    let end = a.startY + m.rowPitch;
+    const x = participants.get(a.participant).centerX;
+    const half = m.activationWidth / 2 + 2;
+    for (const msg of ir.messages.slice(a.call + 1)) {
+      if (msg.from === msg.to) continue;
+      const box = labelBoxOf(msg);
+      if (box.top >= end) break;
+      if (box.left < x + half && x - half < box.right) end = Math.min(end, box.top - 2);
+    }
+    const next = rows[rows.findIndex((r) => r.type === 'message' && r.id === ir.messages[a.call].id) + 1];
+    if (next?.type === 'block-close' && next.nested) end = Math.min(end, next.y - next.height / 2);
+    return Math.max(end, a.startY + m.rowPitch / 4);
+  };
   const sectionsAt = (i) => blocks.flatMap((b) => b.sections.map((s, k) => (s.start <= i && i <= s.end ? `${b.index}/${k}` : null)).filter(Boolean));
   const closed = [];
   const open = [];
@@ -278,7 +310,7 @@ export function layoutSequence(ir, m = SEQUENCE_METRICS) {
       open.push({ id: `act-${msg.id}`, participant: msg.to, caller: msg.from, call: i, limit, startY: messageY(msg.id) });
     }
   });
-  for (const a of open) closed.push({ ...a, endY: a.last === undefined ? a.startY + m.rowPitch : messageY(ir.messages[a.last].id) });
+  for (const a of open) closed.push({ ...a, endY: a.last === undefined ? unansweredEnd(a) : messageY(ir.messages[a.last].id) });
   // Listed by first return, calls without one last, whenever each activation was settled.
   const activations = closed
     .sort((a, b) => (a.returned ?? Infinity) - (b.returned ?? Infinity))

@@ -628,8 +628,11 @@ function drawCells(cells) {
       // draw.io sets a step in the middle by the boxes, not by a port moved onto a round outline, and in tenths of a pixel.
       const tenth = (v) => Math.round(v * 10) / 10;
       const raw = (endCell, prefix, p) => { if (!endCell || s[`${prefix}X`] === undefined) return p; const b = edgeBox(endCell); return { x: b.x + num(s[`${prefix}X`]) * b.w + num(s[`${prefix}Dx`]), y: b.y + num(s[`${prefix}Y`]) * b.h + num(s[`${prefix}Dy`]) }; };
-      const midY = tenth((raw(source, 'exit', start).y + raw(target, 'entry', end).y) / 2);
-      const midX = tenth((raw(source, 'exit', start).x + raw(target, 'entry', end).x) / 2);
+      // The step lies midway between the room each end keeps for its line end, not midway between
+      // the ports: past a long marker (the diamond of a composition) it stands further along.
+      const between = (from, to) => { const sense = Math.sign(to - from); return tenth((from + sense * jetty(s, 'start') + to - sense * jetty(s, 'end')) / 2); };
+      const midY = between(raw(source, 'exit', start).y, raw(target, 'entry', end).y);
+      const midX = between(raw(source, 'exit', start).x, raw(target, 'entry', end).x);
       const out = [points[0]];
       for (let i = 1; i < points.length; i++) {
         const a = out.at(-1);

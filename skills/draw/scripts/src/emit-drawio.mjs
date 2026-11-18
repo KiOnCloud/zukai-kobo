@@ -362,7 +362,8 @@ function markerBox(path, length) {
  * with the length of the path as a fraction of it would. The text is aligned away from its
  * anchor, so only the side it starts on has to be exact. The label follows the line, round a
  * bend when the first segment is shorter than the marker and the text; at each step both
- * sides are candidates, the right of a vertical segment and above a horizontal one first. The
+ * sides are candidates, the right of a vertical segment and above a horizontal one first, and
+ * past a bend the side that lies beyond the marker first. The
  * first box that is free according to `blocked` wins, and `free` is false when none is.
  * @param {Array<{x:number,y:number}>} path the edge as drawn, source end first
  * @param {'from'|'to'} end
@@ -374,9 +375,14 @@ function endLabelGeometry(path, end, text, clear, blocked) {
   const width = Math.ceil(widestLine(text));
   const { gap, side, height, step, reach } = END_LABEL;
   const candidates = [];
+  const leaves = pointAlong(fromEnd, 1);
   for (let along = clear + gap; along <= clear + gap + reach; along += step) {
     const { point, vertical, dir } = pointAlong(fromEnd, along);
-    for (const s of vertical ? [1, -1] : [-1, 1]) {
+    // Round a bend, one side of the line lies back beside the marker and the other beyond it,
+    // further along the way the line left its end: that side comes first, so the text stays
+    // past the marker as it does on a straight line.
+    const sides = vertical !== leaves.vertical ? [leaves.dir, -leaves.dir] : vertical ? [1, -1] : [-1, 1];
+    for (const s of sides) {
       candidates.push(vertical
         ? {
           offset: { x: point.x - at.x + s * side, y: point.y - at.y + (dir * height) / 2 },
@@ -1060,7 +1066,12 @@ async function emitClass(ir, cid, warnings, refs) {
       const value = r[`${end}Cardinality`];
       if (value) endLabels.push({ suffix: `${end}-card`, value, end, path: `/relations/${i}/${end}Cardinality`, what: `cardinality "${value}" of relation "${r.id}" at "${r[end]}"` });
     }
-    return { id: r.id, from: r.from, to: r.to, label: r.label, style: `${STYLE.classEdge}${def.style}`, endLabels, markers: { from: def.from, to: def.to } };
+    // A general class stands above the classes that specialise it, and an interface above
+    // what realises it: the hollow triangle points up, as a class diagram is read. Such a
+    // relation runs from the special to the general, so left to the engine the subclass
+    // would take the earlier layer; it is laid out against its direction instead.
+    const upward = (r.kind === 'inheritance' || r.kind === 'realization') && r.from !== r.to;
+    return { id: r.id, from: r.from, to: r.to, label: r.label, style: `${STYLE.classEdge}${def.style}`, endLabels, markers: { from: def.from, to: def.to }, ...(upward ? { layoutReversed: true } : {}) };
   });
   // A self-relation drawn beside its class needs room there for the loop and its label, or
   // the label lands on the neighbouring class: the layout gets the class that much wider on
@@ -1349,6 +1360,135 @@ function placeLineLabels(layout, own, { containers, nodes, edges }) {
     labels.push(placed);
   }
   return undefined;
+}
+
+/** A step a straight line can do without: its bends lie this close across the flow, in px. */
+const STEP_MAX = 24;
+/** The least room between two line ends on one side of a figure, in px. */
+const STEP_PORT_GAP = 10;
+
+/**
+ * Take the small step out of a line drawn back against the flow (the one that closes a
+ * circle, such as a topic that pushes back to the service that publishes to it). It shares
+ * both facing sides with the line that goes on, each figure spreads the ends of its lines
+ * evenly over its side, and two neighbours with a different number of lines there get ends
+ * that are a few pixels out of line: the engine joins them with two bends in the middle.
+ * Where one end can move level with the other within its figure, keeping the order of the
+ * ends on that side, the room to its neighbours and a straight way free of shapes and other
+ * lines, the line is drawn straight. A line that the engine had to route round something
+ * keeps its route, and so does every line that goes with the flow.
+ */
+function straightenSteps(layout, { containers, nodes, edges, direction }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const sideways = acrossIsVertical(direction);
+  // `across` is the coordinate the step lies in; `along` the one the line runs in.
+  const across = (p) => (sideways ? p.y : p.x);
+  const along = (p) => (sideways ? p.x : p.y);
+  const setAcross = (p, v) => { if (sideways) p.y = v; else p.x = v; };
+  const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const figureOf = (id) => (layout.nodes.has(id) ? drawBox(byId.get(id), absoluteBox(id, layout, parentOf)) : undefined);
+  const routes = () => edges.map((e) => ({ e, r: layout.edges.get(e.id) })).filter(({ r }) => r?.start && r?.end);
+  for (const { e, r } of routes()) {
+    const points = r.points ?? [];
+    if (!e.layoutReversed || points.length === 0 || e.from === e.to) continue;
+    const path = [r.start, ...points, r.end];
+    // Only a line that runs along the flow from one end to the other, with bends close together across it.
+    const spread = Math.max(...path.map(across)) - Math.min(...path.map(across));
+    if (spread > STEP_MAX || Math.abs(across(r.start) - across(r.end)) < 0.5) continue;
+    const forward = Math.sign(along(r.end) - along(r.start));
+    if (forward === 0 || path.slice(1).some((p, i) => Math.sign(along(p) - along(path[i])) === -forward)) continue;
+    const ends = [{ id: e.from, at: r.start, other: r.end }, { id: e.to, at: r.end, other: r.start }];
+    for (const end of ends) {
+      const figure = figureOf(end.id);
+      if (!figure) continue;
+      const to = across(end.other);
+      const [lo, hi] = sideways ? [figure.y, figure.y + figure.height] : [figure.x, figure.x + figure.width];
+      if (to < lo + 4 || to > hi - 4) continue;
+      // The other ends on the same side of this figure: the same place along the flow.
+      const side = routes().flatMap(({ e: o, r: q }) => (o.id === e.id ? [] : [q.start, q.end].filter((p) => Math.abs(along(p) - along(end.at)) < 0.5 && across(p) >= lo - 0.5 && across(p) <= hi + 0.5)));
+      if (side.some((p) => Math.abs(across(p) - to) < STEP_PORT_GAP)) continue;
+      if (side.some((p) => Math.sign(across(p) - across(end.at)) !== Math.sign(across(p) - to))) continue;
+      // The straight way: no shape but the two ends, no stretch of another line near it along the flow.
+      const [a, b] = [Math.min(along(r.start), along(r.end)), Math.max(along(r.start), along(r.end))];
+      const lane = sideways ? { x: a, y: to - STEP_PORT_GAP / 2, width: b - a, height: STEP_PORT_GAP } : { x: to - STEP_PORT_GAP / 2, y: a, width: STEP_PORT_GAP, height: b - a };
+      if (nodes.some((n) => n.id !== e.from && n.id !== e.to && layout.nodes.has(n.id) && hit(lane, absoluteBox(n.id, layout, parentOf)))) continue;
+      const crowded = routes().some(({ e: o, r: q }) => {
+        if (o.id === e.id) return false;
+        const qp = [q.start, ...(q.points ?? []), q.end];
+        return qp.slice(1).some((p, i) => {
+          const s = qp[i];
+          if (Math.abs(across(p) - across(s)) > 0.5) return false;
+          const box = { x: Math.min(p.x, s.x), y: Math.min(p.y, s.y), width: Math.abs(p.x - s.x) || 1, height: Math.abs(p.y - s.y) || 1 };
+          return hit(lane, box);
+        });
+      });
+      if (crowded) continue;
+      setAcross(end.at, to);
+      r.points = [];
+      break;
+    }
+  }
+}
+
+/**
+ * A label that `placeLineLabels` had no place for goes back to the layout engine, which puts
+ * it on either side of its line. Among the labels of a row (lines that run along one
+ * coordinate, `placeLineLabels` writing above a horizontal line and left of a vertical one
+ * first) one on the other side reads as belonging to something else. Such a label moves to
+ * the side its neighbours on that row stand on, mirrored across its line at the same
+ * distance, when that place is free of shapes, labels, lines and frame borders; otherwise it
+ * stays where the engine put it.
+ */
+function alignLabelSides(layout, { containers, nodes, edges }) {
+  const handedBack = edges.filter((e) => e.label && e.labelOnDrawnLine && !e.labelPlacedByCaller);
+  if (handedBack.length === 0) return;
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const within = (a, b) => a.x >= b.x && a.y >= b.y && a.x + a.width <= b.x + b.width && a.y + a.height <= b.y + b.height;
+  const boxes = nodes.filter((n) => layout.nodes.has(n.id)).map((n) => absoluteBox(n.id, layout, parentOf));
+  const frames = containers.map((c) => ({ box: absoluteBox(c.id, layout, parentOf), icon: c.title?.corner === true }));
+  const corners = frames.filter((f) => f.icon).map((f) => ({ x: f.box.x, y: f.box.y, width: AWS_GROUP_ICON, height: AWS_GROUP_ICON }));
+  const pathOf = (e) => { const r = layout.edges.get(e.id); return r?.start && r?.end ? [r.start, ...(r.points ?? []), r.end] : undefined; };
+  // Each label beside a straight stretch of its line: the line it runs along and its side.
+  const sideOf = (e) => {
+    const label = layout.edges.get(e.id)?.label;
+    const path = pathOf(e);
+    if (!label || !path || !e.label) return undefined;
+    for (let i = 1; i < path.length; i++) {
+      const [a, b] = [path[i - 1], path[i]];
+      const flat = Math.abs(a.y - b.y) < 0.5;
+      if (!flat && Math.abs(a.x - b.x) >= 0.5) continue;
+      const [lo, hi] = flat ? [Math.min(a.x, b.x), Math.max(a.x, b.x)] : [Math.min(a.y, b.y), Math.max(a.y, b.y)];
+      const mid = flat ? label.x + label.width / 2 : label.y + label.height / 2;
+      if (mid < lo || mid > hi) continue;
+      const at = flat ? a.y : a.x;
+      const [near, far] = flat ? [label.y, label.y + label.height] : [label.x, label.x + label.width];
+      if (far <= at && at - far < 12) return { flat, at, side: -1, gap: at - far, label };
+      if (near >= at && near - at < 12) return { flat, at, side: 1, gap: near - at, label };
+    }
+    return undefined;
+  };
+  const placed = new Map(edges.map((e) => [e.id, sideOf(e)]).filter(([, s]) => s));
+  for (const e of handedBack) {
+    const mine = placed.get(e.id);
+    if (!mine) continue;
+    const row = [...placed].filter(([id, s]) => id !== e.id && s.flat === mine.flat && Math.abs(s.at - mine.at) < 1).map(([, s]) => s.side);
+    if (row.length === 0 || row.some((s) => s !== row[0]) || row[0] === mine.side) continue;
+    const { label } = mine;
+    const box = mine.flat
+      ? { ...label, y: row[0] < 0 ? mine.at - mine.gap - label.height : mine.at + mine.gap }
+      : { ...label, x: row[0] < 0 ? mine.at - mine.gap - label.width : mine.at + mine.gap };
+    const lines = edges.flatMap((o) => {
+      const path = pathOf(o);
+      return path ? path.slice(1).map((p, i) => ({ x: Math.min(path[i].x, p.x) - 1, y: Math.min(path[i].y, p.y) - 1, width: Math.abs(p.x - path[i].x) + 2, height: Math.abs(p.y - path[i].y) + 2 })) : [];
+    });
+    const others = edges.filter((o) => o.id !== e.id).map((o) => (o.label ? layout.edges.get(o.id)?.label : undefined)).filter(Boolean);
+    if (boxes.some((n) => hit(box, n)) || others.some((l) => hit(box, l)) || corners.some((c) => hit(box, c)) || lines.some((l) => hit(box, l))) continue;
+    if (frames.some((f) => hit(box, f.box) && !within(box, f.box))) continue;
+    layout.edges.get(e.id).label = box;
+    placed.set(e.id, { ...mine, side: row[0], label: box });
+  }
 }
 
 /**
@@ -1767,6 +1907,62 @@ function backToOrigin(layout, { containers, nodes }) {
   for (const b of [...boxes, ...points]) { b.x += dx; b.y += dy; }
 }
 
+/**
+ * The header bars of the plain frames: a boundary without a cloud group is a frame with a
+ * strip at its top that holds the title, which a line should not run through.
+ * @returns {Array<{id:string, box:{x:number,y:number,width:number,height:number}}>}
+ */
+function headerBars(containers, frames) {
+  const boxOf = new Map(frames.map((f) => [f.id, f.box]));
+  return containers.filter((c) => /^swimlane;/.test(c.style ?? '') && boxOf.has(c.id)).map((c) => {
+    const box = boxOf.get(c.id);
+    const strip = c.headerHeight ?? Number(/startSize=(\d+);/.exec(c.style)?.[1] ?? 0);
+    return { id: c.id, box: { x: box.x, y: box.y, width: box.width, height: strip } };
+  }).filter((h) => h.box.height > 0);
+}
+
+/**
+ * The connections that run through the header bar of a plain frame, as `layout:` warnings.
+ * A line that passes over a frame it does not enter is one; so is, in a left-to-right or
+ * right-to-left diagram, a line that leaves or enters a frame across its top, since the flow
+ * then reaches the members from the sides and such a line runs through the strip beside the
+ * title. In a top-down or bottom-up diagram a line comes into a frame through its top by
+ * the flow itself, which is how a frame with a header is read, and is no warning.
+ */
+function headerCrossings(layout, { ir, containers, nodes, edges }) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const frames = containers.map((c) => ({ id: c.id, box: absoluteBox(c.id, layout, parentOf) }));
+  const headers = headerBars(containers, frames);
+  if (headers.length === 0) return [];
+  const across = acrossIsVertical(ir.direction);
+  const inside = (id, frame) => { for (let p = parentOf.get(id); p; p = parentOf.get(p)) if (p === frame) return true; return false; };
+  const label = new Map(containers.map((c) => [c.id, c.label]));
+  const out = [];
+  ir.connections.forEach((c, i) => {
+    const r = layout.edges.get(c.id);
+    if (!r?.start || !r?.end) return;
+    const path = [r.start, ...(r.points ?? []), r.end];
+    for (const h of headers) {
+      const ends = inside(c.from, h.id) || inside(c.to, h.id);
+      if (ends && !across) continue;
+      const { x, y, width, height } = h.box;
+      const through = path.slice(1).some((p, k) => {
+        const q = path[k];
+        const lo = { x: Math.min(p.x, q.x), y: Math.min(p.y, q.y) };
+        const hi = { x: Math.max(p.x, q.x), y: Math.max(p.y, q.y) };
+        return lo.x < x + width && hi.x > x && lo.y < y + height && hi.y > y;
+      });
+      if (!through) continue;
+      out.push({
+        path: `/connections/${i}`,
+        message: `layout: connection "${c.id}" runs through the header bar of frame "${String(label.get(h.id)).replace(/\s+/g, ' ')}", beside its title`,
+        hint: 'try another "direction" or another order of the components and connections; a crossing that no order avoids is shown to the user and accepted explicitly',
+      });
+    }
+  });
+  return out;
+}
+
 /** Room between the outermost frame and a system placed beside it, when its connection has no label. */
 const ASIDE_GAP = 64;
 /** Where a layout starts on both axes (ELK's default padding). */
@@ -2039,6 +2235,7 @@ async function arrangeArchitecture(ir, refs, how) {
       const unplaced = placeRow(base, row, { containers, nodes, edges, direction: ir.direction, aside });
       if (unplaced !== undefined) { row.delete(unplaced); base = await arrange(); continue; }
       backToOrigin(base, { containers, nodes });
+      straightenSteps(base, { containers, nodes, edges, direction: ir.direction });
       // A label with no free place beside its line goes back to the layout engine.
       const own = new Set(edges.filter((e) => e.labelPlacedByCaller && !aside.has(e.to) && !stores.has(e.to)).map((e) => e.id));
       const crowded = placeLineLabels(base, own, { containers, nodes, edges });
@@ -2066,6 +2263,8 @@ async function arrangeArchitecture(ir, refs, how) {
   }
   if (unplaced) warnings.push({ path: '/boundaries', message: 'layout: a connection crosses the title of a group frame; no free place was found for it along the top of the frame', hint: 'set "direction" to "LR" or shorten the boundary label' });
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
+  warnings.push(...headerCrossings(layout, { ir, containers, nodes, edges }));
+  if (usesCloud) alignLabelSides(layout, { containers, nodes, edges });
   // draw.io writes an edge label on a white patch. Inside a tinted frame (a subnet) the patch
   // takes the colour of the frame, so the label hides its line without showing as a box.
   if (usesCloud) {
@@ -2449,12 +2648,86 @@ async function emitUsecase(ir, cid, refs, warnings) {
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
 
   placeActorGeneralizations(layout, byHand, { actors, horizontal, boxOf });
+  separateActorTrunks(layout, routed, { actors, nodes, containers, horizontal, boxOf });
   for (const e of edges) {
     const route = layout.edges.get(e.id);
     if (!route?.start || !route?.end) continue;
     e.style += usecaseAnchorStyle('exit', usecaseAnchor(nodeById.get(e.from), boxOf(e.from), route.start)) + usecaseAnchorStyle('entry', usecaseAnchor(nodeById.get(e.to), boxOf(e.to), route.end));
   }
   return graphCells(cid, layout, { containers, nodes, edges, direction }, warnings);
+}
+
+/** Trunks of two actors on one line read as one line when their ends are nearer than this; the pitches to try between their tracks; the room a moved trunk keeps to what it passes. */
+const ACTOR_TRUNK = { near: 60, pitches: [14, 12, 10, 8], clear: 8 };
+
+/**
+ * Give the lines of each actor a track of their own. The associations of an actor leave its
+ * figure as one line, the trunk, which runs along the column of actors and parts where the
+ * use cases are. The engine sets the trunks of several actors on one line when they do not
+ * overlap, and two of them that end a few pixels from each other then read as one line that
+ * joins two actors. Trunks that share a line and nearly meet are moved apart across the
+ * flow, each actor to its own track, in the order of the actors; only the stretches along
+ * the flow get longer or shorter, and the trunks of different actors cover different ranges,
+ * so no new crossing can come of it. A pitch is taken only when every moved trunk stays
+ * clear of the nodes, the borders of the boundaries and the other lines; with no such pitch
+ * the routes stay as the engine made them.
+ */
+function separateActorTrunks(layout, routed, { actors, nodes, containers, horizontal, boxOf }) {
+  // Across the flow lies the coordinate a trunk runs along (`run`); `track` is the one it stands at.
+  const track = (p) => (horizontal ? p.x : p.y);
+  const run = (p) => (horizontal ? p.y : p.x);
+  const setTrack = (p, v) => { if (horizontal) p.x = v; else p.y = v; };
+  const trunks = new Map();
+  for (const n of actors) {
+    for (const e of routed) {
+      const mine = e.fromPort === `${n.id}:port` ? 'from' : e.toPort === `${n.id}:port` ? 'to' : null;
+      const route = layout.edges.get(e.id);
+      if (!mine || !route?.start || !route?.end || (route.points ?? []).length < 2) continue;
+      // The first two bends, seen from the actor: the ends of the stretch along the column.
+      const [a, b] = mine === 'from' ? route.points : [route.points.at(-1), route.points.at(-2)];
+      if (Math.abs(track(a) - track(b)) > 0.5) continue;
+      const key = `${n.side}|${Math.round(track(a) * 2) / 2}`;
+      if (!trunks.has(key)) trunks.set(key, new Map());
+      const byActor = trunks.get(key);
+      if (!byActor.has(n.id)) byActor.set(n.id, { at: track(a), lo: Infinity, hi: -Infinity, bends: [], edges: new Set() });
+      const t = byActor.get(n.id);
+      t.lo = Math.min(t.lo, run(a), run(b));
+      t.hi = Math.max(t.hi, run(a), run(b));
+      t.bends.push(a, b);
+      t.edges.add(e.id);
+    }
+  }
+  const boxes = [...nodes.map((n) => drawBox(n, boxOf(n.id))), ...nodes.filter((n) => n.drawWidth !== undefined).map((n) => boxOf(n.id))];
+  const borders = containers.map((c) => boxOf(c.id)).flatMap((b) => (horizontal ? [b.x, b.x + b.width] : [b.y, b.y + b.height]));
+  for (const byActor of trunks.values()) {
+    const line = [...byActor.values()].sort((p, q) => p.lo - q.lo);
+    // The trunks that nearly meet their neighbour on the line, as runs of neighbours.
+    const groups = [];
+    for (const [i, t] of line.entries()) {
+      if (i > 0 && t.lo - line[i - 1].hi < ACTOR_TRUNK.near) groups.at(-1).push(t);
+      else groups.push([t]);
+    }
+    for (const group of groups.filter((g) => g.length > 1)) {
+      const own = new Set(group.flatMap((t) => [...t.edges]));
+      // Every stretch across the flow of the other lines: what a moved trunk must not lie on.
+      const others = [];
+      for (const e of routed) {
+        const route = layout.edges.get(e.id);
+        if (own.has(e.id) || !route?.start || !route?.end) continue;
+        const path = [route.start, ...(route.points ?? []), route.end];
+        for (let i = 1; i < path.length; i++) if (Math.abs(track(path[i]) - track(path[i - 1])) < 0.5) others.push({ at: track(path[i]), lo: Math.min(run(path[i]), run(path[i - 1])), hi: Math.max(run(path[i]), run(path[i - 1])) });
+      }
+      const free = (at, t) => {
+        const c = ACTOR_TRUNK.clear;
+        if (borders.some((v) => Math.abs(v - at) < c)) return false;
+        if (others.some((o) => Math.abs(o.at - at) < c && o.lo < t.hi + c && t.lo - c < o.hi)) return false;
+        return !boxes.some((b) => (horizontal ? b.x - c < at && at < b.x + b.width + c && b.y < t.hi && t.lo < b.y + b.height : b.y - c < at && at < b.y + b.height + c && b.x < t.hi && t.lo < b.x + b.width));
+      };
+      const pitch = ACTOR_TRUNK.pitches.find((step) => group.every((t, i) => free(t.at + (i - (group.length - 1) / 2) * step, t)));
+      if (pitch === undefined) continue;
+      for (const [i, t] of group.entries()) for (const p of t.bends) setTrack(p, t.at + (i - (group.length - 1) / 2) * pitch);
+    }
+  }
 }
 
 /** The least distance between two line ends on one side of a use case: an open arrowhead and a hollow triangle side by side. */

@@ -650,6 +650,42 @@ describe('GCP icons and group frames in draw.io', () => {
     }
   }, 120000);
 
+  it('stands a label on the side of its line where the other labels of its row stand, when that side is free', async () => {
+    // The line from the queue to the worker is too short for its label in the first layout, so
+    // the layout engine places that label; the others of the row are placed above their lines.
+    const ir = {
+      schemaVersion: 1, kind: 'architecture', title: 'Notification service', direction: 'LR',
+      components: [
+        { id: 'callers', label: 'Backend services', kind: 'client' },
+        { id: 'api', label: 'Notification API (Cloud Run)', icon: 'gcp:cloud_run' },
+        { id: 'queue', label: 'Cloud Tasks queue', kind: 'queue', icon: 'gcp:cloud_tasks' },
+        { id: 'worker', label: 'Notification worker (Cloud Run)', icon: 'gcp:cloud_run' },
+        { id: 'templates', label: 'Templates (Firestore)', kind: 'database', icon: 'gcp:cloud_firestore' },
+        { id: 'sendgrid', label: 'SendGrid', kind: 'external', icon: 'gcp:application' },
+        { id: 'fcm', label: 'Firebase Cloud Messaging', kind: 'external', icon: 'gcp:firebase' },
+      ],
+      boundaries: [{ id: 'gc', label: 'Google Cloud', group: 'gcp:google_cloud', children: ['api', 'queue', 'worker', 'templates'] }],
+      connections: [
+        { id: 'c1', from: 'callers', to: 'api', label: 'HTTPS' },
+        { id: 'c2', from: 'api', to: 'queue', label: 'enqueue' },
+        { id: 'c3', from: 'queue', to: 'worker', label: 'HTTP dispatch' },
+        { id: 'c4', from: 'worker', to: 'templates', label: 'reads templates' },
+        { id: 'c5', from: 'worker', to: 'sendgrid', label: 'send mail' },
+        { id: 'c6', from: 'worker', to: 'fcm', label: 'send push' },
+      ],
+    };
+    const { r, cells, paths } = await drawn(ir);
+    expect(r.warnings).toEqual([]);
+    const row = ['c1', 'c2', 'c3', 'c6'];
+    // One row: every one of these lines is straight and at one height.
+    const ys = row.flatMap((id) => paths.get(`a:${id}`).map((q) => q.y));
+    expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(0.5);
+    for (const id of row) {
+      const offset = cells.find((c) => c.id === `a:${id}:label`).mxGeometry.mxPoint[0];
+      expect(Number(offset.y), `${id} above its line`).toBeLessThan(0);
+    }
+  });
+
   it('stands the systems a client and a service both call in a row along the frames, between their callers', async () => {
     const ir = loadFixture('architecture', 'valid-gcp-shared-systems');
     const { r, abs } = await drawn(ir);

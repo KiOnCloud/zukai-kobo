@@ -128,3 +128,29 @@ describe('the connection that closes a circle', () => {
     });
   }
 });
+
+describe('the line drawn back against the flow', () => {
+  // A synced invoicing run: the topic pushes back to the API, which also writes to the
+  // database, so the two figures have a different number of lines on their facing sides.
+  const invoicing = () => ({"schemaVersion": 1, "kind": "architecture", "title": "Invoicing system on Google Cloud", "direction": "LR", "components": [{"id": "scheduler", "label": "Cloud Scheduler nightly-reminders", "icon": "gcp:scheduled_tasks"}, {"id": "invoice-api", "label": "invoice-api (Cloud Run)", "icon": "gcp:cloud_run"}, {"id": "invoice-events", "label": "Pub/Sub invoice-events", "kind": "queue", "icon": "gcp:cloud_pubsub"}, {"id": "invoice-worker", "label": "invoice-worker (Cloud Run)", "icon": "gcp:cloud_run"}, {"id": "invoices-pg", "label": "Cloud SQL invoices-pg\n(PostgreSQL 16)", "kind": "database", "icon": "gcp:cloud_sql"}, {"id": "invoice-pdfs", "label": "Cloud Storage invoice-pdfs (EU)", "kind": "database", "icon": "gcp:cloud_storage"}, {"id": "secrets", "label": "Secret Manager (3 secrets)"}, {"id": "payment-api", "label": "Payment API", "kind": "external", "icon": "gcp:application"}], "boundaries": [{"id": "project", "label": "Project invoicing-prod", "group": "gcp:project", "children": ["region"]}, {"id": "region", "label": "europe-west1", "group": "gcp:region", "children": ["scheduler", "invoice-api", "invoice-events", "invoice-worker", "invoice-pdfs", "secrets", "vpc"]}, {"id": "vpc", "label": "VPC network invoicing-vpc", "group": "gcp:vpc_network", "children": ["invoices-pg"]}], "connections": [{"id": "c-scheduler-api", "from": "scheduler", "to": "invoice-api", "label": "HTTP POST (OIDC)"}, {"id": "c-api-topic", "from": "invoice-api", "to": "invoice-events", "label": "publish"}, {"id": "c-topic-worker", "from": "invoice-events", "to": "invoice-worker", "label": "push"}, {"id": "c-topic-api", "from": "invoice-events", "to": "invoice-api", "label": "push"}, {"id": "c-api-db", "from": "invoice-api", "to": "invoices-pg", "label": "SQL"}, {"id": "c-worker-db", "from": "invoice-worker", "to": "invoices-pg", "label": "SQL"}, {"id": "c-worker-pdfs", "from": "invoice-worker", "to": "invoice-pdfs", "label": "write objects"}, {"id": "c-api-secrets", "from": "invoice-api", "to": "secrets", "label": "read secret"}, {"id": "c-worker-secrets", "from": "invoice-worker", "to": "secrets", "label": "read secrets"}, {"id": "c-worker-payment", "from": "invoice-worker", "to": "payment-api", "label": "HTTPS"}]});
+
+  it('runs straight from figure to figure where its ends can be brought level, with no step in the middle', async () => {
+    const ir = invoicing();
+    const { r, paths, abs } = await drawn(ir);
+    expect(r.warnings).toEqual([]);
+    const back = paths.get('a:c-topic-api');
+    expect(back).toHaveLength(2);
+    expect(back[0].y).toBeCloseTo(back[1].y, 0);
+    // Both ends stay on their figures, and apart from the other ends on the same sides.
+    for (const [id, end] of [['invoice-events', back[0]], ['invoice-api', back[1]]]) {
+      const f = abs.get(`a:${id}`);
+      expect(end.y, id).toBeGreaterThan(f.y);
+      expect(end.y, id).toBeLessThan(f.y + f.height);
+    }
+    const forward = paths.get('a:c-api-topic');
+    expect(Math.abs(forward[0].y - back[1].y)).toBeGreaterThanOrEqual(10);
+    expect(Math.abs(forward.at(-1).y - back[0].y)).toBeGreaterThanOrEqual(10);
+    // The way out keeps the side of the back line it had: below it.
+    expect(forward[0].y).toBeGreaterThan(back[1].y);
+  });
+});

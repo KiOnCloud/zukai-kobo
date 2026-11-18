@@ -243,8 +243,10 @@ describe('figjam native script', () => {
     await expectLines('architecture', 'valid-aws-outside-pair', ['M 788.02 246 L 788.02 123.48', 'M 807.98 117.11 L 807.98 239.63']);
     await expectLines('architecture', 'valid-aws-outside-chain', ['M 338 202 L 338 256 L 439 256 L 438.98 322.52', 'M 465.03 328.89 L 465 284 L 566 284 L 566 208.37']);
     // Without a jump style the point of draw.io's step in the middle stays where two ends are less
-    // than a pixel, but more than a tenth, out of line; an open arrow shortens the line by its stroke only.
-    await expectLines('class', 'valid-cardinality-ends', ['M 118.92 64 L 118.9 170 L 119 273.76', 'M 91.97 379.99 L 92 434']);
+    // than a pixel, but more than a tenth, out of line. The step lies midway between the room each
+    // end keeps for its line end: past the diamond of a composition that is 10 px below the middle
+    // of the two ports. An open arrow shortens the line by its stroke only.
+    await expectLines('class', 'valid-cardinality-ends', ['M 491.91 89.99 L 491.9 164.3 L 492 244.5', 'M 552.08 64 L 552.1 185 L 712 185 L 712 237.76']);
     // Under the open ring of a "zero" end the line stops at the far side of the ring.
     await expectLines('er', 'valid', ['M 119.93 116 L 119.9 204.5 L 119.95 277.5']);
     await expectLines('er', 'valid-fk-anchors', ['M 187.5 55 L 198 55 L 367.5 55.86']);

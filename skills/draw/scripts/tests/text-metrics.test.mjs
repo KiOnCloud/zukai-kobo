@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { textWidth, widestLine, isWide, roomFor, safeWidth } from '../src/text-metrics.mjs';
-import { wrapText } from '../src/layout-graph.mjs';
+import { wrapText, measureLabelBelow } from '../src/layout-graph.mjs';
 import { loadPlaywright } from '../src/preview.mjs';
 import { scriptsDir } from './helpers.mjs';
 
@@ -60,6 +60,23 @@ describe('text metrics', () => {
     expect(roomFor(100)).toBe(104);
     expect(roomFor(232.8)).toBe(243);
     expect(safeWidth(104)).toBeCloseTo(100, 6);
+  });
+
+  it('counts the lines that start inside a word, and keeps a name below a figure whole where a space can take the break', () => {
+    const name = 'Cloud SQL invoices-pg (PostgreSQL 16)';
+    // At this width the browser breaks after the hyphen of the resource name.
+    const tight = wrapText(name, textWidth('Cloud SQL invoices-') + 1);
+    expect(tight).toMatchObject({ lines: 2, inWord: 1 });
+    expect(wrapText('Cloud SQL invoices-pg', 1).inWord).toBe(1);
+    expect(wrapText('Cloud SQL invoices pg', 1).inWord).toBe(0);
+    // Below an icon the name takes as many lines, broken at a space.
+    const below = measureLabelBelow(name);
+    expect(below.height).toBe(measureLabelBelow('Cloud SQL invoices pg (PostgreSQL 16)').height);
+    const drawn = wrapText(name, below.wrap);
+    expect(drawn).toMatchObject({ lines: 2, inWord: 0 });
+    expect(below.wrap).toBeLessThanOrEqual(160);
+    // A name with no space to break at keeps its break inside the word.
+    expect(wrapText('payment-gateway-adapter-for-the-legacy-system', measureLabelBelow('payment-gateway-adapter-for-the-legacy-system').wrap).inWord).toBeGreaterThan(0);
   });
 
   const samples = [

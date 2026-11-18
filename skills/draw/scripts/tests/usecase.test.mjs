@@ -287,6 +287,48 @@ describe('use case diagram: draw.io layout', () => {
     for (const s of starts) expect(s).toEqual({ x: figure.x + figure.width, y: figure.y + figure.height / 2 });
   });
 
+  it('gives the lines of each actor a track of their own, so the trunks of two actors never read as one line', async () => {
+    // The receptionist books too: its new line runs past the trunk of the patient above it.
+    const booking = {
+      schemaVersion: 1, kind: 'usecase', title: 'Clinic',
+      actors: [{ id: 'patient', label: 'Patient' }, { id: 'registered', label: 'Registered patient' }, { id: 'receptionist', label: 'Receptionist' }, { id: 'doctor', label: 'Doctor' }],
+      useCases: ['search', 'register', 'book', 'cancel', 'checkin', 'today', 'schedules'].map((id) => ({ id, label: id })),
+      boundaries: [{ id: 'clinic', label: 'Clinic booking', children: ['search', 'register', 'book', 'cancel', 'checkin', 'today', 'schedules'] }],
+      relations: [
+        { id: 'a1', from: 'patient', to: 'search', kind: 'association' },
+        { id: 'a2', from: 'patient', to: 'register', kind: 'association' },
+        { id: 'a3', from: 'registered', to: 'book', kind: 'association' },
+        { id: 'a4', from: 'registered', to: 'cancel', kind: 'association' },
+        { id: 'a5', from: 'receptionist', to: 'book', kind: 'association' },
+        { id: 'a6', from: 'receptionist', to: 'checkin', kind: 'association' },
+        { id: 'a7', from: 'doctor', to: 'today', kind: 'association' },
+        { id: 'a8', from: 'doctor', to: 'schedules', kind: 'association' },
+        { id: 'g1', from: 'registered', to: 'patient', kind: 'generalization' },
+      ],
+    };
+    for (const [name, ir] of [...['valid-generalization', 'valid-two-boundaries'].map((n) => [n, loadFixture('usecase', n)]), ['booking', booking]]) {
+      const { paths } = await drawn(ir);
+      const actors = new Set(ir.actors.map((a) => a.id));
+      // The stretch along the column of actors: the first one across the flow, seen from the actor.
+      const trunks = [];
+      for (const rel of ir.relations.filter((x) => x.kind === 'association')) {
+        const actor = actors.has(rel.from) ? rel.from : rel.to;
+        const path = paths.get(`u:${rel.id}`);
+        const own = actor === rel.from ? path : [...path].reverse();
+        for (let i = 1; i < own.length; i++) {
+          if (Math.abs(own[i].x - own[i - 1].x) > 0.5) continue;
+          trunks.push({ actor, x: own[i].x, lo: Math.min(own[i].y, own[i - 1].y), hi: Math.max(own[i].y, own[i - 1].y) });
+          break;
+        }
+      }
+      for (const t of trunks) for (const u of trunks) {
+        if (t.actor >= u.actor || Math.abs(t.x - u.x) > 0.5) continue;
+        const gap = Math.max(t.lo, u.lo) - Math.min(t.hi, u.hi);
+        expect(gap, `${name}: ${t.actor} and ${u.actor} on one line at x ${t.x}`).toBeGreaterThanOrEqual(60);
+      }
+    }
+  });
+
   it('draws a generalization between neighbouring actors as one straight line, and round the column past an actor between them', async () => {
     const { paths, box, cell } = await drawn(loadFixture('usecase', 'valid-generalization'));
     const [customer, guest, registered] = ['customer', 'guest', 'registered'].map(box);
