@@ -337,11 +337,14 @@ Figma, including the `whoami` the refusal message suggests, and report:
   whose later parts did not is named as incomplete on the board;
 - that nothing was changed by the refused call;
 - how to go on: once the limit resets (Figma gives no time in the message; its rate-limit
-  page and the plan's settings say when), or on a board of a plan that allows more calls, run
-  the remaining scripts from the run folder, unchanged and in order; on a limited plan, emit
-  the diagrams that did not run again as one `bundle --to figjam --native` script first, which
-  costs fewer calls than running them one by one. A script that did run
-  can be run again: part 1 replaces what it drew before, so a diagram left incomplete is
-  drawn whole by running its parts again from part 1.
+  page and the plan's settings say when; a Starter plan allows 20 calls a month), or on a
+  board of a plan that allows more calls, run the remaining scripts from the run folder,
+  unchanged and in order. A diagram left incomplete: when nothing on the board changed since,
+  running its parts that did not run is enough, since the refused call changed nothing; when
+  in doubt, run its parts again from part 1, which replaces what part 1 drew before and costs
+  one call more. On a limited plan, emit the diagrams none of whose parts ran again as one
+  `bundle --to figjam --native` script, written into the run folder of the first of them,
+  which costs fewer calls than running them one by one; a diagram left incomplete stays out
+  of that bundle and is finished with its own parts.
 
 Deliver the draw.io file of the run all the same; it does not depend on Figma.
