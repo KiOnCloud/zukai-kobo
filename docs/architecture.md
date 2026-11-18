@@ -111,7 +111,8 @@ brainstorm (idea) ─> clarify ┘                                              
   returns its results. Every shape a script draws is named `zukai-native` and the run folder
   of its IR, and a script draws over a section only when it holds such shapes of the same
   run, so a section of the same title drawn otherwise (the source of a recook) is left as it
-  is and the new drawing goes into `<title> (2)`. The
+  is and the new drawing goes into `<title> (2)`. Of two such sections (a copy made on the
+  board) the last is drawn over and the result names the other in a `warning`. The
   group of a cell is named so that a board read back keeps what the picture cannot tell: an
   edge by its own label (never by a text at one of its ends), a stencil picture by its
   stencil, a client screen by `[client]`, a picture that is part of its frame (the Google

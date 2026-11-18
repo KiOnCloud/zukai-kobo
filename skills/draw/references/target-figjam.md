@@ -251,6 +251,9 @@ leave the machine, and the secret scan gates this emit like the other.
    ` (2)` added (`Clinic booking use cases (2)`), or ` (3)` and so on when that name is taken
    too. The result of a call names the section (`section`, `name`) and counts the shapes,
    lines and texts it created and replaced, not the groups; report the section by that name.
+   When two sections hold shapes of the run (a user duplicated one: a copy keeps the names),
+   the script draws into the last one on the page, leaves the other as it was, and its result
+   carries a `warning` that names the other section ids. Report that warning to the user.
    A board drawn by a version before 2.3.0 carries no run in those names, so drawing it
    again makes a new section; delete the old one by hand when it is no longer wanted.
 5. Look at the result (`get_screenshot` of the section id the script returns) before

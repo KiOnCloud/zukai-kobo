@@ -1123,7 +1123,10 @@ const ours = (n, found = []) => {
 // that title drawn by hand, by generate_diagram or for another run (the source of a recook) stays.
 const named = (n) => n.name === D.title || (n.name.startsWith(D.title + ' (') && /^ \(\d+\)$/.test(n.name.slice(D.title.length)));
 const isOurs = (n) => n.type === 'SECTION' && named(n) && ours(n).length > 0;
-let S = page.children.filter(isOurs).pop();
+// The last section of this run is drawn into; another one (a copy a user made on the board)
+// keeps its drawing and is named in the result.
+const copies = page.children.filter(isOurs);
+let S = copies.pop();
 let replaced = 0;
 if (D.part === 1) {
   if (S) {
@@ -1265,7 +1268,15 @@ for (const item of D.items) {
     }
   }
 }
-return { section: S.id, name: S.name, part: D.part, parts: D.parts, created, replaced };
+const result = { section: S.id, name: S.name, part: D.part, parts: D.parts, created, replaced };
+if (copies.length > 0) {
+  const one = copies.length === 1;
+  result.warning = (one ? 'section ' : 'sections ') + copies.map((n) => n.id).join(', ')
+    + (one ? ' also holds' : ' also hold') + ' shapes of this run (a copy made on the board?) and '
+    + (one ? 'keeps the drawing it had' : 'keep the drawings they had') + '; only section ' + S.id + ' was drawn.'
+    + ' Tell the user, who can delete ' + (one ? 'the copy' : 'the copies') + ' when no longer wanted.';
+}
+return result;
 };
 const results = [];
 for (const one of Array.isArray(D) ? D : [D]) results.push(await draw(one));

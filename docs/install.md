@@ -578,6 +578,8 @@ What changes for a run you already have:
   their data over lines of at most 200 characters and check its length and hash before they
   touch the board: a copy that lost or changed a character throws and changes nothing; pass
   the script again from its file.
+- A native script that finds two sections holding shapes of its run (a copy made on the
+  board) draws into the last, as before, and its result carries a `warning` naming the other.
 - On a board drawn by `emit --to figjam --native`, the title of a frame without a header
   strip (an Availability Zone, a GCP frame) now stands at the top of the frame, so such a
   board comes out differently when it is drawn again.

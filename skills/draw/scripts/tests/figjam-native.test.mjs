@@ -3,6 +3,7 @@ import { emit } from '../src/pipeline.mjs';
 import { figjamNative, parseCells, plainLabel, richLabel, NATIVE_TAG, SCRIPT_LIMIT } from '../src/figjam-native.mjs';
 import { checkDrawioStructure } from './drawio-structure.mjs';
 import { loadFixture, validFixtures, scriptData } from './helpers.mjs';
+import { standInFigma } from './figma-stand-in.mjs';
 
 /**
  * A stand-in for a FigJam page: nodes keep what the script sets, a text measures itself by
@@ -604,6 +605,30 @@ describe('figjam native script', () => {
     expect(JSON.stringify(treeOf(S))).toBe(tree);
     // The section stays where the user moved it.
     expect(S.x).toBe(3000);
+  });
+
+  it('redraws the last of two sections of its run and names the other in a warning', async () => {
+    const ir = loadFixture('usecase', 'valid');
+    const { parts } = figjamNative(await drawioOf(ir), { title: ir.title, run: '20261118_library' });
+    const board = standInFigma();
+    const first = await board.run(parts[0]);
+    expect(first.warning).toBeUndefined();
+    // A user duplicates the section on the board: the copy keeps its name and the names of its shapes.
+    const original = board.page.children[0];
+    original.name = 'aside';
+    const copy = await board.run(parts[0]);
+    original.name = ir.title;
+    expect(board.page.children.map((c) => c.name)).toEqual([ir.title, ir.title]);
+    const before = JSON.stringify(leaves(original).map((c) => c.id));
+    const again = await board.run(parts[0]);
+    expect(again).toMatchObject({ section: copy.section, replaced: copy.created, created: copy.created });
+    expect(again.warning).toMatch(new RegExp(`^section ${original.id} also holds shapes of this run.*; only section ${copy.section} was drawn`));
+    expect(again.warning).toMatch(/tell the user/i);
+    // The other section keeps the drawing it had.
+    expect(JSON.stringify(leaves(original).map((c) => c.id))).toBe(before);
+    // With one section of the run there is nothing to warn of.
+    original.remove();
+    expect((await board.run(parts[0])).warning).toBeUndefined();
   });
 
   it('does not take a section of the same name that generate_diagram made for its own', async () => {
