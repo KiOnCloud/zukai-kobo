@@ -137,8 +137,11 @@ describe('cover', () => {
       { id: 'end', label: 'Kết thúc', shape: 'terminal' },
     ],
     edges: [
+      { id: 'e1', from: 'start', to: 'enter' },
+      { id: 'e2', from: 'enter', to: 'check' },
       { id: 'e3', from: 'check', to: 'pay', label: 'Có' },
       { id: 'e4', from: 'check', to: 'notify', label: 'Không' },
+      { id: 'e5', from: 'pay', to: 'end' },
     ],
     meta: { source: 'recook', omitted: ['"Ghi chú: giờ cao điểm 18h–21h": a free note, not a step of the flow'] },
   });

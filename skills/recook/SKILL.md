@@ -77,8 +77,13 @@ The facts are what the run keeps of it, with such values already replaced by pla
    unclear, extract without it, show the pages, ask which, and extract again with `--page`.
 2. A FigJam board: it needs a Figma tool named `use_figma`. Load it (a deferred tool is
    loaded first), call the server's `create_session` once with the file key when it offers
-   one, and read the `figma-use` skill (or its resource `skill://figma/figma-use/SKILL.md`)
-   before the first call, as `<draw-dir>/references/target-figjam.md` says for its own scripts. Take the file key and the section
+   one, and load the skills the Figma server names before the first call, as
+   `<draw-dir>/references/target-figjam.md` section 8 says for its own scripts. Each read is
+   one `use_figma` call, and a plan that limits calls (Figma's Starter plan stops after about
+   twenty) can refuse one midway: tell the user before the first read how many calls the
+   reading takes (one per part; a board of a few diagrams is one part) and what is left for
+   drawing the result back, and when a call is refused, say which parts were read and stop,
+   as that section says. Take the file key and the section
    from the link (`node-id=1-2` is node `1:2`, which `--section` takes as it is, like a
    section name), then:
    `extract --figjam-script <tmp>/read-board.js [--section "<name or 1:2>"]`, run that file's
@@ -259,9 +264,16 @@ facts alone:
 ## 4. Coverage gate
 
 Run `cover <run>/source/<run-slug>.facts.json <run>`. Exit 0: go on. Exit 2: the JSON on
-stderr lists each `missing` text with its page and source element. For each one, put it
-where it belongs in the IR, or add the `meta.omitted` entry that says why it is left out, and
-run `cover` again until it passes. An omission counts only in the form `"<text>": <reason>`.
+stderr lists each `missing` text with its page and source element, and each lost edge under
+`lostEdges`: a line of the source whose two ends are known (the texts of both ends and its
+label are given) that no relation of the IR joins. A label alone does not prove a line was
+kept, since two lines often carry the same one. For each missing text, put it where it
+belongs in the IR, or add the `meta.omitted` entry that says why it is left out; for each
+lost edge, add the relation between the two elements that carry those texts, or a
+`meta.omitted` entry that quotes its label, or its two ends when it has none
+(`"publish" from "Order API" to "Events": <reason>`). Run `cover` again until it passes. An
+omission counts only in the form `"<text>": <reason>`. An element left out with its reason
+takes its lines with it.
 Never satisfy the check with an element the source does not have. `meta.notes` does not count: a note is not shown, so a text put there is dropped
 without saying so.
 
@@ -281,7 +293,7 @@ with the offer of a `revise`, never `wrong` (the checklist says so for `meta.sou
   (which part holds what, and every connection label replaced by its protocol); collapsed
   under `overview`; merged; left out (each `meta.omitted` entry with its reason); added (each
   `added:` note); joined by position (every edge the facts marked inferred);
-- the coverage result (`covered` of `units` texts);
+- the coverage result (`covered` of `units` texts, and the `edges` checked);
 - with `--audience both` given as a flag, when the business view came out a near copy of the
   technical one (a source with no technical names), say so in one line;
 - the kind of each diagram and, when it differs from the source's best hint, why;

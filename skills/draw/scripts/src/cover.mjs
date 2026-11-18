@@ -23,6 +23,19 @@
  *
  * Ids and references (`id`, `from`, `to`, `children`, `after`, `lane`) are not looked at:
  * they are made from names, and a name that survives only as an id is not shown to anyone.
+ *
+ * Texts alone do not show that a line was kept: two connections often carry the same label,
+ * and the label of a dropped one is then found in the one that stayed. So every edge of the
+ * facts whose two ends are known must also be represented in the IRs: by an element with
+ * `from` and `to` (an edge, a relation, a message, a transition, a connection, a flow) whose
+ * two ends carry the texts of the edge's two ends, either way round; or by an element that
+ * carries the text of one end and names the other by its id (a note on a participant, a
+ * boundary holding a use case); or by a `meta.omitted` entry that quotes the edge's label, or
+ * names its two ends when it has none, and gives the reason; or by such an entry for one of its
+ * ends, since an element left out or merged into another takes its lines with it. An element carries the text of an
+ * end when one line of that end's label is found in it as above. An end without any text (a
+ * start state) stands for any element; an edge with no text at either end is not asked for.
+ * A lost edge is reported by the texts of its two ends and its label.
  */
 
 const REF_KEYS = new Set(['id', 'from', 'to', 'children', 'after', 'lane', 'schemaVersion']);
@@ -102,6 +115,78 @@ export function unitsOf(facts) {
   return units;
 }
 
+/** Whether a text, cut into tokens, is found in a holder of tokens (see the head of the file). */
+function foundIn(text, holder) {
+  const all = tokensOf(String(text).replace(/<redacted[^<>]*>/g, ' '));
+  if (all.length === 0) return false;
+  const words = all.filter((t) => !FRAME_WORDS.has(t));
+  const tokens = words.length > 0 ? words : all;
+  return tokens.every((t) => holder.tokens.has(t)) || holder.compact.includes(tokens.join(''));
+}
+
+/** A holder of the tokens of some strings. */
+const holderOf = (strings) => ({ tokens: new Set(strings.flatMap(tokensOf)), compact: strings.flatMap(tokensOf).join('') });
+
+/**
+ * The edges of the facts that no element of the IRs represents (see the head of the file).
+ * @returns {{ edges: number, lost: Array<{ page: string, element: string, from: string, to: string, label: string }> }}
+ */
+export function lostEdges(facts, irs) {
+  // Every element with an id, and every element that joins two of them or names others.
+  const elements = [];
+  const joins = [];
+  const omissions = [];
+  for (const { ir } of irs) {
+    const byId = new Map();
+    const all = [];
+    const walk = (value) => {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === 'object') {
+        if (value !== ir) all.push(value);
+        if (typeof value.id === 'string') byId.set(value.id, value);
+        for (const [k, v] of Object.entries(value)) if (k !== 'meta') walk(v);
+      }
+    };
+    walk(ir);
+    const held = new Map();
+    const hold = (el) => { if (!held.has(el)) held.set(el, holderOf(stringsOf(el))); return held.get(el); };
+    for (const el of byId.values()) elements.push(hold(el));
+    for (const el of all) {
+      const ends = typeof el.from === 'string' && typeof el.to === 'string' ? [byId.get(el.from), byId.get(el.to)] : null;
+      // The ids an element names in any field but its own id and its two ends.
+      const named = Object.entries(el).filter(([k]) => k !== 'id' && k !== 'from' && k !== 'to').flatMap(([, v]) => (Array.isArray(v) ? v : [v])).filter((v) => typeof v === 'string' && byId.has(v) && byId.get(v) !== el).map((v) => hold(byId.get(v)));
+      joins.push({ self: hold(el), ends: ends && ends[0] && ends[1] ? [hold(ends[0]), hold(ends[1])] : null, named });
+    }
+    for (const entry of ir.meta?.omitted ?? []) if (typeof entry === 'string' && /^\s*["“«「『][\s\S]*["”»』」]\s*:\s*\S/.test(entry)) omissions.push(holderOf([entry]));
+  }
+  const lines = (text) => String(text ?? '').split('\n').map((l) => l.trim()).filter((l) => tokensOf(l).length > 0);
+  // An element carries an end when one line of the end's label is found in it; an end with no text, any element.
+  const carries = (holder, end) => end.length === 0 || end.some((l) => foundIn(l, holder));
+  let checked = 0;
+  const lost = [];
+  for (const page of facts.pages ?? []) {
+    const nodes = new Map((page.nodes ?? []).map((n) => [n.id, n]));
+    for (const edge of page.edges ?? []) {
+      const a = nodes.get(edge.from);
+      const b = nodes.get(edge.to);
+      if (!a || !b) continue;
+      const ea = [...lines(a.label), ...(a.texts ?? []).flatMap(lines)];
+      const eb = [...lines(b.label), ...(b.texts ?? []).flatMap(lines)];
+      if (ea.length === 0 && eb.length === 0) continue;
+      checked++;
+      const joined = joins.some((j) => (j.ends && ((carries(j.ends[0], ea) && carries(j.ends[1], eb)) || (carries(j.ends[0], eb) && carries(j.ends[1], ea))))
+        || (carries(j.self, ea) && j.named.some((h) => carries(h, eb))) || (carries(j.self, eb) && j.named.some((h) => carries(h, ea))));
+      if (joined) continue;
+      const label = lines(edge.label);
+      // Left out itself, or with an end the IR leaves out (an interface merged into the line that runs through it).
+      const omitted = omissions.some((h) => (label.length > 0 ? label.every((l) => foundIn(l, h)) : carries(h, ea) && carries(h, eb)) || (ea.length > 0 && carries(h, ea)) || (eb.length > 0 && carries(h, eb)));
+      if (omitted) continue;
+      lost.push({ page: page.id, element: edge.id, from: ea.join(' / '), to: eb.join(' / '), label: label.join(' / ') });
+    }
+  }
+  return { edges: checked, lost };
+}
+
 /**
  * @param {object} facts output of `extract`
  * @param {Array<{ name: string, ir: object }>} irs
@@ -128,5 +213,6 @@ export function cover(facts, irs) {
     const found = holders.some((h) => (h.pages.length === 0 || h.pages.includes(unit.page) || h.pages.includes(unit.pageName)) && (tokens.every((t) => h.tokens.has(t)) || h.compact.includes(compact)));
     if (!found) missing.push({ page: unit.page, element: unit.element, text: unit.text });
   }
-  return { ok: missing.length === 0, units: units.length, covered: units.length - missing.length, missing };
+  const edges = lostEdges(facts, irs);
+  return { ok: missing.length === 0 && edges.lost.length === 0, units: units.length, covered: units.length - missing.length, missing, edges: edges.edges, lostEdges: edges.lost };
 }
