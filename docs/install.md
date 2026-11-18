@@ -47,7 +47,7 @@ npm install -g playwright && npx playwright install chromium
 Without either, the skill skips the visual check and says so. The diagram is always rendered
 inside the local browser; only the renderer page or library is fetched from the network.
 
-The SVG pictures (`--svg`, or `cli.mjs export <file.drawio|run-folder>`) need the same
+The SVG pictures (`--svg`, or `cli.mjs export <file.drawio|file.drawio.svg|run-folder>`) need the same
 renderers, and unlike the visual check they are a deliverable, so without a renderer
 `export` exits 1, names every place it looked and writes no picture. draw.io desktop is
 tried first and Playwright second. Labels are written as SVG text only when Playwright is
@@ -55,6 +55,41 @@ installed, because that step needs a browser: with draw.io desktop alone the pic
 written with HTML labels, which only a browser draws, and the output says so
 (`text: "html"` and a warning per file). Install Playwright beside draw.io desktop when the
 pictures go into a PDF or a wiki that renders SVG itself.
+
+#### draw.io desktop on Linux without a display
+
+draw.io desktop is an Electron app: it needs a display even to print its version, and run
+as root it also needs Chromium's sandbox turned off. On Linux the CLI always adds
+`--no-sandbox --disable-gpu` after its own arguments, and when neither `DISPLAY` nor
+`WAYLAND_DISPLAY` is set (a server, a container, CI) it starts draw.io under `xvfb-run -a`,
+which lends it a virtual display for that one call. So a headless machine needs only the
+`xvfb` package beside draw.io (`apt-get install xvfb`); the `.deb` installs draw.io at
+`/opt/drawio/drawio`, where the CLI finds it, or put `drawio` on `PATH`. Without `xvfb-run`
+the output says that draw.io found no display and what to install, and a `drawio` on
+`PATH` that does not start is reported as found but not starting, with the reason. The
+`Failed to connect to the bus` lines draw.io prints on such a machine are harmless and are
+left out of the messages.
+
+What was verified, with draw.io desktop 26.0.9 (the `.deb` of its release page) on Linux
+without a display, as root, through `xvfb-run`:
+
+- The calls the CLI makes are `drawio -x -f png -s <scale> -b 20 -o <out.png> <file>` for
+  `preview` and `drawio -x -f svg -b <border> -o <out.svg> <page-file>` for `export` (one
+  file per page), each followed by `--no-sandbox --disable-gpu`; `drawio --version` finds the
+  app. All of these flags are in `drawio --help` of 26.0.9.
+- draw.io exits 0 when an export fails: it prints `Error: Export failed: <file>` and writes
+  nothing. The CLI takes only a file that the call itself wrote as a result (`preview`
+  deletes the image at its output path first), and reports draw.io's own error line.
+- `preview` and `export` with draw.io alone and with Playwright beside it, on a single-page
+  file, a run with a canvas page and steps that refer to other pages, a use case diagram,
+  and architecture diagrams on AWS and on Google Cloud, with `--page` by id and by name, a
+  page that does not exist (exit 1 with the list of pages), an editable picture as input,
+  and `preview --max-px` (a wide diagram cut into tiles within the cap). Each picture
+  carries exactly its page in `content`, `extract` and `cover` read it back, and the
+  pictures and previews were looked at.
+- draw.io 26 writes the SVG with `viewBox="-0.5 -0.5 <width> <height>"` and, beside each
+  HTML label, a PNG of the label for viewers that cannot draw HTML. With Playwright both are
+  replaced by SVG text, which also makes the file five to eight times smaller.
 
 ## Claude Code (plugin)
 
@@ -381,8 +416,10 @@ Version 2.3.0 adds a fourth skill, an eighth diagram kind, two outputs beside th
 a picture of every change, a fourth source for recook and Google Cloud icons for
 architecture diagrams. Existing `.ir.json` files, run
 folders and CLI commands keep working unchanged, and a diagram emitted again to draw.io or
-Mermaid comes out as 2.2.2 drew it, with one exception: a sequence diagram with a
-self-message whose label is too wide to stand centred over its loop (see below).
+Mermaid comes out as 2.2.2 drew it, except for the drawings listed below: a sequence
+diagram with a self-message whose label is too wide to stand centred over its loop, a
+class diagram with a general class or an interface, and the start node of a swimlane
+diagram in Mermaid.
 
 - **`/zukai:sync`** (`$zukai-sync` and `/zukai-sync` in a copied install) brings a run that
   `scout` drew up to date with the code. The IR has a new optional field, `meta.sources`:
@@ -394,12 +431,14 @@ self-message whose label is too wide to stand centred over its loop (see below).
   names sources the record does not hold, 1 when a run has no record. A `scout` run now ends
   by recording its sources; `snapshot` keeps the record with the revision and `restore`
   puts it back.
-- **`export <file.drawio|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]`** writes each page of a draw.io
+- **`export <file.drawio|file.drawio.svg|run-dir> [--out <dir|file.svg>] [--page <id|name>[,...]]`** writes each page of a draw.io
   file as `<name>.drawio.svg`, an SVG picture with the page's diagram embedded, so a wiki
   shows it and draw.io still opens it. For a run folder the pictures go to
   `svg/<slug>.drawio.svg`, with `svg/canvas.drawio.svg` for the page that shows the
-  diagrams side by side. `--page` writes the pictures of the pages named only. The skills
-  take `--svg`. The command needs a renderer (see the optional renderer section above).
+  diagrams side by side. `--page` writes the pictures of the pages named only. Given an
+  editable picture, it draws the diagram the picture holds again, by default over the
+  picture itself, as `preview` and `extract` read it. The skills take `--svg`. The command
+  needs a renderer (see the optional renderer section above).
 - **`preview` takes `--page <id|name>`** for a draw.io file of several pages (a combined
   file, the picture of a change); without it the first page is rendered, as before, and a
   name the file does not have exits 1 with the list of its pages. It also renders an
@@ -491,6 +530,27 @@ What changes for a run you already have:
   service that publishes to it) is laid out with the connection that closes the circle,
   the later one in `connections`, drawn against the flow. A diagram without such a circle
   is drawn as before.
+- A class diagram puts the general class above its subclasses and an interface above the
+  classes that realise it. A class diagram with either comes out arranged differently when
+  it is emitted again, so `/zukai:revise` reports it as changed since delivery before it
+  redraws it.
+- The start node of a swimlane diagram in Mermaid is a filled circle (`f-circ`), as UML
+  draws it; Mermaid drew the circle written before hollow whatever its style said. A
+  swimlane diagram emitted again to Mermaid differs in that line, and `extract` reads the
+  filled circle back as the start node.
+- An architecture connection that runs through the header bar of a plain frame, beside its
+  title, is reported as a `layout:` warning on every emit to draw.io. Nothing is refused.
+- In the picture of a change, a boundary, a group or a composite state that only gained or
+  lost a member is no longer coloured amber: the member that came or went is coloured.
+- The description tables: the Condition column says what a block means (`If …`,
+  `Otherwise, if …`, `Repeated: …`), and an ordinary state is called 通常 in Japanese and
+  Thông thường in Vietnamese.
+- `bundle --to doc` prints each `model:` and `detail:` warning once; it printed the
+  warnings of the diagrams a second time.
+- `sources` and `stale` find the record of a run folder that was renamed or copied under
+  another name, where the record keeps the old slug. A folder that holds several records
+  and none named after the run exits 1 and names them: keep the one that belongs to the
+  run, or delete them and record again.
 - Revise and sync rebuild every target a run folder holds (draw.io, Mermaid, the FigJam
   files, the pictures, the description tables), not only the one the request named.
 - The translated IRs of a language variant live in `source/<lang>/<slug>.ir.json`. A run
