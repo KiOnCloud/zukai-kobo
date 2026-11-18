@@ -1,7 +1,7 @@
 ---
 title: "Configurable runs folder and a global run index"
 description: "Runs stay in the project under diagrams/ by default; .zukai/config.json runsDir moves them and every skill, the CLI and the labs console follow it; ~/.zukai/index.json lists the projects that hold runs as a rebuildable cache."
-status: in-progress
+status: completed
 priority: P2
 effort: 3.5d
 branch: claude/upbeat-wright-llans1

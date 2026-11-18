@@ -20,7 +20,14 @@ import pkg from '../package.json' with { type: 'json' };
 import { projectRoot, ensureZukaiDir } from './glossary.mjs';
 import { createLabsServer, loadPages, makeLogger, errorFacts } from './labs-server.mjs';
 import { runNames } from './labs-runs.mjs';
-import { runsDirOf } from './project-config.mjs';
+import { readProjectConfig } from './project-config.mjs';
+
+/** What start and status say about the runs: the folder and how many, or why they cannot be read. */
+function runsOf(root) {
+  const config = readProjectConfig(root);
+  if (!config.ok) return { runsDir: null, runs: 0, configError: config.error.toJSON() };
+  return { runsDir: config.runsDir, runs: runNames(root).length };
+}
 import { createJobs } from './labs-jobs.mjs';
 import { request, probePort, proveServer, waitPortClosed } from './labs-client.mjs';
 
@@ -82,7 +89,7 @@ const ownerHint = (port) => ({
 
 /** What `start` and `status` print about a server that proved itself. */
 function described(root, file, health, extra = {}) {
-  return { ok: true, running: true, url: consoleUrl(file.port, file.token), port: file.port, pid: file.pid, version: health.version, root: projectRoot(root), runsDir: runsDirOf(root), runs: runNames(root).length, jobOpen: health.jobOpen === true, ...extra };
+  return { ok: true, running: true, url: consoleUrl(file.port, file.token), port: file.port, pid: file.pid, version: health.version, root: projectRoot(root), ...runsOf(root), jobOpen: health.jobOpen === true, ...extra };
 }
 
 /** True in a cloud session, whose machine a browser on the user's device cannot reach. */
@@ -155,9 +162,9 @@ export async function startServer({ root: rootOption, port: portOption, idleMinu
 export async function serverStatus({ root: rootOption } = {}) {
   const root = projectRoot(rootOption);
   const file = readServerFile(root);
-  if (!file) return { code: 0, out: { ok: true, running: false, root, runsDir: runsDirOf(root), runs: runNames(root).length } };
+  if (!file) return { code: 0, out: { ok: true, running: false, root, ...runsOf(root) } };
   const proof = await proveServer(file.port, file.token);
-  if (proof.state === 'refused') return { code: 0, out: { ok: true, running: false, root, runsDir: runsDirOf(root), runs: runNames(root).length, note: 'server.json names a server that no longer runs; labs start replaces it' } };
+  if (proof.state === 'refused') return { code: 0, out: { ok: true, running: false, root, ...runsOf(root), note: 'server.json names a server that no longer runs; labs start replaces it' } };
   if (proof.state !== 'proved') return { code: 1, error: { code: 'not-this-project', message: `the program on port ${file.port} did not prove it is this project's console`, ...ownerHint(file.port) } };
   return { code: 0, out: described(root, file, proof.health) };
 }

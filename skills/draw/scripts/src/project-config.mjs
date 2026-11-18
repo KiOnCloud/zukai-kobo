@@ -74,6 +74,8 @@ export function checkRunsDir(root, value) {
   const parts = trimmed.split('/');
   if (parts.some((p) => p === '')) return { message: `runsDir "${value}" has an empty part`, hint: fix };
   if (parts.some((p) => p === '.' || p === '..')) return { message: `runsDir "${value}" has a "." or ".." part`, hint: fix };
+  // A Windows short name (GIT~1, ZUKAI~1) can stand for .git or .zukai on NTFS.
+  if (parts.some((p) => /~\d+(\.|$)/.test(p))) return { message: `runsDir "${value}" has a part that reads as a Windows short name (like GIT~1)`, hint: fix };
   const first = parts[0].toLowerCase();
   if (first === '.zukai' || first === '.git') return { message: `runsDir "${value}" lies in ${parts[0]}/, which holds the project's own state`, hint: fix };
   const base = projectRoot(root);
@@ -143,27 +145,35 @@ export function runFoldersIn(dir) {
   }).sort().reverse();
 }
 
+/** The real path of a folder, its case as the file system writes it; the path itself when it does not exist. */
+function realOrSelf(path) {
+  try { return realpathSync.native(path); } catch { return path; }
+}
+
 /**
  * The project a run folder belongs to: the nearest folder above it holding
- * `.zukai/config.json` whose runs folder is the run's parent, else the folder above the
- * parent when the parent is named `diagrams` (the default), else undefined.
+ * `.zukai/config.json` whose runs folder is the run's parent (real paths compared, so a
+ * spelling in another case or through a link still matches), else the folder above the parent
+ * when the parent is named `diagrams` and that folder has no setting of its own, else
+ * undefined. A setting above the run that cannot be used throws its `ConfigError`: which
+ * project owns the run is then unknown, and a caller that guards a run must not guess.
  */
 export function projectOfRun(runDir) {
   const parent = dirname(runDir);
+  const realParent = realOrSelf(parent);
   let at = dirname(parent);
   for (;;) {
     if (existsSync(configPath(at))) {
-      try {
-        if (runsPath(at) === parent) return at;
-      } catch {
-        // a project with a bad setting owns no run until the setting is fixed
-      }
+      const read = readProjectConfig(at);
+      if (!read.ok) throw read.error;
+      if (realOrSelf(join(at, ...read.runsDir.split('/'))) === realParent) return at;
     }
     const up = dirname(at);
     if (up === at) break;
     at = up;
   }
-  return basename(parent) === DEFAULT_RUNS_DIR ? dirname(parent) : undefined;
+  const grand = dirname(parent);
+  return basename(parent) === DEFAULT_RUNS_DIR && !existsSync(configPath(grand)) ? grand : undefined;
 }
 
 /**

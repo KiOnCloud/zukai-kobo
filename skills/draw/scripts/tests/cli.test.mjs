@@ -155,9 +155,25 @@ describe('runs-dir (committed bundle)', () => {
     const r = run(['runs-dir', '--root', root]);
     expect(r.code).toBe(1);
     expect(parseStderr(r.stderr).error).toMatchObject({ code: 'bad-config', path: join(root, '.zukai', 'config.json') });
+    const start = run(['labs', 'start', '--root', root, '--skip-cloud-check']);
+    expect(start.code).toBe(1);
+    expect(parseStderr(start.stderr).error).toMatchObject({ code: 'bad-config' });
+    // status still answers, so a running server stays reachable, and carries the error.
     const status = run(['labs', 'status', '--root', root]);
-    expect(status.code).toBe(1);
-    expect(parseStderr(status.stderr).error).toMatchObject({ code: 'bad-config' });
+    expect(status.code).toBe(0);
+    expect(JSON.parse(status.stdout)).toMatchObject({ running: false, runsDir: null, runs: 0, configError: { code: 'bad-config' } });
+  });
+
+  it('refuses to say a run is not held when the setting of its project cannot be read', () => {
+    const root = project();
+    run(['runs-dir', 'set', 'docs/diagrams', '--root', root]);
+    const runDir = join(root, 'docs', 'diagrams', '20261118_x');
+    mkdirSync(join(runDir, 'source'), { recursive: true });
+    expect(JSON.parse(run(['labs', 'holds', runDir]).stdout)).toEqual({ held: false });
+    writeFileSync(join(root, '.zukai', 'config.json'), '{ "config": 2 }');
+    const r = run(['labs', 'holds', runDir]);
+    expect(r.code).toBe(1);
+    expect(parseStderr(r.stderr).error).toMatchObject({ code: 'bad-config' });
   });
 
   it('refuses an unknown word and a missing folder', () => {

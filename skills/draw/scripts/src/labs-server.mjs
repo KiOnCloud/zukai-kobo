@@ -28,7 +28,7 @@ import { labelsOf } from './ir-labels.mjs';
 import { readGlossary, writeGlossary, addEntries, checkRuns, checkGlossary, STATUSES, newEntryErrors, projectRoot } from './glossary.mjs';
 import { embedHostOf } from './drawio-embed.mjs';
 import { listRuns, runNames, runPath, runDetail, diagramIds, diagramDetail, runDoc, revisionNames, changesSince, filePath, diagramPicture, fileView } from './labs-runs.mjs';
-import { readProjectConfig, runsPath } from './project-config.mjs';
+import { readProjectConfig, runsPath, runFoldersIn } from './project-config.mjs';
 
 export const APP = 'zukai-labs';
 export const MAX_BODY = 1024 * 1024;
@@ -190,8 +190,9 @@ export function createLabsServer(options) {
     const h = createHash('sha256');
     const config = readProjectConfig(root);
     h.update(config.ok ? config.runsDir : 'bad-config');
-    for (const n of config.ok ? runNames(root) : []) {
-      const dir = join(runsPath(root), n);
+    const runs = config.ok ? runsPath(root) : undefined;
+    for (const n of runs ? runFoldersIn(runs) : []) {
+      const dir = join(runs, n);
       h.update(n);
       for (const sub of ['', 'source', 'history', 'svg']) { try { h.update(String(statSync(join(dir, sub)).mtimeMs)); } catch { /* absent */ } }
     }

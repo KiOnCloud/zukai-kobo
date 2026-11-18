@@ -869,7 +869,10 @@ A project's runs live under one folder, `diagrams/` unless `.zukai/config.json` 
 folder holds a run folder (the nearest setting above it, else a parent named `diagrams`),
 the hints that name a run folder, and the skills, which run `runs-dir` once at their start
 (`references/closing-contract.md`). It is read on every call, so a changed setting reaches a
-running console without a restart. The setting is a project file and not a user one because
+running console without a restart. When a setting above a run cannot be read,
+`projectOfRun` throws instead of guessing, so `labs holds` exits with `bad-config` rather than
+answering "not held" for a run a console job may hold; the console redraws a page that was
+built before its first state named the folder. The setting is a project file and not a user one because
 the runs are part of the project: committed, reviewed and shared with the team, and found by
 every teammate's agent in the same place.
 
@@ -894,9 +897,11 @@ index never holds data a run folder does not, and losing it loses nothing that
 project holds runs, so a skill that wrote with file tools is still seen) register their
 project after they printed their result; registering swallows every error, so the index
 never changes a command's output or exit code. A write reads the file right before it
-renames a temporary sibling into place, and drops the projects that no longer exist; two
-sessions writing at once lose at most one entry, which their next command adds back. Reading
-never writes. `ZUKAI_INDEX=off` stops both.
+renames a temporary sibling into place, and drops the projects whose folder is gone; a
+project whose setting is being edited or whose drive is not mounted keeps its entry. A file
+written by a newer version, or one that cannot be read, is never replaced: another install
+channel may be newer. Two sessions writing at once lose at most one entry, which their next
+command adds back. Reading never writes. `ZUKAI_INDEX=off` stops both.
 
 Storage in the plugin's install folder was ruled out (a version bump replaces it), and so
 was `CLAUDE_PLUGIN_DATA` (the Codex and folder-copy installs have none). A runs folder shared

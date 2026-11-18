@@ -41,7 +41,7 @@ writeFileSync(${JSON.stringify(join(bin, `${name}.args.json`))}, JSON.stringify(
 }
 
 /** The environment of a run of the bundle: no cloud flag, no test variables but the ones given. */
-const baseEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'CLAUDE_CODE_REMOTE' && !k.startsWith('ZUKAI_') && k !== 'DISPLAY' && k !== 'WAYLAND_DISPLAY'));
+const baseEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'CLAUDE_CODE_REMOTE' && (!k.startsWith('ZUKAI_') || k === 'ZUKAI_HOME') && k !== 'DISPLAY' && k !== 'WAYLAND_DISPLAY'));
 function cli(args, env = {}) {
   const r = spawnSync(process.execPath, [cliPath, ...args], { cwd: elsewhere, env: { ...baseEnv, ...env }, encoding: 'utf8' });
   const parse = (text) => { try { return JSON.parse(text.trim().split('\n').at(-1)); } catch { return text; } };

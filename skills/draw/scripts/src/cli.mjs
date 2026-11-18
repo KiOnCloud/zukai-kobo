@@ -848,8 +848,9 @@ async function labsCommand(opts) {
   if (['wait', 'progress', 'ask', 'done', 'holds'].includes(sub)) return labsAgentCommand(sub, opts);
   if (opts.positional.length !== 0) return fail(1, { ok: false, errors: [{ path: '/', message: `labs ${sub} takes no file` }], usage: USAGE });
   if (sub === 'serve') return serve({ root: opts.root, port: opts.port, idleMinutes: opts.idleMinutes });
-  // A console over the wrong folder would show no runs and say nothing: a bad setting stops it.
-  if (sub === 'start' || sub === 'status') {
+  // A console over the wrong folder would show no runs and say nothing: a bad setting stops
+  // it. status still answers, with the error, so a running server and its job stay reachable.
+  if (sub === 'start') {
     const config = readProjectConfig(opts.root);
     if (!config.ok) return fail(1, { ok: false, error: config.error.toJSON() });
   }
@@ -872,7 +873,14 @@ async function labsAgentCommand(sub, opts) {
     if (opts.positional.length !== 1) return bad('labs holds takes one run folder');
     const run = basename(resolve(opts.positional[0]));
     // Without --root, a run folder given by its path names its own project: the one whose runs folder holds it.
-    const runRoot = opts.root === undefined ? projectOfRun(resolve(opts.positional[0])) : undefined;
+    // When a setting above the run cannot be read, the owner is unknown: say so rather than "not held".
+    let runRoot;
+    try {
+      runRoot = opts.root === undefined ? projectOfRun(resolve(opts.positional[0])) : undefined;
+    } catch (e) {
+      if (e?.code === 'bad-config') return fail(1, { ok: false, error: e.toJSON() });
+      throw e;
+    }
     if (runRoot) file = readServerFile(runRoot);
     if (!file) { process.stdout.write(JSON.stringify({ held: false }) + '\n'); return 0; }
     const r = await agentCall(file, { method: 'GET', path: `/agent/holds?run=${encodeURIComponent(run)}` });

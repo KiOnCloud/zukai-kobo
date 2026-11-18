@@ -95,8 +95,9 @@ const revisionCount = (runDir) => (isRealDir(join(runDir, 'history')) ? readdirS
 
 /** Every run of a project, newest first, as the runs list shows it. */
 export function listRuns(root) {
-  return runNames(root).map((name) => {
-    const dir = join(runsPath(root), name);
+  const runs = runsPath(root);
+  return runFoldersIn(runs).map((name) => {
+    const dir = join(runs, name);
     const slug = name.slice('yyyymmdd_'.length);
     const diagrams = diagramsOf(dir);
     const main = diagrams[0];

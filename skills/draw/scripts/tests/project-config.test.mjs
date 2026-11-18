@@ -34,7 +34,7 @@ describe('project config', () => {
 
   it('refuses every value that leaves the project or lands in its state', () => {
     const root = project();
-    for (const value of ['', '/abs/path', 'C:/x', '../x', 'a/../b', './x', 'a//b', 'a\\b', '.zukai', '.zukai/runs', '.git', '.GIT/x', 'a:b', 'x\u0000', 7, null]) {
+    for (const value of ['', '/abs/path', 'C:/x', '../x', 'a/../b', './x', 'a//b', 'a\\b', '.zukai', '.zukai/runs', '.git', '.GIT/x', 'GIT~1', 'docs/ZUKAI~1', 'a:b', 'x\u0000', 7, null]) {
       expect(checkRunsDir(root, value), JSON.stringify(value)).toBeDefined();
     }
     for (const value of ['diagrams', 'docs/diagrams', 'docs/diagrams/', 'design docs/図解', '.github-pages/diagrams']) {
@@ -76,6 +76,24 @@ describe('project config', () => {
     mkdirSync(join(nested, '.zukai'), { recursive: true });
     writeFileSync(join(nested, '.zukai', 'config.json'), JSON.stringify({ config: 1, runsDir: 'runs' }));
     expect(projectOfRun(join(nested, 'runs', '20261118_b'))).toBe(nested);
+  });
+
+  it('never guesses the project of a run when a setting above it cannot be read', () => {
+    const root = project({ config: 1, runsDir: 'docs/diagrams' });
+    mkdirSync(join(root, 'docs', 'diagrams', '20261118_a'), { recursive: true });
+    writeFileSync(join(root, '.zukai', 'config.json'), '{ broken');
+    // Without the check, docs/ would pass for a project because its runs folder is named diagrams.
+    expect(() => projectOfRun(join(root, 'docs', 'diagrams', '20261118_a'))).toThrow(ConfigError);
+    // A parent named diagrams under a project whose setting names another folder is not a project's.
+    const other = project({ config: 1, runsDir: 'docs/diagrams' });
+    expect(projectOfRun(join(other, 'diagrams', '20261118_a'))).toBeUndefined();
+  });
+
+  it('matches a run reached through a link to the runs folder', () => {
+    const root = project({ config: 1, runsDir: 'docs/diagrams' });
+    mkdirSync(join(root, 'docs', 'diagrams', '20261118_a'), { recursive: true });
+    if (!link(join(root, 'docs'), join(root, 'alias'))) return;
+    expect(projectOfRun(join(root, 'alias', 'diagrams', '20261118_a'))).toBe(root);
   });
 
   it('finds the run folder that holds a path', () => {

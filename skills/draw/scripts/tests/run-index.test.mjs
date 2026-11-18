@@ -84,6 +84,37 @@ describe('run index', () => {
     }
   });
 
+  it('keeps a project whose setting is being edited when another project writes the index', () => {
+    const env = home();
+    const a = project({ runsDir: 'runs' });
+    const b = project();
+    registerProject(a, { env });
+    writeFileSync(join(a, '.zukai', 'config.json'), '{ "config": 1, "runsDir": "runs", }');
+    registerProject(b, { env });
+    expect(fileOf(env).projects.map((p) => p.root).sort()).toEqual([a, b].sort());
+    expect(listIndex({ env }).projects.find((p) => p.root === a)).toMatchObject({ alive: false, reason: 'bad-config' });
+  });
+
+  it('never replaces an index written by a newer version', () => {
+    const env = home();
+    const newer = '{ "index": 2, "projects": [{ "root": "/x", "tags": ["a"] }] }\n';
+    writeFileSync(join(env.ZUKAI_HOME, 'index.json'), newer);
+    expect(registerProject(project(), { env })).toBe(false);
+    expect(readFileSync(join(env.ZUKAI_HOME, 'index.json'), 'utf8')).toBe(newer);
+    expect(listIndex({ env }).warnings[0].message).toMatch(/another version.*left as it is/);
+    expect(rebuildIndex({ env })).toMatchObject({ ok: false, error: { code: 'index-write' } });
+    expect(forgetProject('/x', { env })).toMatchObject({ ok: false, error: { code: 'index-write' } });
+    expect(readFileSync(join(env.ZUKAI_HOME, 'index.json'), 'utf8')).toBe(newer);
+  });
+
+  it('does not take the home folder for a project because of the index folder in it', () => {
+    const top = realpathSync(mkdtempSync(join(tmpdir(), 'zukai-index-home-scan-')));
+    const env = { ZUKAI_HOME: join(top, '.zukai') };
+    mkdirSync(env.ZUKAI_HOME);
+    registerProject(project(), { env });
+    expect(scanProjects(top, env)).toEqual([]);
+  });
+
   it('does not register a project whose setting cannot be used', () => {
     const env = home();
     const a = project({ runsDir: 'runs' });

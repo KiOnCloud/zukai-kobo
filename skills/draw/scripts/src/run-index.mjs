@@ -15,7 +15,9 @@
  * `restore`, `sources`) and of `labs start` and `runs-dir`: it reads the file right before it
  * writes a temporary sibling and renames it, so a concurrent writer loses at most its own
  * entry, which its next command adds back. It never fails the command: any error is dropped.
- * A write also drops the projects that are no longer alive; a read never writes.
+ * A write also drops the projects whose folder is gone (a bad setting or a drive that is not
+ * mounted keeps its entry); a read never writes. A file of a newer version, or one that cannot
+ * be read, is never replaced.
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync, chmodSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -38,16 +40,23 @@ export function indexHome(env = process.env, platform = process.platform, home =
 export const indexFile = (env = process.env) => join(indexHome(env), INDEX_FILE);
 export const indexOff = (env = process.env) => env.ZUKAI_INDEX === 'off';
 
-/** The entries of the file: `{ projects, corrupt }`; a missing file has none, a corrupt one too. */
+/**
+ * The entries of the file: `{ projects, corrupt, kept }`. A missing file has none. A file that
+ * is not an index of this version's shape is `corrupt` and may be replaced. A file this version
+ * must not replace is `kept`: one written by a newer version (another install channel may be
+ * newer), or one that could not be read for another reason than being missing.
+ */
 function readEntries(file) {
   let text;
   try {
     text = readFileSync(file, 'utf8');
   } catch (e) {
-    return { projects: [], corrupt: e.code !== 'ENOENT' };
+    if (e.code === 'ENOENT') return { projects: [], corrupt: false };
+    return { projects: [], corrupt: true, kept: `cannot read ${file}: ${e.code ?? 'error'}` };
   }
   try {
     const data = JSON.parse(text);
+    if (typeof data?.index === 'number' && data.index !== INDEX_VERSION) return { projects: [], corrupt: true, kept: `${file} was written by another version of Zukai ("index": ${data.index})` };
     if (data?.index !== INDEX_VERSION || !Array.isArray(data.projects)) return { projects: [], corrupt: true };
     const projects = data.projects.filter((p) => typeof p?.root === 'string' && p.root !== '').map((p) => ({ root: p.root, lastSeen: typeof p.lastSeen === 'string' ? p.lastSeen : null }));
     return { projects, corrupt: false };
@@ -56,12 +65,16 @@ function readEntries(file) {
   }
 }
 
-/** Whether a project root still exists and its setting resolves, and why not. */
+/**
+ * Whether a project root still exists and its setting resolves, and why not. Only `missing`
+ * (the folder is gone) is ever dropped from the file: a setting being edited or a drive that
+ * is not mounted right now is no reason to forget a project.
+ */
 function aliveness(root) {
   try {
     if (!statSync(root).isDirectory()) return { alive: false, reason: 'missing' };
-  } catch {
-    return { alive: false, reason: 'missing' };
+  } catch (e) {
+    return { alive: false, reason: e.code === 'ENOENT' || e.code === 'ENOTDIR' ? 'missing' : 'unreachable' };
   }
   const config = readProjectConfig(root);
   if (!config.ok) return { alive: false, reason: 'bad-config', config };
@@ -82,12 +95,13 @@ function writeEntries(file, home, projects) {
   }
 }
 
-/** Read, change and write the file; the change takes the live entries (dead ones dropped). */
+/** Read, change and write the file; the change takes the kept entries (missing ones dropped). */
 function update(env, change) {
   const home = indexHome(env);
   const file = join(home, INDEX_FILE);
-  const { projects } = readEntries(file);
-  const live = projects.filter((p) => aliveness(p.root).alive);
+  const { projects, kept } = readEntries(file);
+  if (kept) throw Object.assign(new Error(kept), { code: 'index-kept' });
+  const live = projects.filter((p) => aliveness(p.root).reason !== 'missing');
   const dropped = projects.filter((p) => !live.includes(p)).map((p) => p.root);
   const next = change(live);
   writeEntries(file, home, next);
@@ -119,8 +133,10 @@ export function registerProject(root, { env = process.env, now = new Date() } = 
  */
 export function listIndex({ env = process.env } = {}) {
   const file = indexFile(env);
-  const { projects, corrupt } = readEntries(file);
-  const warnings = corrupt ? [{ path: file, message: 'the index could not be read and is taken as empty; the next command that registers a project replaces it', hint: 'index rebuild --scan <folder> registers the projects under a folder again' }] : [];
+  const { projects, corrupt, kept } = readEntries(file);
+  const warnings = kept
+    ? [{ path: file, message: `${kept}; it is shown as empty and left as it is`, hint: 'use the newer Zukai, or delete the file and run index rebuild --scan <folder>' }]
+    : corrupt ? [{ path: file, message: 'the index could not be read and is taken as empty; the next command that registers a project replaces it', hint: 'index rebuild --scan <folder> registers the projects under a folder again' }] : [];
   const out = projects.map((p) => {
     const state = aliveness(p.root);
     if (!state.alive) return { root: p.root, alive: false, reason: state.reason, runsDir: null, runs: [], lastSeen: p.lastSeen };
@@ -135,13 +151,21 @@ export function listIndex({ env = process.env } = {}) {
  * project above already owns makes no project of its own: with `runsDir: "docs/diagrams"`,
  * `docs/` is not a second project.
  */
-export function scanProjects(dir) {
+export function scanProjects(dir, env = process.env) {
   const found = [];
   const owned = new Set();
+  // ~/.zukai is the index's own folder, not the state of a project in the home folder.
+  let home;
+  try { home = realpathSync(indexHome(env)); } catch { home = indexHome(env); }
+  const hasState = (at) => {
+    const state = join(at, '.zukai');
+    if (!existsSync(state)) return false;
+    try { return realpathSync(state) !== home || existsSync(join(state, 'config.json')); } catch { return false; }
+  };
   const isProject = (at) => {
     const config = readProjectConfig(at);
     const runs = config.ok ? runsPath(at) : undefined;
-    const project = existsSync(join(at, '.zukai')) || (runs !== undefined && !owned.has(runs) && runFoldersIn(runs).length > 0);
+    const project = hasState(at) || (runs !== undefined && !owned.has(runs) && runFoldersIn(runs).length > 0);
     if (project && runs !== undefined) owned.add(runs);
     return project;
   };
@@ -175,7 +199,7 @@ export function rebuildIndex({ scan = [], env = process.env, now = new Date() } 
       return { ok: false, error: { code: 'bad-request', message: `--scan ${dir}: no such folder` } };
     }
   }
-  const found = scan.flatMap((dir) => scanProjects(dir)).filter((root) => aliveness(root).alive);
+  const found = scan.flatMap((dir) => scanProjects(dir, env)).filter((root) => aliveness(root).alive);
   try {
     let added = [];
     const result = update(env, (live) => {
@@ -185,7 +209,7 @@ export function rebuildIndex({ scan = [], env = process.env, now = new Date() } 
     });
     return { ok: true, file: result.file, added, dropped: result.dropped, projects: result.projects.length };
   } catch (e) {
-    return { ok: false, error: { code: 'index-write', message: `cannot write ${indexFile(env)}: ${e.code ?? 'error'}` } };
+    return { ok: false, error: { code: 'index-write', message: e.code === 'index-kept' ? `${e.message}; it was left as it is` : `cannot write ${indexFile(env)}: ${e.code ?? 'error'}` } };
   }
 }
 
@@ -195,7 +219,8 @@ export function forgetProject(root, { env = process.env } = {}) {
   try { wanted.add(realRoot(root)); } catch { /* gone: the listed path is the one */ }
   const home = indexHome(env);
   const file = join(home, INDEX_FILE);
-  const { projects } = readEntries(file);
+  const { projects, kept: untouchable } = readEntries(file);
+  if (untouchable) return { ok: false, error: { code: 'index-write', message: `${untouchable}; it was left as it is` } };
   const kept = projects.filter((p) => !wanted.has(p.root));
   if (kept.length === projects.length) return { ok: true, file, removed: false };
   try {

@@ -752,7 +752,9 @@ did: its runs stay under `diagrams/`.
 - **`runs-dir`.** `cli.mjs runs-dir` prints the project's runs folder and where it came from;
   `runs-dir set <folder>` writes `runsDir` into `.zukai/config.json`, a committed file. Every
   skill resolves the folder once at its start, and the CLI, its hints and the labs console
-  follow it. A setting that cannot be used is the new error code `bad-config` (exit 1).
+  follow it. A setting that cannot be used is the new error code `bad-config` (exit 1);
+  `labs start` and `labs holds` refuse it, and `labs status` still answers, with
+  `configError`, so a running console stays reachable.
 - **`index list`, `index rebuild`, `index forget`.** A per-user run index lists the projects
   that hold runs, with the runs each holds now. `bundle`, `snapshot`, `restore`, `sources`,
   `labs start` and `runs-dir` add the project they work in; the index never fails them.

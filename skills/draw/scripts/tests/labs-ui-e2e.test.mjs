@@ -74,6 +74,8 @@ describe.skipIf(pw === null).each(RUNS_DIRS)('the console in a browser (runs fol
   it('names the runs folder of the project where it names a folder', async () => {
     const page = await browser.newPage();
     await page.goto(started.url);
+    // The first page is drawn before the first state arrives; it must not keep the default.
+    await page.getByText(`Diagrams under ${runsDir ?? 'diagrams'}/, the jobs`).waitFor({ timeout: 10_000 });
     await page.goto(`${new URL(started.url).origin}/#/diagrams/${p.runs.checkout}`);
     await page.getByText(`${runsDir ?? 'diagrams'}/${p.runs.checkout}`, { exact: true }).waitFor({ timeout: 10_000 });
     await page.close();
