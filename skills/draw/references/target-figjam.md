@@ -322,18 +322,25 @@ the reader returns.
 
 Before the first Figma call, add up the calls the run needs and tell the user the count.
 When the plan is a Starter plan, or the user does not know, say that such a plan allows about
-twenty calls and ask before going on when the count comes near that. Draw with the fewest
+twenty calls and ask before going on when the count comes near that. The count is an upper bound for the
+run, not a forecast of where a refusal comes: the plan's period may already be partly used
+by other work, so the first drawing call can be refused although the session and the skill
+reads before it were accepted. Draw with the fewest
 scripts (`bundle --to figjam --native` for a run of several diagrams) and look at the board
 with one screenshot where one shows everything.
 
-When a call is refused for the limit midway, stop calling Figma, and report:
+When a call is refused for the limit, at the first drawing call or midway, stop calling
+Figma, including the `whoami` the refusal message suggests, and report:
 
 - which scripts ran and what each returned (the section ids and `created` counts), and which
   did not run; nothing half-drawn is left unreported: a diagram whose first part ran and
   whose later parts did not is named as incomplete on the board;
 - that nothing was changed by the refused call;
-- how to go on: once the limit resets, or on a board of a plan that allows more calls, run
-  the remaining scripts from the run folder, unchanged and in order. A script that did run
+- how to go on: once the limit resets (Figma gives no time in the message; its rate-limit
+  page and the plan's settings say when), or on a board of a plan that allows more calls, run
+  the remaining scripts from the run folder, unchanged and in order; on a limited plan, emit
+  the diagrams that did not run again as one `bundle --to figjam --native` script first, which
+  costs fewer calls than running them one by one. A script that did run
   can be run again: part 1 replaces what it drew before, so a diagram left incomplete is
   drawn whole by running its parts again from part 1.
 
