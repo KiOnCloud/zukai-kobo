@@ -632,7 +632,6 @@ The step fails with exit code 2 and prints, per diagram, the files that changed 
 gone; name every scouted run folder in the one call. The answer to a failure is
 `/zukai:sync` on that run, which records the sources again once the diagrams match.
 
-
 ## Upgrading to 2.3.1
 
 Version 2.3.1 changes one drawing and nothing else: no IR field, command, option, exit
