@@ -200,7 +200,7 @@ describe('diff --drawio on two versions of a run folder', () => {
     expect(readFileSync(out, 'utf8')).toContain('label was &amp;quot;Order placed&amp;quot;');
   });
 
-  it.skipIf(!loadPlaywright() && !findDrawioBinary())('is rendered by preview like any .drawio file', () => {
+  it.skipIf(!loadPlaywright() && !findDrawioBinary().bin)('is rendered by preview like any .drawio file', () => {
     const png = join(root, 'shop.diff.png');
     const r = cli('preview', picture, '--out', png);
     expect(r.errors).toEqual([]);

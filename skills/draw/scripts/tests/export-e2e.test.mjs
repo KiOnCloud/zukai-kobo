@@ -170,7 +170,8 @@ describe.skipIf(!hasPlaywright)('export with a renderer', () => {
     for (const f of r.out.files) {
       const svg = readFileSync(f.out, 'utf8');
       expect(svg.startsWith('<svg content="&lt;mxfile ')).toBe(true);
-      expect(svg).toContain(`viewBox="0 0 ${f.width} ${f.height}"`);
+      // draw.io desktop starts the box half a unit out (-0.5 -0.5), the viewer at 0 0.
+      expect(svg).toMatch(new RegExp(`viewBox="(?:0 0|-0\\.5 -0\\.5) ${f.width} ${f.height}"`));
       expect(svg).not.toMatch(/<foreignObject|Text is not SVG|light-dark\(/);
       expect(svg.match(/<text\b/g).length).toBeGreaterThan(3);
     }
