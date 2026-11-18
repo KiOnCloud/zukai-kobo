@@ -389,6 +389,9 @@ const elk = () => (elkInstance ??= new ELK());
  * @param {{nodeNode?:number, layer?:number, edgeEdge?:number, selfLoop?:number}} [input.spacing]
  * @param {boolean} [input.balanceContainers] place the members of every container with the
  *   strategy of the page itself, which puts a node level with the middle of what it connects to
+ * @param {boolean} [input.mirror] left to right and right to left only: the layout turned over
+ *   across the flow, what was at the top at the bottom, with the header room of every
+ *   container still at its top
  * @returns {Promise<{ nodes: Map<string,{x,y,width,height}>, containers: Map<string,{x,y,width,height}>, edges: Map<string,{points:Array<{x,y}>}> }>}
  *   Node and container coordinates are relative to their parent (draw.io convention);
  *   edge bend points are absolute (edge cells sit on the root layer).
@@ -396,7 +399,7 @@ const elk = () => (elkInstance ??= new ELK());
 /** The side of a loop head that an edge leading back arrives on: across the flow. */
 const BACK_SIDE = { TB: 'EAST', BT: 'EAST', LR: 'SOUTH', RL: 'SOUTH' };
 
-export async function layoutGraph({ nodes, containers = [], edges, direction = 'TB', spacing = {}, options = {}, balanceContainers = false }) {
+export async function layoutGraph({ nodes, containers = [], edges, direction = 'TB', spacing = {}, options = {}, balanceContainers = false, mirror = false }) {
   const nodeSpacing = spacing.nodeNode ?? 40;
   const layerSpacing = spacing.layer ?? 60;
   const byParent = new Map();
@@ -413,6 +416,10 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
   // The layered algorithm lays a top-to-bottom graph out sideways and turns the result, and it
   // reads a container's minimum size before the turn: the width goes in as the second value.
   const vertical = direction === 'TB' || direction === 'BT';
+  // A turned-over layout is the layout of the graph turned over: ELK gets the header room of
+  // each container at its bottom, each fixed port at the other end of its side, a loop head's
+  // back side on top and labels above their lines, and every coordinate is turned back after.
+  const flip = mirror && !vertical;
   // ELK reads the spacings from the graph a node lies in and a container does not inherit
   // them: without them a line inside a frame turns ELK's default 10 px before its arrowhead
   // where a line outside turns 25 px before it, so every container repeats them.
@@ -441,19 +448,21 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
     if (!el.isContainer) {
       // Fixed ports pin where edges meet the node (ER rows); ELK routes from those points.
       if (el.ports?.length) {
-        return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_POS', ...el.layoutOptions }, ports: el.ports.map((p) => ({ id: p.id, x: p.x, y: p.y, width: 1, height: 1 })) };
+        return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_POS', ...el.layoutOptions }, ports: el.ports.map((p) => ({ id: p.id, x: p.x, y: flip ? el.height - 1 - p.y : p.y, width: 1, height: 1 })) };
       }
       // A loop head: the edges that lead back to it arrive on a side across the flow, so the
       // side along the flow stays with the edge that goes on and the main line runs straight.
       const back = backPorts.get(el.id);
-      if (back) return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_SIDE' }, ports: back.map((id) => ({ id, width: 1, height: 1, layoutOptions: { 'elk.port.side': BACK_SIDE[direction] ?? 'EAST' } })) };
+      if (back) return { id: el.id, width: el.width, height: el.height, layoutOptions: { 'elk.portConstraints': 'FIXED_SIDE' }, ports: back.map((id) => ({ id, width: 1, height: 1, layoutOptions: { 'elk.port.side': flip ? 'NORTH' : BACK_SIDE[direction] ?? 'EAST' } })) };
       return { id: el.id, width: el.width, height: el.height, ...(el.layoutOptions ? { layoutOptions: el.layoutOptions } : {}) };
     }
     const header = el.headerHeight ?? 30;
+    const inset = el.inset ?? 20;
+    const [top, bottom] = flip ? [inset, header + inset] : [header + inset, inset];
     return {
       id: el.id,
       // ELK reads the self-loop distance from the graph a node lies in, so a container repeats it.
-      layoutOptions: { ...spacingOptions, ...placement, 'elk.padding': `[top=${header + (el.inset ?? 20)},left=${el.inset ?? 20},bottom=${el.inset ?? 20},right=${el.inset ?? 20}]`, ...selfLoop, ...(el.minWidth ? { 'elk.nodeSize.constraints': 'MINIMUM_SIZE', 'elk.nodeSize.minimum': vertical ? `(0,${el.minWidth})` : `(${el.minWidth},0)` } : {}) },
+      layoutOptions: { ...spacingOptions, ...placement, 'elk.padding': `[top=${top},left=${inset},bottom=${bottom},right=${inset}]`, ...selfLoop, ...(el.minWidth ? { 'elk.nodeSize.constraints': 'MINIMUM_SIZE', 'elk.nodeSize.minimum': vertical ? `(0,${el.minWidth})` : `(${el.minWidth},0)` } : {}) },
       children: build(el.id),
     };
   });
@@ -473,6 +482,7 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
       'elk.edgeLabels.placement': 'CENTER',
       'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+      ...(flip ? { 'elk.layered.edgeLabels.sideSelection': 'SMART_UP' } : {}),
       ...options,
     },
     children: build(null),
@@ -488,37 +498,40 @@ export async function layoutGraph({ nodes, containers = [], edges, direction = '
   };
 
   const laid = await elk().layout(graph);
+  // Turned back, a box keeps its distance from the other side of its parent, and a point on the
+  // page from the other side of the page.
+  const turn = (y, height = 0, room = laid.height) => (flip ? room - y - height : y);
   const nodeOut = new Map();
   const containerOut = new Map();
-  const walk = (children) => {
+  const walk = (children, room) => {
     for (const c of children ?? []) {
-      const box = { x: c.x ?? 0, y: c.y ?? 0, width: c.width, height: c.height };
+      const box = { x: c.x ?? 0, y: turn(c.y ?? 0, c.height, room), width: c.width, height: c.height };
       if (c.children) {
         containerOut.set(c.id, box);
-        walk(c.children);
+        walk(c.children, c.height);
       } else {
         nodeOut.set(c.id, box);
       }
     }
   };
-  walk(laid.children);
+  walk(laid.children, laid.height);
   const edgeOut = new Map();
   const reversedIds = new Set(edges.filter((e) => e.layoutReversed).map((e) => e.id));
   for (const e of laid.edges ?? []) {
     const points = [];
-    for (const s of e.sections ?? []) for (const p of s.bendPoints ?? []) points.push({ x: p.x, y: p.y });
+    for (const s of e.sections ?? []) for (const p of s.bendPoints ?? []) points.push({ x: p.x, y: turn(p.y) });
     const first = e.sections?.[0];
     const last = e.sections?.at(-1);
     const lbl = e.labels?.[0];
-    const start = first?.startPoint ? { x: first.startPoint.x, y: first.startPoint.y } : undefined;
-    const end = last?.endPoint ? { x: last.endPoint.x, y: last.endPoint.y } : undefined;
+    const start = first?.startPoint ? { x: first.startPoint.x, y: turn(first.startPoint.y) } : undefined;
+    const end = last?.endPoint ? { x: last.endPoint.x, y: turn(last.endPoint.y) } : undefined;
     const reversed = reversedIds.has(e.id);
     edgeOut.set(e.id, {
       points: reversed ? points.reverse() : points,
       start: reversed ? end : start,
       end: reversed ? start : end,
       // ELK's label box, absolute; the emitter turns it into draw.io's relative label geometry.
-      label: lbl && lbl.x !== undefined ? { x: lbl.x, y: lbl.y, width: lbl.width, height: lbl.height } : undefined,
+      label: lbl && lbl.x !== undefined ? { x: lbl.x, y: turn(lbl.y, lbl.height), width: lbl.width, height: lbl.height } : undefined,
     });
   }
   return { nodes: nodeOut, containers: containerOut, edges: edgeOut };

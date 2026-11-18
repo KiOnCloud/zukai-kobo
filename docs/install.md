@@ -632,6 +632,19 @@ The step fails with exit code 2 and prints, per diagram, the files that changed 
 gone; name every scouted run folder in the one call. The answer to a failure is
 `/zukai:sync` on that run, which records the sources again once the diagrams match.
 
+## Upgrading to 2.3.1
+
+Version 2.3.1 changes one drawing and nothing else: no IR field, command, option, exit
+code or file of a run differs from 2.3.0.
+
+- A left-to-right or right-to-left architecture diagram with frames whose main flow ran along
+  the bottom edge of a frame, with what stands beside it above (a worker in a cluster beside
+  the services the requests pass), is drawn turned over when that brings the flow under the
+  headers, through the middle of the frames, with no more crossings or warnings: what stood
+  above the flow stands below it, and a system called from there stands below the frames.
+  `drift` reports such a file delivered by an older version as moved; emit it again for the
+  new drawing. Every other diagram is drawn as before.
+
 ## Upgrading from it-diagrams
 
 Zukai was published as `it-diagrams` up to version 1.0.0. The IR format and the CLI did

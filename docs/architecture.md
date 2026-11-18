@@ -328,7 +328,19 @@ against the flow before any of this (`closingEdges` in `layout-graph.mjs`): in t
 the connections, the one whose target already leads to its source. Left to the engine, a
 circle was broken at an edge of its choosing, which could turn the main flow against the
 direction of the diagram and send a system outside the frames to the caller's side. The one that brings the hubs nearest the middle is
-kept when it is clearly better. `placeLineLabels` writes each connection label beside a free stretch of its own line, so
+kept when it is clearly better. Across a left-to-right flow the frames are not alike
+above and below, since their headers are at the top: when the main flow of the kept
+arrangement (the longest chain of connections) runs outside the middle half of a frame it
+passes (`flowOffMiddle`), the same arrangement is laid out again turned over (`mirror` in
+`layoutGraph`: ELK gets each container's header room at the bottom, fixed ports and the back
+side turned and labels above their lines, and every coordinate is turned back), so what stood
+above the flow stands below it and the flow runs under the headers. The turned layout is
+kept when its flow runs clearly nearer the middle of the frames, it has no more crossings
+(`lineCrossings`) and no more warnings, and its hubs stand no further off the middle or
+within the bounds that start the other arrangements; a diagram with a self-loop is not
+turned, since its loops belong above the components. In the turned layout a label with no
+free place on the longest segment of its line tries its other segments before it goes back
+to the engine, because a further layout can undo the turn. `placeLineLabels` writes each connection label beside a free stretch of its own line, so
 the layout engine reserves no layer for labels; a label with no free place is handed back
 to the engine and the layout runs again. After the layout, the title of each cloud group frame is placed on a
 stretch of the frame's top that no connection crosses, and a frame without one is widened
