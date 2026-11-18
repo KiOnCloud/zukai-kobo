@@ -501,13 +501,16 @@ sources.
 
 ## Status
 
-Version 2.4.0 is the open beta; it adds the labs console, `/zukai:labs`, and the project
+Version 2.5.0 is the open beta; it redesigns the labs console with an overview, a page per
+job, the choices of a new diagram shown as what they are and an agent panel that can be
+closed. Version 2.4.0 added the labs console, `/zukai:labs`, and the project
 glossary. Version 2.3.3 says how to finish a FigJam board a call limit stopped
 midway, and version 2.3.2 states the FigJam call budget more exactly. Version 2.3.1 drew an architecture whose main flow ran along the bottom of its frames through their
 middle. Version 2.3.0 added `/zukai:sync`, the use case kind, the SVG pictures,
 the description tables, the picture of a change, the PlantUML reader and Google Cloud icons
 for architecture diagrams; version 2.2.0 added
 `/zukai:recook` and version 2.0.0 added `/zukai:revise`. Forks of the skill should read
+[Upgrading to 2.5.0](docs/install.md#upgrading-to-250),
 [Upgrading to 2.4.0](docs/install.md#upgrading-to-240),
 [Upgrading to 2.3.3](docs/install.md#upgrading-to-233),
 [Upgrading to 2.3.2](docs/install.md#upgrading-to-232),
