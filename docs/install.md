@@ -580,6 +580,21 @@ What changes for a run you already have:
 - Maintainers: the catalog generator takes two more files,
   `npm run gen:icons -- <path to Sidebar-AWS4.js> [tag] [path to Sidebar-GCP2.js] [path to mxGCP2.js]`
   (`gen:aws-icons` still works), and writes `gcp-icons.md` beside `aws-icons.md`.
+- `cover` now also checks lines: every edge of the source whose two ends are known must be
+  joined by a relation of the IR between the elements that carry those texts, or be left out
+  in `meta.omitted`. A lost edge makes `cover` exit 2 and is listed under `lostEdges` by its
+  ends and label. The keys `units`, `covered` and `missing` are unchanged; `edges` is added.
+- `emit --to figjam --native` now prints `calls`, `created` and `bytes`: the number of
+  `use_figma` calls, the count each call must return as `created`, and the size of each
+  script. The new `bundle --to figjam --native <file.js> <run-folder>` draws the boards of a
+  whole run with as few calls as fit, which matters on Figma's Starter plan (about twenty
+  MCP calls).
+- A board drawn by `emit --native` from 2.3.0 on names the group of a line after its own
+  label and tags client screens (`[client]`) and the Google Cloud mark (`[part]`). Recook
+  reads use case, GCP and multi-cloud boards back completely, boards drawn by earlier
+  versions included.
+- In the FigJam text of a sequence diagram, a self-message whose label wraps beyond one row
+  keeps further empty rows, as a long note does.
 - The committed CLI bundle grew, and its size budget in the tests is now 3 MiB.
 
 To fail a CI job when a committed diagram has fallen behind the code, run `stale` on the
