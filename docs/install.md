@@ -130,8 +130,15 @@ git clone git@github.com:KiOnCloud/zukai-kobo.git
 On Windows:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\zukai\install.ps1 -Target codex -Dest C:\path\to\your-project
+powershell -ExecutionPolicy Bypass -File .\zukai-kobo\install.ps1 -Target codex -Dest C:\path\to\your-project
 ```
+
+`install.ps1` runs in Windows PowerShell 5.1 and in PowerShell 7 (`pwsh -File ...`, also on
+macOS and Linux). It takes `-Target` and `-Dest` where `install.sh` takes `--target` and
+`--dest`, says the same, ends with the same exit codes and leaves the same files, byte for
+byte: the copies keep the line feeds of the repository, and the version files and renamed
+`SKILL.md` files are written without a byte-order mark. Without `-Dest` the current folder
+is the project.
 
 The installer copies `skills/draw/` to `<project>/.agents/skills/zukai/`,
 `skills/revise/` to `<project>/.agents/skills/zukai-revise/`, `skills/recook/` to
@@ -177,6 +184,10 @@ If a machine cannot add the marketplace, the same installer copies the four skil
 
 ```bash
 ./zukai-kobo/install.sh --target claude-project --dest /path/to/your-project
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\zukai-kobo\install.ps1 -Target claude-project -Dest C:\path\to\your-project
 ```
 
 Invoke the copies with `/zukai`, `/zukai-revise`, `/zukai-recook` and `/zukai-sync`. The
@@ -552,6 +563,13 @@ CI only when the Claude Code CLI installs there, otherwise it is a local step.
 ```bash
 cd skills/draw/scripts && npm ci && npm test
 ```
+
+The tests run `install.ps1` only when PowerShell 7 is on `PATH` as `pwsh` or `ZUKAI_PWSH`
+names its executable, and are skipped otherwise; on macOS and Linux they also compare its
+result with that of `install.sh` for every case, file by file. The Linux runner of CI has
+`pwsh`, so they run there; the Windows job of CI installs both targets with Windows
+PowerShell 5.1 and with PowerShell 7 and runs the installed CLI. Locally, run the tests
+once with `pwsh` on `PATH` before a release that touches either installer.
 
 ```bash
 claude plugin validate . --strict
