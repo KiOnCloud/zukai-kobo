@@ -36,7 +36,7 @@ import { runFolderPattern } from './project-config.mjs';
  * are dropped on the next snapshot.
  */
 
-const REV = /^r(\d{3,})$/;
+export const REV = /^r(\d{3,})$/;
 
 const fail = (code, message, hint) => ({ ok: false, code, errors: [{ path: '/', message, ...(hint ? { hint } : {}) }] });
 
@@ -51,7 +51,7 @@ function sourcesRecords(dir) {
   return readdirSync(dir).filter((f) => f.endsWith(RECORD_SUFFIX)).sort();
 }
 
-function readRecord(revPath) {
+export function readRecord(revPath) {
   try {
     const record = JSON.parse(readFileSync(join(revPath, 'revision.json'), 'utf8'));
     return record && typeof record === 'object' && !Array.isArray(record) ? record : {};
@@ -93,13 +93,13 @@ function timelineAfterRestore({ undo, redo }, target, rev) {
 }
 
 /** Every file under a folder, as paths relative to it with forward slashes. */
-function filesUnder(dir, prefix = '') {
+export function filesUnder(dir, prefix = '') {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? filesUnder(join(dir, e.name), `${prefix}${e.name}/`) : [`${prefix}${e.name}`]));
 }
 
 /** Revision folders, oldest first, as { rev, number, path }. */
-function revisionDirs(runDir) {
+export function revisionDirs(runDir) {
   const history = join(runDir, 'history');
   if (!existsSync(history)) return [];
   return readdirSync(history)

@@ -1,0 +1,16 @@
+{
+  "title": "Staff login with a one-time code",
+  "meta": {
+    "Owner": "Store tools team"
+  },
+  "sections": {
+    "background": "Store staff share one password per store. When someone leaves, the password is changed by hand in every till. A personal login with a one-time code removes the shared password.",
+    "requirements": "1. A staff member signs in with a staff number and a six-digit code sent to the store tablet.\n2. A code expires after five minutes and works once.\n3. Five wrong codes lock the staff number for fifteen minutes.\n4. A manager can disable a staff number at once.",
+    "design": "The till asks the auth service for a code; the service stores a hash of the code with its expiry and sends the code to the store tablet. The till then exchanges the staff number and the code for a session token.",
+    "data-and-tables": "| Field | Rule |\n|---|---|\n| `staff_no` | six digits, unique per store |\n| `code_hash` | SHA-256 of the code, never the code |\n| `expires_at` | five minutes after the code was made |",
+    "scope": "**In scope:** login, lockout, manager disable.\n\n**Not in scope:** fingerprint login, head office accounts.",
+    "test-plan": "- Unit tests for expiry, single use and lockout.\n- An end-to-end test on a test till and tablet.\n- A manual check in one pilot store.",
+    "risks": "| Risk | Mitigation |\n|---|---|\n| Tablet offline, no code arrives | fall back to the manager override for one hour |\n| Codes guessed | lockout after five attempts |",
+    "rollout": "Pilot in two stores behind a flag for two weeks, then one region a week. Roll back by turning the flag off; the shared password stays valid until the last region moves."
+  }
+}

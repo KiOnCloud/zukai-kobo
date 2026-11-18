@@ -6,7 +6,7 @@
 import { S } from '../sienna.mjs';
 import { h, replace, when, ago, duration } from '../dom.mjs';
 import { api, path } from '../api.mjs';
-import { KIND_LABEL, STATE_BADGE, DIAGRAM_KINDS, TARGETS, MODES } from '../words.mjs';
+import { KIND_LABEL, STATE_BADGE, DIAGRAM_KINDS, TARGETS, MODES, jobTarget } from '../words.mjs';
 import { badge, textBlock } from './badge.mjs';
 import { questionCard, answeredList } from './question-card.mjs';
 import { failedLines, confirmDialog } from './job-panel.mjs';
@@ -38,7 +38,7 @@ function jobsList({ store }) {
     const rows = jobs.filter((j) => !f.states || f.states.includes(j.state));
     const columns = [
       { key: 'kind', label: 'Job', render: (j) => h('div', { class: 'zl-stack-tight' }, h('a', { class: 'label', href: `#/jobs/${encodeURIComponent(j.id)}` }, KIND_LABEL[j.kind] ?? j.kind), j.request ? h('span', { class: 'body-sm zl-muted zl-clamp' }, j.request) : null) },
-      { key: 'run', label: 'Run', render: (j) => (j.run ? h('a', { class: 'code body-sm', href: `#/diagrams/${encodeURIComponent(j.run)}` }, j.run) : h('span', { class: 'zl-muted' }, '—')) },
+      { key: 'run', label: 'Run or report', render: (j) => { const t = jobTarget(j); return t ? h('a', { class: 'code body-sm', href: t.href }, t.label) : h('span', { class: 'zl-muted' }, '—'); } },
       { key: 'state', label: 'State', render: (j) => badge(STATE_BADGE[j.state] ?? STATE_BADGE.queued) },
       { key: 'created', label: 'Queued', muted: true, render: (j) => ago(j.createdAt) },
       { key: 'took', label: 'Took', numeric: true, render: (j) => (j.startedAt ? duration(j.startedAt, j.finishedAt) : '') },
@@ -102,6 +102,7 @@ function jobPage({ store, id, setCrumbs }) {
     const facts = [
       ['Job', h('span', { class: 'code' }, job.id)],
       job.run ? ['Run', h('a', { class: 'code', href: `#/diagrams/${encodeURIComponent(job.run)}` }, job.run)] : null,
+      job.reportName ? ['Report', h('a', { class: 'code', href: `#/reports/${encodeURIComponent(job.reportName)}` }, job.reportName)] : null,
       ['Queued', when(job.createdAt)],
       job.startedAt ? ['Started', when(job.startedAt)] : null,
       job.finishedAt ? ['Finished', when(job.finishedAt)] : null,

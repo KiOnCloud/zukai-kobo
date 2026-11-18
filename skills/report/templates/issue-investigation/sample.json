@@ -1,0 +1,18 @@
+{
+  "title": "Checkout failures after the payment SDK upgrade",
+  "meta": {
+    "Severity": "High",
+    "Status": "Resolved"
+  },
+  "sections": {
+    "summary": "Between 09:10 and 10:05 on 12 November, one in five checkout attempts failed with a timeout. The payment SDK upgraded the day before opened a new connection for every request, which exhausted the connection pool. Rolling back the SDK stopped the failures; a pinned pool size and a load test now guard the upgrade.",
+    "symptoms": "- Customers saw \"Payment could not be completed\" after about 30 seconds.\n- The checkout error rate alert fired at 09:14.\n- Support received 42 tickets in the first hour.",
+    "impact": "| Measure | Value |\n|---|---|\n| Failed checkouts | 1,870 |\n| Duration | 55 minutes |\n| Customers affected | about 1,400 |",
+    "timeline": "| Time (UTC+7) | Event |\n|---|---|\n| 11 Nov 17:30 | Payment SDK 4.2 deployed |\n| 12 Nov 09:10 | First timeouts in the checkout service |\n| 09:14 | Error rate alert fires |\n| 09:40 | Connection pool exhaustion found |\n| 10:05 | SDK rolled back to 4.1; errors stop |",
+    "root-cause": "SDK 4.2 creates a new HTTP client per call unless a shared client is passed in. Under morning traffic each checkout held a connection until the gateway timeout, so the pool of 200 connections ran out.\n\nRuled out: the gateway itself (its own latency stayed normal) and the database (no slow queries).",
+    "evidence": "- Pool metrics: active connections reached 200 at 09:09 and stayed there.\n- Release notes of SDK 4.2: \"clients are no longer shared by default\".\n- `CheckoutService.pay()` builds the SDK without a client.",
+    "fix": "The SDK was rolled back to 4.1 at 10:05. The upgrade was redone with a shared client and verified with a load test of twice the morning peak.",
+    "prevention": "- Pin the pool size and alert at 80 % use (owner: platform team).\n- Add the load test to the release checklist of payment changes (owner: checkout team).",
+    "open-questions": "- Should the gateway timeout be shortened from 30 to 10 seconds?"
+  }
+}

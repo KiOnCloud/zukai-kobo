@@ -49,6 +49,11 @@ beforeAll(async () => {
     create: await import('../src/labs-ui/views/new-diagram.mjs'),
     jobs: await import('../src/labs-ui/views/jobs.mjs'),
     overview: await import('../src/labs-ui/views/overview.mjs'),
+    reports: await import('../src/labs-ui/views/reports.mjs'),
+    reportDetail: await import('../src/labs-ui/views/report-detail.mjs'),
+    newReport: await import('../src/labs-ui/views/new-report.mjs'),
+    reportTemplates: await import('../src/labs-ui/views/report-templates.mjs'),
+    reportFrame: await import('../src/labs-ui/report-frame/frame.mjs'),
   };
 });
 
@@ -370,7 +375,7 @@ describe('the second half of the console', () => {
   });
 
   it('joins each section through one entry of the navigation', () => {
-    expect(mods.nav.SECTIONS.map((x) => x.id)).toEqual(['overview', 'diagrams', 'jobs', 'glossary']);
+    expect(mods.nav.SECTIONS.map((x) => x.id)).toEqual(['overview', 'diagrams', 'reports', 'jobs', 'glossary']);
   });
 });
 
@@ -483,5 +488,118 @@ describe('the runs folder', () => {
     await flush();
     expect(view.element.textContent).toContain('The project setting cannot be used');
     expect(view.element.textContent).toContain('runsDir takes a folder inside the project');
+  });
+});
+
+describe('the Reports section', () => {
+  const REV = 'a'.repeat(64);
+  const reportRow = { name: '20261119_checkout-fails', title: MARKUP, kind: 'issue-investigation', template: { id: 'issue-investigation', scope: 'built-in', version: '1' }, lang: 'en', translations: ['ja'], runs: [], created: '2026-11-19T00:00:00Z', updated: '2026-11-19T00:00:00Z', rendered: true, drafts: 1, revisions: 1, findings: { blocking: 2, warnings: 1 } };
+  const detailRow = {
+    name: reportRow.name, meta: { ...reportRow, report: 1, sources: [] }, translations: ['ja'], rendered: { html: true }, rev: REV, glossary: 'checked',
+    revisions: [{ rev: 'r001', cause: 'polish', request: 'before polish', createdAt: '2026-11-19T00:00:00Z', files: ['report.md'] }],
+    drafts: [{ name: 'polish-1', baseRev: REV, draftRev: 'b'.repeat(64), created: '2026-11-19T00:00:00Z', findings: [{ kind: 'avoided-term' }], stale: false }],
+    findings: [{ kind: 'avoided-term', level: 'blocking', file: 'report.md', section: 'summary', line: 5, lang: 'en', text: MARKUP, avoided: 'conn pool', expected: 'connection pool' }],
+    counts: { blocking: 1, warnings: 0 },
+  };
+  const detailRoutes = (extra = []) => [
+    ...extra,
+    ['GET', /\/api\/reports\/20261119_checkout-fails$/, () => respond(200, detailRow)],
+    ['GET', /\/api\/reports\/20261119_checkout-fails\/diff/, () => respond(200, { ok: true, lines: [{ op: '-', text: 'The conn pool ran out.' }, { op: '+', text: MARKUP }] })],
+    ['GET', /\/api\/reports\/20261119_checkout-fails\/html/, () => respond(200, { html: '<html><body>report</body></html>' })],
+    ['GET', /\/api\/reports\/20261119_checkout-fails\/source/, () => respond(200, { text: '# T', rev: REV })],
+  ];
+
+  it('lists reports with their titles as text, their findings and the drafts that wait', async () => {
+    routes = [['GET', /\/api\/reports$/, () => respond(200, { reports: [reportRow] })]];
+    const view = mods.reports.reportsSection({ store: mods.store.createStore({ state: { reportsDir: 'docs/reports' } }), parts: [] });
+    await flush();
+    expect(view.element.querySelector('img')).toBeNull();
+    expect(view.element.textContent).toContain(MARKUP);
+    expect(view.element.textContent).toContain('1 report under docs/reports/');
+    expect(view.element.textContent).toContain('2 to fix');
+    expect(view.element.textContent).toContain('1 draft to review');
+    expect(view.element.querySelector('a[href="#/reports/20261119_checkout-fails"]')).not.toBeNull();
+  });
+
+  it('says that the reports folder setting cannot be used, and nothing else breaks', async () => {
+    routes = [['GET', /\/api\/reports$/, () => respond(409, { error: { code: 'bad-config', message: 'overlaps' } })]];
+    const view = mods.reports.reportsSection({ store: mods.store.createStore({ state: { reportsConfigError: { message: 'reportsDir overlaps the runs folder', hint: 'run reports-dir set' } } }), parts: [] });
+    await flush();
+    expect(view.element.textContent).toContain('The reports folder setting cannot be used');
+    expect(view.element.textContent).toContain('run reports-dir set');
+  });
+
+  it('shows a pending draft as a diff and queues its apply with the revs it was shown with', async () => {
+    routes = detailRoutes([['POST', /\/api\/jobs$/, () => respond(200, { job: { id: 'j20261119-000000-abcd' } })]]);
+    const view = mods.reportDetail.reportDetail({ store: mods.store.createStore({}), name: '20261119_checkout-fails', tab: 'glossary' });
+    document.body.appendChild(view.element);
+    await flush(16);
+    expect(view.element.querySelector('.zl-diff-add').textContent).toContain(MARKUP);
+    expect(view.element.querySelector('img')).toBeNull();
+    [...view.element.querySelectorAll('button')].find((b) => b.textContent === 'Apply').click();
+    await flush();
+    expect(calls.find((c) => c.method === 'POST').body).toEqual({ kind: 'report-polish', params: { reportName: '20261119_checkout-fails', apply: { draft: 'polish-1', baseRev: REV, draftRev: 'b'.repeat(64) } } });
+  });
+
+  it('saves the source with the rev it read and says when it changed on disk or is held', async () => {
+    let answer = () => respond(409, { error: { code: 'conflict', message: 'the report changed on disk since it was read' } });
+    routes = detailRoutes([['PUT', /\/api\/reports\/20261119_checkout-fails\/source/, () => answer()]]);
+    const view = mods.reportDetail.reportDetail({ store: mods.store.createStore({}), name: '20261119_checkout-fails', tab: 'source' });
+    await flush(16);
+    const save = () => [...view.element.querySelectorAll('button')].find((b) => b.textContent === 'Save').click();
+    save();
+    await flush();
+    expect(calls.find((c) => c.method === 'PUT').body).toEqual({ text: '# T', rev: REV });
+    expect(view.element.textContent).toContain('Changed on disk');
+    answer = () => respond(409, { error: { code: 'held', message: 'a report-polish job is queued for this report' } });
+    save();
+    await flush();
+    expect(view.element.textContent).toContain('Your text stays here');
+  });
+
+  it('queues a new report with only what was filled in', async () => {
+    routes = [
+      ['GET', /\/api\/report-templates$/, () => respond(200, { templates: [{ id: 'feature', scope: 'built-in', valid: true, used: true, name: 'Feature', description: 'A feature write-up', lang: 'en', overridesBuiltIn: false }] })],
+      ['GET', /\/api\/runs$/, () => respond(200, { runs: [] })],
+      ['GET', /\/api\/report-templates\/feature\/preview/, () => respond(200, { html: '<p>x</p>' })],
+      ['POST', /\/api\/jobs$/, () => respond(200, { job: { id: 'j20261119-000000-abcd' } })],
+    ];
+    const view = mods.newReport.newReport({ store: mods.store.createStore({}), template: 'feature' });
+    await flush();
+    [...view.element.querySelectorAll('button')].find((b) => b.textContent === 'Queue the report').click();
+    await flush();
+    expect(calls.filter((c) => c.method === 'POST')).toEqual([]);
+    expect(view.element.textContent).toContain('Write a title.');
+    const title = [...view.element.querySelectorAll('input')].find((i) => i.placeholder?.startsWith('Checkout fails'));
+    title.value = 'Staff login';
+    title.dispatchEvent(new window.Event('input', { bubbles: true }));
+    [...view.element.querySelectorAll('button')].find((b) => b.textContent === 'Queue the report').click();
+    await flush();
+    expect(calls.find((c) => c.method === 'POST').body).toEqual({ kind: 'report-write', params: { template: 'feature', title: 'Staff login', lang: 'en', scope: 'built-in' } });
+  });
+
+  it('marks a project template over a built-in one and an invalid template with its reasons', async () => {
+    routes = [['GET', /\/api\/report-templates$/, () => respond(200, { templates: [
+      { id: 'feature', scope: 'project', valid: false, used: false, overrides: ['built-in'], overriddenBy: null, overridesBuiltIn: true, errors: [{ path: 'template.html', message: `holds ${MARKUP}` }] },
+      { id: 'feature', scope: 'built-in', valid: true, used: false, overrides: [], overriddenBy: 'project', overridesBuiltIn: false, errors: [], name: 'Feature' },
+    ] })]];
+    const view = mods.reportTemplates.reportTemplates({ store: mods.store.createStore({}) });
+    await flush();
+    expect(view.element.textContent).toContain('Overrides a built-in template');
+    expect(view.element.textContent).toContain('Invalid');
+    expect(view.element.textContent).toContain(MARKUP);
+    expect(view.element.querySelector('img')).toBeNull();
+  });
+
+  it('frames a report with scripts and modals only, and posts it only to its own frame after its ready', () => {
+    const f = mods.reportFrame.reportFrame({ html: '<p>report</p>' });
+    document.body.appendChild(f.element);
+    const frame = f.element.querySelector('iframe');
+    expect(frame.getAttribute('sandbox')).toBe('allow-scripts allow-modals');
+    expect(frame.getAttribute('src')).toBe('report-frame.html');
+    window.dispatchEvent(new window.MessageEvent('message', { data: { type: 'shown', seq: 1, height: 900 }, source: window }));
+    expect(frame.style.height).toBe('');
+    expect(f.print()).toBe(false);
+    f.dispose();
   });
 });

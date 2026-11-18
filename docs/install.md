@@ -1,8 +1,8 @@
 # Install Zukai
 
 One source folder, `skills/draw/`, is distributed two ways, together with the skills that
-work on its runs (`skills/revise/`, `skills/recook/`, `skills/sync/` and `skills/labs/`),
-five skills in all. Pick one channel per
+work on its runs and reports (`skills/revise/`, `skills/recook/`, `skills/sync/`,
+`skills/labs/` and `skills/report/`), six skills in all. Pick one channel per
 machine: installing both the plugin and a project copy makes two copies of the same skill
 compete for routing.
 
@@ -123,6 +123,31 @@ written with the folder, which keeps the other two out of git; `glossary.lock`, 
 a moment while the glossary is written; and `labs/`, the console's state on this machine
 (`server.json` with the port, the process and the console's token, `server.log`, and one
 folder per job). An install or an uninstall never touches `.zukai/`.
+
+### Reports and report templates
+
+`/zukai:report` (`/zukai-report` and `$zukai-report` in a copied install) needs nothing
+beyond the skills: the Markdown renderer is bundled into the CLI. Its built-in templates live
+in the report skill's `templates/` folder; the CLI finds them beside the draw skill in the
+plugin, and in a copied install through `zukai-report/.zukai-report-version`, which must
+carry the CLI's version, so install the six skills together.
+
+Reports live under `reports/` unless `.zukai/config.json` names another folder,
+`{"config": 1, "reportsDir": "docs/reports"}`, under the rules of `runsDir`; the reports
+folder and the runs folder never overlap (neither inside the other):
+
+```bash
+node <skill-dir>/scripts/bin/cli.mjs reports-dir set docs/reports
+node <skill-dir>/scripts/bin/cli.mjs reports-dir
+```
+
+A `reportsDir` that cannot be used stops the report commands with `bad-config` and writes
+nothing; every run command keeps working. Templates have three scopes: the project's
+`.zukai/report-templates/` (committed and shared), yours under the run index's folder
+(`<ZUKAI_HOME>/report-templates/`, `~/.zukai/report-templates/` or
+`%LOCALAPPDATA%\zukai\report-templates\`; personal, never committed, so keep company
+templates in the project scope on a shared machine) and the built-in ones. An uninstall
+leaves your templates in place with the index; delete that folder to remove them.
 
 ### Where the runs live, and the run index
 
@@ -280,18 +305,19 @@ To update, pull the repository and run the installer again. Exit codes:
 | 1 | Usage or I/O error, or a prerelease version marker that cannot be compared |
 | 3 | An installed copy is newer than the source; nothing changed |
 
-In Codex, invoke the skills with `$zukai`, `$zukai-revise`, `$zukai-recook`, `$zukai-sync`
-and `$zukai-labs`, or let them route from their descriptions. To uninstall, stop the
-console if it runs (`labs stop`, above), then delete the five folders (`zukai/`,
-`zukai-revise/`, `zukai-recook/`, `zukai-sync/` and `zukai-labs/`) and the
-`zukai-backups/` folder beside `skills/` when you no longer need its copies. Delete all
-five together: `zukai-revise/`, `zukai-recook/`, `zukai-sync/` and `zukai-labs/` stop at
-their first step without the CLI of `zukai/`. The run folders under `diagrams/` and the
-`.zukai/` folder belong to the project and are not touched by an install or an uninstall.
+In Codex, invoke the skills with `$zukai`, `$zukai-revise`, `$zukai-recook`, `$zukai-sync`,
+`$zukai-labs` and `$zukai-report`, or let them route from their descriptions. To uninstall,
+stop the console if it runs (`labs stop`, above), then delete the six folders (`zukai/`,
+`zukai-revise/`, `zukai-recook/`, `zukai-sync/`, `zukai-labs/` and `zukai-report/`) and
+the `zukai-backups/` folder beside `skills/` when you no longer need its copies. Delete all
+six together: the others stop at their first step without the CLI of `zukai/`, and the CLI
+finds no built-in report template without `zukai-report/`. The run folders under
+`diagrams/`, the reports under `reports/` and the `.zukai/` folder belong to the project and
+are not touched by an install or an uninstall.
 
 ## Claude Code without the plugin (fallback)
 
-If a machine cannot add the marketplace, the same installer copies the five skills into
+If a machine cannot add the marketplace, the same installer copies the six skills into
 `.claude/skills/` of a project:
 
 ```bash
@@ -741,6 +767,40 @@ parts that did not run is enough when nothing on the board changed since, and ru
 again from part 1 is the safe choice when in doubt. The bundle written to save calls takes
 only the diagrams none of whose parts ran, and it goes into the run folder of the first of
 them. A Starter plan allows 20 Figma MCP calls a month.
+
+## Upgrading to 2.7.0
+
+Version 2.7.0 adds reports: `/zukai:report`, report templates in three scopes, the glossary
+held against prose (polish and translation) and the Reports section of the labs console.
+Existing `.ir.json` files, run folders, CLI commands, options and exit codes keep working
+unchanged.
+
+- **A sixth skill.** `report` (`zukai-report` in a copied install, with
+  `.zukai-report-version` and its `templates/` folder). Run the installer again; it adds the
+  folder beside the other five.
+- **`reportsDir`.** The reports live under `reports/` unless `.zukai/config.json` names
+  another folder (`reports-dir set <folder>`). `readProjectConfig` keeps `ok`, `error` and
+  `runsDir` for the runs only and adds `reports: { ok, dir, error }`, so a bad `reportsDir`
+  stops the report commands only. `runs-dir set` now refuses a runs folder that overlaps the
+  reports folder (the one set, else `reports`).
+- **A project whose runs folder is `reports/`.** Every run command keeps working. The default
+  reports folder would overlap it, so the report commands stop with `bad-config` until
+  `reports-dir set <folder>` gives the reports a folder of their own, for example
+  `docs/reports`.
+- **New commands.** `reports-dir`, `report new|list|revisions|snapshot|restore|diff|render|check|draft|apply|discard`
+  and `template list|show|preview|validate|save|export|import`; `labs holds` also takes a
+  report folder. `report check` and `report render` exit 2 on a blocking finding, as
+  `glossary check` does.
+- **The glossary.** `glossary add` refuses a new entry whose avoided word is part of its own
+  term in the same language; `glossary list` names an older such entry under `warnings`.
+  Label checks of runs are unchanged.
+- **The console.** A Reports section and four job kinds (`report-write`, `report-polish`,
+  `report-translate`, `report-template`); a report job names its report in `reportName` and
+  gets `reportDir`, and `report` stays the agent's closing text. The server writes a report's
+  Markdown for a quick edit and a restore only, each after a snapshot. A new page,
+  `report-frame.html`, shows a report in a sandboxed frame with a policy of its own.
+- **marked.** The Markdown renderer `marked` is bundled into `bin/cli.mjs`; users install
+  nothing. It is a pinned development dependency for the build.
 
 ## Upgrading to 2.6.0
 

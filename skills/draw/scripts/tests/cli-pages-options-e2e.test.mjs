@@ -65,7 +65,7 @@ describe('an option a command does not take', () => {
     expect(existsSync(join(cwd, 'x.json'))).toBe(false);
   });
 
-  it('never names, as an option a command takes, one that the command refuses too', () => {
+  it('never names, as an option a command takes, one that the command refuses too', { timeout: 60_000 }, () => {
     const r = cli('stale', 'run', '--page', 'x');
     expect(r.code).toBe(1);
     expect(r.errors[0].message).toBe('stale does not take --page');

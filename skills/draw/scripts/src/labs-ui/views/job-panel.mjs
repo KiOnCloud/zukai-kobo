@@ -7,7 +7,7 @@
 import { S } from '../sienna.mjs';
 import { h, replace, ago, duration, copyText } from '../dom.mjs';
 import { api, path } from '../api.mjs';
-import { KIND_LABEL, STATE_BADGE, REASON, agentBadge, ATTACH_HINT, ATTACH_COMMAND } from '../words.mjs';
+import { KIND_LABEL, STATE_BADGE, REASON, agentBadge, ATTACH_HINT, ATTACH_COMMAND, jobTarget } from '../words.mjs';
 import { badge, textBlock } from './badge.mjs';
 import { questionCard } from './question-card.mjs';
 
@@ -75,7 +75,7 @@ export function createJobPanel({ store, onClose }) {
     const steps = job.progress ?? [];
     const parts = [
       h('div', { class: 'zl-row zl-spread' }, h('span', { class: 'heading-sm' }, KIND_LABEL[job.kind] ?? job.kind), badge(STATE_BADGE[job.state] ?? STATE_BADGE.running)),
-      job.run ? h('a', { class: 'code body-sm', href: `#/diagrams/${encodeURIComponent(job.run)}` }, job.run) : null,
+      jobTarget(job) ? h('a', { class: 'code body-sm', href: jobTarget(job).href }, jobTarget(job).label) : null,
       job.params?.request ? h('blockquote', { class: 'zl-quote body-sm' }, job.params.request) : null,
       job.startedAt ? h('p', { class: 'caption zl-muted' }, `Started ${ago(job.startedAt)}, running for ${duration(job.startedAt)}`) : null,
     ];
@@ -101,7 +101,7 @@ export function createJobPanel({ store, onClose }) {
       h('span', { class: 'zl-queue-pos caption', 'aria-hidden': 'true' }, String(i + 1)),
       h('div', { class: 'zl-queue-text' },
         h('a', { class: 'label', href: `#/jobs/${encodeURIComponent(j.id)}` }, KIND_LABEL[j.kind] ?? j.kind),
-        j.run ? h('span', { class: 'code caption zl-muted' }, j.run) : null,
+        jobTarget(j) ? h('span', { class: 'code caption zl-muted' }, jobTarget(j).label) : null,
         j.request ? h('span', { class: 'caption zl-muted zl-clamp' }, j.request) : null),
       S().Button({ label: 'Cancel', variant: 'ghost', size: 'sm', onClick: async () => { const r = await api.post(path`/api/jobs/${j.id}/cancel`); if (!r.ok) message(`The job was not cancelled: ${r.error.message}`); } }),
     ))));
@@ -141,7 +141,7 @@ export function createJobPanel({ store, onClose }) {
         const job = d.ok ? d.data : j;
         return h('li', { class: ['zl-closed', job.state === 'failed' ? 'zl-closed-failed' : null] },
           h('div', { class: 'zl-row zl-spread' }, h('a', { class: 'label', href: `#/jobs/${encodeURIComponent(job.id)}` }, KIND_LABEL[job.kind] ?? job.kind), badge(STATE_BADGE[job.state])),
-          h('p', { class: 'caption zl-muted' }, [job.run, ago(job.finishedAt)].filter(Boolean).join(' · ')),
+          h('p', { class: 'caption zl-muted' }, [jobTarget(job)?.label, ago(job.finishedAt)].filter(Boolean).join(' · ')),
           job.state === 'failed' ? failedLines(job, { onUndo: queueRestore }) : job.report ? reportBlock(job.report) : null);
       }));
       sections.push(section('Recent jobs', h('ul', { class: 'zl-list' }, items)));

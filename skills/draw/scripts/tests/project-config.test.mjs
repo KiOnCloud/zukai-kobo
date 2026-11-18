@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkRunsDir, readProjectConfig, runsPath, runsDirOf, projectOfRun, setRunsDir, runFolderPattern, runDirAt, ConfigError } from '../src/project-config.mjs';
+import { checkRunsDir, readProjectConfig, runsPath, runsDirOf, projectOfRun, setRunsDir, runFolderPattern, runDirAt, ConfigError, checkReportsDir, reportsPath, reportsDirOf, setReportsDir, projectOfReport, foldersOverlap } from '../src/project-config.mjs';
 import { ensureZukaiDir } from '../src/glossary.mjs';
 
 const project = (config) => {
@@ -128,5 +128,80 @@ describe('project config', () => {
     const ignored = readFileSync(join(root, '.zukai', '.gitignore'), 'utf8').split('\n').filter(Boolean);
     expect(ignored).toEqual(['labs/', 'glossary.lock']);
     expect(ignored).not.toContain('config.json');
+  });
+});
+
+describe('reports folder', () => {
+  it('defaults to reports/ and reads reportsDir, keeping ok, error and runsDir for the runs only', () => {
+    const root = project();
+    expect(readProjectConfig(root)).toMatchObject({ ok: true, runsDir: 'diagrams', reports: { ok: true, dir: 'reports', from: 'default' } });
+    expect(reportsPath(root)).toBe(join(root, 'reports'));
+    const set = project({ config: 1, runsDir: 'docs/diagrams', reportsDir: 'docs/reports/' });
+    expect(readProjectConfig(set)).toMatchObject({ ok: true, runsDir: 'docs/diagrams', from: 'config', reports: { ok: true, dir: 'docs/reports', from: 'config' } });
+    expect(reportsDirOf(set)).toBe('docs/reports');
+  });
+
+  it('keeps the runs working when only reportsDir is bad, and throws for the reports only', () => {
+    for (const reportsDir of ['../out', '.zukai/r', 'docs/diagrams', 'docs/diagrams/reports', 'docs', 7]) {
+      const root = project({ config: 1, runsDir: 'docs/diagrams', reportsDir });
+      const read = readProjectConfig(root);
+      expect(read.ok, JSON.stringify(reportsDir)).toBe(true);
+      expect(read.error).toBeUndefined();
+      expect(read.runsDir).toBe('docs/diagrams');
+      expect(runsPath(root)).toBe(join(root, 'docs', 'diagrams'));
+      expect(read.reports).toMatchObject({ ok: false, error: expect.any(ConfigError) });
+      expect(() => reportsPath(root)).toThrow(ConfigError);
+    }
+  });
+
+  it('makes a broken file an error of both parts', () => {
+    const root = project('{ nope');
+    const read = readProjectConfig(root);
+    expect(read.ok).toBe(false);
+    expect(read.reports.ok).toBe(false);
+  });
+
+  it('stops only the reports of a 2.6.0 project whose runs folder is reports/, with a hint', () => {
+    const root = project({ config: 1, runsDir: 'reports' });
+    const read = readProjectConfig(root);
+    expect(read).toMatchObject({ ok: true, runsDir: 'reports' });
+    expect(read.reports.ok).toBe(false);
+    expect(read.reports.error.hint).toMatch(/reports-dir set/);
+    expect(runsPath(root)).toBe(join(root, 'reports'));
+    expect(setReportsDir(root, 'docs/reports')).toMatchObject({ ok: true, reportsDir: 'docs/reports', previous: null });
+    expect(readProjectConfig(root)).toMatchObject({ ok: true, runsDir: 'reports', reports: { ok: true, dir: 'docs/reports' } });
+  });
+
+  it('checks the overlap both ways', () => {
+    expect(foldersOverlap('reports', 'reports/diagrams')).toBe(true);
+    expect(foldersOverlap('Docs/Reports', 'docs/reports')).toBe(true);
+    expect(foldersOverlap('docs/reports', 'docs/diagrams')).toBe(false);
+    expect(foldersOverlap('report', 'reports')).toBe(false);
+    const root = project({ config: 1, reportsDir: 'reports' });
+    expect(setRunsDir(root, 'reports/diagrams')).toMatchObject({ ok: false, error: { code: 'bad-config' } });
+    expect(setRunsDir(root, 'reports')).toMatchObject({ ok: false });
+    expect(setRunsDir(project(), 'reports')).toMatchObject({ ok: false });
+    expect(setReportsDir(root, 'diagrams/out')).toMatchObject({ ok: false, error: { code: 'bad-config' } });
+    expect(checkReportsDir(root, 'docs/reports', 'docs')).toMatchObject({ message: expect.stringMatching(/overlaps/) });
+    expect(checkReportsDir(root, 'docs/reports', 'docs/diagrams')).toBeUndefined();
+  });
+
+  it('writes reportsDir, keeping every other key, and names the old folder', () => {
+    const root = project({ config: 1, runsDir: 'docs/diagrams', theme: 'x' });
+    mkdirSync(join(root, 'reports', '20261119_a'), { recursive: true });
+    const r = setReportsDir(root, 'docs/reports');
+    expect(r).toMatchObject({ ok: true, reportsDir: 'docs/reports', previous: 'reports', foldersLeftIn: { reportsDir: 'reports', folders: 1 } });
+    expect(JSON.parse(readFileSync(join(root, '.zukai', 'config.json'), 'utf8'))).toEqual({ config: 1, runsDir: 'docs/diagrams', theme: 'x', reportsDir: 'docs/reports' });
+    expect(setReportsDir(root, '../x')).toMatchObject({ ok: false });
+  });
+
+  it('finds the project of a report folder', () => {
+    const root = project({ config: 1, reportsDir: 'docs/reports' });
+    expect(projectOfReport(join(root, 'docs', 'reports', '20261119_a'))).toBe(root);
+    const plain = project();
+    expect(projectOfReport(join(plain, 'reports', '20261119_a'))).toBe(plain);
+    expect(projectOfReport(join(plain, 'elsewhere', '20261119_a'))).toBeUndefined();
+    const broken = project({ config: 1, runsDir: 'reports' });
+    expect(() => projectOfReport(join(broken, 'reports', '20261119_a'))).toThrow(ConfigError);
   });
 });

@@ -108,6 +108,7 @@ export function start(root = document.getElementById('app')) {
     const open = jobs?.open ? 1 : 0;
     const hints = {
       diagrams: s ? String(s.runs) : undefined,
+      reports: s && s.reports ? String(s.reports) : undefined,
       jobs: jobs && (open || jobs.queued) ? `${open + jobs.queued} active` : undefined,
       glossary: s?.glossary?.counts?.suggested ? `${s.glossary.counts.suggested} to review` : undefined,
     };

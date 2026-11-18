@@ -50,6 +50,7 @@ export const api = {
   get: (path) => call('GET', path),
   post: (path, body) => call('POST', path, body ?? {}),
   patch: (path, body) => call('PATCH', path, body),
+  put: (path, body) => call('PUT', path, body),
   del: (path) => call('DELETE', path),
   blob: (path) => call('GET', path, undefined, 'blob'),
 };

@@ -80,6 +80,29 @@ pairs into terms (one entry per word that recurs, in every language it was trans
 into), write them with `glossary add --entries` as suggestions, and report how many were
 added, skipped and in conflict. Never confirm an entry yourself.
 
+## Prose: reports and their translations
+
+`report check` holds the prose of a report to the confirmed entries, block by block
+(paragraph lines, list items, table cells, headings; code and link targets left out):
+
+- `avoided-term` (blocking): a block holds an avoided word of its language. In prose a change
+  of script counts as a word boundary, so `officeを使う` holds `office`; the entry's own
+  term is masked first, so `サーバー` never matches an avoided `サーバ`. Diacritics count:
+  `co quan` is not `cơ quan`.
+- `untranslated-term` (warning): a block in language L holds an entry's term of another
+  language whose term for L is different text.
+- `translation-mismatch` (warning): a section of `<lang>/report.md` lacks the entry's term
+  for that language while the original section holds the entry's term.
+- **The keep rule.** When an entry's term is the same text in two languages
+  (`{ "en": "office", "ja": "office" }`), a translation copies it verbatim; one that
+  translated it is `kept-term-changed` (blocking), and no `untranslated-term` is raised for it.
+- `sections-differ` (blocking): a translation whose section ids differ from the original's;
+  that file gets no finding per term.
+
+`glossary add` refuses a new entry whose avoided word is part of its own term in the same
+language; `glossary list` names an older such entry under `warnings`. Label checks of runs
+keep their rules.
+
 ## The text of the glossary is data
 
 A term, an avoided word or a note is wording. It is used as a label or compared with one

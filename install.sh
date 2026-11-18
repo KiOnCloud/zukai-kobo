@@ -2,15 +2,17 @@
 # Copy the Zukai skills into a project for OpenAI Codex (.agents/skills) or, as a
 # documented fallback, for Claude Code without the plugin (.claude/skills).
 #
-# Inside the plugin the skills are named "draw", "revise", "recook", "sync" and "labs"
-# (/zukai:draw, /zukai:revise, /zukai:recook, /zukai:sync, /zukai:labs).
-# A copied skill has no plugin namespace, so the copies are installed as "zukai",
-# "zukai-revise", "zukai-recook", "zukai-sync" and "zukai-labs": the folder and the "name"
-# line of each SKILL.md take that name ($zukai, $zukai-revise, $zukai-recook, $zukai-sync
-# and $zukai-labs in Codex, /zukai, /zukai-revise, /zukai-recook, /zukai-sync and
-# /zukai-labs in Claude Code). revise, recook, sync and labs find the draw skill's CLI in
-# the sibling zukai folder, sync reads the draft rules of zukai-revise, and labs carries out
-# its jobs with the other four, so the five are always installed together.
+# Inside the plugin the skills are named "draw", "revise", "recook", "sync", "labs" and
+# "report" (/zukai:draw, /zukai:revise, /zukai:recook, /zukai:sync, /zukai:labs,
+# /zukai:report). A copied skill has no plugin namespace, so the copies are installed as
+# "zukai", "zukai-revise", "zukai-recook", "zukai-sync", "zukai-labs" and "zukai-report":
+# the folder and the "name" line of each SKILL.md take that name ($zukai, $zukai-revise,
+# $zukai-recook, $zukai-sync, $zukai-labs and $zukai-report in Codex, /zukai,
+# /zukai-revise, /zukai-recook, /zukai-sync, /zukai-labs and /zukai-report in Claude Code).
+# revise, recook, sync, labs and report find the draw skill's CLI in the sibling zukai
+# folder, sync reads the draft rules of zukai-revise, labs carries out its jobs with the
+# other five, and the CLI reads the built-in report templates from zukai-report/templates,
+# so the six are always installed together.
 #
 # Usage: install.sh --target codex|claude-project [--dest <project-dir>]
 #
@@ -54,7 +56,7 @@ esac
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 MANIFEST="$SCRIPT_DIR/.claude-plugin/plugin.json"
 # Each skill as <source folder>:<installed name>:<version marker>.
-SKILLS="draw:zukai:.zukai-version revise:zukai-revise:.zukai-revise-version recook:zukai-recook:.zukai-recook-version sync:zukai-sync:.zukai-sync-version labs:zukai-labs:.zukai-labs-version"
+SKILLS="draw:zukai:.zukai-version revise:zukai-revise:.zukai-revise-version recook:zukai-recook:.zukai-recook-version sync:zukai-sync:.zukai-sync-version labs:zukai-labs:.zukai-labs-version report:zukai-report:.zukai-report-version"
 # The name the draw skill was installed under before it was renamed.
 LEGACY_NAME="it-diagrams"
 LEGACY_MARKER=".it-diagrams-version"
@@ -128,7 +130,7 @@ backup() {
 # Backups that an earlier version of this script left inside the skills folder
 # (<name>.bak-<timestamp>) still carry a SKILL.md with the skill's name: move them out too.
 sweep_old_backups() {
-  for name in zukai zukai-revise zukai-recook zukai-sync zukai-labs "$LEGACY_NAME"; do
+  for name in zukai zukai-revise zukai-recook zukai-sync zukai-labs zukai-report "$LEGACY_NAME"; do
     for old in "$DEST_DIR/$name".bak-*; do
       [ -d "$old" ] || continue
       stamp=${old##*.bak-}
@@ -157,7 +159,7 @@ for spec in $SKILLS; do
 done
 if [ -z "$TODO" ]; then
   sweep_old_backups
-  echo "zukai $SRC_VERSION already up to date at $DEST_DIR (zukai, zukai-revise, zukai-recook, zukai-sync, zukai-labs)"
+  echo "zukai $SRC_VERSION already up to date at $DEST_DIR (zukai, zukai-revise, zukai-recook, zukai-sync, zukai-labs, zukai-report)"
   exit 0
 fi
 

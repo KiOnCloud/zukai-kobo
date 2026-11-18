@@ -84,6 +84,12 @@ export async function uiFiles() {
   const viewerJs = Buffer.from(viewer.outputFiles[0].contents).toString('utf8').replace(/<\/script/gi, '<\\/script');
   const viewerHtml = readFileSync(join(uiSrc, 'viewer', 'viewer.html'), 'utf8').replace('<script>/* viewer.mjs, inlined by build.mjs */</script>', () => `<script>${viewerJs}</script>`);
   files.set('viewer.html', Buffer.from(viewerHtml));
+  // The report frame is built the same way: one inline script the server allows by its hash,
+  // in a sandboxed page that fetches nothing.
+  const reportFrame = await build({ ...uiBuildOptions, format: 'iife', entryPoints: [join(uiSrc, 'report-frame', 'report-frame.mjs')] });
+  const reportFrameJs = Buffer.from(reportFrame.outputFiles[0].contents).toString('utf8').replace(/<\/script/gi, '<\\/script');
+  const reportFrameHtml = readFileSync(join(uiSrc, 'report-frame', 'report-frame.html'), 'utf8').replace('<script>/* report-frame.mjs, inlined by build.mjs */</script>', () => `<script>${reportFrameJs}</script>`);
+  files.set('report-frame.html', Buffer.from(reportFrameHtml));
   files.set('index.html', Buffer.from(readFileSync(join(uiSrc, 'index.html'), 'utf8')));
   files.set('app.css', Buffer.from(minCss));
   files.set('app.js', Buffer.from(js));

@@ -12,7 +12,7 @@
  * every read and write.
  *
  * Registering is a side effect of the commands that write runs (`bundle`, `snapshot`,
- * `restore`, `sources`) and of `labs start` and `runs-dir`: it reads the file right before it
+ * `restore`, `sources`), of `report new`, and of `labs start`, `runs-dir` and `reports-dir`: it reads the file right before it
  * writes a temporary sibling and renames it, so a concurrent writer loses at most its own
  * entry, which its next command adds back. It never fails the command: any error is dropped.
  * A write also drops the projects whose folder is gone (a bad setting or a drive that is not
@@ -23,7 +23,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameS
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { readProjectConfig, runFoldersIn, runsPath } from './project-config.mjs';
+import { readProjectConfig, runFoldersIn, runsPath, reportsPath } from './project-config.mjs';
+import { reportFoldersIn } from './reports.mjs';
 
 export const INDEX_VERSION = 1;
 export const INDEX_FILE = 'index.json';
@@ -147,7 +148,8 @@ export function listIndex({ env = process.env } = {}) {
 
 /**
  * The projects under a folder, at most four levels down, past dependencies and hidden folders.
- * A project is a folder with `.zukai/`, or one whose runs folder holds a run. A runs folder a
+ * A project is a folder with `.zukai/`, one whose runs folder holds a run, or one whose
+ * reports folder holds a report (a folder with a valid `report.json`). A runs folder a
  * project above already owns makes no project of its own: with `runsDir: "docs/diagrams"`,
  * `docs/` is not a second project.
  */
@@ -165,8 +167,13 @@ export function scanProjects(dir, env = process.env) {
   const isProject = (at) => {
     const config = readProjectConfig(at);
     const runs = config.ok ? runsPath(at) : undefined;
-    const project = hasState(at) || (runs !== undefined && !owned.has(runs) && runFoldersIn(runs).length > 0);
+    // A reports folder counts only when a folder in it holds a valid report.json.
+    const reports = config.reports?.ok ? reportsPath(at) : undefined;
+    const project = hasState(at)
+      || (runs !== undefined && !owned.has(runs) && runFoldersIn(runs).length > 0)
+      || (reports !== undefined && !owned.has(reports) && reportFoldersIn(reports).length > 0);
     if (project && runs !== undefined) owned.add(runs);
+    if (project && reports !== undefined) owned.add(reports);
     return project;
   };
   const walk = (at, depth) => {

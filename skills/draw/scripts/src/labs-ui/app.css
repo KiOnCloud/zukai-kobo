@@ -629,3 +629,15 @@
 @media (prefers-reduced-motion: reduce) {
   .zl-tile, .zl-start-card, .zl-run-card, .zl-sidebar { transition: none; }
 }
+
+/* Reports: the sealed report frame, diffs and the import field. */
+.zl-report-frame { margin: 0; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+.zl-frame-report { width: 100%; }
+.zl-diff { white-space: pre-wrap; }
+.zl-diff-line { display: block; }
+.zl-diff-add { background: var(--success-soft); }
+.zl-diff-del { background: var(--danger-soft); text-decoration: line-through; }
+.zl-file-input { font: inherit; }
+
+/* An empty notice or draft holder takes no space between a page header and its tabs. */
+.zl-page > div:empty { display: none; }
