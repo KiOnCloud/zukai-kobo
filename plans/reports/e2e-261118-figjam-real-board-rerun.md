@@ -574,3 +574,133 @@ No new finding.
 
 No long-running process was started. `ps` shows only the MCP PDF server that was running
 before.
+
+## Exercise of the Starter-plan call limit
+
+Date: 2026-11-18 (UTC). Tester: delegated agent. Board: https://www.figma.com/board/x5akHNd5vZeO6jftzUoSyQ
+("Zukai e2e 2.3.0 (2)"), in the Starter plan "ccv_design's team". The user approved using up
+the plan's MCP call quota on this board. No file was created, no other file was opened, and
+nothing was deleted. Nothing on the board changed in this round.
+
+What is being checked: what section 8 of `target-figjam.md` tells the agent to do when Figma
+refuses a call for the Starter-plan limit, followed to the letter on a real board.
+
+### Setup
+
+- Installed release 2.3.1: `git archive origin/main` (`a1ca672`, the same tree as the checkout)
+  into `<scratchpad>/e2e-figjam7/src`. It was installed with `install.sh --target claude-project`
+  into copies of `e2e-figjam5/clinic` and `e2e-figjam5/invoicing`. Their installed skills and
+  `diagrams/` were removed first. Only the installed copies were used. Node 22.23.4.
+- `<scratchpad>` = `/tmp/claude-0/-home-user-zukai-kobo/dfd23dcb-7283-57de-90e1-1d422710abbb/scratchpad`.
+  The count statement, the call order and the bundle trial are in `<scratchpad>/e2e-figjam7/tmp/`.
+- Nine runs, using the IRs of the earlier rounds (`e2e-figjam5`). Each run passed `validate`
+  with 0 warnings and got its draw.io file. The drawings were emitted one diagram per script with
+  `emit --native`, not bundled. The draw.io and `.mmd` previews were looked at.
+
+  | Run | Route | CLI printed |
+  |---|---|---|
+  | `clinic-booking-usecases` | native | `calls: 1`, `created: [56]`, 14 420 bytes |
+  | `expense-usecases-ja-vi` | native | `calls: 1`, `created: [32]`, 13 206 bytes |
+  | `invoicing-gcp` | native | `calls: 1`, `created: [88]`, 23 408 bytes |
+  | `invoicing-multicloud` | native | `calls: 1`, `created: [108]`, 31 714 bytes |
+  | `clinic-usecases-board` | native | `calls: 1`, `created: [56]`, 14 503 bytes |
+  | `clinic-usecases-recook` | native | `calls: 1`, `created: [56]`, 14 419 bytes |
+  | `invoicing-gcp-board` | native | `calls: 1`, `created: [88]`, 23 419 bytes |
+  | `invoicing-multicloud-board` | native | `calls: 1`, `created: [108]`, 31 720 bytes |
+  | `booking-cancellation` (sequence) | `generate_diagram` + overlay | `.mmd` + `.overlay.js`, six warnings, each naming the overlay script |
+
+- The count was stated before the first Figma call, as sections 3 and 8 ask. The statement as
+  given:
+
+  > The labels and titles of nine diagrams will be sent to Figma, onto the board you gave,
+  > "Zukai e2e 2.3.0 (2)" (x5akHNd5vZeO6jftzUoSyQ). The run takes 17 Figma calls:
+  > create_session 1; skill reads 4 (figma-use, figma-use-figjam, figma-generate-design,
+  > figma-generate-diagram); use_figma 8 (one native script per diagram); for the sequence
+  > "Cancel an appointment" generate_diagram 1, its get_figjam read-back 1 and the overlay
+  > script 1; one get_screenshot of the page. The board is on a Starter plan, which allows about
+  > twenty calls in a period, and this plan already reached its limit earlier today, so Figma
+  > may refuse sooner. You approved using up the quota, so I go on.
+
+### Figma calls
+
+| # | Call | Result |
+|---|---|---|
+| 1 | `create_session` (board key) | accepted, session `1ee596df-4c22-42da-8866-98e96eff4a1f` |
+| 2 | `get_figma_skill` figma-use | accepted |
+| 3 | `get_figma_skill` figma-use-figjam | accepted |
+| 4 | `get_figma_skill` figma-generate-design | accepted |
+| 5 | `use_figma`, `clinic-booking-usecases.native.js` unchanged | **refused** |
+| 6 | `get_figjam` 0:1, a read-only check the test asked for (the installed text says to stop) | **refused** |
+
+The refusal, word for word, the same for both calls:
+
+> You've reached the Figma MCP tool call limit on the Starter plan. Upgrade your plan for more
+> tool calls: https://www.figma.com/files/team/1578627207917969059/all-projects?upgrade=mcp_rate_limit_paywall
+> Use the whoami tool for more plan details. Learn more: https://developers.figma.com/docs/figma-mcp-server/rate-limits-access/
+
+After call 5 no further drawing call was made. Call 6 was the tester's single check of whether
+the board could still be read. It was refused as well, so the board could not be checked.
+
+### The report given, following section 8
+
+> Figma refused the call to draw: "You've reached the Figma MCP tool call limit on the Starter
+> plan." I have stopped calling Figma.
+>
+> - Ran: none of the nine drawing scripts. Before the refusal Figma accepted `create_session`
+>   and the three skill reads. Those change nothing on the board.
+> - Did not run, in this order:
+>   - `clinic-booking-usecases.native.js` (56)
+>   - `expense-usecases-ja-vi.native.js` (32)
+>   - `invoicing-gcp.native.js` (88)
+>   - `invoicing-multicloud.native.js` (108)
+>   - `clinic-usecases-board.native.js` (56)
+>   - `clinic-usecases-recook.native.js` (56)
+>   - `invoicing-gcp-board.native.js` (88)
+>   - `invoicing-multicloud-board.native.js` (108)
+>   - for "Cancel an appointment": `booking-cancellation.mmd` through `generate_diagram`, then
+>     `booking-cancellation.overlay.js`
+> - Nothing is half-drawn. Each native script is a single part and none of them ran. The
+>   sequence was not started.
+> - The refused call changed nothing on the board.
+> - To go on: once the limit resets, or on a board of a plan that allows more calls, run the
+>   scripts from the run folders, unchanged and in the order above.
+> - The draw.io files are delivered all the same: `drawio/<slug>.drawio` in each of the nine
+>   run folders.
+
+### Board state
+
+- No drawing call ran, so this round added nothing. A refused call returns the error before its
+  script is executed.
+- It could not be confirmed on the board: the one read (`get_figjam`) was refused too.
+- From the first report, the board still holds what round 1 drew: `1:2`, `2:2`, `3:2` and `4:2`.
+  These were not re-read.
+- No section of this round exists, so none is half-drawn.
+
+### Verdict: PASS
+
+- **Acting without guessing.** Section 8 was enough. Stop calling Figma; report what ran and what
+  did not; say that the refused call changed nothing; say how to resume. The refusal came at the
+  first drawing call, not midway, and the same rules covered it.
+- **Saying precisely what ran.** The CLI's per-script `calls` and `created` made it possible to
+  list each script with its expected count. The `created` comparison itself was not exercised,
+  since no script ran.
+- **Nothing left unreported.** Nothing was written to the board.
+- **Not exercised:** a refusal after some scripts ran, and a multi-part drawing left incomplete.
+  None of the scripts is over 50 000 characters, and the very first `use_figma` was refused.
+
+### Findings
+
+| Id | Grade | What | Evidence |
+|---|---|---|---|
+| L1 | Low | Section 8 says that "every tool call to the Figma server counts" and that the limit is "about twenty". In this round, `create_session` and three skill reads were accepted, then `use_figma` and `get_figjam` were refused. Either those four calls are not limited, or exactly four calls were left. So the stated count (17) could not predict where the refusal lands. The refusal rule still works, because it is keyed on the refusal, not on the count. Suggested wording: the count is an upper bound, and a refusal can come at any call | Calls 1–6 |
+| L2 | Low | The refusal message invites "Use the whoami tool for more plan details", while section 8 says to stop calling Figma. "Once the limit resets" gives the user no time. Not calling `whoami` was the literal reading. The text could say that `whoami` is also a call, and that the reset time is shown in the plan's settings | Refusal text |
+| L3 | Low | The resume step says to run the remaining scripts unchanged. On a limited plan, `bundle --to figjam --native` over the remaining runs costs fewer calls. Measured: 3 calls instead of 8 (clinic runs `calls: 1`, `created: [[56,32,56,56]]`; invoicing runs `calls: 2`, `created: [[88,108],[88,108]]`). Section 8 already says "draw with the fewest scripts", but the resume step does not repeat it | `<scratchpad>/e2e-figjam7/tmp/*-bundle.js` |
+
+No High or Medium finding. The repository was not changed apart from this section.
+
+### Processes
+
+- No long-running process was started.
+- `preview` left two `chrome-headless` zombies under PID 1 for a moment. They were gone at the
+  final check.
+- `ps` shows only the MCP PDF server that was running before.

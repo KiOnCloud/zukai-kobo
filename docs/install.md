@@ -645,6 +645,16 @@ code or file of a run differs from 2.3.0.
   `drift` reports such a file delivered by an older version as moved; emit it again for the
   new drawing. Every other diagram is drawn as before.
 
+## Upgrading to 2.3.2
+
+Version 2.3.2 changes the text of the FigJam target only: no drawing, command, option,
+exit code or file of a run differs from 2.3.1. `references/target-figjam.md` now says that
+the call count stated before drawing is an upper bound, not a forecast of where a Starter
+plan refuses; that after a refusal the agent calls Figma no more, `whoami` included; and that
+on a limited plan the diagrams that did not run are emitted again as one
+`bundle --to figjam --native` script before going on. Forks that copy that reference should
+take the new text.
+
 ## Upgrading from it-diagrams
 
 Zukai was published as `it-diagrams` up to version 1.0.0. The IR format and the CLI did
