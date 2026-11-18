@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { indexHome, registerProject, listIndex, rebuildIndex, forgetProject, scanProjects } from '../src/run-index.mjs';
 
 const home = () => ({ ZUKAI_HOME: mkdtempSync(join(tmpdir(), 'zukai-index-home-')) });
@@ -18,7 +18,7 @@ const fileOf = (env) => JSON.parse(readFileSync(join(env.ZUKAI_HOME, 'index.json
 
 describe('run index', () => {
   it('lives in ZUKAI_HOME, else LOCALAPPDATA on Windows, else ~/.zukai', () => {
-    expect(indexHome({ ZUKAI_HOME: '/tmp/zh' }, 'linux', '/home/u')).toBe('/tmp/zh');
+    expect(indexHome({ ZUKAI_HOME: '/tmp/zh' }, 'linux', '/home/u')).toBe(resolve('/tmp/zh'));
     expect(indexHome({}, 'linux', '/home/u')).toBe(join('/home/u', '.zukai'));
     expect(indexHome({ LOCALAPPDATA: 'C:\\Users\\u\\AppData\\Local' }, 'win32', 'C:\\Users\\u')).toBe(join('C:\\Users\\u\\AppData\\Local', 'zukai'));
     expect(indexHome({}, 'win32', 'C:\\Users\\u')).toBe(join('C:\\Users\\u', 'AppData', 'Local', 'zukai'));
