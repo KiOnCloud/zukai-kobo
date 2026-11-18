@@ -1064,8 +1064,9 @@ function createdBy(data) {
  * allows, each script drawing its drawings one after the other into their own sections. The
  * parts of one diagram stay in their order. A script of several drawings returns the list of
  * the results each drawing returns.
- * @returns {{ parts: string[], created: number[], drawings: number[] }} the scripts, how many
- *   shapes, lines and texts each creates, and how many drawings each holds
+ * @returns {{ parts: string[], created: number[][], drawings: number[] }} the scripts, for each
+ *   script how many shapes, lines and texts each of its drawings creates (in the order its
+ *   results come back), and how many drawings each holds
  */
 export function combineNative(data, { limit = SCRIPT_LIMIT } = {}) {
   const groups = [];
@@ -1076,7 +1077,7 @@ export function combineNative(data, { limit = SCRIPT_LIMIT } = {}) {
   }
   return {
     parts: groups.map((g) => scriptOf(g.length === 1 ? g[0] : g)),
-    created: groups.map((g) => g.reduce((n, d) => n + createdBy(d), 0)),
+    created: groups.map((g) => g.map(createdBy)),
     drawings: groups.map((g) => g.length),
   };
 }

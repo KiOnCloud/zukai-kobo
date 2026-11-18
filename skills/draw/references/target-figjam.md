@@ -196,7 +196,9 @@ leave the machine, and the secret scan gates this emit like the other.
    the size of each script in bytes (`bytes`). For a run of several diagrams on one board,
    `bundle --to figjam --native <file.js> <run-folder>` writes their drawings into as few
    scripts as fit into one call each (often one for the whole run), each diagram into its own
-   section; its `drawings` says how many diagrams each script holds. Use it when the plan
+   section; its `drawings` says how many diagrams each script holds, and its `created` gives,
+   for each script, a list with one number per diagram in it, in the order the script returns
+   its results (`[[88, 108]]` for one script of two diagrams). Use it when the plan
    limits calls; keep the per-diagram scripts of `emit --native` in the run folder all the
    same, since a revision writes those again. The script is made from the same layout as `emit --to drawio`, so emit the
    draw.io file from the same IR when the user wants both. For a class, activity or use case diagram
@@ -213,9 +215,13 @@ leave the machine, and the secret scan gates this emit like the other.
 3. Call `use_figma` with the file key of the board and, as `code`, the content of the file,
    unchanged. Do not edit the script and do not write one by hand. With several parts, run
    them in order, one call each, and not in parallel: part 1 makes the section, the others
-   draw into it. Compare the `created` each call returns (a list of results for a script of
-   `bundle`, one per diagram) with the number the CLI printed for that script: a different
-   number means the script did not arrive whole; run it again from the file, unchanged.
+   draw into it. Compare the `created` each call returns with the number the CLI printed for
+   that script. A script of `bundle` that holds several diagrams returns a list of results,
+   one per diagram: compare the `created` of each result with the number at the same place
+   in the CLI's list for that script (the first result with the first number, and so on); a
+   script of one diagram returns one result, compared with the one number of its list. A
+   different number means the script did not arrive whole; run it again from the file,
+   unchanged.
 4. The script makes a section named like the IR `title`, to the right of everything on the
    page, as large as the drawing, and draws every cell of the draw.io file into it as plain
    shapes, vector lines and text. Each cell is one group, named like its label (cut at 40

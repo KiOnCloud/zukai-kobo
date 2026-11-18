@@ -85,7 +85,9 @@ included; for those two no Mermaid text is written. Each script is one use_figma
 result line says how many (calls), and for each script the number of shapes, lines and texts
 its call must report as created (created) and its size in bytes (bytes). bundle --to figjam
 --native writes the native boards of several diagrams into as few scripts as the size of one
-call allows, each diagram into its own section, to save calls on a plan that limits them.
+call allows, each diagram into its own section, to save calls on a plan that limits them; its
+created holds, for each script, the number each of its diagrams must report, in the order the
+script returns them.
 export writes each page of a draw.io file as a picture that still opens in draw.io; given
 such a picture (.drawio.svg), it draws the diagram the picture holds again.
 diff --drawio writes a picture of the change beside the list: a draw.io file of the new version

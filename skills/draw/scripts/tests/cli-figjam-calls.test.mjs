@@ -41,15 +41,20 @@ describe('what a FigJam board costs in calls, and how each call is checked', () 
     expect(r.out.drawings.reduce((a, b) => a + b, 0)).toBe(3);
     const board = standInFigma();
     const results = [];
+    const returned = [];
     for (const file of r.out.native) {
       const result = await board.run(readFileSync(file, 'utf8'));
-      results.push(...(Array.isArray(result) ? result : [result]));
+      const list = Array.isArray(result) ? result : [result];
+      results.push(...list);
+      returned.push(list.map((x) => x.created));
       expect(readFileSync(file, 'utf8').length).toBeLessThanOrEqual(50000);
     }
     expect(results).toHaveLength(3);
     expect(new Set(results.map((x) => x.section)).size).toBe(3);
     expect(board.page.children.map((s) => s.name)).toEqual(irs.map((f) => JSON.parse(readFileSync(f, 'utf8')).title));
-    expect(r.out.created.reduce((a, b) => a + b, 0)).toBe(results.reduce((a, x) => a + x.created, 0));
+    // For each script, the created count of each drawing in it, in the order the script returns them.
+    expect(r.out.created).toEqual(returned);
+    expect(r.out.created.map((c) => c.length)).toEqual(r.out.drawings);
     // Each diagram is drawn as its own emit --native draws it.
     for (const [i, f] of irs.entries()) {
       const one = run('emit', '--to', 'figjam', f, '--native', join(dir, `one-${i}.native.js`));

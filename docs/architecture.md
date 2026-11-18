@@ -101,7 +101,9 @@ brainstorm (idea) ─> clarify ┘                                              
   script the number of shapes, lines and texts its call must report as `created`, and its
   size in `bytes`, so the agent can tell a script that arrived whole from one that did not.
   `combineNative` packs the drawings of several diagrams into as few scripts as one call
-  takes (`bundle --to figjam --native`); each drawing still goes into its own section. The
+  takes (`bundle --to figjam --native`); each drawing still goes into its own section, and
+  `created` then lists, for each script, the count of each drawing in the order the script
+  returns its results. The
   group of a cell is named so that a board read back keeps what the picture cannot tell: an
   edge by its own label (never by a text at one of its ends), a stencil picture by its
   stencil, a client screen by `[client]`, a picture that is part of its frame (the Google

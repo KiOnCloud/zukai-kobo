@@ -589,6 +589,8 @@ What changes for a run you already have:
   script. The new `bundle --to figjam --native <file.js> <run-folder>` draws the boards of a
   whole run with as few calls as fit, which matters on Figma's Starter plan (about twenty
   MCP calls).
+- `bundle --to figjam --native` prints `created` per diagram, as each script returns it: for
+  each script a list with one number per diagram in it (`[[88, 108]]`), no longer one sum.
 - A board drawn by `emit --native` from 2.3.0 on names the group of a line after its own
   label and tags client screens (`[client]`) and the Google Cloud mark (`[part]`). Recook
   reads use case, GCP and multi-cloud boards back completely, boards drawn by earlier
