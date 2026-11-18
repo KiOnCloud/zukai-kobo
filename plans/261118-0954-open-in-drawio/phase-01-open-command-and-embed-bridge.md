@@ -34,12 +34,12 @@ says whether that is possible here.
 
 ## Requirements
 
-- [ ] The diagram never appears in a URL or on a command line.
-- [ ] The opener page is written with mode 0600 into a 0700 folder `zukai-open/` under the OS temp folder; pages older than 24 hours are removed on each run.
-- [ ] The opener is spawned with an argument list and detached: `open` (macOS), `xdg-open` (Linux), `cmd /c start "" <path>` (Windows).
-- [ ] Desktop is used when found and a display is there (`--web` forces the web, `--desktop` refuses when desktop is missing).
-- [ ] A Mermaid file or run, a FigJam-only run and a cloud session are refused with a reason; `--check` reports the same without side effects.
-- [ ] Messages are taken only from the embed window and only from the embed origin.
+- [x] The diagram never appears in a URL or on a command line.
+- [x] The opener page is written with mode 0600 into a 0700 folder `zukai-open/` under the OS temp folder; pages older than 24 hours are removed on each run.
+- [x] The opener is spawned with an argument list and detached: `open` (macOS), `xdg-open` (Linux), `cmd /c start "" <path>` (Windows).
+- [x] Desktop is used when found and a display is there (`--web` forces the web, `--desktop` refuses when desktop is missing).
+- [x] A Mermaid file or run, a FigJam-only run and a cloud session are refused with a reason; `--check` reports the same without side effects.
+- [x] Messages are taken only from the embed window and only from the embed origin.
 
 ## Design
 
@@ -111,6 +111,21 @@ cli.mjs open --check <run-dir|file.drawio|file.drawio.svg>
 6. `--check` without side effects.
 7. Playwright: the opener page against the stand-in embed host loads the 72-page bundle of every fixture, answers `save` with a download and `status`, and ignores a message from another window or origin.
 8. Wire `open` into `cli.mjs`; rebuild; e2e through the bundle from another working directory.
+
+## Local gate result (2026-11-18)
+
+Run in this session's Playwright Chromium with a normal desktop user agent (the real host
+answers 403 to `HeadlessChrome`), against the real `https://embed.diagrams.net`:
+
+- The host sends no `frame-ancestors` and no `X-Frame-Options`; a `file://` opener page frames
+  it, receives `init` and loads the file. A bundle of every fixture (872 KB, 74 pages) showed
+  every page as a tab about one second after the page opened; the fallback bar stayed hidden;
+  no CSP violation was reported.
+- Pressing draw.io's Save posted `save`: the page downloaded `all.drawio` with all 74 pages and
+  sent `status` (`modified: false`); the status line said where to put the file.
+- Outcome: the frame is the chat's first route; the popup button stays as the fallback after
+  20 s. `trial/open-trial.html` (one run of two pages, real host) is there for a check in the
+  user's own browser; it is not needed for the decision.
 
 ## Verification
 

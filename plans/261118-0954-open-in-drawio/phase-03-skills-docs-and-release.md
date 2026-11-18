@@ -24,13 +24,13 @@ documents and version say what was added.
 
 ## Requirements
 
-- [ ] The closing contract's last step, after the report: when the run wrote a draw.io file, run `cli open --check <run-folder>`; when `can` is true, ask once (`AskUserQuestion` where the runtime has it, else one text line) "Open <run-slug>.drawio in draw.io?" with "Open it in draw.io desktop" or, when `via` is `web`, "Open it on the web (diagrams.net receives the diagram)" first, and "Not now"; on yes, run `cli open <run-folder>` and pass its result on in one line.
-- [ ] A FigJam run ends with its board link (already in the report); no question.
-- [ ] A Mermaid run ends without the question.
-- [ ] Inside a labs job the question is a console card: before `labs done`, the agent asks it with `labs ask` (id `open-drawio`, options "Open it" and "Not now"), runs `cli open` on yes, then closes the job; the report also names the console's Open in draw.io.
-- [ ] `cli open` is never run without the user's yes.
-- [ ] Documents: README (Usage), `docs/architecture.md` (the bridge, the opener page, the routes), `docs/install.md` (Upgrading to 2.4.1), `THIRD_PARTY_NOTICES.md` (embed.diagrams.net fetched by the browser at run time).
-- [ ] Version 2.4.1 in `plugin.json`, `package.json` and its lock; bundle rebuilt; full suite; strict validation.
+- [x] The closing contract's last step, after the report: when the run wrote a draw.io file, run `cli open --check <run-folder>`; when `can` is true, ask once (`AskUserQuestion` where the runtime has it, else one text line) "Open <run-slug>.drawio in draw.io?" with "Open it in draw.io desktop" or, when `via` is `web`, "Open it on the web (diagrams.net receives the diagram)" first, and "Not now"; on yes, run `cli open <run-folder>` and pass its result on in one line.
+- [x] A FigJam run ends with its board link (already in the report); no question.
+- [x] A Mermaid run ends without the question.
+- [x] Inside a labs job the question is a console card: before `labs done`, the agent asks it with `labs ask` (id `open-drawio`, options "Open it" and "Not now"), runs `cli open` on yes, then closes the job; the report also names the console's Open in draw.io.
+- [x] `cli open` is never run without the user's yes.
+- [x] Documents: README (Usage), `docs/architecture.md` (the bridge, the opener page, the routes), `docs/install.md` (Upgrading to 2.4.1), `THIRD_PARTY_NOTICES.md` (embed.diagrams.net fetched by the browser at run time).
+- [x] Version 2.4.1 in `plugin.json`, `package.json` and its lock; bundle rebuilt; full suite; strict validation.
 
 ## Files to Create / Modify
 

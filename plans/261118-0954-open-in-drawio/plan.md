@@ -1,7 +1,7 @@
 ---
 title: "Open a run's diagram in draw.io from the console and from the chat"
 description: "An Open in draw.io button in the labs console, cli open for the agent, and a closing question after every draw.io run; the diagram reaches draw.io by postMessage, never in a URL."
-status: pending
+status: in-progress
 priority: P2
 effort: 2.5d
 branch: claude/wizardly-babbage-o4mmey
@@ -86,9 +86,9 @@ below comes from a trial run in this session or from the repository, cited per d
 
 | # | Phase | Effort | Depends on | Status |
 |---|-------|--------|------------|--------|
-| 1 | [Open command and embed bridge](./phase-01-open-command-and-embed-bridge.md) | 1d | none | Pending |
-| 2 | [Console open button](./phase-02-console-open-button.md) | 0.75d | 1 | Pending |
-| 3 | [Skills, docs and release](./phase-03-skills-docs-and-release.md) | 0.75d | 1, 2 | Pending |
+| 1 | [Open command and embed bridge](./phase-01-open-command-and-embed-bridge.md) | 1d | none | Done |
+| 2 | [Console open button](./phase-02-console-open-button.md) | 0.75d | 1 | Done |
+| 3 | [Skills, docs and release](./phase-03-skills-docs-and-release.md) | 0.75d | 1, 2 | Done but the skill round in a local session and the PR |
 
 ## Constraints for every phase
 
@@ -114,8 +114,9 @@ combined `.md` to a page that renders it (the labs viewer already draws Mermaid)
 
 ## Open questions
 
-1. Whether `embed.diagrams.net` lets a `file://` page frame it. Settled by the local gate of
-   phase 1.
+1. ~~Whether `embed.diagrams.net` lets a `file://` page frame it.~~ Settled on 2026-11-18: it
+   does (no `frame-ancestors`, no `X-Frame-Options`; the real host loaded and saved a 74-page
+   file inside a frame of a `file://` page). See phase 1, "Local gate result".
 
 ## Validation Log
 

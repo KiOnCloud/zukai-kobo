@@ -25,12 +25,12 @@ to draw.io on the web through the same bridge as the chat.
 
 ## Requirements
 
-- [ ] The button appears only where a draw.io file exists: in the run header for the combined `<run-slug>.drawio`, on each `.drawio` row of Files, and in Picture for `drawio/<id>.drawio` of the current diagram.
-- [ ] Clicking opens `embedUrl(host)` as a popup from the click and loads the file with its name as the title.
-- [ ] Messages are taken only from that window and only from the embed origin.
-- [ ] Save downloads the file under its name, and an `Alert` says where to put it to change the run.
-- [ ] A blocked popup gives an `Alert` that says how to allow it.
-- [ ] The embed host comes from the server (`GET /api/state` gains `drawio: { embed }`, filled from `ZUKAI_DRAWIO_EMBED` or the default), so tests can use the stand-in.
+- [x] The button appears only where a draw.io file exists: in the run header for the combined `<run-slug>.drawio`, on each `.drawio` row of Files, and in Picture for `drawio/<id>.drawio` of the current diagram.
+- [x] Clicking opens `embedUrl(host)` as a popup from the click and loads the file with its name as the title.
+- [x] Messages are taken only from that window and only from the embed origin.
+- [x] Save downloads the file under its name, and an `Alert` says where to put it to change the run.
+- [x] A blocked popup gives an `Alert` that says how to allow it.
+- [x] The embed host comes from the server (`GET /api/state` gains `drawio: { embed }`, filled from `ZUKAI_DRAWIO_EMBED` or the default), so tests can use the stand-in.
 
 ## Files to Create / Modify
 
