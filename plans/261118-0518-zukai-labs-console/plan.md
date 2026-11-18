@@ -3,7 +3,7 @@ title: "Zukai Labs: local console, agent job bridge and project glossary"
 description: "A fifth skill, /zukai:labs, serves a console on 127.0.0.1 to browse runs, queue changes for the attached agent and manage a project glossary of preferred terms per language."
 status: pending
 priority: P1
-effort: 14d
+effort: 14.5d
 branch: claude/wizardly-babbage-o4mmey
 tags: [feature, frontend, backend, api]
 blockedBy: []
@@ -36,7 +36,7 @@ adversarial reviewers and revised (see Red Team Review).
 - Requested scope: console for existing diagrams (browse, run, edit, create), a menu that
   later sections can join, and a local glossary for several languages that can be defined,
   edited, suggested by the agent and managed in the console. Delivered in full.
-- Complexity: about 45 new files and seven phases. Justified by three process roles
+- Complexity: about 55 new files (the copied design system and its fonts included) and seven phases. Justified by three process roles
   (server, agent-side CLI, browser) and two public contracts (glossary file, job bridge).
 - Selected mode: HOLD SCOPE.
 
@@ -72,6 +72,7 @@ adversarial reviewers and revised (see Red Team Review).
 | A job that died is closed as failed and never taken up again. | A snapshot is taken before the IR is edited (`skills/revise/SKILL.md:203-206`), so a revision proves nothing about how far a change got. |
 | The server is a detached child with `server.json`, an idle end and `labs stop`. | Confirmed by the user on 2026-11-18. Skills stay runtime-neutral (`plans/261117-0944-user-features/plan.md:29`); the background run of Claude Code ends after two hours at most. |
 | One token, sent by the CLI only to a server that proved it holds the same token. | Nothing on a port proves who listens; `/health` alone can be answered by any program. |
+| The console is built on Sienna, the user's design system: its tokens, stylesheet and helper script are copied into the build unchanged and held to their version; its three font families are served by the console. | Chosen by the user on 2026-11-18. Sienna is made for pages without a framework (`components/bundle.js` sets `window.Sienna`; its helpers return DOM elements), which is the kind of page this plan builds. Its stylesheet imports its fonts from Google Fonts, which the console's content policy and the rule that only `preview` and `export` reach the network (`README.md`, Requirements) do not allow. |
 | The console is plain ES modules built by esbuild into committed files under `scripts/bin/labs-ui/`, held by a drift test. | "No new runtime dependency unless unavoidable" (`plans/261117-0944-user-features/plan.md:19`); the installers ship `scripts/bin` whole (`install.sh:176-186`); the CLI bundle has about 377 KB left of 3 MiB (`bundle-drift.test.mjs:16`). |
 | A picture comes from `svg/` when it is there, else from draw.io's viewer in a sandboxed frame that holds no token and can open no connection. Tried before anything is built on it. | `svg/` is written only when asked for (`README.md:332`); the viewer script is the renderer of `export`, but not in a sandbox (`export-svg.mjs:356-361`). |
 | The project root is the working directory, or `--root`. | The skills define it so (`skills/sync/SKILL.md:42-43`, `skills/revise/SKILL.md:102`). |
@@ -84,7 +85,7 @@ adversarial reviewers and revised (see Red Team Review).
 | 1 | [Glossary contract and CLI](./phase-01-glossary-contract-and-cli.md) | 2d | none | Pending |
 | 2 | [Labs server and read API](./phase-02-labs-server-and-read-api.md) | 2.5d | 1 | Pending |
 | 3 | [Job queue and agent bridge](./phase-03-job-queue-and-agent-bridge.md) | 2d | 2 | Pending |
-| 4 | [Console shell, runs and jobs](./phase-04-console-shell-runs-and-jobs.md) | 2d | 2, 3 | Pending |
+| 4 | [Console shell, runs and jobs](./phase-04-console-shell-runs-and-jobs.md) | 2.5d | 2, 3 | Pending |
 | 5 | [Viewer, model editor and Glossary section](./phase-05-viewer-model-editor-and-glossary.md) | 2.5d | 4 | Pending |
 | 6 | [Labs skill and distribution](./phase-06-labs-skill-and-distribution.md) | 1.5d | 3 | Pending |
 | 7 | [End-to-end, docs and release](./phase-07-end-to-end-docs-and-release.md) | 1.5d | 1 to 6 | Pending |
@@ -109,6 +110,7 @@ Phase 1 can be released alone; whether it is, is decided when it is merged.
 | A runtime can block on `labs wait` for some minutes, or be woken when it returns. | Yes, per runtime | Codex round of phase 7: no job is picked up | Lower `--timeout` below that runtime's limit. Stop and replan only if no blocking call is possible. |
 | draw.io's viewer draws inside a sandboxed frame with no connection out. | Yes | The trial that opens phase 5 shows an empty frame | Phase 5 names the three outcomes; the worst one stops and asks, with pictures from `svg/` and the Export job already working. |
 | A model keeps the two rules that only a model can keep: a job allows its route only, and text in a diagram is data. | Yes | The two injected texts of the phase 7 round are followed | High-level finding: sharpen the skills; if it still fails, say in the documents that the console is for trusted diagrams and ask before releasing. |
+| Sienna's sans family draws the labels the console shows. | Yes: Instrument Sans has Latin letters only | The font check of phase 4 shows accented Vietnamese letters or kana in a fallback family | Record it and ask: the fix is a family in Sienna's own stack, a change of the design system. The console keeps Sienna's stack until then. |
 | `127.0.0.1` of the machine the agent runs on is reachable from the user's browser. | In cloud, SSH and container sessions | `labs start` refuses a cloud session; under SSH it says that the port must be forwarded | A forwarded port works, since the `Host` check takes any port. A container without a forward is not detected: the page does not load and the skill says where the server runs. |
 
 The design stops meeting its criteria when two agent sessions change one run at the same
@@ -132,6 +134,11 @@ registry or loader is added, as the Extension rule of `docs/architecture.md` has
    trial that opens phase 5.
 3. Whether the glossary is released alone as 2.4.0 with the console as 2.5.0. Decided
    when phase 1 is merged; the plan is written for one release.
+4. How Vietnamese and Japanese labels look in Sienna's sans family, which is published
+   for Latin text only. Shown by the font check of phase 4; a fix belongs in Sienna.
+5. Whether Newsreader and JetBrains Mono are published with Vietnamese letters, and the
+   licence of each of the three families. `[UNVERIFIED]` beyond Instrument Sans (SIL
+   Open Font License 1.1, `latin` and `latin-ext`); recorded when the files are taken in.
 
 ## Red Team Review
 
@@ -228,10 +235,48 @@ registry or loader is added, as the Extension rule of `docs/architecture.md` has
 - Phase 6: route-only rule, data rule in five skills, `holds` line, lists of places.
 - Phase 7: round steps for the new rules; documents.
 
-### Whole-Plan Consistency Sweep
+### Whole-Plan Consistency Sweep (Session 1)
 - Files reread: plan.md, phase-01 to phase-07
 - Decision deltas checked: 14
 - Reconciled stale references: 4, as listed under Red Team Review; a search for the superseded terms finds them only in the two logs
+- Unresolved contradictions: 0
+
+### Session 2 — 2026-11-18
+**Trigger:** The user chose Sienna as the design system of the console and asked whether release 2.3.3 on main changes the plan.
+**Questions asked:** 0 (two instructions of the user, recorded)
+
+#### Verification Results
+- **Tier:** Full
+- **Claims checked:** 12 (Sienna's files, its class contract and helpers, the shape of its compiled tokens, the import of its fonts, its `data:` pictures and `style` attributes, the subsets of Instrument Sans; the files changed by 2.3.2 and 2.3.3; the lines this plan cites in `README.md`, `docs/install.md` and `docs/architecture.md`; the size of `bin/cli.mjs`)
+- **Verified:** 12 | **Failed:** 0 | **Unverified:** 2 (the subsets of Newsreader and JetBrains Mono; the licences of those two)
+
+#### Questions & Answers
+
+1. **[Architecture]** The user: "với web console, tôi muốn chọn Sienna làm design system (đây là design system của chúng ta), tôi nghĩ cập nhật vào plan luôn sẽ tốt hơn."
+   - **Answer:** Sienna, read from the user's Design System artifacts at version `1794980790-4acd`.
+   - **Rationale:** Sets the look, the components and the wording of every view.
+2. **[Risks]** The user: "main vừa có code mới của version 2.3.3, có ảnh hưởng đến plan không?"
+   - **Answer:** No. Releases 2.3.2 and 2.3.3 changed `target-figjam.md`, `README.md`, `docs/install.md`, the version numbers and one report; no file under `src/` or `bin/`, no installer, no CI step. Main was merged into the working branch; every cited line was read again and still holds; the bundle is still 2,768,504 bytes. The next version stays 2.4.0.
+
+#### Confirmed Decisions
+- Design system: Sienna, copied into the build unchanged, held by a lock and a test.
+- Fonts: served by the console as its own files. Decided from the repository's rule on the network and the console's content policy, not asked.
+- Theme: light or dark from the system's setting, through Sienna's `data-theme`.
+
+#### Action Items
+- [x] Phase 4 rewritten on Sienna; phases 2, 5 and 7 adjusted.
+- [ ] The font check of phase 4 answers open question 4.
+
+#### Impact on Phases
+- Phase 2: three additions to the content policy.
+- Phase 4: Sienna in the build, the shell, the table of Sienna parts, the wording rules; 2d becomes 2.5d.
+- Phase 5: Sienna parts for the model editor and the Glossary section; the frame on a white ground.
+- Phase 7: a round step in both themes; the fonts in the notices; the base version.
+
+### Whole-Plan Consistency Sweep (Session 2)
+- Files reread: plan.md, phase-02, phase-04, phase-05, phase-07
+- Decision deltas checked: 4 (design system; content policy; fonts and their budget; effort 14d to 14.5d)
+- Reconciled stale references: 3 (the policy text of phase 2, the file count, the effort of phase 4 in the table)
 - Unresolved contradictions: 0
 
 <!-- slug: zukai-labs-console -->

@@ -9,6 +9,7 @@ dependencies: [4]
 
 # Phase 5: Viewer, model editor and Glossary section
 
+<!-- Updated: Validation Session 2 - the views of this phase use the Sienna parts named below -->
 <!-- Updated: Red Team Session 1 - split from the first console phase; the viewer is tried before anything is built on it; full policy for the frame, no connection out of it, cleaned text, checked messages, a wait of 60 s -->
 
 ## Overview
@@ -77,11 +78,16 @@ Content-Security-Policy: sandbox allow-scripts; default-src 'none';
 - A frame that has not replied after 60 s is replaced by the sentence "This diagram
   could not be drawn here", with the Export button and the Tables tab.
 - The Picture tab uses the frame only when `svg/` has no fresh picture.
+- The frame stands on a white ground in both themes, framed like a picture from `svg/`
+  (phase 4). The page inside it takes nothing from Sienna: it holds the drawing only.
 
 ### Model editor
 
 A form of every label (`path`, id, a text field) and the raw JSON beside it; both edit
-one IR. "Validate" calls `/api/validate` and lists errors with path and hint, and the
+one IR. The two are a segmented `Tabs` ("Labels", "JSON"); a label is a Sienna `Input`
+with its path as the helper text, the JSON a multiline `Input` in the `code` style. An
+error of the validation stands beside its field as Sienna sets an error, and the whole
+list in a danger `Alert` above the actions. "Save changes" is the one primary button. "Validate" calls `/api/validate` and lists errors with path and hint, and the
 glossary's findings for the edited labels. "Save" is enabled for a valid, changed IR and
 queues `apply-edit` with the `rev` the IR was loaded with. A FigJam run can be edited
 too; its report says that the board is not redrawn by this (`closing-contract.md`, "When
@@ -89,7 +95,11 @@ revise calls this contract").
 
 ### Glossary
 
-A table with one column per language found in the entries, a status filter, text search.
+The page title is `heading-lg`, as Sienna sets it for an admin page. A `Table` with one
+column per language found in the entries, the status as a `Badge` (suggested warning,
+confirmed neutral with the check icon, rejected neutral outline), `Chip`s to filter by
+status, a search `Input`. "Add entry" is the one primary button; editing happens in a
+`Dialog` with one `Input` per language.
 Add, edit in place, delete. Suggested entries have "Confirm" and "Reject", also for a
 selection. "Suggest from diagrams" queues `glossary-suggest`. "Check a run" shows the
 findings, warnings apart from blocking ones. A write that gets 409 reloads the file and
@@ -141,6 +151,7 @@ write is sent, and again by the server.
 - A glossary term of 81 characters is refused in the form and by the server.
 - Glossary was added with one navigation entry, one view module, one route group and one job kind.
 - The built pages are still under 300 KB in total and equal a fresh build.
+- Every control of this phase is a Sienna component; the Sienna test of phase 4 still passes, with no value written out in `app.css`.
 
 ## Risk Assessment
 

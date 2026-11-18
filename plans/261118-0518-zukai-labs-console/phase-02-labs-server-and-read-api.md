@@ -11,6 +11,7 @@ dependencies: [1]
 
 <!-- Updated: Red Team Session 1 - one token, proof of identity before a token is sent, stale lock by refused connection only, no self-exit on a lost lock, full content policy, every path parameter from a listing, log without messages, pages held in memory, host names, Windows job -->
 <!-- Updated: Validation Session 1 - detached child with idle end confirmed; Tables, Files and Changes since kept -->
+<!-- Updated: Validation Session 2 - the content policy allows what the Sienna design system needs: own fonts, data pictures, style attributes -->
 
 ## Overview
 
@@ -136,9 +137,15 @@ Every response carries `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-r
 
 ```text
 Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self';
-  connect-src 'self'; img-src 'self' blob:; frame-src 'self'; frame-ancestors 'none';
+  style-src-attr 'unsafe-inline'; font-src 'self'; connect-src 'self';
+  img-src 'self' blob: data:; frame-src 'self'; frame-ancestors 'none';
   base-uri 'none'; form-action 'none'
 ```
+
+Three parts of it are there for the Sienna design system the pages are built on (phase
+4): its fonts are served by the console (`font-src 'self'`), its stylesheet draws the
+glyphs of checkboxes and selects as `data:` pictures, and two of its helpers set a
+`style` attribute with fixed text. No style sheet, script or font of another host is allowed.
 
 The page inside the viewer frame gets a policy of its own (phase 5).
 
