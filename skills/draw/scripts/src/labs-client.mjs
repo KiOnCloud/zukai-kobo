@@ -86,3 +86,28 @@ export async function waitPortClosed(port, within = 5000) {
   }
   return false;
 }
+
+/**
+ * A call of the agent to the project's server: read `server.json`, prove the server, then
+ * send the request with the token. Errors come back with the codes of the bridge:
+ * `no-server`, `not-this-project`, `session-refused`, `session-replaced`, `transport`,
+ * `bad-request`.
+ * @returns {Promise<{ ok: true, body: object } | { ok: false, error: { code: string, message: string, hint?: string } }>}
+ */
+export async function agentCall(file, { method = 'POST', path, body }) {
+  if (!file) return { ok: false, error: { code: 'no-server', message: 'no labs server runs for this project', hint: 'run labs start' } };
+  const proof = await proveServer(file.port, file.token);
+  if (proof.state === 'refused') return { ok: false, error: { code: 'no-server', message: 'the labs server of this project stopped', hint: 'run labs start once' } };
+  if (proof.state !== 'proved') return { ok: false, error: { code: 'not-this-project', message: `the program on port ${file.port} did not prove it is this project's console` } };
+  let r;
+  try {
+    r = await request(file.port, { method, path, token: file.token, body });
+  } catch (e) {
+    return { ok: false, error: { code: e.code === 'ECONNREFUSED' ? 'no-server' : 'transport', message: `the call did not reach an answer (${e.code ?? 'error'})` } };
+  }
+  if (r.status >= 200 && r.status < 300) return { ok: true, body: r.body };
+  const err = r.body?.error ?? {};
+  const known = ['session-refused', 'session-replaced', 'no-server'];
+  const code = known.includes(err.code) ? err.code : r.status >= 500 ? 'transport' : 'bad-request';
+  return { ok: false, error: { code, message: err.message ?? `the server answered ${r.status}`, ...(err.errors ? { errors: err.errors } : {}), ...(err.lastContact ? { lastContact: err.lastContact } : {}) } };
+}

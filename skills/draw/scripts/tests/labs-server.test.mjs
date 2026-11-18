@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLabsServer, makeLogger, CONSOLE_CSP, proofOf, originError } from '../src/labs-server.mjs';
 import { readGlossary } from '../src/glossary.mjs';
+import { createJobs } from '../src/labs-jobs.mjs';
 import { labsProject, hashTree } from './labs-project.mjs';
 
 const TOKEN = 'test-token-0123456789abcdefghijklmnopqrstuv';
@@ -59,12 +60,20 @@ const ROUTES = () => [
   { method: 'PATCH', path: '/api/glossary/entries/g-7e0b7e28', body: { status: 'suggested', rev: 'stale' } },
   { method: 'DELETE', path: '/api/glossary/entries/g-7e0b7e28?rev=stale' },
   { method: 'GET', path: `/api/glossary/check?run=${p.runs.login}` },
+  { method: 'GET', path: '/api/jobs' },
+  { method: 'POST', path: '/api/jobs', body: { kind: 'sync', params: { run: 'nope' } } },
+  { method: 'GET', path: '/api/jobs/j-none' },
+  { method: 'POST', path: '/api/jobs/j-none/cancel' },
+  { method: 'GET', path: `/agent/holds?run=${p.runs.checkout}` },
+  { method: 'POST', path: '/agent/jobs/j-none/progress', body: { session: 's-abcdefghijkl', message: 'x' } },
 ];
 
 beforeAll(async () => {
   const pages = new Map([['/index.html', { type: 'text/html; charset=utf-8', bytes: Buffer.from('<!doctype html><title>t</title>') }]]);
   pages.set('/', pages.get('/index.html'));
-  labs = createLabsServer({ root: p.root, token: TOKEN, pages, version: '0.0.0-test', instance: 'test', log: makeLogger(logPath) });
+  const jobs = createJobs({ root: p.root });
+  jobs.started();
+  labs = createLabsServer({ root: p.root, token: TOKEN, pages, version: '0.0.0-test', instance: 'test', log: makeLogger(logPath), jobs });
   await new Promise((r) => labs.server.listen(0, '127.0.0.1', r));
   port = labs.server.address().port;
 });
@@ -80,7 +89,7 @@ describe('request checks', () => {
     expect((await raw({ ...r, headers: { 'Sec-Fetch-Site': 'cross-site' } })).status).toBe(403);
     expect((await raw({ ...r, method: 'OPTIONS' })).status).toBe(403);
     const ok = await raw(r);
-    expect([200, 409]).toContain(ok.status);
+    expect([200, 404, 409, 422]).toContain(ok.status);
     expect(ok.headers['access-control-allow-origin']).toBeUndefined();
     expect(ok.headers['x-frame-options']).toBe('DENY');
     expect(ok.headers['x-content-type-options']).toBe('nosniff');

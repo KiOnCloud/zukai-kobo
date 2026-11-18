@@ -20,6 +20,7 @@ import pkg from '../package.json' with { type: 'json' };
 import { projectRoot, ensureZukaiDir } from './glossary.mjs';
 import { createLabsServer, loadPages, makeLogger, errorFacts } from './labs-server.mjs';
 import { runNames } from './labs-runs.mjs';
+import { createJobs } from './labs-jobs.mjs';
 import { request, probePort, proveServer, waitPortClosed } from './labs-client.mjs';
 
 export const VERSION = pkg.version;
@@ -188,7 +189,7 @@ export function defaultPagesDir() {
  * port first; only then makes the token, reads the pages into memory and writes
  * `server.json`. Ends on `POST /agent/shutdown`, on SIGTERM and when idle.
  */
-export async function serve({ root: rootOption, port: portOption, idleMinutes, pagesDir, env = process.env, makeJobs } = {}) {
+export async function serve({ root: rootOption, port: portOption, idleMinutes, pagesDir, env = process.env } = {}) {
   const root = projectRoot(rootOption);
   const chosen = chosenPort(root, portOption);
   if (chosen.error) return 1;
@@ -197,7 +198,9 @@ export async function serve({ root: rootOption, port: portOption, idleMinutes, p
   const instance = randomBytes(8).toString('hex');
   let token;
   let closing = false;
-  const jobs = makeJobs?.({ root, log });
+  // The limits of the bridge; the variables exist so the tests can shorten them.
+  const limit = (name, fallback) => (Number(env[name]) > 0 ? Number(env[name]) : fallback);
+  const jobs = createJobs({ root, log, holdMs: limit('ZUKAI_LABS_HOLD_MS', 9 * 60_000), idleContactMs: limit('ZUKAI_LABS_IDLE_CONTACT_MS', 60_000), jobContactMs: limit('ZUKAI_LABS_JOB_CONTACT_MS', 15 * 60_000) });
   const labs = createLabsServer({ root, token: () => token, pages: loadPages(pagesDir ?? defaultPagesDir()), version: VERSION, instance, log, idleMs, jobs, onShutdown: () => shutdown('requested') });
 
   const shutdown = (reason) => {
@@ -223,7 +226,7 @@ export async function serve({ root: rootOption, port: portOption, idleMinutes, p
     return 1;
   }
   token = randomBytes(32).toString('base64url');
-  jobs?.started?.();
+  jobs.started();
   writeServerFile(root, { pid: process.pid, port: chosen.port, instance, version: VERSION, startedAt: new Date().toISOString(), token, root });
   log({ event: 'started', port: chosen.port, version: VERSION });
   for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(signal, () => shutdown(signal));

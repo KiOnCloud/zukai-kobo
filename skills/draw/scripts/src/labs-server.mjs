@@ -347,8 +347,11 @@ export function createLabsServer(options) {
         if (type !== 'application/json') throw new HttpError(415, 'media-type', 'a body must be application/json');
         try { req.body = JSON.parse(raw.toString('utf8')); } catch { throw new HttpError(400, 'bad-request', 'the body is not valid JSON'); }
       }
-      const out = await route.handler({ req, res, params, query: url.searchParams });
-      if (out?.held) return out.held(done);
+      // A held call of the agent learns through the signal that its client went away.
+      const gone = new AbortController();
+      res.on('close', () => { if (!res.writableEnded) gone.abort(); });
+      const out = await route.handler({ req, res, params, query: url.searchParams, signal: gone.signal });
+      if (res.destroyed) return done(499);
       if (out?.raw) {
         send(res, 200, out.raw, { 'Content-Type': out.type, 'Content-Disposition': `attachment; filename="${out.name.replace(/[^\w.-]/g, '_')}"` });
         done(200);
