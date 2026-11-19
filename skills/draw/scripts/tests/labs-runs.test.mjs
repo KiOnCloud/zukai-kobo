@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
+import { realpathSync } from 'node:fs';
 import { listRuns, runDetail, diagramDetail, runDoc, changesSince, filePath, runPath, revisionNames } from '../src/labs-runs.mjs';
 import { labsProject, RUNS_DIRS } from './labs-project.mjs';
 
@@ -57,7 +58,7 @@ describe.each(RUNS_DIRS)('runs folder %s', (runsDir) => {
     });
 
     it('finds a file only by a name of the listing whose real path lies inside the run', () => {
-      expect(filePath(p.root, p.runs.checkout, 'svg/checkout.drawio.svg')).toBe(join(runPath(p.root, p.runs.checkout), 'svg', 'checkout.drawio.svg'));
+      expect(filePath(p.root, p.runs.checkout, 'svg/checkout.drawio.svg')).toBe(realpathSync(join(runPath(p.root, p.runs.checkout), 'svg', 'checkout.drawio.svg')));
       for (const name of ['source/leak.txt', '../20261109_login-flow/source/login-flow.ir.json', '/etc/hosts', 'history/r001/revision.json', 'svg/../checkout.drawio', '']) {
         expect(filePath(p.root, p.runs.checkout, name)).toBeUndefined();
       }

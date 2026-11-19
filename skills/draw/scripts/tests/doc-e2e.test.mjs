@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { scriptsDir, fixturesDir, loadFixture, validFixtures } from './helpers.mjs';
@@ -13,7 +13,8 @@ import { scriptsDir, fixturesDir, loadFixture, validFixtures } from './helpers.m
 /** A made-up value, put together at run time so that no line of this file reads as a credential. */
 const FAKE = `${['Sup3r', 'S3cret'].join('')}!`;
 const cliPath = join(scriptsDir, 'bin', 'cli.mjs');
-const cwd = mkdtempSync(join(tmpdir(), 'zukai-doc-cwd-'));
+// The real path: a child process's working directory is reported resolved (/private/var on macOS).
+const cwd = realpathSync(mkdtempSync(join(tmpdir(), 'zukai-doc-cwd-')));
 const cli = (...args) => {
   const r = spawnSync(process.execPath, [cliPath, ...args], { cwd, encoding: 'utf8' });
   const parse = (text) => text.trim().split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return l; } });

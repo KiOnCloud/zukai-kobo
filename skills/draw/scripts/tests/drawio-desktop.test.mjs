@@ -121,7 +121,8 @@ describe('how draw.io desktop is started', () => {
 });
 
 describe.skipIf(!posix)('draw.io desktop through preview, with stand-ins', () => {
-  it('runs draw.io under xvfb-run when no display is set, for the probe and for the export', async () => {
+  // xvfb-run and the display check are Linux only: macOS starts draw.io as it is and looks in /Applications.
+  it.skipIf(process.platform !== 'linux')('runs draw.io under xvfb-run when no display is set, for the probe and for the export', async () => {
     const bin = standIn({ display: true });
     xvfbStandIn(bin);
     environment(`${bin}:${saved.PATH}`);
@@ -133,7 +134,7 @@ describe.skipIf(!posix)('draw.io desktop through preview, with stand-ins', () =>
     expect(pngSize(r.out)).toEqual({ width: 40, height: 30 });
   }, 60_000);
 
-  it('reports a draw.io on PATH that does not start as found, with the reason and what to install', async () => {
+  it.skipIf(process.platform !== 'linux')('reports a draw.io on PATH that does not start as found, with the reason and what to install', async () => {
     const bin = standIn({ display: true });
     // Only the stand-in on PATH: no xvfb-run, no display.
     environment(bin);

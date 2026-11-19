@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, existsSync, writeFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { scriptsDir, fixturesDir } from './helpers.mjs';
 
 const cli = join(scriptsDir, 'bin', 'cli.mjs');
-const otherCwd = mkdtempSync(join(tmpdir(), 'zukai-cli-'));
+// The real path: a child process's working directory is reported resolved (/private/var on macOS).
+const otherCwd = realpathSync(mkdtempSync(join(tmpdir(), 'zukai-cli-')));
 
 function run(args, cwd = otherCwd) {
   const r = spawnSync(process.execPath, [cli, ...args], { cwd, encoding: 'utf8' });
@@ -113,7 +114,7 @@ describe('cli (committed bundle, run from a different working directory)', () =>
 });
 
 describe('runs-dir (committed bundle)', () => {
-  const project = () => mkdtempSync(join(tmpdir(), 'zukai-runs-dir-'));
+  const project = () => realpathSync(mkdtempSync(join(tmpdir(), 'zukai-runs-dir-')));
 
   it('prints the default folder and where it came from', () => {
     const root = project();
