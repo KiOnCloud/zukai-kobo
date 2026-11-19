@@ -36,7 +36,7 @@ Scope mode: HOLD SCOPE (no `--yagni`); everything the brainstorm accepted is pla
 | 3 | [Glossary on prose: check, keep terms, translations](./phase-03-glossary-on-prose.md) | Completed |
 | 4 | [Report skill and its closing contract](./phase-04-report-skill.md) | Completed (live agent round not run) |
 | 5 | [Labs Reports section, routes and job kinds](./phase-05-labs-reports-section.md) | Completed (Playwright round not run locally; checked in headless Chrome) |
-| 6 | [Docs, tests sweep and release 2.7.0](./phase-06-docs-tests-and-release.md) | In progress (CI run, live rounds and PR pending) |
+| 6 | [Docs, tests sweep and release 2.7.0](./phase-06-docs-tests-and-release.md) | In progress (released in #77; CI, macOS and Playwright done; live agent round pending) |
 
 Order: 1 → 2 → 3 → 4 → 5 → 6. Phases 2 and 3 both build on phase 1 and touch different
 modules (`report-templates.mjs`, `glossary.mjs`), so they may run in parallel; phase 4 needs
@@ -81,7 +81,7 @@ proves it:
 - [ ] 6. An avoided word is found by `report check`, rewritten by the polish job, shown as a diff and applied as a revision — phases 3, 4, 5 (CLI and console side proven by tests; the live agent round is pending)
 - [ ] 7. A term kept across languages (`en`/`ja` "office") survives translation and a changed one is flagged — phases 3, 4 (CLI and console side proven by tests; the live agent round is pending)
 - [x] 8. An unusable `reportsDir` stops report commands with `bad-config` and writes nothing — phase 1
-- [ ] 9. Tests cover the modules, prose check, templates, console (unit and Playwright) and jobs; bundle drift passes — every phase, swept in 6
+- [x] 9. Tests cover the modules, prose check, templates, console (unit and Playwright) and jobs; bundle drift passes — every phase, swept in 6 (Playwright and the full suite run on macOS 2026-11-19)
 
 ## Red Team Review
 
