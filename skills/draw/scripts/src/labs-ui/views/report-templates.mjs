@@ -23,6 +23,7 @@ export function reportTemplates({ store, selected }) {
   let failure = null;
   let frame = null;
   let importFrame = null;
+  let importSection = null;
 
   const say = (tone, body, title) => replace(notice, S().Alert({ tone, title, body, dismissible: true }));
 
@@ -144,7 +145,9 @@ export function reportTemplates({ store, selected }) {
           t.valid && t.used ? S().Button({ label: 'Use', variant: 'ghost', size: 'sm', href: `#/reports/new/${encodeURIComponent(t.id)}` }) : null) },
       ],
     });
-    replace(element, head, notice, table, previewHolder, importBlock());
+    // Built once: a reload after the agent wrote, or a route, keeps a checked file and its Import button.
+    importSection ??= importBlock();
+    replace(element, head, notice, table, previewHolder, importSection);
     const pick = selected && rows.find((t) => t.id === selected && t.valid);
     if (pick) preview(pick);
   }
