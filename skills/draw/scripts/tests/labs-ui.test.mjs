@@ -591,6 +591,28 @@ describe('the Reports section', () => {
     expect(view.element.querySelector('img')).toBeNull();
   });
 
+  it('keeps a checked import file and its Import button when the list reloads or the route changes', async () => {
+    routes = [
+      ['GET', /\/api\/report-templates$/, () => respond(200, { templates: [{ id: 'feature', scope: 'built-in', valid: true, used: true, overrides: [], overriddenBy: null, overridesBuiltIn: false, errors: [], name: 'Feature' }] })],
+      ['POST', /\/api\/report-templates\/import\?check=1$/, () => respond(200, { id: 'vendor-review', name: 'Vendor review', sections: [{ name: 'Summary' }], preview: '<p>x</p>', exists: false })],
+    ];
+    const view = mods.reportTemplates.reportTemplates({ store: mods.store.createStore({}) });
+    await flush();
+    const input = view.element.querySelector('input[type="file"]');
+    const file = new window.File(['{"format":"zukai-template"}'], 'vendor.zukai-template.json', { type: 'application/json' });
+    Object.defineProperty(input, 'files', { value: [file] });
+    input.dispatchEvent(new window.Event('change'));
+    await flush();
+    const importButton = () => [...view.element.querySelectorAll('button')].find((b) => b.textContent === 'Import vendor-review');
+    expect(importButton()).toBeDefined();
+    await view.reload();
+    await flush();
+    expect(importButton()).toBeDefined();
+    view.route(['templates']);
+    expect(importButton()).toBeDefined();
+    view.dispose();
+  });
+
   it('frames a report with scripts and modals only, and posts it only to its own frame after its ready', () => {
     const f = mods.reportFrame.reportFrame({ html: '<p>report</p>' });
     document.body.appendChild(f.element);

@@ -27,10 +27,14 @@ passes, and the release is cut as 2.7.0.
 ## Tasks & Steps
 
 - [x] 1. Write the docs above, each claim checked against the code and tests of phases 1–5.
-- [ ] 2. Full suite on Linux (CI) and on Windows (local): no failure new to this branch; the five Windows-only failures known on `main` (`install-ps1`, `preview`, `sources`) are reported, not hidden.
+- [x] 2. Full suite on Linux (CI) and on Windows (local): no failure new to this branch; the five Windows-only failures known on `main` (`install-ps1`, `preview`, `sources`) are reported, not hidden.
+  - CI on PR #77 passed (`test`, `install-windows`).
+  - macOS (2026-11-19, Playwright through `NODE_PATH`): 20 failures at first. 16 were tests comparing a `tmpdir()` path with the resolved `/private/var` path the CLI prints, now compared by real path. 2 were the Linux-only xvfb stand-ins, now skipped off Linux. 1 was the template import of the Reports console, which only failed under load. That led to a real fix: the Templates view now builds its import block once, so a reload or a route keeps a checked file, with a jsdom regression test. After the fixes: 2279 passed and 1 failed. The remaining failure is `text-metrics` "matches the width Chromium draws": macOS Helvetica draws bold Vietnamese up to 3.9 px wider than the estimate, which is still inside `roomFor`'s margin. Left open for a decision.
 - [x] 3. `npm run build`, commit `bin/`, `bundle-drift.test.mjs` passes; `claude plugin validate . --strict` passes.
 - [ ] 4. The live round of phase 4 and the console round of phase 5, recorded in the PR body step by step.
-- [ ] 5. Version 2.7.0 everywhere; PR titled `feat: release 2.7.0 with reports, report templates and glossary polish`.
+  - Console round (Playwright `labs-ui-e2e`, the Reports section included): passed on macOS, 17 of 17.
+  - Live agent round: not run. Headless `claude -p` failed with "OAuth session expired and could not be refreshed". A sample project for it is ready (`reportsDir` set to `docs/reports`, a confirmed `office` en/ja kept term, a canary file for the hostile-template case).
+- [x] 5. Version 2.7.0 everywhere; PR titled `feat: release 2.7.0 with reports, report templates and glossary polish` (merged as #77).
 
 ## Verification
 

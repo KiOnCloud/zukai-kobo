@@ -5,13 +5,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { scriptsDir } from './helpers.mjs';
 
 const cliPath = join(scriptsDir, 'bin', 'cli.mjs');
-const elsewhere = mkdtempSync(join(tmpdir(), 'zukai-sources-cwd-'));
+// The real path: a child process's working directory is reported resolved (/private/var on macOS).
+const elsewhere = realpathSync(mkdtempSync(join(tmpdir(), 'zukai-sources-cwd-')));
 const cli = (args, cwd = elsewhere) => {
   const r = spawnSync(process.execPath, [cliPath, ...args], { cwd, encoding: 'utf8' });
   const parse = (text) => text.trim().split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return l; } });
@@ -38,7 +39,7 @@ const SOURCES = ['src/auth/login-handler.js', 'src/auth/password.js'];
  * `marker` makes it a git work tree root the way a clone ('dir') or a linked work tree ('file') is one.
  */
 function project({ slug = 'login', irs, marker = 'dir' } = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'zukai-sources-project-'));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'zukai-sources-project-')));
   for (const [path, text] of Object.entries(FILES)) write(join(root, path), text);
   if (marker === 'dir') mkdirSync(join(root, '.git'));
   if (marker === 'file') writeFileSync(join(root, '.git'), 'gitdir: /somewhere/else\n');

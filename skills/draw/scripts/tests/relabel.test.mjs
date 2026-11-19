@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { wrapText } from '../src/layout-graph.mjs';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { deflateRawSync } from 'node:zlib';
@@ -233,7 +233,7 @@ describe('relabel (issue 4: language variants keep the layout)', () => {
   });
 
   it('works through the CLI', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'zukai-relabel-'));
+    const dir = realpathSync(mkdtempSync(join(tmpdir(), 'zukai-relabel-')));
     const r = await emit(loadFixture('activity', 'valid-two-lanes'), 'drawio', { diagramId: 'returns' });
     writeFileSync(join(dir, 'returns.drawio'), r.output);
     writeFileSync(join(dir, 'vi.json'), JSON.stringify({ approve: 'Duyệt', ghost: 'x' }));
