@@ -768,6 +768,19 @@ again from part 1 is the safe choice when in doubt. The bundle written to save c
 only the diagrams none of whose parts ran, and it goes into the run folder of the first of
 them. A Starter plan allows 20 Figma MCP calls a month.
 
+## Upgrading to 2.7.1
+
+Version 2.7.1 fixes the console and the tests. Existing `.ir.json` files, run folders, report
+folders, templates, CLI commands, options and exit codes keep working unchanged.
+
+- **Template import in the console.** A template file that passed the check under
+  Reports › Templates, with its Import button, stays on the page when the console reloads
+  after the agent wrote a file or when the route changes. Before, the check had to be run
+  again.
+- **The tests on macOS.** Tests that compare paths under the temporary folder use its real
+  path (`/private/var` on macOS), and the `xvfb-run` stand-ins run on Linux only. Nothing
+  the CLI prints changed.
+
 ## Upgrading to 2.7.0
 
 Version 2.7.0 adds reports: `/zukai:report`, report templates in three scopes, the glossary

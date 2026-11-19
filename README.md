@@ -595,7 +595,8 @@ sources.
 
 ## Status
 
-Version 2.7.0 is the open beta; it adds `/zukai:report`, report templates in three scopes,
+Version 2.7.1 is the open beta; it keeps a template file checked for import in the console
+while the page reloads and makes the test suite pass on macOS. Version 2.7.0 added `/zukai:report`, report templates in three scopes,
 the glossary on prose (polish and translation) and the Reports section of the console.
 Version 2.6.0 added a configurable runs folder and the run index, and version 2.5.0
 redesigned the labs console with an overview, a page per job, the choices of a new diagram
@@ -606,6 +607,7 @@ middle. Version 2.3.0 added `/zukai:sync`, the use case kind, the SVG pictures,
 the description tables, the picture of a change, the PlantUML reader and Google Cloud icons
 for architecture diagrams; version 2.2.0 added
 `/zukai:recook` and version 2.0.0 added `/zukai:revise`. Forks of the skill should read
+[Upgrading to 2.7.1](docs/install.md#upgrading-to-271),
 [Upgrading to 2.7.0](docs/install.md#upgrading-to-270),
 [Upgrading to 2.6.0](docs/install.md#upgrading-to-260),
 [Upgrading to 2.5.0](docs/install.md#upgrading-to-250),
