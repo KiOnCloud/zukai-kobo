@@ -72,7 +72,7 @@ Measured on the final bundle (2.8.1), on renders by the draw.io viewer:
 | Class ends on the table | 3, 4 and 6 relations, top-down and bottom-up: every tip on the top or bottom side inside the width of the table, last stretch upright. On 2.8.0 the outer two ran `L 251 126 L 271.76 126` into the corners |
 | Lines on a circle | 2, 3 and 4 lines out of an initial state and into a final one, four directions: first and last stretch 0.00 px off the flow, each end 15.00 px from the centre (arrow tips 1.06 to 1.12 px short, as draw.io draws every tip). On 2.8.0 three lines started `M 234.43 48.93 L 233 48.9 L 233 75` |
 | Unchanged output | 85 files byte-identical between the 2.8.0 bundle and the 2.8.1 bundle: every activity, architecture, ER, flowchart, sequence and use case fixture, the five class fixtures without a self-relation, and 16 class probes without one. Seven differ: the six state fixtures and the new class fixture |
-| Suite | `npm test`: 2439 passed, 43 skipped; `bundle-drift` passes |
+| Suite | `npm test`: 2440 passed, 43 skipped; `bundle-drift` passes |
 
 ## What the code does beyond the phase steps
 
@@ -98,6 +98,20 @@ Measured on the final bundle (2.8.1), on renders by the draw.io viewer:
   fixture where the viewer does.
 - **The new class fixture** has visibility signs on its members: without them `extract`
   reads four tables with plain rows as an ER diagram.
+
+## Code review
+
+### Session — 2026-11-20 (after implementation)
+A reviewer agent read the diff without my conclusions; nothing blocking
+([report](../reports/code-reviewer-261120-0956-composite-titles-class-ends-state-circles.md)).
+
+| # | Finding | Severity | Outcome |
+|---|---------|----------|---------|
+| 1 | A title between two lines, a pixel too wide for the gap, was never placed: the composite grew a few pixels a round, ended 23 px wider with a warning and the title still on a line | Medium | fixed: a frame grows by what the stretch at its far end lacks; regression test |
+| 2 | Two title tests could pass with no line in the header | Low | fixed: they assert a crossing |
+| 3 | The reference did not name the warning after six layouts | Low | fixed |
+| 4 | A crossed composite with a long wrapped title becomes much wider and keeps the tall header | Low | kept as the plan accepts it; an open decision for the user |
+| 5 | A transition from a composite to itself throws, on 2.8.0 as well | outside the diff | reported, not changed |
 
 ## Risks
 
