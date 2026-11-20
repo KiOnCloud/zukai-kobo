@@ -1,7 +1,7 @@
 ---
 title: "Lines through composite titles, class ends at table corners and jogs at state circles"
 description: "A line that enters a composite state from above no longer runs through its title; class relations end on the table when a self-relation widened its layout box; lines meet the circle of an initial or final state without a jog."
-status: pending
+status: completed
 priority: P1
 effort: 1.5d
 branch: claude/sleepy-cray-1b79nh
@@ -39,10 +39,10 @@ session and `plans/261120-0538-fan-in-arrowheads-on-shapes/`.
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Composite titles step aside](./phase-01-composite-titles-step-aside.md) | Pending |
-| 2 | [Class relations end on the table](./phase-02-class-ends-on-the-table.md) | Pending |
-| 3 | [Ends on the circle of an initial or final state](./phase-03-ends-on-state-circles.md) | Pending |
-| 4 | [Docs, test sweep and release 2.8.1](./phase-04-docs-tests-and-release.md) | Pending |
+| 1 | [Composite titles step aside](./phase-01-composite-titles-step-aside.md) | Completed |
+| 2 | [Class relations end on the table](./phase-02-class-ends-on-the-table.md) | Completed |
+| 3 | [Ends on the circle of an initial or final state](./phase-03-ends-on-state-circles.md) | Completed |
+| 4 | [Docs, test sweep and release 2.8.1](./phase-04-docs-tests-and-release.md) | Completed |
 
 Order: 1, 2 and 3 are independent of one another but all edit `emit-drawio.mjs`, so they run
 in sequence; 4 follows the three.
@@ -51,18 +51,53 @@ in sequence; 4 follows the three.
 
 Measured on the SVG the draw.io viewer draws (`cli export`), through the rebuilt bundle:
 
-- [ ] In every state fixture with a composite and in probes with 1, 2 and 3 transitions
+- [x] In every state fixture with a composite and in probes with 1, 2 and 3 transitions
       into one composite (top-down and bottom-up), the text of each composite title is at
       least 12 px from every line and line label in its header strip.
-- [ ] A composite whose header no line crosses keeps its title centred and its style bytes.
-- [ ] In a class diagram (top-down and bottom-up) with a self-relation and 3, 4 and 6
+- [x] A composite whose header no line crosses keeps its title centred and its style bytes.
+- [x] In a class diagram (top-down and bottom-up) with a self-relation and 3, 4 and 6
       relations into the same class, every relation ends on the top or bottom side inside
       the width of the table with a last stretch along the flow; none ends at a corner.
-- [ ] Class diagrams without a self-relation, and every ER, architecture, use case, sequence
+- [x] Class diagrams without a self-relation, and every ER, architecture, use case, sequence
       and activity fixture, are byte-identical to the 2.8.0 bundle.
-- [ ] Two, three and four lines out of an initial state and into a final state, in four
+- [x] Two, three and four lines out of an initial state and into a final state, in four
       directions: first and last stretch within 0.5 px of the flow, each end on the circle.
-- [ ] `npm test` passes, the bundle is rebuilt and `bundle-drift` passes.
+- [x] `npm test` passes, the bundle is rebuilt and `bundle-drift` passes.
+
+Measured on the final bundle (2.8.1), on renders by the draw.io viewer:
+
+| Criterion | Result |
+|---|---|
+| Title against lines in its header | 13.97 to 14.01 px where the title moved (`state/valid-self-loop`, `state/valid-ref-parts`, 1 and 3 transitions top-down, 1 and 3 bottom-up, a composite inside a composite); 41.7 px where it stayed centred between two lines |
+| Class ends on the table | 3, 4 and 6 relations, top-down and bottom-up: every tip on the top or bottom side inside the width of the table, last stretch upright. On 2.8.0 the outer two ran `L 251 126 L 271.76 126` into the corners |
+| Lines on a circle | 2, 3 and 4 lines out of an initial state and into a final one, four directions: first and last stretch 0.00 px off the flow, each end 15.00 px from the centre (arrow tips 1.06 to 1.12 px short, as draw.io draws every tip). On 2.8.0 three lines started `M 234.43 48.93 L 233 48.9 L 233 75` |
+| Unchanged output | 85 files byte-identical between the 2.8.0 bundle and the 2.8.1 bundle: every activity, architecture, ER, flowchart, sequence and use case fixture, the five class fixtures without a self-relation, and 16 class probes without one. Seven differ: the six state fixtures and the new class fixture |
+| Suite | `npm test`: 2439 passed, 43 skipped; `bundle-drift` passes |
+
+## What the code does beyond the phase steps
+
+- **A transition that ends on the composite itself moves no title.** Phase 1 expected four
+  state fixtures to change; two do (`valid-self-loop`, `valid-ref-parts`). In `valid` and
+  `valid-order-lifecycle` the line named in the context note (t3, t4) ends on the top border
+  of the composite, 9 px above the title, and crosses nothing. `placeGroupTitles` counted a
+  segment that touches the border as one in the strip. Left so, such an arrow moved the
+  title, and a long title under an arrow at the middle of the frame never found a place:
+  each widening halves what is missing, six rounds end 7 px short, and the frame stayed
+  twice as wide with a warning (two existing tests, issue 65 and issue 67, failed on it).
+  The filter now takes a segment only when it runs into the strip. Acceptance criterion 2
+  ("a composite whose header no line crosses keeps its title centred and its style bytes")
+  holds for these two fixtures. No other kind can end a line on a frame, and their output is
+  byte-identical.
+- **A wrapped title on a crossed composite.** As the risk note of phase 1 says, the header
+  keeps the height of the wrapped title after the composite was widened to hold the title
+  on one line. `ref-all-kinds.test.mjs` checks the wrap of a long ref title on a composite
+  no line crosses (left to right), where the composite keeps its width.
+- **The FigJam reader of viewer lines.** `figjam-native.test.mjs` holds one line of
+  `state/valid` as the viewer draws it; its last stretch was `213.7 1221 L 213.74 1250.4`
+  and is `214 1221 L 214 1250.49` now. The native script draws all ten lines of that
+  fixture where the viewer does.
+- **The new class fixture** has visibility signs on its members: without them `extract`
+  reads four tables with plain rows as an ER diagram.
 
 ## Risks
 

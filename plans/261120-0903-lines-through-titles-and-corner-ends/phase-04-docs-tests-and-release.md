@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Docs, test sweep and release 2.8.1"
-status: pending
+status: completed
 priority: P2
 effort: "0.5d"
 dependencies: [1, 2, 3]

@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Ends on the circle of an initial or final state"
-status: pending
+status: completed
 priority: P2
 effort: "0.25d"
 dependencies: []

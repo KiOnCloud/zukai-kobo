@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Class relations end on the table"
-status: pending
+status: completed
 priority: P1
 effort: "0.25d"
 dependencies: []
