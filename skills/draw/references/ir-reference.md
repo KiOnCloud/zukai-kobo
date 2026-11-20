@@ -33,6 +33,7 @@ Errors come back as JSON on stderr with a JSON-pointer `path`, a `message` and u
 | `kind` | yes | `flowchart`, `sequence`, `state`, `er`, `class`, `architecture`, `activity`, `usecase` |
 | `title` | yes | 1 to 500 characters; becomes the diagram name |
 | `direction` | no | `TB` (default), `BT`, `LR`, `RL`; ignored by sequence and by Mermaid's `architecture-beta`; draw.io lays an architecture out in the given direction; a `usecase` diagram defaults to `LR` (actors left and right of the system) |
+| `fanIn` | no | `flowchart` and `state` only: `auto` (default), `merge`, `separate`; how draw.io (and a FigJam board, which is drawn from it) draws many lines into one side of a node, see [flowchart](#flowchart); Mermaid lays out by itself and ignores it; every other kind rejects the field |
 | `meta.source` | no | `clarify`, `scout`, `brainstorm`, `recook`, `manual` |
 | `meta.notes` | no | free text, for example the file paths a scout derived the diagram from |
 | `meta.sources` | no | the files the diagram was derived from, one path each, relative to the project root, with forward slashes (`src/auth/login-handler.ts`); files only, no folders, no absolute path and no `..`. The scout mode writes it, and `sources` / `stale` follow it to tell when the code moved on |
@@ -79,6 +80,24 @@ the loop left outside it lands above or below the whole block and its lines run 
 The draw.io emit reports such a step with a `layout:` warning that names the group to add it
 to; a step in another group altogether is not reported, since a loop may return to an
 earlier phase on purpose.
+
+Many edges into one node need no care in the model: write one edge per source. draw.io
+draws up to four lines into one side of a node apart, each with its arrowhead, at least
+10 px from the next (the node grows when its side is too short for that). Five or more
+that can share a line, which is every edge into that side without a `label` that does not
+lead back to an earlier step, are drawn as one line with one arrowhead and a dot where they
+join; an edge with a label keeps a line of its own beside it. `"fanIn"` at the top of the
+IR pins the look for the whole diagram when the default does not suit it:
+
+| `fanIn` | Lines into one side of a node |
+|---|---|
+| `auto` (default) | five or more that can share a line merge; fewer stay apart |
+| `merge` | two or more that can share a line merge |
+| `separate` | never merge: every line keeps its own arrowhead and the node grows to hold them |
+
+Pin `separate` when a reader must follow each line to its own arrowhead, or when a fifth
+edge should not change a picture people already know; pin `merge` when a few sources are
+one input to the reader. Give an edge a `label` to keep that one line apart.
 
 ```json
 {
@@ -151,6 +170,11 @@ Collections: `states` (at least one), `transitions`.
 
 Put an `initial` and a `final` state inside a composite when its inner flow has a start and
 an end. Nothing leaves a `final` state and nothing enters an `initial` one.
+
+Transitions into one side of a state follow the same rule as the edges of a flowchart: up
+to four stay apart, five or more without `event`, `guard` and `action` merge into one line
+with a dot, and `"fanIn"` (`auto`, `merge`, `separate`) at the top of the IR pins it. The
+circles of `initial` and `final` are left as they are.
 
 `initial` and `final` are markers, the filled circle and the end circle, and no target
 draws a label on them. A status the thing can end in is therefore a state of its own, with

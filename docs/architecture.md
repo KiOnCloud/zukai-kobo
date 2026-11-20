@@ -308,6 +308,23 @@ run ELK twice: the first pass decides sides and row anchors, the second gets the
 ports (`FIXED_POS`), repeated until the order of anchors sharing a header band is stable.
 Table rows grow with wrapped text.
 
+A parallelogram and a hexagon are narrower than their box, and ELK ends every line on the
+box. `graphCells`, which every ELK-laid kind shares, moves such an end along the line's own
+direction onto the slanted edge (`outlinePoint`) and writes it as a pixel offset with
+`perimeter=0`, so draw.io keeps the height the line was routed at instead of pulling the end
+towards the centre of the shape. Flowchart and state diagrams run a second pass after the
+first layout (`sidePorts`): a node whose ends on one side are closer than 10 px grows along
+that side and gets a fixed port for every end, since a node with fixed ports gets none from
+`layoutGraph`: the line back to a loop head keeps its side across the flow, and a self-loop
+that ELK routes (left-to-right and right-to-left) keeps its two ends on top, where ELK would
+otherwise attach it to the corners of the node. Ends that lie beside the shape (the strip a
+parallelogram's slant leaves, or the box a loop beside the shape widened) are spread over
+the shape the same way; five or more lines into one
+side that can share a line get one port, which ELK routes as one line. `fanInJunctions`
+then finds, on the routes of the last layout, the point where the merged lines have all
+joined, and the emitter draws a dot there as a vertex tagged `zukaiJunction=1`, which
+`extract` and the FigJam reader leave out. `fanIn` in the IR sets how many lines merge.
+
 An architecture component drawn as a figure with its name below (a `client`, or a component
 with a cloud `icon`) has a layout box that holds the figure and the name; the figure is drawn
 at the top centre of that box, and a second layout pass gives its connections fixed ports

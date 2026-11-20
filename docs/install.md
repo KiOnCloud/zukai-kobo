@@ -768,6 +768,37 @@ again from part 1 is the safe choice when in doubt. The bundle written to save c
 only the diagrams none of whose parts ran, and it goes into the run folder of the first of
 them. A Starter plan allows 20 Figma MCP calls a month.
 
+## Upgrading to 2.8.0
+
+Version 2.8.0 changes how draw.io draws arrows into slanted shapes and many arrows into one
+node. Existing `.ir.json` files, run folders, CLI commands, options and exit codes keep
+working unchanged; a draw.io file emitted again from the same IR can differ as described
+here, and `drift` reports no difference between such a file and its IR.
+
+- **Arrows into a parallelogram or a hexagon.** A line into a flowchart `io` step or an
+  architecture `queue` ends on the slanted edge that is drawn, at the height the layout
+  routed it at. Before, draw.io moved the end towards the centre of the shape, so an
+  arrowhead near a corner pointed along a small jog and a straight line turned slanted.
+  The edge style of such an end gains `entryPerimeter=0` or `exitPerimeter=0` and a pixel
+  offset.
+- **Room between arrowheads (flowchart, state).** Line ends on one side of a node are at
+  least 10 px apart. A node with four or more ends on a 40 px side is taller (or wider) than
+  before: (ends + 1) x 10 px, and every line end at such a node is written with
+  `entryPerimeter=0` or `exitPerimeter=0` and, where its share of the side is not exact to
+  three decimals, a pixel offset of a fraction of a pixel. In a top-down or bottom-up
+  diagram, a step with a self-loop beside it has the ends on its top and bottom spread over
+  the shape itself; before, the outer ones could end at its corners from the side. A node
+  whose ends already had the room, on the shape, keeps its size and its anchors.
+- **Merged fan-in (flowchart, state).** Five or more lines into one side of a node that
+  carry no label and do not lead back to an earlier step are drawn as one line with one
+  arrowhead and a junction dot. The model keeps every edge, and `extract`, `drift`, `cover`
+  and a FigJam board read back leave the dot out. To keep every arrowhead, set
+  `"fanIn": "separate"` at the top of the IR; `"merge"` merges from two lines on. The field
+  is optional and only `flowchart` and `state` take it; other kinds reject it as an unknown
+  property. Architecture diagrams never merge their connections.
+- **Forks that read draw.io files.** A vertex whose style holds `zukaiJunction=1` is a mark
+  on the drawing, not an element: skip it as `extract` does.
+
 ## Upgrading to 2.7.1
 
 Version 2.7.1 fixes the console and the tests. Existing `.ir.json` files, run folders, report

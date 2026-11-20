@@ -81,6 +81,16 @@ describe('extract draw.io: files drawn by hand', () => {
     expect(page.warnings.join('\n')).toMatch(/1 edge was not connected/);
   });
 
+  it('leaves out the dot where merged lines join: a mark on the drawing, tagged by the emitter', () => {
+    const cell = (id, style, x) => `<mxCell id="${id}" value="${id === 'dot' ? '' : id}" style="${style}" vertex="1" parent="1"><mxGeometry x="${x}" y="0" width="${id === 'dot' ? 6 : 80}" height="${id === 'dot' ? 6 : 40}" as="geometry"/></mxCell>`;
+    const file = (dotStyle) => `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>${cell('a', 'whiteSpace=wrap;html=1;', 0)}${cell('b', 'whiteSpace=wrap;html=1;', 200)}${cell('dot', dotStyle, 140)}<mxCell id="e" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`;
+    const tagged = extractDrawio(file('ellipse;html=1;fillColor=#000000;zukaiJunction=1;')).pages[0];
+    expect(tagged.nodes.map((n) => n.id)).toEqual(['a', 'b']);
+    expect(tagged.edges).toHaveLength(1);
+    // The same dot without the tag is a shape someone drew: it stays.
+    expect(extractDrawio(file('ellipse;html=1;fillColor=#000000;')).pages[0].nodes.map((n) => n.id)).toEqual(['a', 'b', 'dot']);
+  });
+
   it('reads the same file compressed, as an editable SVG and as a PNG with the diagram inside', () => {
     const plain = factsOf(read('hand-flowchart.drawio'));
     const xml = read('hand-flowchart.drawio').toString('utf8');

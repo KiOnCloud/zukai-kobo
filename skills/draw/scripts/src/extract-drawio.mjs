@@ -168,11 +168,13 @@ export function stencilTag(style, value = '') {
  * What the native FigJam board writes in brackets after the name of a cell's group, so that a
  * board read back knows what the picture alone cannot tell: the stencil of an AWS or GCP
  * picture, `client` for a client screen, `part` for a picture that is part of its frame (the
- * Google Cloud mark in the corner of the frame) and no element of its own; '' for any other cell.
+ * Google Cloud mark in the corner of the frame) and no element of its own, `junction` for the
+ * dot where merged lines join, which is no element either; '' for any other cell.
  */
 export function boardTag(style, value = '') {
   const tag = stencilTag(style, value);
   if (tag) return tag;
+  if (style.zukaiJunction === '1') return 'junction';
   if (CLIENT_SHAPES.test(style.shape ?? '')) return 'client';
   if (style.part === '1' && !String(value).trim() && /^mxgraph\./.test(style.shape ?? '')) return 'part';
   return '';
@@ -234,6 +236,8 @@ function extractPage(id, name, pageXml) {
     if (!cell.vertex) continue;
     // A part of a frame without a text of its own (the Google Cloud mark in a frame's corner) is no element.
     if (cell.style.part === '1' && parent?.vertex && !textOf(cell) && /^mxgraph\./.test(cell.style.shape ?? '')) continue;
+    // The dot where merged lines join is a mark on the drawing, not an element of the diagram.
+    if (cell.style.zukaiJunction === '1') continue;
     const kind = classify(cell.style, cell.value);
     if (kind.shape === 'edgeLabel') continue;
     vertices.set(cell.id, { cell, ...kind, label: textOf(cell), box: boxOf(cell) });

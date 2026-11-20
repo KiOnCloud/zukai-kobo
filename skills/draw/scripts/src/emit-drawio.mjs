@@ -185,6 +185,8 @@ export const STYLE = {
   note: `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=14;${labelPad('note')}`,
   container: 'swimlane;whiteSpace=wrap;html=1;startSize=30;',
   flowEdge: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;',
+  // The dot where lines that merge into one join it; the tag tells `extract` and the FigJam emitter that it is no element.
+  junction: 'ellipse;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;resizable=0;rotatable=0;zukaiJunction=1;',
   // state
   initial: 'ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;',
   final: 'ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;',
@@ -283,6 +285,55 @@ function sideLoopRoom(edges, direction) {
 const drawBox = (n, box) => (n.drawWidth === undefined ? box : { ...box, x: box.x + (n.drawX ?? (box.width - n.drawWidth) / 2), width: n.drawWidth, height: n.drawHeight ?? box.height });
 
 /**
+ * The side of a box that a point on its border lies on. The port ELK makes for a line that
+ * leads back to a loop head lies against the box from outside, so that line ends a pixel
+ * off the border: a point on no border belongs to the side it is nearest to.
+ */
+function sideOf(pt, b) {
+  const off = { left: Math.abs(pt.x - b.x), right: Math.abs(pt.x - b.x - b.width), top: Math.abs(pt.y - b.y), bottom: Math.abs(pt.y - b.y - b.height) };
+  return ['left', 'right', 'top', 'bottom'].find((side) => off[side] < 0.5) ?? Object.keys(off).sort((a, c) => off[a] - off[c])[0];
+}
+
+/** The shape of a style whose outline is narrower than its box: a parallelogram (`io`) or a hexagon (`queue`). */
+const slantedShape = (style = '') => (/(?:^|;)shape=parallelogram;/.test(style) ? 'io' : /(?:^|;)shape=hexagon;/.test(style) ? 'queue' : undefined);
+
+/**
+ * Where a line that reaches the box of a slanted shape at `pt`, on `side`, meets the outline
+ * that is drawn: the point moved along the line's own direction onto the slanted edge, so
+ * the line keeps the height (or the column) the layout routed it at. A parallelogram's left
+ * edge runs from the box's bottom-left corner to SLANT in from its top-left, and its right
+ * edge is parallel to that; a hexagon's two edges on each side meet at mid-height, on the
+ * box. Along the top and bottom the outline is the box itself, except in the strip beside a
+ * slanted edge, where the line runs on to that edge.
+ * @param {'io'|'queue'} shape
+ * @param {{x:number,y:number,width:number,height:number}} b the box the shape is drawn in
+ */
+function outlinePoint(shape, b, pt, side) {
+  const hexagon = shape === 'queue';
+  // draw.io draws the slant no wider than the shape allows.
+  const s = Math.min(SLANT, hexagon ? b.width / 2 : b.width);
+  const t = Math.max(0, Math.min(1, (pt.y - b.y) / b.height));
+  // How far the left edge is from the box's left side at height t; the right edge mirrors it
+  // through the centre of the box.
+  const inset = (at) => (hexagon ? s * Math.abs(1 - 2 * at) : s * (1 - at));
+  if (side === 'left') return { x: b.x + inset(t), y: pt.y };
+  if (side === 'right') return { x: b.x + b.width - inset(1 - t), y: pt.y };
+  // The height at which the left edge is `u` px from the left side, between the top (0) and
+  // where the edge reaches the box (the bottom of a parallelogram, mid-height of a hexagon).
+  const down = (u) => (hexagon ? b.height / 2 : b.height) * (1 - u / s);
+  const fromLeft = pt.x - b.x;
+  const fromRight = b.x + b.width - pt.x;
+  if (side === 'top') {
+    if (fromLeft < s) return { x: pt.x, y: b.y + down(fromLeft) };
+    if (hexagon && fromRight < s) return { x: pt.x, y: b.y + down(fromRight) };
+    return pt;
+  }
+  if (fromRight < s) return { x: pt.x, y: b.y + b.height - down(fromRight) };
+  if (hexagon && fromLeft < s) return { x: pt.x, y: b.y + b.height - down(fromLeft) };
+  return pt;
+}
+
+/**
  * draw.io geometry (relative position along the path, pixel offset, text alignment) that puts
  * an edge label where the layout engine placed it: the label centre is projected onto the
  * nearest point of the polyline and the position is that point's share of the path length.
@@ -327,6 +378,22 @@ const LABEL_GAP = 4;
 const END_LABEL = { gap: 6, side: 5, height: 16, step: 10, reach: 30 };
 /** Half the width of an end marker (diamond, triangle), which labels stay clear of. */
 const MARKER_HALF_WIDTH = 8;
+
+/** One stretch of a routed line: its length and the sense it runs in on each axis. */
+const stretchOf = (a, b) => ({ length: Math.hypot(b.x - a.x, b.y - a.y), x: Math.sign(Math.round(b.x - a.x)), y: Math.sign(Math.round(b.y - a.y)) });
+
+/** Length of the line two paths from one point have in common before they part. */
+function sharedLength(p, q) {
+  let common = 0;
+  for (let i = 1; i < Math.min(p.length, q.length); i++) {
+    const a = stretchOf(p[i - 1], p[i]);
+    const b = stretchOf(q[i - 1], q[i]);
+    if (a.x !== b.x || a.y !== b.y) break;
+    common += Math.min(a.length, b.length);
+    if (Math.abs(a.length - b.length) > 0.5) break;
+  }
+  return common;
+}
 
 /** The point `distance` px along a polyline from its first point, with the axis and sense of the segment it lies on. */
 function pointAlong(path, distance) {
@@ -414,7 +481,7 @@ function absoluteBox(id, layout, parentOf) {
 }
 
 /** Shared path for the ELK-laid kinds: containers, nodes, edges with child labels. */
-function graphCells(cid, layout, { containers, nodes, edges, direction }, warnings = []) {
+function graphCells(cid, layout, { containers, nodes, edges, direction, junctions = [] }, warnings = []) {
   const cells = [];
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
   const emitted = new Set();
@@ -445,6 +512,15 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
   // a pixel offset from the figure's bottom, so the line stops clear of the text instead of
   // running through it; `perimeter=0` makes draw.io keep that point. The layout gives such a
   // shape ports within the figure's extent (see clientPorts), so no end lies beside the label.
+  //
+  // A parallelogram or a hexagon is narrower than its box, and ELK ends every line on the box.
+  // Left to draw.io, such an end is moved onto the outline along the ray to the shape's
+  // centre, which takes it off the height the line was routed at: the line gets a jog just
+  // before its end and the arrowhead points along the jog. So the end is moved onto the
+  // slanted edge here, along the line's own direction, as a pixel offset from the point on
+  // the box (the slant is a fixed number of pixels, so the offset holds when the shape is
+  // resized), and `perimeter=0` makes draw.io keep it. An end at a port that sidePorts set
+  // (`exactEnds`) is kept to the pixel in the same way.
   const anchor = (id, pt) => {
     const n = nodeOf(id) ?? {};
     const b = drawBox(n, absoluteBox(id, layout, parentOf));
@@ -454,13 +530,27 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
       a.dx = pt.x - (b.x + a.x * b.width);
       a.dy = pt.y - (b.y + b.height);
     }
+    const shape = slantedShape(n.style);
+    if (shape || n.exactEnds) {
+      if (shape) a.side = sideOf(pt, b);
+      // The point on the box itself: the port of a line that leads back to a loop head lies a pixel outside it.
+      const onBox = { x: b.x + a.x * b.width, y: b.y + a.y * b.height };
+      const on = shape ? outlinePoint(shape, b, onBox, a.side) : onBox;
+      // The share is written to three decimals, which can be a tenth of a pixel off; the
+      // offset takes up the rest, so lines that share an end are drawn on one another.
+      a.x = round(a.x);
+      a.y = round(a.y);
+      a.dx = on.x - (b.x + a.x * b.width);
+      a.dy = on.y - (b.y + a.y * b.height);
+      a.fixed = true;
+    }
     return a;
   };
-  const anchorStyle = (prefix, a) => `${prefix}X=${round(a.x)};${prefix}Y=${round(a.y)};${prefix}Dx=${round(a.dx)};${prefix}Dy=${round(a.dy)};${a.dx || a.dy ? `${prefix}Perimeter=0;` : ''}`;
+  const anchorStyle = (prefix, a) => `${prefix}X=${round(a.x)};${prefix}Y=${round(a.y)};${prefix}Dx=${round(a.dx)};${prefix}Dy=${round(a.dy)};${a.dx || a.dy || a.fixed ? `${prefix}Perimeter=0;` : ''}`;
   // Sides of a node that other edges touch, so a self-loop can take a free one.
   const sideUse = new Map();
   const noteSide = (id, a) => {
-    const side = a.x >= 0.99 ? 'right' : a.x <= 0.01 ? 'left' : a.y <= 0.01 ? 'top' : 'bottom';
+    const side = a.side ?? (a.x >= 0.99 ? 'right' : a.x <= 0.01 ? 'left' : a.y <= 0.01 ? 'top' : 'bottom');
     if (!sideUse.has(id)) sideUse.set(id, []);
     sideUse.get(id).push({ side, at: side === 'left' || side === 'right' ? a.y : a.x });
   };
@@ -525,10 +615,10 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
       const edgeX = dir > 0 ? b.x + b.width : b.x;
       const outX = edgeX + dir * SELF_LOOP_OUT;
       const points = [{ x: outX, y: b.y + b.height * exitY }, { x: outX, y: b.y + b.height * entryY }];
-      const sx = dir > 0 ? 1 : 0;
       // A plain edge (no orthogonal router) follows exactly these waypoints, so the label's
       // midpoint anchor is on the loop's outer vertical.
-      const style = `${waypointStyle(e.style)}exitX=${sx};exitY=${round(exitY)};exitDx=0;exitDy=0;entryX=${sx};entryY=${round(entryY)};entryDx=0;entryDy=0;`;
+      // The loop's two ends lie on the side of the box, or on the slanted edge of a shape that has one there.
+      const style = `${waypointStyle(e.style)}${anchorStyle('exit', anchor(e.from, { x: edgeX, y: points[0].y }))}${anchorStyle('entry', anchor(e.to, { x: edgeX, y: points[1].y }))}`;
       cells.push(edge({ id: cid(e.id), value: '', style, source: cid(e.from), target: cid(e.to), points }));
       // Text anchored at the loop's outer side, aligned away from it: a fixed 4 px gap, whatever the text width.
       if (e.label) {
@@ -560,6 +650,9 @@ function graphCells(cid, layout, { containers, nodes, edges, direction }, warnin
     }
     endLabelCells(e, route.start && route.end ? [route.start, ...points, route.end] : [{ x: 0, y: 0 }, { x: 0, y: 1 }]);
   }
+  // The dots where merged lines join, over the lines: marks on the drawing, not elements of
+  // the diagram, so they take no connection and `extract` leaves them out.
+  for (const j of junctions) cells.push(vertex({ id: cid(j.id), value: '', style: STYLE.junction, x: j.x - JUNCTION / 2, y: j.y - JUNCTION / 2, width: JUNCTION, height: JUNCTION, connectable: false }));
   return cells;
 }
 
@@ -567,6 +660,189 @@ function parentMap(containers) {
   const parent = new Map();
   for (const c of containers) for (const child of c.children ?? []) parent.set(child, c.id);
   return parent;
+}
+
+/** The least distance between two line ends on one side of a node, in px: an arrowhead is 7 px across. */
+const MIN_END_GAP = 10;
+/** How many lines into one side of a node are drawn as one line, per `fanIn` of the diagram. */
+const MERGE_FROM = { auto: 5, merge: 2, separate: Infinity };
+/** Diameter of the dot where merged lines join, in px. */
+const JUNCTION = 6;
+
+/**
+ * Room for the line ends on each side of a node, and one line for many. ELK spreads the ends
+ * of a side over its length whatever that is, so four ends on a 40 px side lie 8 px apart
+ * under arrowheads 7 px across, and on a parallelogram's top or bottom some end beside the
+ * outline, in the strip the slant leaves. After a first layout has shown which side each end
+ * uses and in what order, a node with such a side gets fixed ports for the next layout:
+ *
+ *   - the lines into one side that can share a line (no label, not leading back, the same
+ *     style) merge when there are enough of them (`fanIn`: five by default): they get one
+ *     port, which the layout routes as one line that the others join;
+ *   - a side whose ends are closer than MIN_END_GAP, or lie off the outline (beside a
+ *     parallelogram's top, or beside a shape drawn centred in a box widened for its loop),
+ *     or hold a merged line, has its ends spaced evenly over the part of the side the outline covers, in the
+ *     order of the first pass, a merged line counting as one end; the node grows along that
+ *     side when it is shorter than (ends + 1) x MIN_END_GAP;
+ *   - every other end of the node gets a port where the first pass had it, as its share of
+ *     the side: a node with fixed ports must have one for each of its ends, the line that
+ *     leads back to a loop head included, which so stays on the side across the flow.
+ *
+ * In a left-to-right or right-to-left diagram a self-loop is drawn on the route the layout
+ * gives it, over the top of its node, so its two ends count as ends of that side and get
+ * ports like the others; without them the layout attaches the loop to the corners of a node
+ * with fixed ports and it runs round the whole box. Top-down and bottom-up, the emitter
+ * draws the loop itself beside the node and the layout's route for it is not used.
+ *
+ * A node that already has ports (a decision, whose lines meet at its tips) is left alone, and
+ * so is one with `fixedOutline` (the circle of an initial or final state, which cannot grow
+ * and whose outline is no side of a box).
+ * Each merged group is added to `merges`. Returns whether any port was set.
+ * @param {{fanIn?: 'auto'|'merge'|'separate', merges?: Array<{node:string, edges:string[]}>}} [how]
+ */
+function sidePorts(layout, { containers, nodes, edges, direction }, { fanIn = 'auto', merges = [] } = {}) {
+  const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
+  const open = new Map(nodes.filter((n) => !n.ports?.length && !n.fixedOutline).map((n) => [n.id, n]));
+  const upright = (side) => side === 'left' || side === 'right';
+  // The part of a side that the outline covers, measured from the start of the layout box: a
+  // shape with a loop beside it is drawn centred in a wider box, and a parallelogram's top
+  // and bottom are shorter than its box.
+  const extent = (n, side) => {
+    if (upright(side)) return [0, n.height];
+    const width = n.drawWidth ?? n.width;
+    const start = (n.width - width) / 2;
+    // A parallelogram's top starts the slant in from the left, and its bottom ends as far before the right.
+    const slant = slantedShape(n.style) === 'io' ? Math.min(SLANT, width) : 0;
+    return side === 'top' ? [start + slant, start + width] : [start, start + width - slant];
+  };
+  const ends = new Map();
+  for (const e of edges) {
+    if (e.from === e.to && !acrossIsVertical(direction)) continue;
+    const route = layout.edges.get(e.id);
+    for (const [end, id, pt] of [['from', e.from, route?.start], ['to', e.to, route?.end]]) {
+      if (!open.has(id) || !pt) continue;
+      const b = absoluteBox(id, layout, parentOf);
+      const side = sideOf(pt, b);
+      if (!ends.has(id)) ends.set(id, new Map());
+      if (!ends.get(id).has(side)) ends.get(id).set(side, []);
+      ends.get(id).get(side).push({ e, end, at: upright(side) ? pt.y - b.y : pt.x - b.x });
+    }
+  }
+  let set = false;
+  for (const [id, sides] of ends) {
+    const n = open.get(id);
+    const groups = [...sides].map(([side, list]) => {
+      list.sort((a, b) => a.at - b.at || a.e.id.localeCompare(b.e.id));
+      // The lines into this side that may share one line, by style; the largest set merges.
+      const alike = new Map();
+      for (const x of list) {
+        if (x.end !== 'to' || x.e.label || x.e.layoutReversed || x.e.from === x.e.to) continue;
+        if (!alike.has(x.e.style)) alike.set(x.e.style, []);
+        alike.get(x.e.style).push(x);
+      }
+      const merged = [...alike.values()].filter((m) => m.length >= MERGE_FROM[fanIn]).sort((a, b) => b.length - a.length)[0];
+      const slots = list.filter((x) => !merged?.includes(x)).map((x) => ({ ends: [x], at: x.at }));
+      // The merged line stands where the middle one of its lines stood.
+      if (merged) slots.push({ ends: merged, at: merged[Math.floor(merged.length / 2)].at, merged: true });
+      slots.sort((a, b) => a.at - b.at);
+      const [lo, hi] = extent(n, side);
+      for (const slot of slots) slot.share = hi > lo ? Math.max(0, Math.min(1, (slot.at - lo) / (hi - lo))) : 0.5;
+      const close = slots.some((slot, i) => i > 0 && slot.at - slots[i - 1].at < MIN_END_GAP - 0.01);
+      const off = slots.some((slot) => slot.at < lo - 0.5 || slot.at > hi + 0.5);
+      return { side, slots, spread: close || off || merged !== undefined };
+    });
+    if (!groups.some((g) => g.spread)) continue;
+    for (const g of groups) {
+      if (!g.spread) continue;
+      const [lo, hi] = extent(n, g.side);
+      const short = (g.slots.length + 1) * MIN_END_GAP - (hi - lo);
+      if (short <= 0) continue;
+      if (upright(g.side)) n.height += short;
+      else { n.width += short; if (n.drawWidth !== undefined) n.drawWidth += short; }
+    }
+    n.ports = [];
+    n.exactEnds = true;
+    const inset = n.drawWidth !== undefined ? (n.width - n.drawWidth) / 2 : 0;
+    for (const g of groups) {
+      const [lo, hi] = extent(n, g.side);
+      g.slots.forEach((slot, i) => {
+        const along = g.spread ? Math.round(lo + ((i + 1) / (g.slots.length + 1)) * (hi - lo)) : lo + slot.share * (hi - lo);
+        // A port is a 1 px box whose centre the line ends at, on the border it lies against.
+        const port = {
+          id: `${id}:port:${g.side}:${i + 1}`,
+          x: g.side === 'left' ? inset : g.side === 'right' ? n.width - inset - 1 : along - 0.5,
+          y: g.side === 'top' ? 0 : g.side === 'bottom' ? n.height - 1 : along - 0.5,
+        };
+        n.ports.push(port);
+        for (const { e, end } of slot.ends) e[end === 'from' ? 'fromPort' : 'toPort'] = port.id;
+        if (slot.merged) merges.push({ node: id, edges: slot.ends.map((x) => x.e.id) });
+      });
+    }
+    set = true;
+  }
+  return set;
+}
+
+/**
+ * The dots that mark where merged lines join. The lines of a merged group (see sidePorts) end
+ * at one port, and the layout routes them as one line that each joins on its way. A dot
+ * stands where that shared line begins: where the last of the lines has joined, seen from
+ * their sources. There a line that comes straight on meets lines from the sides, and without
+ * a dot the place reads as a crossing. Further from the node the lines join one by one at a
+ * T, which cannot be read as a crossing; only where four of their segments meet again does
+ * another dot stand.
+ * @param {Array<{node:string, edges:string[]}>} merges
+ * @returns {Array<{id:string, x:number, y:number}>} centres of the dots, absolute
+ */
+export function fanInJunctions(layout, merges) {
+  const near = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < 0.5;
+  // Each line from the node backwards, without the points that lie on a straight stretch.
+  const pathOf = (id) => {
+    const r = layout.edges.get(id);
+    if (!r?.start || !r?.end) return undefined;
+    const all = [r.end, ...[...(r.points ?? [])].reverse(), r.start].filter((p, i, list) => i === 0 || !near(p, list[i - 1]));
+    const bends = (i) => { const a = stretchOf(all[i - 1], all[i]); const b = stretchOf(all[i], all[i + 1]); return a.x !== b.x || a.y !== b.y; };
+    return all.filter((p, i) => i === 0 || i === all.length - 1 || bends(i));
+  };
+  const within = (v, lo, hi) => v >= Math.min(lo, hi) - 0.5 && v <= Math.max(lo, hi) + 0.5;
+  // The directions in which a path leaves a point it passes through or ends at.
+  const armsAt = (path, pt) => {
+    const arms = [];
+    for (let i = 1; i < path.length; i++) {
+      const a = path[i - 1];
+      const b = path[i];
+      const d = stretchOf(a, b);
+      const on = d.x === 0 ? Math.abs(pt.x - a.x) < 0.5 && within(pt.y, a.y, b.y) : Math.abs(pt.y - a.y) < 0.5 && within(pt.x, a.x, b.x);
+      if (!on) continue;
+      if (!near(pt, b)) arms.push(`${d.x},${d.y}`);
+      if (!near(pt, a)) arms.push(`${-d.x},${-d.y}`);
+    }
+    return arms;
+  };
+  const dots = [];
+  const numbered = new Map();
+  for (const m of merges) {
+    const paths = m.edges.map(pathOf).filter(Boolean);
+    if (paths.length < 2) continue;
+    const partings = [];
+    let trunk = Infinity;
+    for (let i = 0; i < paths.length; i++) {
+      for (let j = i + 1; j < paths.length; j++) {
+        const common = sharedLength(paths[i], paths[j]);
+        trunk = Math.min(trunk, common);
+        const pt = pointAlong(paths[i], common).point;
+        if (!partings.some((q) => near(q, pt))) partings.push(pt);
+      }
+    }
+    const head = pointAlong(paths[0], trunk).point;
+    const points = [head, ...partings.filter((pt) => !near(pt, head) && new Set(paths.flatMap((path) => armsAt(path, pt))).size >= 4)];
+    // Numbered per node, so a merge added at one node leaves the ids of the dots at the others as they were.
+    for (const pt of points) {
+      numbered.set(m.node, (numbered.get(m.node) ?? 0) + 1);
+      dots.push({ id: `${m.node}:junction:${numbered.get(m.node)}`, x: pt.x, y: pt.y });
+    }
+  }
+  return dots;
 }
 
 /**
@@ -618,19 +894,6 @@ const BRANCH_LABEL_FAR = 60;
  */
 function placeBranchLabels(layout, edges, boxes, frames, direction) {
   const pathOf = (e) => { const r = layout.edges.get(e.id); return r?.start && r?.end ? [r.start, ...(r.points ?? []), r.end] : undefined; };
-  const step = (a, b) => ({ length: Math.hypot(b.x - a.x, b.y - a.y), x: Math.sign(Math.round(b.x - a.x)), y: Math.sign(Math.round(b.y - a.y)) });
-  // Length of the line two paths from one point have in common before they part.
-  const shared = (p, q) => {
-    let common = 0;
-    for (let i = 1; i < Math.min(p.length, q.length); i++) {
-      const a = step(p[i - 1], p[i]);
-      const b = step(q[i - 1], q[i]);
-      if (a.x !== b.x || a.y !== b.y) break;
-      common += Math.min(a.length, b.length);
-      if (Math.abs(a.length - b.length) > 0.5) break;
-    }
-    return common;
-  };
   const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
   const onLine = (box, a, b) => overlaps(box, { x: Math.min(a.x, b.x) - 2, y: Math.min(a.y, b.y) - 2, width: Math.abs(a.x - b.x) + 4, height: Math.abs(a.y - b.y) + 4 });
   // How far along a path the point nearest to the centre of a box lies.
@@ -658,7 +921,7 @@ function placeBranchLabels(layout, edges, boxes, frames, direction) {
     for (const o of edges) {
       if (o === e || o.from !== e.from || o.from === o.to) continue;
       const other = pathOf(o);
-      if (other && Math.hypot(other[0].x - path[0].x, other[0].y - path[0].y) < 0.5) parted = Math.max(parted, shared(path, other));
+      if (other && Math.hypot(other[0].x - path[0].x, other[0].y - path[0].y) < 0.5) parted = Math.max(parted, sharedLength(path, other));
     }
     const width = Math.ceil(widestLine(e.label)) + 4;
     const height = 16 * String(e.label).split(/\r\n?|\n/).length;
@@ -774,6 +1037,10 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   // layer, so each answer stands on its own branch, next to the decision.
   const arrange = () => layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing: loopSpacing(ir.direction), options: { 'elk.layered.edgeLabels.centerLabelPlacementStrategy': 'TAIL_LAYER' } });
   let layout = await arrange();
+  // The first layout shows which side each line end uses; a side with too little room for
+  // its ends, or with enough lines to merge, gets fixed ports and the layout runs again.
+  const merges = [];
+  for (let round = 0; round < 3 && sidePorts(layout, { containers, nodes, edges, direction: ir.direction }, { fanIn: ir.fanIn, merges }); round++) layout = await arrange();
   // A flow that enters a group from above runs across its header: the title steps aside, and
   // a group too narrow for that is widened, which moves the lines, so the titles are placed again.
   let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
@@ -785,7 +1052,7 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
   placeBranchLabels(layout, edges, nodes.map((n) => drawBox(n, absoluteBox(n.id, layout, parentOf))), containers.map((c) => absoluteBox(c.id, layout, parentOf)), ir.direction);
-  return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
+  return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction, junctions: fanInJunctions(layout, merges) });
 }
 
 async function emitState(ir, cid, refs, warnings) {
@@ -810,10 +1077,14 @@ async function emitState(ir, cid, refs, warnings) {
     const { label, link } = circle ? { label: '' } : shown.get(s.id);
     const size = circle ? { width: CIRCLE, height: CIRCLE } : measureNode(label);
     const extra = loopExtra.get(s.id) ?? 0;
-    return { id: s.id, label, link, parent: parent.get(s.id), style: STYLE[kind] ?? STYLE.state, width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined };
+    return { id: s.id, label, link, parent: parent.get(s.id), style: STYLE[kind] ?? STYLE.state, width: size.width + 2 * extra, height: size.height, drawWidth: extra ? size.width : undefined, fixedOutline: circle || undefined };
   });
   const spacing = loopSpacing(ir.direction);
-  let layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
+  const arrange = () => layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
+  let layout = await arrange();
+  // Room for the transitions that end on one side of a state, and one line for many (see sidePorts).
+  const merges = [];
+  for (let round = 0; round < 3 && sidePorts(layout, { containers, nodes, edges, direction: ir.direction }, { fanIn: ir.fanIn, merges }); round++) layout = await arrange();
   // A composite is as wide as its content, which only the layout knows; a title that wraps at
   // that width needs a taller header, and the layout runs once more with it.
   let taller = false;
@@ -821,8 +1092,8 @@ async function emitState(ir, cid, refs, warnings) {
     const height = compositeHeader(headerLines(c.label, layout.containers.get(c.id).width));
     if (height > c.headerHeight) { c.headerHeight = height; taller = true; }
   }
-  if (taller) layout = await layoutGraph({ nodes, containers, edges, direction: ir.direction, spacing });
-  return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction });
+  if (taller) layout = await arrange();
+  return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction, junctions: fanInJunctions(layout, merges) });
 }
 
 const ROW = 26;
@@ -2411,7 +2682,7 @@ function clientPorts(layout, { containers, nodes, edges }) {
     for (const [end, id, pt] of [['from', e.from, route?.start], ['to', e.to, route?.end]]) {
       if (!clients.has(id) || !pt) continue;
       const b = absoluteBox(id, layout, parentOf);
-      const side = Math.abs(pt.x - b.x) < 0.5 ? 'left' : Math.abs(pt.x - b.x - b.width) < 0.5 ? 'right' : Math.abs(pt.y - b.y) < 0.5 ? 'top' : 'bottom';
+      const side = sideOf(pt, b);
       const key = `${id}|${side}`;
       if (!sides.has(key)) sides.set(key, []);
       sides.get(key).push({ e, end, at: side === 'left' || side === 'right' ? pt.y : pt.x });

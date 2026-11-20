@@ -1,0 +1,43 @@
+---
+title: "Support ticket"
+---
+stateDiagram-v2
+  direction LR
+  %% id: new
+  state "New" as n2
+  %% id: assigned
+  state "Assigned" as n3
+  %% id: waiting
+  state "Waiting for customer" as n4
+  %% id: escalated
+  state "Escalated" as n5
+  %% id: resolved
+  state "Resolved" as n6
+  %% id: cancelled
+  state "Cancelled" as n7
+  %% id: t1
+  [*] --> n2
+  %% id: t2
+  n2 --> n3 : assign
+  %% id: t3
+  n3 --> n4 : ask customer
+  %% id: t4
+  n3 --> n5 : escalate
+  %% id: t5
+  n4 --> n6 : customer confirms
+  %% id: t6
+  n5 --> n6 : fix delivered
+  %% id: t7
+  n2 --> n7
+  %% id: t8
+  n3 --> n7
+  %% id: t9
+  n4 --> n7
+  %% id: t10
+  n5 --> n7
+  %% id: t11
+  n6 --> n7
+  %% id: t12
+  n6 --> [*] : close
+  %% id: t13
+  n7 --> [*]

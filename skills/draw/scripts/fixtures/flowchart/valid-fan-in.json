@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "flowchart",
+  "title": "Nightly import",
+  "direction": "TB",
+  "nodes": [
+    { "id": "crm", "label": "Export from CRM" },
+    { "id": "billing", "label": "Export from billing" },
+    { "id": "support", "label": "Export from support desk" },
+    { "id": "shop", "label": "Export from web shop" },
+    { "id": "partners", "label": "Export from partner portal" },
+    { "id": "warehouse", "label": "Export from warehouse" },
+    { "id": "upload", "label": "Manual upload" },
+    { "id": "collect", "label": "Collect the nightly batch", "shape": "io" },
+    { "id": "complete", "label": "Batch complete?", "shape": "decision" },
+    { "id": "load", "label": "Load into the reporting store" },
+    { "id": "done", "label": "Import finished", "shape": "terminal" }
+  ],
+  "edges": [
+    { "id": "e1", "from": "crm", "to": "collect" },
+    { "id": "e2", "from": "billing", "to": "collect" },
+    { "id": "e3", "from": "support", "to": "collect" },
+    { "id": "e4", "from": "shop", "to": "collect" },
+    { "id": "e5", "from": "partners", "to": "collect" },
+    { "id": "e6", "from": "warehouse", "to": "collect" },
+    { "id": "e7", "from": "upload", "to": "collect", "label": "late file" },
+    { "id": "e8", "from": "collect", "to": "complete" },
+    { "id": "e9", "from": "complete", "to": "load", "kind": "conditional", "label": "yes" },
+    { "id": "e10", "from": "complete", "to": "collect", "kind": "conditional", "label": "no" },
+    { "id": "e11", "from": "load", "to": "done" }
+  ]
+}

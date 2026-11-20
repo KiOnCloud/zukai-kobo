@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "state",
+  "title": "Support ticket",
+  "direction": "LR",
+  "states": [
+    { "id": "s0", "kind": "initial" },
+    { "id": "new", "label": "New" },
+    { "id": "assigned", "label": "Assigned" },
+    { "id": "waiting", "label": "Waiting for customer" },
+    { "id": "escalated", "label": "Escalated" },
+    { "id": "resolved", "label": "Resolved" },
+    { "id": "cancelled", "label": "Cancelled" },
+    { "id": "end", "kind": "final" }
+  ],
+  "transitions": [
+    { "id": "t1", "from": "s0", "to": "new" },
+    { "id": "t2", "from": "new", "to": "assigned", "event": "assign" },
+    { "id": "t3", "from": "assigned", "to": "waiting", "event": "ask customer" },
+    { "id": "t4", "from": "assigned", "to": "escalated", "event": "escalate" },
+    { "id": "t5", "from": "waiting", "to": "resolved", "event": "customer confirms" },
+    { "id": "t6", "from": "escalated", "to": "resolved", "event": "fix delivered" },
+    { "id": "t7", "from": "new", "to": "cancelled" },
+    { "id": "t8", "from": "assigned", "to": "cancelled" },
+    { "id": "t9", "from": "waiting", "to": "cancelled" },
+    { "id": "t10", "from": "escalated", "to": "cancelled" },
+    { "id": "t11", "from": "resolved", "to": "cancelled" },
+    { "id": "t12", "from": "resolved", "to": "end", "event": "close" },
+    { "id": "t13", "from": "cancelled", "to": "end" }
+  ]
+}

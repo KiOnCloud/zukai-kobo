@@ -220,14 +220,15 @@ describe('figjam native script', () => {
       'M 357 662 L 357 880 L 175 880 L 175.03 908.63',
     ]);
     await expectLines('state', 'valid-self-loop', [
-      // No waypoint and ports that do not face each other: a step halfway, leaving the corner port downwards.
-      'M 584 142 L 584 240 L 524 240 L 524 331.63',
-      'M 707 142 L 767 142 L 767 167 L 755 167 L 755 685 L 564 685 L 564.03 713.63',
+      // Two lines out of the bottom of a state with a loop beside it: they leave the shape itself, a third of its width apart.
+      'M 625 152 L 625 351.63',
+      'M 666 152 L 666 187 L 856 187 L 856 705 L 665 705 L 665.03 733.63',
     ]);
     await expectLines('architecture', 'valid', [
-      // A port on the slanted side of a hexagon lies on that side, not on the corner of its box.
-      'M 471.99 93.68 L 503 93.7 L 503 225 L 778.63 225',
-      'M 1261 319 L 1306 319 L 1306 371 L 1669 371 L 1669 81.7 L 478.36 81.66',
+      // A port on the slanted side of a hexagon lies on that side, at the height the layout routed
+      // the line to, so the line runs level into it.
+      'M 471.33 94.34 L 503 94.3 L 503 225 L 778.63 225',
+      'M 1261 319 L 1306 319 L 1306 371 L 1669 371 L 1669 81 L 477.7 81',
       // An arrow head at the start: the line begins as far inside it as it ends inside the other.
       'M 1267.37 303 L 1286 303 L 1286 191 L 1487.63 191',
     ]);
@@ -673,6 +674,27 @@ describe('figjam native script', () => {
     await runOn(split.parts[0], bare.figma);
     bare.page.children[0].children = [{ type: 'RECTANGLE', name: NATIVE_TAG, x: 0, y: 0, width: 1, height: 1 }];
     await expect(runOn(split.parts[later], bare.figma)).rejects.toThrow(/run the parts in order/);
+  });
+
+  it('draws the dot where merged lines join as a small filled circle on their shared line, and no jump beside it', async () => {
+    const ir = loadFixture('flowchart', 'valid-fan-in');
+    const D = scriptData(figjamNative(await drawioOf(ir), { title: ir.title }).parts[0]);
+    const at = D.items.findIndex((i) => i[0] === '[' && / \[junction\]$/.test(i[1]));
+    expect(at).toBeGreaterThan(-1);
+    // The group holds the circle alone: 6 px across, black, no label.
+    const [dot, close] = D.items.slice(at + 1, at + 3);
+    expect(dot.slice(0, 7)).toEqual(['e', dot[1], dot[2], 6, 6, '000000', '000000']);
+    expect(close).toEqual([']']);
+    const centre = [dot[1] + 3, dot[2] + 3];
+    // The six lines that merge end at one point, pass through the dot and are plain lines: lines that join do not jump one another.
+    const lines = D.items.filter((i) => i[0] === 'p' && !i[2] && / L /.test(i[1])).map((i) => i[1]);
+    const merged = lines.filter((d) => d.endsWith(lines[0].split(' L ').at(-1)));
+    expect(merged).toHaveLength(6);
+    for (const d of merged) {
+      expect(d).not.toMatch(/[CQA]/);
+      const pts = d.split(/ ?[ML] /).filter(Boolean).map((t) => t.split(' ').map(Number));
+      expect(pts.some((p, i) => i > 0 && Math.abs(p[0] - centre[0]) < 0.5 && Math.abs(pts[i - 1][0] - centre[0]) < 0.5 && Math.min(p[1], pts[i - 1][1]) <= centre[1] && Math.max(p[1], pts[i - 1][1]) >= centre[1]), d).toBe(true);
+    }
   });
 
   it('makes one group of each cell, inside the group of the container the cell lies in', async () => {

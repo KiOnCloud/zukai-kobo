@@ -1,0 +1,133 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="nightly-import" name="Nightly import">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="nightly-import:crm" value="Export from CRM" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="113" y="112" width="121" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:billing" value="Export from billing" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="274" y="112" width="124" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:support" value="Export from support desk" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="438" y="112" width="164" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:shop" value="Export from web shop" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="642" y="112" width="146" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:partners" value="Export from partner portal" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="828" y="112" width="167" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:warehouse" value="Export from warehouse" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="112" width="154" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:upload" value="Manual upload" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="12" y="12" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:collect" value="Collect the nightly batch" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;size=20;spacingLeft=20;spacingRight=20;" vertex="1" parent="1">
+          <mxGeometry x="211" y="222" width="177" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:complete" value="Batch complete?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="322" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:load" value="Load into the reporting store" style="whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="209" y="539" width="181" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:done" value="Import finished" style="rounded=1;whiteSpace=wrap;html=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="639" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly-import:e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.504;exitY=1;exitDx=0;exitDy=0;entryX=0.706;entryY=0;entryDx=0.038;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="nightly-import:crm" target="nightly-import:collect">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="174" y="177"/>
+              <mxPoint x="336" y="177"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.706;entryY=0;entryDx=0.038;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="nightly-import:billing" target="nightly-import:collect">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.706;entryY=0;entryDx=0.038;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="nightly-import:support" target="nightly-import:collect">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="177"/>
+              <mxPoint x="336" y="177"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.706;entryY=0;entryDx=0.038;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="nightly-import:shop" target="nightly-import:collect">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="715" y="177"/>
+              <mxPoint x="336" y="177"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.503;exitY=1;exitDx=0;exitDy=0;entryX=0.706;entryY=0;entryDx=0.038;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="nightly-import:partners" target="nightly-import:collect">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="912" y="177"/>
+              <mxPoint x="336" y="177"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.706;entryY=0;entryDx=0.038;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="nightly-import:warehouse" target="nightly-import:collect">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1112" y="177"/>
+              <mxPoint x="336" y="177"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.407;entryY=0;entryDx=-0.039;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="nightly-import:upload" target="nightly-import:collect">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="72" y="197"/>
+              <mxPoint x="283" y="197"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e7:label" value="late file" style="edgeLabel;html=1;align=right;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="nightly-import:e7">
+          <mxGeometry x="-0.64" y="0" relative="1" as="geometry">
+            <mxPoint x="-4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.503;exitY=1;exitDx=-0.031;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="nightly-import:collect" target="nightly-import:complete">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.503;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="nightly-import:complete" target="nightly-import:load">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e9:label" value="yes" style="edgeLabel;html=1;align=left;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="nightly-import:e9">
+          <mxGeometry x="-0.76" y="0" relative="1" as="geometry">
+            <mxPoint x="4" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=-10;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="nightly-import:complete" target="nightly-import:collect">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="413" y="362"/>
+              <mxPoint x="413" y="242"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e10:label" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="nightly-import:e10">
+          <mxGeometry x="-0.82" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.503;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="nightly-import:load" target="nightly-import:done">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nightly-import:collect:junction:1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;resizable=0;rotatable=0;zukaiJunction=1;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="333" y="174" width="6" height="6" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

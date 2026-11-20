@@ -74,7 +74,7 @@
             <mxPoint x="0" y="12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-platform:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:api" target="order-platform:queue">
+        <mxCell id="order-platform:c5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.333;entryDx=-6.667;entryDy=0.013;entryPerimeter=0;" edge="1" parent="1" source="order-platform:api" target="order-platform:queue">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1306" y="319"/>
@@ -89,7 +89,7 @@
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-platform:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:queue" target="order-platform:worker">
+        <mxCell id="order-platform:c6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.667;exitDx=-6.667;exitDy=-0.013;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-platform:queue" target="order-platform:worker">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="503" y="94.33"/>

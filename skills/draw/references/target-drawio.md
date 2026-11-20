@@ -174,6 +174,8 @@ moving shapes by hand, so the IR stays the source of truth.
 | flow edge crossing (flowchart, state, architecture, activity) | `jumpStyle=arc`: where two lines cross, the upper one is drawn with a small arc over the other, so a crossing cannot be read as a junction; lines that share a stretch or part at a junction get no arc |
 | stretch before an arrowhead (flowchart, state, ER, class, architecture) | a line turns, or joins another line into the same shape, at least 25 px before it ends, inside a group, composite state or boundary as much as outside: every container repeats the layout's spacings, which ELK does not hand down to it, so the arrowhead never sits on a bend or a junction |
 | graph edge (flowchart, state, ER, class, architecture) | written with ELK's waypoints and with fixed exit and entry anchors taken from ELK's end points, so draw.io never re-routes an edge at render time; a label beside a vertical segment (self-loops included) is anchored on the line and left- or right-aligned at a 4 px gap, a label at a horizontal segment sits 4 px above or below it |
+| line end on a parallelogram or a hexagon (flowchart `io`, architecture `queue`) | on the slanted edge that is drawn, at the height (or the column) the layout routed the line at, so the last stretch and the arrowhead run along the flow. The end is the point on the box plus a pixel offset onto the slant with `entryPerimeter=0` / `exitPerimeter=0` (`entryX=0;entryY=0.25;entryDx=15;`): left to its perimeter, draw.io moves the end towards the centre of the shape, which puts a jog before the end and turns the arrowhead. A self-loop on such a shape ends on its slanted edge the same way. In a flowchart from above or below, the ends are spread over the flat top or bottom of the parallelogram, not over the strip beside it |
+| several lines into one side of a node (flowchart, state) | apart, at least 10 px from one another: a side too short for its ends grows to (ends + 1) x 10 px and the ends are spaced evenly on it, in the order the layout gave them. Five or more lines into one side that can share a line (no label, not leading back to a loop head, the same style) are drawn as one: they end at one point of the side, share the line into it and its arrowhead, and a 6 px dot marks where the last of them has joined; a line with a label keeps its own end beside the shared one, 10 px away. Every edge stays an edge cell of its own, from its own source. `fanIn` in the IR pins it (`merge`: from two lines on; `separate`: never). The dot is a vertex tagged `zukaiJunction=1` that takes no connection; `extract`, `drift` and `cover` leave it out, and a FigJam board draws it as a dot. The circle of an `initial` or `final` state and the tips of a decision are left as they are, and the connections of an architecture diagram always stay apart |
 | ER relation | orthogonal edge with crow's-foot ends (`ERmandOne`, `ERzeroToOne`, `ERzeroToMany`, `ERoneToMany`); non-identifying relations are dashed |
 | class relation | orthogonal edge: hollow triangle (inheritance, dashed for realization), filled or hollow diamond at the whole (composition, aggregation), open arrow (association, dashed for dependency). An inheritance or a realization is laid out against its direction, so the general class or the interface stands above the classes that specialise or realise it (before them in a left-to-right diagram) and the triangle points up, as a class diagram is read. A cardinality is anchored at its own end of the edge with a pixel offset: it starts 6 px past the end marker (24 px diamond, 16 px triangle, 10 px open arrow) and sits 5 px beside the line, right of a vertical segment or above a horizontal one. When a class, a line, a marker or another label is in the way it takes the other side, then moves along the line in 10 px steps (round a bend when the first segment is short), up to 30 px further; when no place is free the emit reports a `layout:` warning that names the relation |
 | architecture component `service` / `database` / `queue` / `cache` / `client` / `external` | rounded rectangle / cylinder / hexagon / dashed cylinder / screen figure (draw.io's `mxgraph.networks.monitor`: a client is an application, not a person) / dashed rounded rectangle; parallel connections leave 20 px apart and each label sits where the layout engine placed it on its own edge. A `client` is a 54 x 44 figure with its name below it: the name wraps at its own width (`labelWidth`, at most 160 px, balanced lines, broken at a space rather than after the hyphen of a name such as `invoices-pg` when as many lines allow it), and the layout reserves the figure plus that block, so a boundary frame contains the name and the next actor starts below it. Clients in one boundary share a centre line. The layout runs twice for a diagram with clients: the first pass shows which side of a client each connection uses, the second gives those ends fixed ports within the figure's extent, evenly spaced. A connection from the side therefore attaches to the figure, several of them apart from each other, and one that leaves downwards starts under the name on the figure's own column (a pixel offset with `exitPerimeter=0`), never through it |
@@ -195,8 +197,8 @@ moving shapes by hand, so the IR stays the source of truth.
 | node or action with `ref` | subroutine shape; in a bundle the label's second line is the target title and the cell is a `UserObject` with `link="data:page/id,<page id>"`, draw.io's page link |
 | message, state, component, class, entity or use case with `ref` | keeps its own shape; the title line and the page link are the same as for a node. A message's row grows by one label line, so the title stands above its own arrow, and the linked edge is a `UserObject` around the edge cell; a class, entity or composite state header grows by one line, and by more when a long title wraps at the width of the table or of the composite |
 
-Cell ids are `<page id>:<ir-id>`; derived cells add a suffix such as `:label`, `:row-0`
-or `:actor`. The page id is the diagram id (the IR file name without `.ir.json`) in lower
+Cell ids are `<page id>:<ir-id>`; derived cells add a suffix such as `:label`, `:row-0`,
+`:actor` or `:junction:1` (the dot where merged lines join, named after the node they end at). The page id is the diagram id (the IR file name without `.ir.json`) in lower
 case with every character outside `a-z0-9` as a hyphen, at its full length, so links between
 pages stay stable across re-runs and two long names never share a page. `bundle` refuses two
 IR files whose names give the same page id. Files written by 2.0.3 or older have page ids cut
@@ -252,6 +254,25 @@ at 40 characters; `drift` and `relabel` read them as they are.
   nearly full it breaks at the last chance it finds, which can be a hyphen inside a value
   such as `0-5`, stranding the rest on its own line. The minimum stays 140 x 80
   (`measureDecision`, same file).
+- Line ends on one side of a node (flowchart, state): the layout spreads the ends of a side
+  over its length whatever that is, so four ends on a 40 px side would lie 8 px apart under
+  arrowheads 7 px across. The first layout shows which side each end uses and in what
+  order; a node with a side whose ends are closer than 10 px, or with enough lines to merge
+  (see the table above), then gets a fixed port for every one of its ends and the layout
+  runs again:
+
+  | Ends into one side | Drawn as |
+  |---|---|
+  | up to 4 | apart; the side grows to (ends + 1) x 10 px when it is shorter |
+  | 5 or more, 5 or more of them able to share a line | those share one end, one line and one junction dot; the others stay apart beside it, the shared line counting as one end for the 10 px |
+  | 5 or more, fewer than 5 able to share a line | apart, as for up to 4 |
+
+  A side that needs no change keeps each end at the share of its length the first layout
+  gave it, the line that leads back to a loop head keeps the side across the flow, and a
+  self-loop over the top of the node keeps its two ends there. In a top-down or bottom-up
+  diagram a step with a self-loop beside it has a layout box wider than its shape; ends the
+  first layout put beside the shape are spread over the shape too. A node whose ends
+  already have their room, on its shape, gets no port and keeps its size and anchors.
 - ELK options: layered algorithm, direction from the IR, orthogonal edge routing,
   `hierarchyHandling=INCLUDE_CHILDREN` for edges that cross containers, root-relative
   edge coordinates. Node spacing 40, layer spacing 60 (60 and 80 for ER and class).
