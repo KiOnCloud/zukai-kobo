@@ -1,7 +1,7 @@
 ---
 title: "Arrowheads on slanted shapes and crowded fan-in"
 description: "Arrows end on the outline that is drawn, never bent at a parallelogram's corner; ends on one side stay at least 10 px apart; five or more arrows into one side merge into one line with a junction dot."
-status: pending
+status: completed
 priority: P1
 effort: 4d
 branch: claude/sleepy-cray-1b79nh
@@ -32,10 +32,10 @@ Scope mode: HOLD SCOPE (no `--yagni`).
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Ends on the drawn outline](./phase-01-ends-on-the-drawn-outline.md) | Pending |
-| 2 | [Minimum gap between separate ends](./phase-02-minimum-gap-between-ends.md) | Pending |
-| 3 | [Merged fan-in with a junction dot](./phase-03-merged-fan-in.md) | Pending |
-| 4 | [`fanIn` override, docs, tests sweep and release](./phase-04-override-docs-and-release.md) | Pending |
+| 1 | [Ends on the drawn outline](./phase-01-ends-on-the-drawn-outline.md) | Completed |
+| 2 | [Minimum gap between separate ends](./phase-02-minimum-gap-between-ends.md) | Completed |
+| 3 | [Merged fan-in with a junction dot](./phase-03-merged-fan-in.md) | Completed |
+| 4 | [`fanIn` override, docs, tests sweep and release](./phase-04-override-docs-and-release.md) | Completed |
 
 Order: 1 → 2 → 3 → 4. Phase 2 and phase 3 both change how flowchart and state nodes get
 ports before the second layout pass, so they run in sequence, not in parallel.
@@ -63,21 +63,59 @@ it has fixed ports (`layout-graph.mjs:446`, :451-456).
 
 Measured on the SVG the draw.io viewer draws (`cli export`), as in the brainstorm repro:
 
-- [ ] Every edge into an `io` or `queue` node ends with a segment along the flow
+- [x] Every edge into an `io` or `queue` node ends with a segment along the flow
       (`|Δy| < 0.5` for LR/RL, `|Δx| < 0.5` for TB/BT), the arrowhead tip within 1.5 px of
       the drawn outline, for 3, 4 and 9 incoming edges in all four directions.
-- [ ] A straight edge into a slanted shape stays straight.
-- [ ] Separate ends on one side are at least 10 px apart, on rectangles and slanted shapes.
-- [ ] A mergeable group of 5 or more draws one arrowhead and one junction dot; `extract` of
+- [x] A straight edge into a slanted shape stays straight.
+- [x] Separate ends on one side are at least 10 px apart, on rectangles and slanted shapes.
+- [x] A mergeable group of 5 or more draws one arrowhead and one junction dot; `extract` of
       the result returns the same nodes and edges as the IR (no junction node).
-- [ ] A group of 7 with 2 labelled edges merges the 5 unlabelled ones and keeps the 2
+- [x] A group of 7 with 2 labelled edges merges the 5 unlabelled ones and keeps the 2
       labelled ones separate, at least 10 px from the trunk.
-- [ ] A loop head that gets fixed ports lays out without an ELK error and its back edge
+- [x] A loop head that gets fixed ports lays out without an ELK error and its back edge
       still arrives on the side across the flow.
-- [ ] `fanIn: separate` and `fanIn: merge` override the threshold in flowchart and state;
+- [x] `fanIn: separate` and `fanIn: merge` override the threshold in flowchart and state;
       the architecture schema rejects `fanIn` and architecture arrows stay separate.
-- [ ] Rectangle targets whose ends are already 10 px apart keep their current geometry.
-- [ ] `npm test` passes, the bundle is rebuilt and `bundle-drift` passes.
+- [x] Rectangle targets whose ends are already 10 px apart keep their current geometry.
+- [x] `npm test` passes, the bundle is rebuilt and `bundle-drift` passes.
+
+Measured on 2026-11-20 on 108 renders of the draw.io viewer through the final bundle
+(parallelogram, hexagon and rectangle; 1, 3, 4 and 9 arrows; four directions; mixed groups
+of 6 and 7; loop heads, self-loops, groups and state diagrams): every last stretch within
+0.5 px of the flow, every tip within 1.12 px of the outline, separate tips 10 px or more
+apart in flowchart and state, one arrowhead and one dot per merged group. Rectangles whose
+ends had the room, and every ER, class, use case, sequence and activity fixture, are
+byte-identical to the 2.7.1 bundle.
+`tests/fan-in-render-e2e.test.mjs` keeps five of these measurements in the suite.
+
+## Implementation notes
+
+What the code does that the phases did not spell out, each checked on a render:
+
+- **End written as an offset.** An end on a slanted edge keeps its share of the box
+  (`entryX=0;entryY=0.25`) and adds the way onto the slant in pixels (`entryDx=15`) with
+  `entryPerimeter=0`. The slant is a fixed 20 px, so the offset stays on the outline when
+  someone resizes the shape, and existing anchors on other shapes keep their bytes.
+- **Ends of a node with ports are exact.** The share is written to three decimals, up to a
+  tenth of a pixel off; the rest goes into the offset, so nine merged lines are drawn on one
+  another and the viewer draws one arrowhead, not two that differ by 0.05 px.
+- **One junction dot per merged group**, where the last line has joined (the start of the
+  line all share). Further from the node the lines join one by one at a T, which cannot be
+  read as a crossing; a second dot is drawn only where four of their segments meet again.
+  ELK's `junctionPoints` are not read: the point is computed from the routes.
+- **Circles are left alone.** The 30 px circle of an `initial` or `final` state cannot grow
+  and its outline is no side of a box, so it gets no ports: its ends are neither spaced nor
+  merged.
+- **Self-loops.** A self-loop on a parallelogram ends on the slant in both loop forms. In
+  left-to-right and right-to-left diagrams the two ends of a self-loop get ports as well,
+  or ELK ties the loop to the corners of a node with fixed ports.
+- **Ends beside the shape.** A step with a self-loop in a top-down or bottom-up diagram has
+  a layout box wider than its shape; ends the layout put beside the shape are spread over
+  the shape. This changes two existing state fixtures, whose lines left the bottom corners
+  of such a state before. It is the one place where a rectangle whose ends were 10 px apart
+  does not keep its geometry: those ends were off the shape.
+- **Architecture** gets the outline fix only, as planned: nine connections into one side of
+  a 40 px queue are still 4 px apart.
 
 ## Risks
 
@@ -147,3 +185,18 @@ None. Architecture scope and mixed groups were decided in Validation Session 1.
 - Decision deltas checked: 4 (architecture scope, ports for every end, subset merge, factual corrections)
 - Reconciled stale references: 7 (architecture `separate` override in plan, phase 4 and the brainstorm report; "every edge mergeable" in the decision table and phase 3; `drawnEnd` line; `emitState` relayout; schema location; extract frame-part line :234 → :236)
 - Unresolved contradictions: 0
+
+## Code review
+
+### Session — 2026-11-20 (after implementation)
+A reviewer agent read the diff without my conclusions and reproduced the findings below; all
+are fixed with regression tests ([report](../reports/code-reviewer-261120-0820-fan-in-arrowheads.md)).
+
+| # | Finding | Severity | Fix |
+|---|---------|----------|-----|
+| 1 | A self-loop on a node that got ports ran corner to corner round the whole box (LR, RL) | Major | the two ends of a loop the layout routes get ports on the side the first layout put them |
+| 2 | Rectangles with a self-loop in TB or BT kept ends beside the shape, clamped to its corners (also before this change) | Major | ends off the outline are spread over the shape for every shape, not only a parallelogram |
+| 3 | A back edge into a parallelogram loop head ended 1 px below it (LR, RL) | Minor | the end is taken on the box before it is moved onto the outline |
+| 4 | The upgrade notes said every other shape keeps its anchors | Minor | the notes name the fixed ends of a node with ports |
+| 5 | Junction dots were numbered across the page | Minor | numbered per node |
+| 6 | The criteria were asserted on the anchors, not on a render | Minor | `fan-in-render-e2e.test.mjs` measures the viewer's SVG; it fails on the 2.7.1 bundle with the reported 4.28 px bend |

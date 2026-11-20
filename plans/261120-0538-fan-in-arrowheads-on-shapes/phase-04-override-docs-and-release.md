@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "fanIn override, docs, tests sweep and release"
-status: pending
+status: completed
 priority: P2
 effort: "0.5d"
 dependencies: [3]

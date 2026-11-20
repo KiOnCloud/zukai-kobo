@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Merged fan-in with a junction dot"
-status: pending
+status: completed
 priority: P1
 effort: "1.5d"
 dependencies: [2]

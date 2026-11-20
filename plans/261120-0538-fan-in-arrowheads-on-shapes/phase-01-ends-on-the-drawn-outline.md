@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Ends on the drawn outline"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: []

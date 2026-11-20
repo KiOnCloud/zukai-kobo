@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Minimum gap between separate ends"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: [1]
