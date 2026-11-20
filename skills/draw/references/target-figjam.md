@@ -273,6 +273,8 @@ points moved onto the outline of an ellipse, rhombus, hexagon or parallelogram, 
 draw.io makes of the waypoints, and the slant of a pixel or less that draw.io itself draws
 where two ends are not quite in line. A line jumps over a line drawn before it with the
 small arc draw.io draws there, and the square of a service with a gradient has that gradient.
+The dot where merged lines join (see `target-drawio.md`) is a small filled circle in a group
+tagged `[junction]`; `extract` reads a board back without it.
 
 Text is set in Arimo, which has the widths of the face draw.io sizes its boxes for, at the
 sizes of the draw.io file, so a label fits its box and wraps at the same words; a bold or

@@ -1,0 +1,159 @@
+<mxfile host="zukai" compressed="false" type="device">
+  <diagram id="support-ticket" name="Support ticket">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="support-ticket:s0" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="12" y="123" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="support-ticket:new" value="New" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="102" y="118" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="support-ticket:assigned" value="Assigned" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="385" y="88" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="support-ticket:waiting" value="Waiting for customer" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="705" y="12" width="139" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="support-ticket:escalated" value="Escalated" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="717.67" y="92" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="support-ticket:resolved" value="Resolved" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1071" y="78" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="support-ticket:cancelled" value="Cancelled" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1251" y="137" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="support-ticket:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1431" y="81" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="support-ticket:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:s0" target="support-ticket:new">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.325;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:new" target="support-ticket:assigned">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="247" y="131"/>
+              <mxPoint x="247" y="108"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t2:label" value="assign" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="support-ticket:t2">
+          <mxGeometry x="0.12" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:assigned" target="support-ticket:waiting">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="530" y="98"/>
+              <mxPoint x="530" y="32"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t3:label" value="ask customer" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="support-ticket:t3">
+          <mxGeometry x="0.25" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:assigned" target="support-ticket:escalated">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="108"/>
+              <mxPoint x="670" y="112"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t4:label" value="escalate" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="support-ticket:t4">
+          <mxGeometry x="-0.08" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.325;exitDx=0;exitDy=0;entryX=0;entryY=0.325;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:waiting" target="support-ticket:resolved">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1036" y="25"/>
+              <mxPoint x="1036" y="91"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t5:label" value="customer confirms" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="support-ticket:t5">
+          <mxGeometry x="-0.23" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.325;exitDx=0;exitDy=0;entryX=0;entryY=0.675;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:escalated" target="support-ticket:resolved">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t6:label" value="fix delivered" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="support-ticket:t6">
+          <mxGeometry x="0.03" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.675;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="support-ticket:new" target="support-ticket:cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="247" y="145"/>
+              <mxPoint x="247" y="157"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="support-ticket:assigned" target="support-ticket:cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="530" y="118"/>
+              <mxPoint x="530" y="157"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.675;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="support-ticket:waiting" target="support-ticket:cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="869" y="39"/>
+              <mxPoint x="869" y="157"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.675;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="support-ticket:escalated" target="support-ticket:cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="869" y="119"/>
+              <mxPoint x="869" y="157"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.675;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="support-ticket:resolved" target="support-ticket:cancelled">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1216" y="105"/>
+              <mxPoint x="1216" y="157"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.325;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:resolved" target="support-ticket:end">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t12:label" value="close" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="support-ticket:t12">
+          <mxGeometry x="0" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:t13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:cancelled" target="support-ticket:end">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1396" y="157"/>
+              <mxPoint x="1396" y="101"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="support-ticket:cancelled:junction:1" value="" style="ellipse;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;resizable=0;rotatable=0;zukaiJunction=1;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="1213" y="154" width="6" height="6" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -102,6 +102,24 @@ describe('emit --native, the board, then extract: the round trip holds for every
   }
 });
 
+describe('the dot where merged lines join, read back', () => {
+  for (const [kind, name] of [['flowchart', 'valid-fan-in'], ['state', 'valid-fan-in']]) {
+    it(`is no element of the board: ${kind}/${name} gives back its own nodes and no more`, async () => {
+      const ir = loadFixture(kind, name);
+      const { board } = await draw(ir);
+      // The dot is on the board, in a group that says what it is.
+      const names = [];
+      const walk = (n) => { names.push(n.name ?? ''); for (const c of n.children ?? []) walk(c); };
+      walk(board.figma.currentPage);
+      expect(names.filter((n) => / \[junction\]$/.test(n))).toHaveLength(1);
+      const [page] = (await drawAndRead(ir)).pages;
+      const own = (ir.nodes ?? ir.states).length;
+      expect(page.nodes).toHaveLength(own);
+      expect(page.edges).toHaveLength((ir.edges ?? ir.transitions).length);
+    }, 30_000);
+  }
+});
+
 describe('a use case board read back', () => {
   it('reads the board of the real FigJam round: figures as actors, include and extend lines as edges, the use case hint first', () => {
     // Read with the reader script from a FigJam board that emit --native drew from a use case IR.

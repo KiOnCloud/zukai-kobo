@@ -266,6 +266,15 @@
               }
             }
           }
+        },
+        "fanIn": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "merge",
+            "separate"
+          ],
+          "description": "How the draw.io emit draws many lines into one side of a node: auto (default) merges five or more that can share a line (no label, not leading back) into one line with a junction dot and keeps fewer apart; merge does so from two; separate never merges"
         }
       },
       "required": [
@@ -532,6 +541,15 @@
               }
             }
           }
+        },
+        "fanIn": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "merge",
+            "separate"
+          ],
+          "description": "How the draw.io emit draws many lines into one side of a node: auto (default) merges five or more that can share a line (no label, not leading back) into one line with a junction dot and keeps fewer apart; merge does so from two; separate never merges"
         }
       },
       "required": [

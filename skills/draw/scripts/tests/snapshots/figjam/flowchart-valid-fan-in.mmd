@@ -1,0 +1,45 @@
+flowchart TB
+  %% id: crm
+  n1["Export from CRM"]
+  %% id: billing
+  n2["Export from billing"]
+  %% id: support
+  n3["Export from support desk"]
+  %% id: shop
+  n4["Export from web shop"]
+  %% id: partners
+  n5["Export from partner portal"]
+  %% id: warehouse
+  n6["Export from warehouse"]
+  %% id: upload
+  n7["Manual upload"]
+  %% id: collect
+  n8[/"Collect the nightly batch"/]
+  %% id: complete
+  n9{"Batch complete?"}
+  %% id: load
+  n10["Load into the reporting store"]
+  %% id: done
+  n11(["Import finished"])
+  %% id: e1
+  n1 --> n8
+  %% id: e2
+  n2 --> n8
+  %% id: e3
+  n3 --> n8
+  %% id: e4
+  n4 --> n8
+  %% id: e5
+  n5 --> n8
+  %% id: e6
+  n6 --> n8
+  %% id: e7
+  n7 -->|"late file"| n8
+  %% id: e8
+  n8 --> n9
+  %% id: e9
+  n9 -->|"yes"| n10
+  %% id: e10
+  n9 -->|"no"| n8
+  %% id: e11
+  n10 --> n11

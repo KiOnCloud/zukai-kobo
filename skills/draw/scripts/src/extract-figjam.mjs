@@ -131,8 +131,12 @@ const DRAWN = new Set(['RECTANGLE', 'ELLIPSE', 'VECTOR', 'LINE', 'TEXT', 'POLYGO
 const NEAR = 8;
 const DRAWN_NEAR = 16;
 const FLOW_SHAPES = new Set(['box', 'rounded', 'decision', 'terminal', 'io', 'subroutine', 'initial', 'final', 'ellipse', 'bar', 'document']);
-/** The name of a group that draws part of its frame: tagged by the native board, or (on a board drawn before the tag) the id of the Google Cloud mark. */
-const PART = /\s\[part\]$|:mark$/;
+/**
+ * The name of a group that is no element of the diagram: one that draws part of its frame,
+ * tagged by the native board, or (on a board drawn before the tag) the id of the Google Cloud
+ * mark; or the dot where merged lines join.
+ */
+const PART = /\s\[(?:part|junction)\]$|:mark$/;
 
 /**
  * Facts of the board JSON the reader script returned.
@@ -175,6 +179,7 @@ export function extractFigjamBoard(board) {
     else if (n.type === 'TEXT') Object.assign(node, { label: lines(n.text ?? ''), shape: 'text' });
     else if (n.type === 'GROUP' && PART.test(n.name ?? '') && !textsBelow(n.id).length) {
       // A picture that is part of its frame (the Google Cloud mark in its corner): the frame's.
+      // A junction dot goes the same way: it is drawn, and it is nothing of the diagram.
       absorbed.add(n.id);
       for (const k of board.nodes.filter((m) => m.parent === n.id)) absorbed.add(k.id);
       continue;
