@@ -171,3 +171,114 @@ describe('a class hierarchy in draw.io', () => {
     }
   });
 });
+
+/**
+ * A class with a relation to itself is laid out in a box wider than its table, with room for
+ * the loop on both sides, and the layout spreads the relations on its top and bottom over
+ * that box. An end beside the table would be drawn into the table's corner from the side;
+ * the ends of such a side are spread over the table itself instead.
+ */
+describe('relations into a class with a relation to itself in draw.io', () => {
+  /** `k` classes that each have a relation into `hub`, which also has a relation to itself. */
+  const hubOf = (k, direction, kinds = []) => ({
+    schemaVersion: 1, kind: 'class', title: 'Invoice parts', direction,
+    classes: [{ id: 'hub', label: 'Invoice', attributes: [{ name: 'number', type: 'string' }] }, ...Array.from({ length: k }, (_, i) => ({ id: `c${i + 1}`, label: `Part${i + 1}` }))],
+    relations: [
+      { id: 'self', from: 'hub', to: 'hub', kind: 'association', label: 'credits', fromCardinality: '0..1', toCardinality: '0..*' },
+      ...Array.from({ length: k }, (_, i) => ({ id: `r${i + 1}`, from: `c${i + 1}`, to: 'hub', kind: kinds[i] ?? 'association', ...(i === 0 ? { fromCardinality: '1', toCardinality: '0..*' } : {}) })),
+    ],
+  });
+  const drawn = async (ir) => {
+    const r = await emit(ir, 'drawio', { diagramId: 'c' });
+    expect(r.ok).toBe(true);
+    const { problems, cells } = checkDrawioStructure(r.output);
+    expect(problems).toEqual([]);
+    const abs = absoluteBounds(cells);
+    return { r, cells, box: (id) => abs.get(`c:${id}`), path: (id) => edgePaths(cells, abs).get(`c:${id}`), style: (id) => cells.find((c) => c.id === `c:${id}`).style };
+  };
+  /** The end of a relation lies on the top or bottom side of the table, inside its width, and the line runs upright into it. */
+  const expectOnTable = (d, id, side) => {
+    const b = d.box('hub');
+    const path = d.path(id);
+    const end = path.at(-1);
+    expect(end.y, `${id} on the ${side} side`).toBeCloseTo(side === 'top' ? b.y : b.y + b.height, 6);
+    expect(end.x, `${id} right of the left corner`).toBeGreaterThan(b.x + 1);
+    expect(end.x, `${id} left of the right corner`).toBeLessThan(b.x + b.width - 1);
+    expect(Math.abs(end.x - path.at(-2).x), `${id} runs upright into its end`).toBeLessThan(0.01);
+  };
+
+  for (const direction of ['TB', 'BT']) {
+    for (const k of [3, 4, 6]) {
+      it(`ends ${k} relations on the table, none at a corner (${direction})`, async () => {
+        const d = await drawn(hubOf(k, direction));
+        // The table is drawn at its own width in the middle of the box the layout was given.
+        expect(d.box('hub').width).toBe(160);
+        for (let i = 1; i <= k; i++) expectOnTable(d, `r${i}`, direction === 'TB' ? 'top' : 'bottom');
+        const at = Array.from({ length: k }, (_, i) => d.path(`r${i + 1}`).at(-1).x).sort((a, b) => a - b);
+        expect(new Set(at).size, 'every relation has an end of its own').toBe(k);
+        expect(d.r.warnings.filter((w) => String(w.message).startsWith('layout:'))).toEqual([]);
+      });
+    }
+  }
+
+  it('keeps an inheritance among them upside down: its triangle ends on the bottom of the general class', async () => {
+    // Three special classes below the general one and three associations into it from above.
+    const d = await drawn(hubOf(6, 'TB', ['inheritance', 'association', 'inheritance', 'association', 'inheritance', 'association']));
+    for (const id of ['r1', 'r3', 'r5']) {
+      expectOnTable(d, id, 'bottom');
+      expect(d.box(id.replace('r', 'c')).y, `${id}: the special class stands below`).toBeGreaterThan(d.box('hub').y + d.box('hub').height);
+    }
+    for (const id of ['r2', 'r4', 'r6']) expectOnTable(d, id, 'top');
+  });
+
+  it('keeps the loop beside the table and both of its cardinalities', async () => {
+    const d = await drawn(hubOf(4, 'TB'));
+    const b = d.box('hub');
+    const loop = d.path('self');
+    expect(loop[0].x).toBeCloseTo(b.x + b.width, 6);
+    expect(loop.at(-1).x).toBeCloseTo(b.x + b.width, 6);
+    expect(Math.max(...loop.map((p) => p.x))).toBe(b.x + b.width + 30);
+    for (const id of ['self:from-card', 'self:to-card', 'r1:from-card', 'r1:to-card']) expect(d.cells.find((c) => c.id === `c:${id}`), id).toBeDefined();
+  });
+
+  it('writes the cardinalities of the fixture beside their own ends, on no class and no line', async () => {
+    const ir = loadFixture('class', 'valid-self-relation');
+    const { r, labels, classes, paths } = await cardinalities(ir);
+    expect(labels).toHaveLength(7);
+    expect(r.warnings).toEqual([]);
+    for (const l of labels) {
+      const name = `${l.rel.id} ${l.end}`;
+      for (const c of classes) expect(intersects(l.box, c), `${name} on a class box`).toBe(false);
+      for (const [id, path] of paths) for (let i = 1; i < path.length; i++) expect(intersects(l.box, segmentBox(path[i - 1], path[i])), `${name} on line ${id}`).toBe(false);
+      for (const o of labels) if (o !== l) expect(intersects(l.box, o.box), `${name} on ${o.rel.id} ${o.end}`).toBe(false);
+    }
+    const invoice = classes[ir.classes.findIndex((c) => c.id === 'invoice')];
+    for (const id of ['r1', 'r2', 'r3', 'r4']) {
+      const end = paths.get(`c:${id}`).at(-1);
+      expect(end.y, id).toBeCloseTo(invoice.y, 6);
+      expect(end.x, id).toBeGreaterThan(invoice.x + 1);
+      expect(end.x, id).toBeLessThan(invoice.x + invoice.width - 1);
+    }
+  });
+
+  for (const direction of ['LR', 'RL']) {
+    it(`leaves the ends where the layout put them when the loop goes over the top (${direction})`, async () => {
+      // The class keeps its own box there, so no end lies beside the table and none gets a fixed place.
+      const d = await drawn(hubOf(4, direction));
+      for (let i = 1; i <= 4; i++) expect(d.style(`r${i}`), `r${i}`).not.toContain('Perimeter=0;');
+    });
+  }
+
+  it('leaves a class without a relation to itself alone, however many relations end on it', async () => {
+    const ir = hubOf(6, 'TB');
+    ir.relations = ir.relations.filter((r) => r.id !== 'self');
+    const d = await drawn(ir);
+    for (let i = 1; i <= 6; i++) expect(d.style(`r${i}`), `r${i}`).not.toContain('Perimeter=0;');
+  });
+
+  it('leaves the ends alone when they all lie on the table already', async () => {
+    const ir = hubOf(1, 'TB');
+    const d = await drawn(ir);
+    expect(d.style('r1')).not.toContain('Perimeter=0;');
+  });
+});

@@ -111,6 +111,9 @@ describe('ref on the element that a sub-diagram details, for every kind', () => 
     for (const [kind, id, twoLines] of [['class', 'order', 46], ['er', 'customer', 46], ['state', 'fulfil', 46]]) {
       const ir = structuredClone(loadFixture(kind, 'valid-ref-parts'));
       for (const el of ir.classes ?? ir.entities ?? ir.states) if (el.ref) el.ref = PART;
+      // Left to right, no transition runs through the header of the composite. Top-down one
+      // does, and the composite is widened until its title stands on one line beside it.
+      if (kind === 'state') ir.direction = 'LR';
       const r = await bundle([{ id: 'main', ir }, long], 'drawio');
       const { problems, cells } = checkDrawioStructure(r.output);
       expect(problems).toEqual([]);

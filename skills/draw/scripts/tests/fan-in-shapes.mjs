@@ -17,9 +17,14 @@ export async function drawio(ir) {
 
 const SLANT = 20;
 
-/** The outline draw.io draws for a node, as a closed polygon: a parallelogram, a hexagon, or the box itself. */
+/**
+ * The outline draw.io ends a line on for a node, as a closed polygon: a parallelogram, a
+ * hexagon, the circle of an initial or final state (the ellipse inscribed in its box, as a
+ * polygon of 360 corners, which is nowhere a thousandth of a pixel off it), or the box itself.
+ */
 export function outlineOf(cell, b) {
   const { x, y, width: w, height: h } = b;
+  if (/shape=(?:start|end)State/.test(cell.style)) return Array.from({ length: 360 }, (_, i) => ({ x: x + w / 2 + (w / 2) * Math.cos((i * Math.PI) / 180), y: y + h / 2 + (h / 2) * Math.sin((i * Math.PI) / 180) }));
   if (/shape=parallelogram/.test(cell.style)) return [{ x: x + SLANT, y }, { x: x + w, y }, { x: x + w - SLANT, y: y + h }, { x, y: y + h }];
   if (/shape=hexagon/.test(cell.style)) return [{ x: x + SLANT, y }, { x: x + w - SLANT, y }, { x: x + w, y: y + h / 2 }, { x: x + w - SLANT, y: y + h }, { x: x + SLANT, y: y + h }, { x, y: y + h / 2 }];
   return [{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }];
@@ -47,7 +52,20 @@ export function endGaps(paths, direction) {
   return at.slice(1).map((v, i) => v - at[i]);
 }
 
+/** How far the first stretch of a path is off the flow. */
+export const startOffFlow = (path, direction) => offFlow([...path].reverse(), direction);
+
 export const DIRECTIONS = ['LR', 'RL', 'TB', 'BT'];
+
+/** An initial state with a transition to each of `k` states, which each have one to a final state. */
+export function throughCircles(k, direction = 'TB') {
+  const n = Array.from({ length: k }, (_, i) => i + 1);
+  return {
+    schemaVersion: 1, kind: 'state', title: `Circles with ${k} lines`, direction,
+    states: [{ id: 's0', kind: 'initial' }, ...n.map((i) => ({ id: `a${i}`, label: `State ${i}` })), { id: 'end', kind: 'final' }],
+    transitions: [...n.map((i) => ({ id: `o${i}`, from: 's0', to: `a${i}` })), ...n.map((i) => ({ id: `i${i}`, from: `a${i}`, to: 'end' }))],
+  };
+}
 
 /** `k` sources that each lead into the node `t`; the edges named in `labelled` carry a label. */
 export function fanIn(k, { shape = 'process', direction = 'LR', labelled = [], extra = {} } = {}) {

@@ -308,11 +308,13 @@ run ELK twice: the first pass decides sides and row anchors, the second gets the
 ports (`FIXED_POS`), repeated until the order of anchors sharing a header band is stable.
 Table rows grow with wrapped text.
 
-A parallelogram and a hexagon are narrower than their box, and ELK ends every line on the
-box. `graphCells`, which every ELK-laid kind shares, moves such an end along the line's own
-direction onto the slanted edge (`outlinePoint`) and writes it as a pixel offset with
-`perimeter=0`, so draw.io keeps the height the line was routed at instead of pulling the end
-towards the centre of the shape. Flowchart and state diagrams run a second pass after the
+A parallelogram, a hexagon and the circle of an initial or final state are narrower than
+their box, and ELK ends every line on the box. `graphCells`, which every ELK-laid kind
+shares, moves such an end along the line's own direction onto the outline (`outlinePoint`;
+`outlineShape` names the three shapes, and `ellipsePoint` is the formula the ovals of a use
+case diagram use as well) and writes it as a pixel offset with `perimeter=0`, so draw.io
+keeps the height the line was routed at instead of pulling the end towards the centre of
+the shape. Flowchart and state diagrams run a second pass after the
 first layout (`sidePorts`): a node whose ends on one side are closer than 10 px grows along
 that side and gets a fixed port for every end, since a node with fixed ports gets none from
 `layoutGraph`: the line back to a loop head keeps its side across the flow, and a self-loop
@@ -324,6 +326,18 @@ side that can share a line get one port, which ELK routes as one line. `fanInJun
 then finds, on the routes of the last layout, the point where the merged lines have all
 joined, and the emitter draws a dot there as a vertex tagged `zukaiJunction=1`, which
 `extract` and the FigJam reader leave out. `fanIn` in the IR sets how many lines merge.
+A class diagram runs `sidePorts` too, with `minGap: 0` and `fanIn: 'separate'`: nothing
+counts as crowded and nothing merges, so only a class whose table is drawn narrower than
+its layout box (one with a relation to itself, top-down or bottom-up) gets ports, which
+put the ends on the table instead of beside it.
+
+The title of a frame steps aside for a line through its header (`placeGroupTitles`): a
+flowchart group, a plain or cloud architecture boundary, a use case boundary and a composite
+state give each container a `title` (its width, its usual place), the function marks the
+stretches of the header strip that a line or a line label runs through and sets
+`titleOffset`, or raises `minWidth` when no free stretch is long enough, and the caller lays
+out again, up to six times, before it warns. A line that ends on the border of the frame
+itself (a transition to a composite state) touches the strip from outside and marks nothing.
 
 An architecture component drawn as a figure with its name below (a `client`, or a component
 with a cloud `icon`) has a layout box that holds the figure and the name; the figure is drawn
