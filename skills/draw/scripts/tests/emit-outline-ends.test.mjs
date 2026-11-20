@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { drawio, outlineOf, distanceTo, offFlow, fanIn, queueFanIn, DIRECTIONS } from './fan-in-shapes.mjs';
+import { drawio, outlineOf, distanceTo, offFlow, startOffFlow, fanIn, queueFanIn, throughCircles, DIRECTIONS } from './fan-in-shapes.mjs';
 
 /**
  * A parallelogram and a hexagon are narrower than their box. A line that meets one ends on
@@ -116,5 +116,87 @@ describe('line ends on a parallelogram and a hexagon', () => {
     const ir = { schemaVersion: 1, kind: 'flowchart', title: 'Retry', nodes: [{ id: 't', label: 'Read the file' }], edges: [{ id: 'l1', from: 't', to: 't' }] };
     const d = await drawio(ir);
     expect(d.cell('l1').style).toMatch(/exitX=1;exitY=0\.3;exitDx=0;exitDy=0;entryX=1;entryY=0\.7;entryDx=0;entryDy=0;$/);
+  });
+});
+
+/**
+ * The circle of an initial or final state touches its box only in the middle of each side.
+ * Several lines on one side end beside that middle: each ends on the circle at the column
+ * (or the height) the layout routed it at, and draw.io is told to keep that point.
+ */
+describe('line ends on the circle of an initial or final state', () => {
+  for (const direction of DIRECTIONS) {
+    for (const k of [2, 3, 4]) {
+      it(`starts ${k} lines on the initial circle and ends ${k} on the final one, along the flow (${direction})`, async () => {
+        const d = await drawio(throughCircles(k, direction));
+        const start = outlineOf(d.cell('s0'), d.box('s0'));
+        const end = outlineOf(d.cell('end'), d.box('end'));
+        for (let i = 1; i <= k; i++) {
+          const out = d.path(`o${i}`);
+          expect(d.cell(`o${i}`).style, `o${i}`).toContain('exitPerimeter=0;');
+          expect(distanceTo(start, out[0]), `o${i} starts on the circle`).toBeLessThan(0.01);
+          expect(startOffFlow(out, direction), `o${i} leaves along the flow`).toBeLessThan(0.01);
+          const into = d.path(`i${i}`);
+          expect(d.cell(`i${i}`).style, `i${i}`).toContain('entryPerimeter=0;');
+          expect(distanceTo(end, into.at(-1)), `i${i} ends on the circle`).toBeLessThan(0.01);
+          expect(offFlow(into, direction), `i${i} arrives along the flow`).toBeLessThan(0.01);
+        }
+        // The circles keep their size, and every line an end of its own.
+        expect(d.box('s0')).toMatchObject({ width: 30, height: 30 });
+        expect(d.box('end')).toMatchObject({ width: 30, height: 30 });
+        expect(new Set(Array.from({ length: k }, (_, i) => JSON.stringify(d.path(`i${i + 1}`).at(-1)))).size).toBe(k);
+      });
+    }
+  }
+
+  it('ends a line beside the middle of a side short of the box, where the circle is', async () => {
+    const d = await drawio(throughCircles(3, 'TB'));
+    const b = d.box('s0');
+    // The outer two of three lines leave about a quarter of the width from the middle, where
+    // the circle is some 2 px above the bottom of the box; the middle one leaves at the bottom.
+    for (const id of ['o1', 'o3']) {
+      const from = d.path(id)[0];
+      const off = Math.abs(from.x - (b.x + 15));
+      expect(off, id).toBeGreaterThan(5);
+      // The offset is written to a thousandth of a pixel.
+      expect(from.y, id).toBeCloseTo(b.y + 15 + Math.sqrt(15 * 15 - off * off), 2);
+      expect(from.y, id).toBeLessThan(b.y + 29);
+    }
+    expect(d.path('o2')[0]).toEqual({ x: b.x + 15, y: b.y + 30 });
+  });
+
+  for (const direction of DIRECTIONS) {
+    it(`leaves a line alone on its circle in the middle of the side (${direction})`, async () => {
+      const d = await drawio(throughCircles(1, direction));
+      const middle = (b) => ({ TB: { x: b.x + 15, y: b.y + 30 }, BT: { x: b.x + 15, y: b.y }, LR: { x: b.x + 30, y: b.y + 15 }, RL: { x: b.x, y: b.y + 15 } })[direction];
+      const opposite = (b) => ({ x: 2 * (b.x + 15) - middle(b).x, y: 2 * (b.y + 15) - middle(b).y });
+      expect(d.path('o1')[0]).toEqual(middle(d.box('s0')));
+      expect(d.path('i1').at(-1)).toEqual(opposite(d.box('end')));
+      expect(d.cell('o1').style).toMatch(/exitDx=0;exitDy=0;exitPerimeter=0;/);
+      expect(d.cell('i1').style).toMatch(/entryDx=0;entryDy=0;entryPerimeter=0;$/);
+    });
+  }
+
+  it('ends the lines on a circle inside a composite state on that circle', async () => {
+    const d = await drawio({
+      schemaVersion: 1, kind: 'state', title: 'Inside', direction: 'TB',
+      states: [{ id: 'comp', label: 'Processing', kind: 'composite', children: ['s0', 'a', 'b', 'end'] }, { id: 's0', kind: 'initial' }, { id: 'a', label: 'Picking' }, { id: 'b', label: 'Packing' }, { id: 'end', kind: 'final' }],
+      transitions: [{ id: 'o1', from: 's0', to: 'a' }, { id: 'o2', from: 's0', to: 'b' }, { id: 'i1', from: 'a', to: 'end' }, { id: 'i2', from: 'b', to: 'end' }],
+    });
+    expect(d.cell('s0').parent).toBe('d:comp');
+    for (const id of ['o1', 'o2']) {
+      expect(distanceTo(outlineOf(d.cell('s0'), d.box('s0')), d.path(id)[0]), id).toBeLessThan(0.01);
+      expect(startOffFlow(d.path(id), 'TB'), id).toBeLessThan(0.01);
+    }
+    for (const id of ['i1', 'i2']) {
+      expect(distanceTo(outlineOf(d.cell('end'), d.box('end')), d.path(id).at(-1)), id).toBeLessThan(0.01);
+      expect(offFlow(d.path(id), 'TB'), id).toBeLessThan(0.01);
+    }
+  });
+
+  it('leaves the ends on a state that is no circle as they were', async () => {
+    const d = await drawio(throughCircles(1, 'TB'));
+    expect(d.cell('o1').style).toMatch(/entryX=0\.5;entryY=0;entryDx=0;entryDy=0;$/);
+    expect(d.cell('i1').style).toMatch(/exitX=0\.5;exitY=1;exitDx=0;exitDy=0;entry/);
   });
 });

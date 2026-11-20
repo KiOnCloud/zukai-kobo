@@ -235,8 +235,9 @@ describe('figjam native script', () => {
     await expectLines('architecture', 'valid-bidi-fallback', ['M 686.37 58 L 705 58 L 705 79 L 753.63 79.03', 'M 286.37 87 L 305 87 L 305 103 L 753.63 102.97']);
     await expectLines('architecture', 'valid-aws-zones', ['M 292 1120.37 L 291.98 1187.63']);
     await expectLines('architecture', 'valid-shop-platform', ['M 1535.87 375 L 1576 375 L 1576 459 L 1781.63 459', 'M 1535.87 278 L 2956.63 278']);
-    // A port on a round end state lies on the circle.
-    await expectLines('state', 'valid', ['M 305 1096 L 305 1121 L 289 1121 L 289 1221 L 213.7 1221 L 213.74 1250.4']);
+    // A port on a round end state lies on the circle, at the column the layout routed the line
+    // at: the second of two lines into it runs straight down into the circle, beside its middle.
+    await expectLines('state', 'valid', ['M 305 1096 L 305 1121 L 289 1121 L 289 1221 L 214 1221 L 214 1250.49']);
     // The lines that leave one icon a pixel apart keep their first stretch as draw.io paints it for an
     // edge with a jump style: the bend that is a pixel off the straight line is not drawn.
     await expectLines('architecture', 'valid-aws-fan-out', ['M 1036 690 L 1310 691 L 1310 746 L 1606.63 746', 'M 1036 680.02 L 1885.13 681']);

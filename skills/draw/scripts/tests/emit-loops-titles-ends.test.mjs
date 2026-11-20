@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emit } from '../src/pipeline.mjs';
 import { backEdges } from '../src/layout-graph.mjs';
 import { figjamLabel } from '../src/mermaid-text.mjs';
+import { textWidth } from '../src/text-metrics.mjs';
 import { checkDrawioStructure, absoluteBounds, edgePaths } from './drawio-structure.mjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -151,6 +152,166 @@ describe('the title of a plain frame in draw.io', () => {
       groups: [{ id: 'g', label: 'Checks', children: ['b'] }],
     });
     expect(titleBox(cells, abs, 'd:g').style).toContain('align=left;');
+  });
+});
+
+/**
+ * A transition that enters a state inside a composite from above, or leaves one through the
+ * top, runs across the header of the composite. Its title steps aside like the title of a
+ * flowchart group; a transition that ends on the composite itself stops at the border and
+ * moves nothing.
+ */
+describe('the title of a composite state in draw.io', () => {
+  const PLAIN = 'swimlane;whiteSpace=wrap;html=1;startSize=30;rounded=1;arcSize=10;';
+  /** `k` states outside a composite, each with a transition to a state inside it (from one, bottom-up, where the flow leaves through the top). */
+  const through = (k, direction, title = 'Under review') => {
+    const n = Array.from({ length: k }, (_, i) => i + 1);
+    return {
+      schemaVersion: 1, kind: 'state', title: 'Review', direction,
+      states: [...n.map((i) => ({ id: `a${i}`, label: `Stage ${i}` })), { id: 'comp', label: title, kind: 'composite', children: n.map((i) => `c${i}`) }, ...n.map((i) => ({ id: `c${i}`, label: `Check ${i}` }))],
+      transitions: n.map((i) => ({ id: `t${i}`, ...(direction === 'BT' ? { from: `c${i}`, to: `a${i}` } : { from: `a${i}`, to: `c${i}` }), ...(i === 2 ? { event: 'flagged' } : {}) })),
+    };
+  };
+  /** Where draw.io puts the label of a line: its place along the drawn line, moved by its offset. */
+  const labelBox = (cell, path) => {
+    const lengths = path.slice(1).map((p, i) => Math.abs(p.x - path[i].x) + Math.abs(p.y - path[i].y));
+    let along = ((Number(cell.mxGeometry.x) + 1) / 2) * lengths.reduce((sum, l) => sum + l, 0);
+    let i = 0;
+    while (i < lengths.length - 1 && along > lengths[i]) along -= lengths[i++];
+    const t = lengths[i] === 0 ? 0 : along / lengths[i];
+    const offset = cell.mxGeometry.mxPoint?.[0] ?? { x: 0, y: 0 };
+    const width = textWidth(cell.value.replace(/<[^>]+>/g, '')) + 4;
+    const align = /align=(left|right|center)/.exec(cell.style)?.[1] ?? 'center';
+    const x = path[i].x + t * (path[i + 1].x - path[i].x) + Number(offset.x) - (align === 'center' ? width / 2 : align === 'right' ? width : 0);
+    const y = path[i].y + t * (path[i + 1].y - path[i].y) + Number(offset.y);
+    return { x0: x, x1: x + width, y0: y - 8, y1: y + 8 };
+  };
+  /** The least distance between the text of a composite's title and a line or a line label in its header strip. */
+  const clearance = ({ cells, abs, paths }, id, label) => {
+    const style = cells.find((c) => c.id === `d:${id}`).style;
+    const frame = abs.get(`d:${id}`);
+    const header = Number(/startSize=(\d+);/.exec(style)[1]);
+    const width = Math.max(...label.split('\n').map((line) => textWidth(line, { bold: true })));
+    const left = /spacingLeft=(\d+);/.exec(style);
+    // draw.io keeps 2 px between a left-aligned title and its margin.
+    const x0 = left ? frame.x + Number(left[1]) + 2 : frame.x + (frame.width - width) / 2;
+    const inStrip = (y0, y1) => y1 > frame.y + 0.5 && y0 < frame.y + header;
+    const spans = [];
+    for (const path of paths.values()) for (let i = 1; i < path.length; i++) if (inStrip(Math.min(path[i - 1].y, path[i].y), Math.max(path[i - 1].y, path[i].y))) spans.push([Math.min(path[i - 1].x, path[i].x), Math.max(path[i - 1].x, path[i].x)]);
+    for (const c of cells.filter((x) => /:label$/.test(x.id) && x.value)) {
+      const box = labelBox(c, paths.get(c.id.replace(/:label$/, '')));
+      if (inStrip(box.y0, box.y1)) spans.push([box.x0, box.x1]);
+    }
+    const inFrame = spans.filter(([a, b]) => b > frame.x && a < frame.x + frame.width);
+    return { style, frame, crossed: inFrame.length, least: Math.min(Infinity, ...inFrame.map(([a, b]) => (b < x0 ? x0 - b : a > x0 + width ? a - (x0 + width) : 0))) };
+  };
+  const layoutWarnings = (r) => r.warnings.filter((w) => String(w.message).startsWith('layout:'));
+
+  for (const direction of ['TB', 'BT']) {
+    for (const k of [1, 2, 3]) {
+      it(`stands 12 px or more from ${k} ${k === 1 ? "line" : "lines"} ${direction === "TB" ? "into the composite from above" : "out of it through the top"} (${direction})`, async () => {
+        const d = await drawio(through(k, direction));
+        const { crossed, least } = clearance(d, 'comp', 'Under review');
+        expect(crossed).toBeGreaterThanOrEqual(k);
+        expect(least).toBeGreaterThanOrEqual(12);
+        expect(layoutWarnings(d.r)).toEqual([]);
+      });
+    }
+  }
+
+  it('moves the title along the header with align and spacingLeft, as a group title is moved', async () => {
+    const d = await drawio(through(1, 'TB'));
+    expect(d.cell('comp').style).toMatch(/^swimlane;whiteSpace=wrap;html=1;startSize=30;rounded=1;arcSize=10;align=left;spacingLeft=\d+;$/);
+  });
+
+  it('keeps its centred place and its style when no line crosses the header', async () => {
+    // Left to right, the transitions enter through the side of the composite.
+    const side = await drawio(through(2, 'LR'));
+    expect(side.cell('comp').style).toBe(PLAIN);
+    // Two lines left and right of a title that fits between them.
+    expect((await drawio(through(2, 'TB'))).cell('comp').style).toBe(PLAIN);
+  });
+
+  it('stays where it is under a transition that ends on the composite itself', async () => {
+    // The arrow stops at the border above the title; it does not run through the header.
+    const d = await drawio(loadFixture('state', 'valid'));
+    expect(d.cell('processing').style).toBe(PLAIN);
+    const end = d.paths.get('d:t3').at(-1);
+    expect(end.y).toBeCloseTo(d.abs.get('d:processing').y, 6);
+  });
+
+  it('widens a composite too narrow for its title beside the line, and keeps the title on one line', async () => {
+    const title = 'Under review by the risk team';
+    const crossed = await drawio(through(1, 'TB', title));
+    const side = await drawio(through(1, 'LR', title));
+    const { frame, least, style, crossed: lines } = clearance(crossed, 'comp', title);
+    expect(lines).toBeGreaterThanOrEqual(1);
+    expect(least).toBeGreaterThanOrEqual(12);
+    expect(frame.width).toBeGreaterThan(side.abs.get('d:comp').width);
+    // The whole title fits between its place and the right side of the frame.
+    const left = Number(/spacingLeft=(\d+);/.exec(style)[1]);
+    expect(frame.width - left - 8).toBeGreaterThanOrEqual(textWidth(title, { bold: true }));
+    expect(layoutWarnings(crossed.r)).toEqual([]);
+  });
+
+  it('widens a composite once, by what the far end of its header lacks, when lines stand on both sides of the title', async () => {
+    // Two lines 85 px apart with the title between them, a pixel too wide for the gap. The
+    // lines keep their places when the composite grows, so only the stretch after the last
+    // line gets longer: sized against the longest stretch, the gap between the lines, the
+    // composite grew a few pixels a round and the title never found a place.
+    const d = await drawio({
+      schemaVersion: 1, kind: 'state', title: 'Between two lines', direction: 'TB',
+      states: [{ id: 'x', label: 'X' }, { id: 'y', label: 'Y' }, { id: 'z', label: 'Z' }, { id: 'comp', label: 'Fulfilment', kind: 'composite', children: ['a', 'b'] }, { id: 'a', label: 'A' }, { id: 'b', label: 'B' }],
+      transitions: [{ id: 't1', from: 'x', to: 'b' }, { id: 't2', from: 'y', to: 'a' }, { id: 't3', from: 'z', to: 'comp' }, { id: 't4', from: 'a', to: 'b' }],
+    });
+    const { crossed, least, style, frame } = clearance(d, 'comp', 'Fulfilment');
+    expect(crossed).toBeGreaterThanOrEqual(2);
+    expect(least).toBeGreaterThanOrEqual(12);
+    expect(layoutWarnings(d.r)).toEqual([]);
+    // The title stands after the last line, and the composite ends 8 px or so after the title.
+    const left = Number(/spacingLeft=(\d+);/.exec(style)[1]);
+    expect(frame.width - left - textWidth('Fulfilment', { bold: true })).toBeLessThan(24);
+  });
+
+  it('steps aside with both lines of a title that names a ref', async () => {
+    const d = await drawio(loadFixture('state', 'valid-ref-parts'));
+    const label = d.cell('fulfil').value.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '');
+    expect(label.split('\n')).toHaveLength(2);
+    expect(d.cell('fulfil').style).toContain('startSize=46;');
+    const { crossed, least } = clearance(d, 'fulfil', label);
+    expect(crossed).toBeGreaterThanOrEqual(1);
+    expect(least).toBeGreaterThanOrEqual(12);
+  });
+
+  it('steps aside in a composite and in the composite around it, when one line crosses both headers', async () => {
+    const d = await drawio({
+      schemaVersion: 1, kind: 'state', title: 'Nested',
+      states: [{ id: 's0', kind: 'initial' }, { id: 'outer', label: 'Processing', kind: 'composite', children: ['inner', 'x'] }, { id: 'inner', label: 'Under review', kind: 'composite', children: ['y'] }, { id: 'y', label: 'Checking' }, { id: 'x', label: 'Waiting' }],
+      transitions: [{ id: 't1', from: 's0', to: 'y' }, { id: 't2', from: 'y', to: 'x', event: 'done' }],
+    });
+    for (const [id, label] of [['outer', 'Processing'], ['inner', 'Under review']]) {
+      const { crossed, least } = clearance(d, id, label);
+      expect(crossed, id).toBeGreaterThanOrEqual(1);
+      expect(least, id).toBeGreaterThanOrEqual(12);
+    }
+  });
+
+  it('keeps the dot of a merged fan-in on its lines when the title has moved', async () => {
+    const sources = Array.from({ length: 5 }, (_, i) => `a${i + 1}`);
+    const d = await drawio({
+      schemaVersion: 1, kind: 'state', title: 'Closing',
+      states: [...sources.map((id, i) => ({ id, label: `Stage ${i + 1}` })), { id: 'comp', label: 'Under review', kind: 'composite', children: ['c'] }, { id: 'c', label: 'Checking' }],
+      transitions: sources.map((from, i) => ({ id: `t${i + 1}`, from, to: 'c' })),
+    });
+    const { crossed, least } = clearance(d, 'comp', 'Under review');
+    expect(crossed).toBeGreaterThanOrEqual(1);
+    expect(least).toBeGreaterThanOrEqual(12);
+    const dots = d.cells.filter((c) => /zukaiJunction=1/.test(c.style ?? ''));
+    expect(dots).toHaveLength(1);
+    const dot = d.abs.get(dots[0].id);
+    const centre = { x: dot.x + dot.width / 2, y: dot.y + dot.height / 2 };
+    const on = (p, a, b) => Math.abs(Math.hypot(p.x - a.x, p.y - a.y) + Math.hypot(p.x - b.x, p.y - b.y) - Math.hypot(a.x - b.x, a.y - b.y)) < 0.01;
+    for (const t of sources.map((_, i) => `d:t${i + 1}`)) expect(d.paths.get(t).some((p, i, path) => i > 0 && on(centre, path[i - 1], p)), t).toBe(true);
   });
 });
 

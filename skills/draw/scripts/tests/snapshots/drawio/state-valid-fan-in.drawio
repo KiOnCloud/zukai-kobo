@@ -28,7 +28,7 @@
         <mxCell id="support-ticket:end" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="1431" y="81" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="support-ticket:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:s0" target="support-ticket:new">
+        <mxCell id="support-ticket:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:s0" target="support-ticket:new">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -133,7 +133,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="support-ticket:t12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.325;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:resolved" target="support-ticket:end">
+        <mxCell id="support-ticket:t12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.325;exitDx=0;exitDy=0;entryX=0;entryY=0.333;entryDx=0.858;entryDy=0.01;entryPerimeter=0;" edge="1" parent="1" source="support-ticket:resolved" target="support-ticket:end">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -142,7 +142,7 @@
             <mxPoint x="0" y="-12" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="support-ticket:t13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.667;entryDx=0;entryDy=0;" edge="1" parent="1" source="support-ticket:cancelled" target="support-ticket:end">
+        <mxCell id="support-ticket:t13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.667;entryDx=0.858;entryDy=-0.01;entryPerimeter=0;" edge="1" parent="1" source="support-ticket:cancelled" target="support-ticket:end">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1396" y="157"/>

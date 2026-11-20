@@ -595,9 +595,12 @@ sources.
 
 ## Status
 
-Version 2.8.0 is the open beta; in draw.io an arrow into a parallelogram or a hexagon ends
-on the outline that is drawn, arrowheads on one side of a flowchart step or a state keep
-10 px between them, and five or more arrows into one side merge into one line with a
+Version 2.8.1 is the open beta; in draw.io the title of a composite state steps aside for
+a transition that crosses its header, relations into a class with a relation to itself end
+on the table instead of at its corners, and lines meet the circle of an initial or final
+state without a jog. Version 2.8.0 ended an arrow into a parallelogram or a hexagon
+on the outline that is drawn, kept 10 px between arrowheads on one side of a flowchart step
+or a state, and merged five or more arrows into one side into one line with a
 junction dot (`fanIn` in the IR pins it). Version 2.7.1 kept a template file checked for
 import in the console while the page reloads and made the test suite pass on macOS. Version 2.7.0 added `/zukai:report`, report templates in three scopes,
 the glossary on prose (polish and translation) and the Reports section of the console.
@@ -610,6 +613,7 @@ middle. Version 2.3.0 added `/zukai:sync`, the use case kind, the SVG pictures,
 the description tables, the picture of a change, the PlantUML reader and Google Cloud icons
 for architecture diagrams; version 2.2.0 added
 `/zukai:recook` and version 2.0.0 added `/zukai:revise`. Forks of the skill should read
+[Upgrading to 2.8.1](docs/install.md#upgrading-to-281),
 [Upgrading to 2.8.0](docs/install.md#upgrading-to-280),
 [Upgrading to 2.7.1](docs/install.md#upgrading-to-271),
 [Upgrading to 2.7.0](docs/install.md#upgrading-to-270),

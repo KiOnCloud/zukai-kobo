@@ -1,0 +1,38 @@
+---
+title: "Invoice settlement"
+---
+classDiagram
+  direction TB
+  %% id: payment
+  class n1["Payment"] {
+    +decimal amount
+    +Date receivedOn
+  }
+  %% id: reminder
+  class n2["Reminder"] {
+    +int level
+  }
+  %% id: dispute
+  class n3["Dispute"] {
+    +string reason
+  }
+  %% id: ledger
+  class n4["LedgerEntry"] {
+    +string account
+  }
+  %% id: invoice
+  class n5["Invoice"] {
+    +string number
+    -decimal total
+    +credit(amount: decimal) Invoice
+  }
+  %% id: r1
+  n1 "0..*" --> "1" n5 : settles
+  %% id: r2
+  n2 --> "1" n5
+  %% id: r3
+  n3 ..> n5
+  %% id: r4
+  n4 "1..*" --> "1" n5
+  %% id: r5
+  n5 "0..1" --> "0..*" n5 : credits

@@ -294,21 +294,47 @@ function sideOf(pt, b) {
   return ['left', 'right', 'top', 'bottom'].find((side) => off[side] < 0.5) ?? Object.keys(off).sort((a, c) => off[a] - off[c])[0];
 }
 
-/** The shape of a style whose outline is narrower than its box: a parallelogram (`io`) or a hexagon (`queue`). */
-const slantedShape = (style = '') => (/(?:^|;)shape=parallelogram;/.test(style) ? 'io' : /(?:^|;)shape=hexagon;/.test(style) ? 'queue' : undefined);
+/**
+ * The shape of a style whose outline is narrower than its box: a parallelogram (`io`), a
+ * hexagon (`queue`) or the circle of an initial or final state (`circle`).
+ */
+const outlineShape = (style = '') => (/(?:^|;)shape=parallelogram;/.test(style) ? 'io' : /(?:^|;)shape=hexagon;/.test(style) ? 'queue' : /(?:^|;)shape=(?:start|end)State;/.test(style) ? 'circle' : undefined);
 
 /**
- * Where a line that reaches the box of a slanted shape at `pt`, on `side`, meets the outline
- * that is drawn: the point moved along the line's own direction onto the slanted edge, so
- * the line keeps the height (or the column) the layout routed it at. A parallelogram's left
+ * Where a line that reaches the box of an ellipse at `pt` meets the ellipse: the point moved
+ * along the line's own direction onto the outline. `sideways` says the line comes in through
+ * the left or right side of the box, so it keeps its height; otherwise it keeps its column.
+ * At the very end of a side the ellipse runs along the line, so the point stops at 0.98 of
+ * the half axis.
+ */
+function ellipsePoint(b, pt, sideways) {
+  const rx = b.width / 2;
+  const ry = b.height / 2;
+  const cx = b.x + rx;
+  const cy = b.y + ry;
+  const clamp = (v) => Math.max(-0.98, Math.min(0.98, v));
+  if (sideways) {
+    const t = clamp((pt.y - cy) / ry);
+    return { x: cx + Math.sign(pt.x - cx || 1) * rx * Math.sqrt(1 - t * t), y: cy + t * ry };
+  }
+  const t = clamp((pt.x - cx) / rx);
+  return { x: cx + t * rx, y: cy + Math.sign(pt.y - cy || 1) * ry * Math.sqrt(1 - t * t) };
+}
+
+/**
+ * Where a line that reaches the box of such a shape at `pt`, on `side`, meets the outline
+ * that is drawn: the point moved along the line's own direction onto the outline, so the
+ * line keeps the height (or the column) the layout routed it at. A parallelogram's left
  * edge runs from the box's bottom-left corner to SLANT in from its top-left, and its right
  * edge is parallel to that; a hexagon's two edges on each side meet at mid-height, on the
  * box. Along the top and bottom the outline is the box itself, except in the strip beside a
- * slanted edge, where the line runs on to that edge.
- * @param {'io'|'queue'} shape
+ * slanted edge, where the line runs on to that edge. A circle touches its box only in the
+ * middle of each side (see ellipsePoint).
+ * @param {'io'|'queue'|'circle'} shape
  * @param {{x:number,y:number,width:number,height:number}} b the box the shape is drawn in
  */
 function outlinePoint(shape, b, pt, side) {
+  if (shape === 'circle') return ellipsePoint(b, pt, side === 'left' || side === 'right');
   const hexagon = shape === 'queue';
   // draw.io draws the slant no wider than the shape allows.
   const s = Math.min(SLANT, hexagon ? b.width / 2 : b.width);
@@ -513,14 +539,14 @@ function graphCells(cid, layout, { containers, nodes, edges, direction, junction
   // running through it; `perimeter=0` makes draw.io keep that point. The layout gives such a
   // shape ports within the figure's extent (see clientPorts), so no end lies beside the label.
   //
-  // A parallelogram or a hexagon is narrower than its box, and ELK ends every line on the box.
-  // Left to draw.io, such an end is moved onto the outline along the ray to the shape's
-  // centre, which takes it off the height the line was routed at: the line gets a jog just
-  // before its end and the arrowhead points along the jog. So the end is moved onto the
-  // slanted edge here, along the line's own direction, as a pixel offset from the point on
-  // the box (the slant is a fixed number of pixels, so the offset holds when the shape is
-  // resized), and `perimeter=0` makes draw.io keep it. An end at a port that sidePorts set
-  // (`exactEnds`) is kept to the pixel in the same way.
+  // A parallelogram, a hexagon and the circle of an initial or final state are narrower than
+  // their box, and ELK ends every line on the box. Left to draw.io, such an end is moved onto
+  // the outline along the ray to the shape's centre, which takes it off the height the line
+  // was routed at: the line gets a jog just before its end and the arrowhead points along the
+  // jog. So the end is moved onto the outline here, along the line's own direction, as a
+  // pixel offset from the point on the box (the slant is a fixed number of pixels and the
+  // circle has a fixed size, so the offset holds), and `perimeter=0` makes draw.io keep it.
+  // An end at a port that sidePorts set (`exactEnds`) is kept to the pixel in the same way.
   const anchor = (id, pt) => {
     const n = nodeOf(id) ?? {};
     const b = drawBox(n, absoluteBox(id, layout, parentOf));
@@ -530,7 +556,7 @@ function graphCells(cid, layout, { containers, nodes, edges, direction, junction
       a.dx = pt.x - (b.x + a.x * b.width);
       a.dy = pt.y - (b.y + b.height);
     }
-    const shape = slantedShape(n.style);
+    const shape = outlineShape(n.style);
     if (shape || n.exactEnds) {
       if (shape) a.side = sideOf(pt, b);
       // The point on the box itself: the port of a line that leads back to a loop head lies a pixel outside it.
@@ -698,9 +724,13 @@ const JUNCTION = 6;
  * so is one with `fixedOutline` (the circle of an initial or final state, which cannot grow
  * and whose outline is no side of a box).
  * Each merged group is added to `merges`. Returns whether any port was set.
- * @param {{fanIn?: 'auto'|'merge'|'separate', merges?: Array<{node:string, edges:string[]}>}} [how]
+ *
+ * `minGap` is the room each end is given, MIN_END_GAP unless the caller says otherwise. With
+ * 0 no side counts as crowded and no node grows: only a side with an end off the outline (or
+ * with a merged line) gets its ends spread, which is all a class diagram asks for.
+ * @param {{fanIn?: 'auto'|'merge'|'separate', merges?: Array<{node:string, edges:string[]}>, minGap?: number}} [how]
  */
-function sidePorts(layout, { containers, nodes, edges, direction }, { fanIn = 'auto', merges = [] } = {}) {
+function sidePorts(layout, { containers, nodes, edges, direction }, { fanIn = 'auto', merges = [], minGap = MIN_END_GAP } = {}) {
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
   const open = new Map(nodes.filter((n) => !n.ports?.length && !n.fixedOutline).map((n) => [n.id, n]));
   const upright = (side) => side === 'left' || side === 'right';
@@ -712,7 +742,7 @@ function sidePorts(layout, { containers, nodes, edges, direction }, { fanIn = 'a
     const width = n.drawWidth ?? n.width;
     const start = (n.width - width) / 2;
     // A parallelogram's top starts the slant in from the left, and its bottom ends as far before the right.
-    const slant = slantedShape(n.style) === 'io' ? Math.min(SLANT, width) : 0;
+    const slant = outlineShape(n.style) === 'io' ? Math.min(SLANT, width) : 0;
     return side === 'top' ? [start + slant, start + width] : [start, start + width - slant];
   };
   const ends = new Map();
@@ -747,7 +777,7 @@ function sidePorts(layout, { containers, nodes, edges, direction }, { fanIn = 'a
       slots.sort((a, b) => a.at - b.at);
       const [lo, hi] = extent(n, side);
       for (const slot of slots) slot.share = hi > lo ? Math.max(0, Math.min(1, (slot.at - lo) / (hi - lo))) : 0.5;
-      const close = slots.some((slot, i) => i > 0 && slot.at - slots[i - 1].at < MIN_END_GAP - 0.01);
+      const close = slots.some((slot, i) => i > 0 && slot.at - slots[i - 1].at < minGap - 0.01);
       const off = slots.some((slot) => slot.at < lo - 0.5 || slot.at > hi + 0.5);
       return { side, slots, spread: close || off || merged !== undefined };
     });
@@ -755,7 +785,7 @@ function sidePorts(layout, { containers, nodes, edges, direction }, { fanIn = 'a
     for (const g of groups) {
       if (!g.spread) continue;
       const [lo, hi] = extent(n, g.side);
-      const short = (g.slots.length + 1) * MIN_END_GAP - (hi - lo);
+      const short = (g.slots.length + 1) * minGap - (hi - lo);
       if (short <= 0) continue;
       if (upright(g.side)) n.height += short;
       else { n.width += short; if (n.drawWidth !== undefined) n.drawWidth += short; }
@@ -1070,7 +1100,11 @@ async function emitState(ir, cid, refs, warnings) {
   const compositeHeader = (lines) => 30 + 16 * (lines - 1);
   // A title wraps at the composite's width, but a word of it cannot break: the composite is at least as wide as that word needs.
   const titleRoom = (label) => 2 * Math.ceil((roomFor(widestWord(label, { bold: true })) + 2 * LABEL_PAD) / 2);
-  const containers = composites.map((s) => ({ id: s.id, label: shown.get(s.id).label, link: shown.get(s.id).link, parent: parent.get(s.id), style: STYLE.composite, headerHeight: compositeHeader(shown.get(s.id).label.split('\n').length), minWidth: titleRoom(shown.get(s.id).label) }));
+  const containers = composites.map((s) => {
+    const { label, link } = shown.get(s.id);
+    const headerHeight = compositeHeader(label.split('\n').length);
+    return { id: s.id, label, link, parent: parent.get(s.id), style: STYLE.composite, headerHeight, minWidth: titleRoom(label), title: plainTitle(label, headerHeight) };
+  });
   const nodes = ir.states.filter((s) => kindOf(s) !== 'composite').map((s) => {
     const kind = kindOf(s);
     const circle = kind === 'initial' || kind === 'final';
@@ -1090,9 +1124,19 @@ async function emitState(ir, cid, refs, warnings) {
   let taller = false;
   for (const c of containers) {
     const height = compositeHeader(headerLines(c.label, layout.containers.get(c.id).width));
-    if (height > c.headerHeight) { c.headerHeight = height; taller = true; }
+    if (height > c.headerHeight) { c.headerHeight = height; c.title = plainTitle(c.label, height); taller = true; }
   }
   if (taller) layout = await arrange();
+  // A transition that enters a composite from above runs across its header: the title steps
+  // aside, and a composite too narrow for that is widened, which moves the lines, so the
+  // titles are placed again.
+  let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
+  for (let round = 0; unplaced && round < 6; round++) {
+    layout = await arrange();
+    unplaced = placeGroupTitles(layout, { containers, nodes, edges });
+  }
+  if (unplaced) warnings.push({ path: '/states', message: 'layout: a transition crosses the title of a composite state; no free place was found for it along the top of the state', hint: 'shorten the state label or change "direction"' });
+  for (const c of containers) if (c.titleOffset !== undefined) c.style = titleAt(c.style, c.titleOffset);
   return graphCells(cid, layout, { containers, nodes, edges, direction: ir.direction, junctions: fanInJunctions(layout, merges) });
 }
 
@@ -1352,7 +1396,13 @@ async function emitClass(ir, cid, warnings, refs) {
     n.drawWidth = n.width;
     n.width += 2 * extra;
   }
-  const layout = await layoutGraph({ nodes, edges, direction: ir.direction, spacing: { nodeNode: 60, layer: 80, ...loopSpacing(ir.direction) } });
+  const arrange = () => layoutGraph({ nodes, edges, direction: ir.direction, spacing: { nodeNode: 60, layer: 80, ...loopSpacing(ir.direction) } });
+  let layout = await arrange();
+  // The layout spreads the relations on the top and bottom of a class over the box it was
+  // given, so beside a table that is drawn narrower than that box some end off the table and
+  // would be drawn into its corners from the side. Such a side gets its ends spread over the
+  // table itself (see sidePorts); the relations stay apart and no class grows for them.
+  if (sidePorts(layout, { containers: [], nodes, edges, direction: ir.direction }, { fanIn: 'separate', minGap: 0 })) layout = await arrange();
   return graphCells(cid, layout, { containers: [], nodes, edges, direction: ir.direction }, warnings);
 }
 
@@ -1473,9 +1523,11 @@ function placeGroupTitles(layout, { containers, nodes, edges }) {
     const { width, height, start, centred, plain } = c.title;
     const lo = frame.x + start;
     const hi = frame.x + frame.width - TITLE_GAP;
-    // The stretches of the strip that a line runs through, each with a gap on both sides.
+    // The stretches of the strip that a line runs through, each with a gap on both sides. A
+    // line that ends on the border of the frame itself (a transition to a composite state)
+    // stops outside the strip: it only touches the frame and crosses no title.
     const taken = lines
-      .filter((l) => l.y1 >= frame.y && l.y0 <= frame.y + height && l.x1 >= frame.x && l.x0 <= frame.x + frame.width)
+      .filter((l) => l.y1 > frame.y + 0.5 && l.y0 <= frame.y + height && l.x1 > frame.x + 0.5 && l.x0 < frame.x + frame.width - 0.5)
       .map((l) => [l.x0 - TITLE_LINE_GAP, l.x1 + TITLE_LINE_GAP])
       .sort((a, b) => a[0] - b[0]);
     if (plain && taken.length === 0) { c.titleOffset = undefined; continue; }
@@ -1494,8 +1546,10 @@ function placeGroupTitles(layout, { containers, nodes, edges }) {
       if (best === undefined || Math.abs(x - usual) < Math.abs(best - usual)) best = x;
     }
     if (best === undefined) {
-      const longest = free.reduce((m, [a, b]) => Math.max(m, b - a), 0);
-      c.minWidth = 2 * Math.ceil((Math.max(c.minWidth ?? 0, frame.width) + width - longest + 2) / 2);
+      // A wider frame grows at its far side, and the lines keep their places: only the free
+      // stretch that ends at that side gets longer, so the frame grows by what that one lacks.
+      const tail = Math.max(0, hi - at);
+      c.minWidth = 2 * Math.ceil((Math.max(c.minWidth ?? 0, frame.width) + width - tail + 2) / 2);
       c.titleOffset = undefined;
       widened = true;
     } else {
@@ -2859,17 +2913,9 @@ function usecaseAnchor(n, layoutBox, pt) {
   const b = drawBox(n, layoutBox);
   const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
   if (n.ellipse) {
-    const rx = b.width / 2;
-    const ry = b.height / 2;
-    const cx = b.x + rx;
-    const cy = b.y + ry;
     const sideways = Math.min(Math.abs(pt.x - b.x), Math.abs(pt.x - b.x - b.width)) <= Math.min(Math.abs(pt.y - b.y), Math.abs(pt.y - b.y - b.height));
-    if (sideways) {
-      const t = clamp((pt.y - cy) / ry, -0.98, 0.98);
-      return { x: (cx + Math.sign(pt.x - cx || 1) * rx * Math.sqrt(1 - t * t) - b.x) / b.width, y: (cy + t * ry - b.y) / b.height, dx: 0, dy: 0, fixed: true };
-    }
-    const t = clamp((pt.x - cx) / rx, -0.98, 0.98);
-    return { x: (cx + t * rx - b.x) / b.width, y: (cy + Math.sign(pt.y - cy || 1) * ry * Math.sqrt(1 - t * t) - b.y) / b.height, dx: 0, dy: 0, fixed: true };
+    const on = ellipsePoint(b, pt, sideways);
+    return { x: (on.x - b.x) / b.width, y: (on.y - b.y) / b.height, dx: 0, dy: 0, fixed: true };
   }
   const a = { x: clamp((pt.x - b.x) / b.width), y: clamp((pt.y - b.y) / b.height), dx: 0, dy: 0, fixed: false };
   // Under the name of a figure: the point itself, as an offset from the figure's bottom.

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "class",
+  "title": "Invoice settlement",
+  "direction": "TB",
+  "meta": { "source": "clarify", "notes": ["layout repro: four relations into a class whose self-relation widens its layout box; each must end on the table, none at a corner"] },
+  "classes": [
+    { "id": "payment", "label": "Payment", "attributes": [{ "name": "amount", "type": "decimal", "visibility": "public" }, { "name": "receivedOn", "type": "Date", "visibility": "public" }] },
+    { "id": "reminder", "label": "Reminder", "attributes": [{ "name": "level", "type": "int", "visibility": "public" }] },
+    { "id": "dispute", "label": "Dispute", "attributes": [{ "name": "reason", "type": "string", "visibility": "public" }] },
+    { "id": "ledger", "label": "LedgerEntry", "attributes": [{ "name": "account", "type": "string", "visibility": "public" }] },
+    { "id": "invoice", "label": "Invoice", "attributes": [{ "name": "number", "type": "string", "visibility": "public" }, { "name": "total", "type": "decimal", "visibility": "private" }], "methods": [{ "name": "credit", "params": "amount: decimal", "returns": "Invoice", "visibility": "public" }] }
+  ],
+  "relations": [
+    { "id": "r1", "from": "payment", "to": "invoice", "kind": "association", "label": "settles", "fromCardinality": "0..*", "toCardinality": "1" },
+    { "id": "r2", "from": "reminder", "to": "invoice", "kind": "association", "toCardinality": "1" },
+    { "id": "r3", "from": "dispute", "to": "invoice", "kind": "dependency" },
+    { "id": "r4", "from": "ledger", "to": "invoice", "kind": "association", "fromCardinality": "1..*", "toCardinality": "1" },
+    { "id": "r5", "from": "invoice", "to": "invoice", "kind": "association", "label": "credits", "fromCardinality": "0..1", "toCardinality": "0..*" }
+  ]
+}

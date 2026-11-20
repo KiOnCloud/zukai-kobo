@@ -4,8 +4,8 @@
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
-        <mxCell id="order-lifecycle-main:fulfil" value="Fulfilment&lt;br&gt;↳ order-sync-02-store" style="swimlane;whiteSpace=wrap;html=1;startSize=46;rounded=1;arcSize=10;" vertex="1" parent="1">
-          <mxGeometry x="12" y="484" width="177" height="302" as="geometry"/>
+        <mxCell id="order-lifecycle-main:fulfil" value="Fulfilment&lt;br&gt;↳ order-sync-02-store" style="swimlane;whiteSpace=wrap;html=1;startSize=46;rounded=1;arcSize=10;align=left;spacingLeft=109;" vertex="1" parent="1">
+          <mxGeometry x="12" y="484" width="252" height="302" as="geometry"/>
         </mxCell>
         <mxCell id="order-lifecycle-main:start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="94" y="12" width="30" height="30" as="geometry"/>
@@ -25,7 +25,7 @@
         <mxCell id="order-lifecycle-main:done" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="94" y="856" width="30" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="order-lifecycle-main:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle-main:start" target="order-lifecycle-main:new">
+        <mxCell id="order-lifecycle-main:t1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle-main:start" target="order-lifecycle-main:new">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -56,7 +56,7 @@
             <mxPoint x="-4" y="0" as="offset"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="order-lifecycle-main:t5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order-lifecycle-main:shipped" target="order-lifecycle-main:done">
+        <mxCell id="order-lifecycle-main:t5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;jumpStyle=arc;jumpSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="order-lifecycle-main:shipped" target="order-lifecycle-main:done">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
