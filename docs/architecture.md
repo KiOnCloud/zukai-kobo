@@ -335,8 +335,10 @@ The title of a frame steps aside for a line through its header (`placeGroupTitle
 flowchart group, a plain or cloud architecture boundary, a use case boundary and a composite
 state give each container a `title` (its width, its usual place), the function marks the
 stretches of the header strip that a line or a line label runs through and sets
-`titleOffset`, or raises `minWidth` when no free stretch is long enough, and the caller lays
-out again, up to six times, before it warns. A line that ends on the border of the frame
+`titleOffset`, or raises `minWidth` when no free stretch is long enough (by what the stretch
+at the far end of the header lacks: the lines keep their places when a frame grows, so that
+is the one stretch that gets longer), and the caller lays out again, up to six times, before
+it warns. A line that ends on the border of the frame
 itself (a transition to a composite state) touches the strip from outside and marks nothing.
 
 An architecture component drawn as a figure with its name below (a `client`, or a component

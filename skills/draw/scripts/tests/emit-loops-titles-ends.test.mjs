@@ -244,13 +244,33 @@ describe('the title of a composite state in draw.io', () => {
     const title = 'Under review by the risk team';
     const crossed = await drawio(through(1, 'TB', title));
     const side = await drawio(through(1, 'LR', title));
-    const { frame, least, style } = clearance(crossed, 'comp', title);
+    const { frame, least, style, crossed: lines } = clearance(crossed, 'comp', title);
+    expect(lines).toBeGreaterThanOrEqual(1);
     expect(least).toBeGreaterThanOrEqual(12);
     expect(frame.width).toBeGreaterThan(side.abs.get('d:comp').width);
     // The whole title fits between its place and the right side of the frame.
     const left = Number(/spacingLeft=(\d+);/.exec(style)[1]);
     expect(frame.width - left - 8).toBeGreaterThanOrEqual(textWidth(title, { bold: true }));
     expect(layoutWarnings(crossed.r)).toEqual([]);
+  });
+
+  it('widens a composite once, by what the far end of its header lacks, when lines stand on both sides of the title', async () => {
+    // Two lines 85 px apart with the title between them, a pixel too wide for the gap. The
+    // lines keep their places when the composite grows, so only the stretch after the last
+    // line gets longer: sized against the longest stretch, the gap between the lines, the
+    // composite grew a few pixels a round and the title never found a place.
+    const d = await drawio({
+      schemaVersion: 1, kind: 'state', title: 'Between two lines', direction: 'TB',
+      states: [{ id: 'x', label: 'X' }, { id: 'y', label: 'Y' }, { id: 'z', label: 'Z' }, { id: 'comp', label: 'Fulfilment', kind: 'composite', children: ['a', 'b'] }, { id: 'a', label: 'A' }, { id: 'b', label: 'B' }],
+      transitions: [{ id: 't1', from: 'x', to: 'b' }, { id: 't2', from: 'y', to: 'a' }, { id: 't3', from: 'z', to: 'comp' }, { id: 't4', from: 'a', to: 'b' }],
+    });
+    const { crossed, least, style, frame } = clearance(d, 'comp', 'Fulfilment');
+    expect(crossed).toBeGreaterThanOrEqual(2);
+    expect(least).toBeGreaterThanOrEqual(12);
+    expect(layoutWarnings(d.r)).toEqual([]);
+    // The title stands after the last line, and the composite ends 8 px or so after the title.
+    const left = Number(/spacingLeft=(\d+);/.exec(style)[1]);
+    expect(frame.width - left - textWidth('Fulfilment', { bold: true })).toBeLessThan(24);
   });
 
   it('steps aside with both lines of a title that names a ref', async () => {
@@ -283,7 +303,9 @@ describe('the title of a composite state in draw.io', () => {
       states: [...sources.map((id, i) => ({ id, label: `Stage ${i + 1}` })), { id: 'comp', label: 'Under review', kind: 'composite', children: ['c'] }, { id: 'c', label: 'Checking' }],
       transitions: sources.map((from, i) => ({ id: `t${i + 1}`, from, to: 'c' })),
     });
-    expect(clearance(d, 'comp', 'Under review').least).toBeGreaterThanOrEqual(12);
+    const { crossed, least } = clearance(d, 'comp', 'Under review');
+    expect(crossed).toBeGreaterThanOrEqual(1);
+    expect(least).toBeGreaterThanOrEqual(12);
     const dots = d.cells.filter((c) => /zukaiJunction=1/.test(c.style ?? ''));
     expect(dots).toHaveLength(1);
     const dot = d.abs.get(dots[0].id);

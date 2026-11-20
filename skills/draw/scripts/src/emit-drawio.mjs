@@ -1546,8 +1546,10 @@ function placeGroupTitles(layout, { containers, nodes, edges }) {
       if (best === undefined || Math.abs(x - usual) < Math.abs(best - usual)) best = x;
     }
     if (best === undefined) {
-      const longest = free.reduce((m, [a, b]) => Math.max(m, b - a), 0);
-      c.minWidth = 2 * Math.ceil((Math.max(c.minWidth ?? 0, frame.width) + width - longest + 2) / 2);
+      // A wider frame grows at its far side, and the lines keep their places: only the free
+      // stretch that ends at that side gets longer, so the frame grows by what that one lacks.
+      const tail = Math.max(0, hi - at);
+      c.minWidth = 2 * Math.ceil((Math.max(c.minWidth ?? 0, frame.width) + width - tail + 2) / 2);
       c.titleOffset = undefined;
       widened = true;
     } else {
