@@ -768,6 +768,33 @@ again from part 1 is the safe choice when in doubt. The bundle written to save c
 only the diagrams none of whose parts ran, and it goes into the run folder of the first of
 them. A Starter plan allows 20 Figma MCP calls a month.
 
+## Upgrading to 2.8.1
+
+Version 2.8.1 fixes three places where a draw.io line met a shape badly. Existing `.ir.json`
+files, run folders, CLI commands, options and exit codes keep working unchanged; a draw.io
+file emitted again from the same IR can differ as described here, and `drift` reports no
+difference between such a file and its IR. ER, architecture, use case, sequence and activity
+diagrams, and class diagrams without a relation of a class to itself, are emitted byte for
+byte as by 2.8.0.
+
+- **The title of a composite state.** A transition that enters a state inside a composite
+  from above (or leaves one through the top, bottom-up) ran through the title of the
+  composite. The title now moves along the header to the nearest free stretch, 12 px or
+  more from the line and its label, as the title of a flowchart group does: the style of
+  the composite gains `align=left;spacingLeft=<px>`. A composite too narrow for its title
+  beside the line is widened. A composite whose header no line crosses, and one that a
+  transition only ends on, keeps its centred title and its style.
+- **Relations into a class with a relation to itself.** Top-down and bottom-up, three or
+  more relations into such a class had their outer ends drawn into the corners of the table
+  from the side. Every end now lies on the top or bottom of the table with a last stretch
+  along the flow; the edge styles of that class gain `entryPerimeter=0` or
+  `exitPerimeter=0`. Classes keep their size and the relations stay apart.
+- **Lines on the circle of an initial or final state.** Two or more lines on one side of
+  the circle each had a jog of a pixel or two where they met it. Each now ends on the
+  circle at the column (or the height) it was routed at. Every edge that starts at an
+  initial state or ends at a final one gains `exitPerimeter=0` or `entryPerimeter=0`, so
+  the file of every state diagram differs by that marker even where the picture is the same.
+
 ## Upgrading to 2.8.0
 
 Version 2.8.0 changes how draw.io draws arrows into slanted shapes and many arrows into one
