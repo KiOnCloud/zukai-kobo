@@ -220,9 +220,9 @@ describe('figjam native script', () => {
       'M 357 662 L 357 880 L 175 880 L 175.03 908.63',
     ]);
     await expectLines('state', 'valid-self-loop', [
-      // No waypoint and ports that do not face each other: a step halfway, leaving the corner port downwards.
-      'M 584 142 L 584 240 L 524 240 L 524 331.63',
-      'M 707 142 L 767 142 L 767 167 L 755 167 L 755 685 L 564 685 L 564.03 713.63',
+      // Two lines out of the bottom of a state with a loop beside it: they leave the shape itself, a third of its width apart.
+      'M 625 152 L 625 351.63',
+      'M 666 152 L 666 187 L 856 187 L 856 705 L 665 705 L 665.03 733.63',
     ]);
     await expectLines('architecture', 'valid', [
       // A port on the slanted side of a hexagon lies on that side, at the height the layout routed

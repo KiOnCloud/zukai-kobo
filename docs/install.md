@@ -780,10 +780,15 @@ here, and `drift` reports no difference between such a file and its IR.
   routed it at. Before, draw.io moved the end towards the centre of the shape, so an
   arrowhead near a corner pointed along a small jog and a straight line turned slanted.
   The edge style of such an end gains `entryPerimeter=0` or `exitPerimeter=0` and a pixel
-  offset; every other shape keeps its anchors as they were.
+  offset.
 - **Room between arrowheads (flowchart, state).** Line ends on one side of a node are at
   least 10 px apart. A node with four or more ends on a 40 px side is taller (or wider) than
-  before: (ends + 1) x 10 px. A node whose ends already had the room is unchanged.
+  before: (ends + 1) x 10 px, and every line end at such a node is written with
+  `entryPerimeter=0` or `exitPerimeter=0` and, where its share of the side is not exact to
+  three decimals, a pixel offset of a fraction of a pixel. In a top-down or bottom-up
+  diagram, a step with a self-loop beside it has the ends on its top and bottom spread over
+  the shape itself; before, the outer ones could end at its corners from the side. A node
+  whose ends already had the room, on the shape, keeps its size and its anchors.
 - **Merged fan-in (flowchart, state).** Five or more lines into one side of a node that
   carry no label and do not lead back to an earlier step are drawn as one line with one
   arrowhead and a junction dot. The model keeps every edge, and `extract`, `drift`, `cover`

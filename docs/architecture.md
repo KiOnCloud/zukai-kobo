@@ -314,8 +314,12 @@ direction onto the slanted edge (`outlinePoint`) and writes it as a pixel offset
 `perimeter=0`, so draw.io keeps the height the line was routed at instead of pulling the end
 towards the centre of the shape. Flowchart and state diagrams run a second pass after the
 first layout (`sidePorts`): a node whose ends on one side are closer than 10 px grows along
-that side and gets a fixed port for every end, the line back to a loop head included, since
-a node with fixed ports gets no port from `layoutGraph` for it; five or more lines into one
+that side and gets a fixed port for every end, since a node with fixed ports gets none from
+`layoutGraph`: the line back to a loop head keeps its side across the flow, and a self-loop
+that ELK routes (left-to-right and right-to-left) keeps its two ends on top, where ELK would
+otherwise attach it to the corners of the node. Ends that lie beside the shape (the strip a
+parallelogram's slant leaves, or the box a loop beside the shape widened) are spread over
+the shape the same way; five or more lines into one
 side that can share a line get one port, which ELK routes as one line. `fanInJunctions`
 then finds, on the routes of the last layout, the point where the merged lines have all
 joined, and the emitter draws a dot there as a vertex tagged `zukaiJunction=1`, which

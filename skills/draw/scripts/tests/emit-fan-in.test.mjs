@@ -69,6 +69,51 @@ describe('room between the line ends on one side of a node', () => {
     });
   }
 
+  for (const direction of ['LR', 'RL']) {
+    it(`keeps a self-loop a small loop over the top of a node that got ports (${direction})`, async () => {
+      for (const k of [4, 9]) {
+        const ir = fanIn(k, { direction });
+        ir.edges.push({ id: 'l1', from: 't', to: 't', label: 'retry' });
+        const d = await drawio(ir);
+        const b = d.box('t');
+        const loop = d.path('l1');
+        // Out of the top and back into it, both ends inside the width of the node, 30 px up.
+        expect(loop[0].y).toBeCloseTo(b.y, 6);
+        expect(loop.at(-1).y).toBeCloseTo(b.y, 6);
+        for (const end of [loop[0], loop.at(-1)]) {
+          expect(end.x).toBeGreaterThan(b.x + 10);
+          expect(end.x).toBeLessThan(b.x + b.width - 10);
+        }
+        expect(Math.min(...loop.map((p) => p.y))).toBeCloseTo(b.y - 30, 6);
+        expect(Math.min(...loop.map((p) => p.x))).toBeGreaterThan(b.x);
+        expect(Math.max(...loop.map((p) => p.x))).toBeLessThan(b.x + b.width);
+        // The loop takes no part in the fan-in on the side along the flow.
+        expect(endGaps(ends(d, k), direction).every((g) => g >= MIN_GAP)).toBe(true);
+        expect(d.junctions).toHaveLength(k >= 5 ? 1 : 0);
+      }
+    });
+  }
+
+  for (const direction of ['TB', 'BT']) {
+    it(`ends the lines on the shape itself when a loop beside it widened its layout box (${direction})`, async () => {
+      // The layout spreads the ends over the wider box; the outer ones would end beside the shape.
+      for (const shape of ['process', 'io']) {
+        const ir = fanIn(4, { shape, direction });
+        ir.edges.push({ id: 'l1', from: 't', to: 't', label: 'retry' });
+        const d = await drawio(ir);
+        const b = d.box('t');
+        const outline = outlineOf(d.cell('t'), b);
+        for (const p of ends(d, 4)) {
+          expect(distanceTo(outline, p.at(-1))).toBeLessThan(0.01);
+          expect(offFlow(p, direction)).toBeLessThan(0.01);
+          expect(p.at(-1).x).toBeGreaterThan(b.x);
+          expect(p.at(-1).x).toBeLessThan(b.x + b.width);
+        }
+        expect(endGaps(ends(d, 4), direction).every((g) => g >= MIN_GAP)).toBe(true);
+      }
+    });
+  }
+
   it('gives the transitions into a state the same room', async () => {
     const ir = { schemaVersion: 1, kind: 'state', title: 'Closing', direction: 'LR', states: [...Array.from({ length: 4 }, (_, i) => ({ id: `s${i + 1}`, label: `State ${i + 1}` })), { id: 't', label: 'Closed' }], transitions: Array.from({ length: 4 }, (_, i) => ({ id: `e${i + 1}`, from: `s${i + 1}`, to: 't', event: `close ${i + 1}` })) };
     const d = await drawio(ir);
@@ -186,6 +231,14 @@ describe('many lines into one side merge into one', () => {
     const d = await drawio(queueFanIn(9));
     expect(endGaps(ends(d, 9), 'LR')).toHaveLength(8);
     expect(d.junctions).toHaveLength(0);
+  });
+
+  it('numbers the dots of each node on their own', async () => {
+    const ir = fanIn(5, { direction: 'TB' });
+    ir.nodes.push(...Array.from({ length: 5 }, (_, i) => ({ id: `r${i + 1}`, label: `Reader ${i + 1}` })), { id: 'u', label: 'Publish' });
+    ir.edges.push(...Array.from({ length: 5 }, (_, i) => ({ id: `g${i + 1}`, from: `r${i + 1}`, to: 'u' })));
+    const d = await drawio(ir);
+    expect(d.junctions.map((c) => c.id).sort()).toEqual(['d:t:junction:1', 'd:u:junction:1']);
   });
 
   it('draws a second dot only where four of the merged lines meet again', () => {

@@ -100,6 +100,18 @@ describe('line ends on a parallelogram and a hexagon', () => {
     });
   }
 
+  for (const direction of ['LR', 'RL']) {
+    it(`ends the line back to a parallelogram loop head on its outline, not a pixel below it (${direction})`, async () => {
+      // The layout's port for a line that leads back lies against the box from outside.
+      const ir = { schemaVersion: 1, kind: 'flowchart', title: 'Loop', direction, nodes: [{ id: 's', label: 'Start', shape: 'terminal' }, { id: 't', label: 'Read the next file', shape: 'io' }, { id: 'w', label: 'Check it' }, { id: 'q', label: 'More files?', shape: 'decision' }, { id: 'z', label: 'Done', shape: 'terminal' }], edges: [{ id: 'e1', from: 's', to: 't' }, { id: 'e2', from: 't', to: 'w' }, { id: 'e3', from: 'w', to: 'q' }, { id: 'b1', from: 'q', to: 't', kind: 'conditional', label: 'yes' }, { id: 'e4', from: 'q', to: 'z', kind: 'conditional', label: 'no' }] };
+      const d = await drawio(ir);
+      const b = d.box('t');
+      const end = d.path('b1').at(-1);
+      expect(distanceTo(outlineOf(d.cell('t'), b), end)).toBeLessThan(0.01);
+      expect(end.y).toBeCloseTo(b.y + b.height, 6);
+    });
+  }
+
   it('leaves a self-loop on a rectangle as it was', async () => {
     const ir = { schemaVersion: 1, kind: 'flowchart', title: 'Retry', nodes: [{ id: 't', label: 'Read the file' }], edges: [{ id: 'l1', from: 't', to: 't' }] };
     const d = await drawio(ir);

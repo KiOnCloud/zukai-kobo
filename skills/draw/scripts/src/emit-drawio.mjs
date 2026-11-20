@@ -533,7 +533,9 @@ function graphCells(cid, layout, { containers, nodes, edges, direction, junction
     const shape = slantedShape(n.style);
     if (shape || n.exactEnds) {
       if (shape) a.side = sideOf(pt, b);
-      const on = shape ? outlinePoint(shape, b, pt, a.side) : pt;
+      // The point on the box itself: the port of a line that leads back to a loop head lies a pixel outside it.
+      const onBox = { x: b.x + a.x * b.width, y: b.y + a.y * b.height };
+      const on = shape ? outlinePoint(shape, b, onBox, a.side) : onBox;
       // The share is written to three decimals, which can be a tenth of a pixel off; the
       // offset takes up the rest, so lines that share an end are drawn on one another.
       a.x = round(a.x);
@@ -677,13 +679,20 @@ const JUNCTION = 6;
  *   - the lines into one side that can share a line (no label, not leading back, the same
  *     style) merge when there are enough of them (`fanIn`: five by default): they get one
  *     port, which the layout routes as one line that the others join;
- *   - a side whose ends are closer than MIN_END_GAP, or lie off the outline, or hold a merged
- *     line, has its ends spaced evenly over the part of the side the outline covers, in the
+ *   - a side whose ends are closer than MIN_END_GAP, or lie off the outline (beside a
+ *     parallelogram's top, or beside a shape drawn centred in a box widened for its loop),
+ *     or hold a merged line, has its ends spaced evenly over the part of the side the outline covers, in the
  *     order of the first pass, a merged line counting as one end; the node grows along that
  *     side when it is shorter than (ends + 1) x MIN_END_GAP;
  *   - every other end of the node gets a port where the first pass had it, as its share of
  *     the side: a node with fixed ports must have one for each of its ends, the line that
  *     leads back to a loop head included, which so stays on the side across the flow.
+ *
+ * In a left-to-right or right-to-left diagram a self-loop is drawn on the route the layout
+ * gives it, over the top of its node, so its two ends count as ends of that side and get
+ * ports like the others; without them the layout attaches the loop to the corners of a node
+ * with fixed ports and it runs round the whole box. Top-down and bottom-up, the emitter
+ * draws the loop itself beside the node and the layout's route for it is not used.
  *
  * A node that already has ports (a decision, whose lines meet at its tips) is left alone, and
  * so is one with `fixedOutline` (the circle of an initial or final state, which cannot grow
@@ -691,7 +700,7 @@ const JUNCTION = 6;
  * Each merged group is added to `merges`. Returns whether any port was set.
  * @param {{fanIn?: 'auto'|'merge'|'separate', merges?: Array<{node:string, edges:string[]}>}} [how]
  */
-function sidePorts(layout, { containers, nodes, edges }, { fanIn = 'auto', merges = [] } = {}) {
+function sidePorts(layout, { containers, nodes, edges, direction }, { fanIn = 'auto', merges = [] } = {}) {
   const parentOf = new Map([...containers.map((c) => [c.id, c.parent]), ...nodes.map((n) => [n.id, n.parent])]);
   const open = new Map(nodes.filter((n) => !n.ports?.length && !n.fixedOutline).map((n) => [n.id, n]));
   const upright = (side) => side === 'left' || side === 'right';
@@ -708,7 +717,7 @@ function sidePorts(layout, { containers, nodes, edges }, { fanIn = 'auto', merge
   };
   const ends = new Map();
   for (const e of edges) {
-    if (e.from === e.to) continue;
+    if (e.from === e.to && !acrossIsVertical(direction)) continue;
     const route = layout.edges.get(e.id);
     for (const [end, id, pt] of [['from', e.from, route?.start], ['to', e.to, route?.end]]) {
       if (!open.has(id) || !pt) continue;
@@ -727,7 +736,7 @@ function sidePorts(layout, { containers, nodes, edges }, { fanIn = 'auto', merge
       // The lines into this side that may share one line, by style; the largest set merges.
       const alike = new Map();
       for (const x of list) {
-        if (x.end !== 'to' || x.e.label || x.e.layoutReversed) continue;
+        if (x.end !== 'to' || x.e.label || x.e.layoutReversed || x.e.from === x.e.to) continue;
         if (!alike.has(x.e.style)) alike.set(x.e.style, []);
         alike.get(x.e.style).push(x);
       }
@@ -739,7 +748,7 @@ function sidePorts(layout, { containers, nodes, edges }, { fanIn = 'auto', merge
       const [lo, hi] = extent(n, side);
       for (const slot of slots) slot.share = hi > lo ? Math.max(0, Math.min(1, (slot.at - lo) / (hi - lo))) : 0.5;
       const close = slots.some((slot, i) => i > 0 && slot.at - slots[i - 1].at < MIN_END_GAP - 0.01);
-      const off = slantedShape(n.style) !== undefined && slots.some((slot) => slot.at < lo - 0.5 || slot.at > hi + 0.5);
+      const off = slots.some((slot) => slot.at < lo - 0.5 || slot.at > hi + 0.5);
       return { side, slots, spread: close || off || merged !== undefined };
     });
     if (!groups.some((g) => g.spread)) continue;
@@ -811,6 +820,7 @@ export function fanInJunctions(layout, merges) {
     return arms;
   };
   const dots = [];
+  const numbered = new Map();
   for (const m of merges) {
     const paths = m.edges.map(pathOf).filter(Boolean);
     if (paths.length < 2) continue;
@@ -826,7 +836,11 @@ export function fanInJunctions(layout, merges) {
     }
     const head = pointAlong(paths[0], trunk).point;
     const points = [head, ...partings.filter((pt) => !near(pt, head) && new Set(paths.flatMap((path) => armsAt(path, pt))).size >= 4)];
-    for (const pt of points) dots.push({ id: `${m.node}:junction:${dots.length + 1}`, x: pt.x, y: pt.y });
+    // Numbered per node, so a merge added at one node leaves the ids of the dots at the others as they were.
+    for (const pt of points) {
+      numbered.set(m.node, (numbered.get(m.node) ?? 0) + 1);
+      dots.push({ id: `${m.node}:junction:${numbered.get(m.node)}`, x: pt.x, y: pt.y });
+    }
   }
   return dots;
 }
@@ -1026,7 +1040,7 @@ async function emitFlowchart(ir, cid, refs, warnings) {
   // The first layout shows which side each line end uses; a side with too little room for
   // its ends, or with enough lines to merge, gets fixed ports and the layout runs again.
   const merges = [];
-  for (let round = 0; round < 3 && sidePorts(layout, { containers, nodes, edges }, { fanIn: ir.fanIn, merges }); round++) layout = await arrange();
+  for (let round = 0; round < 3 && sidePorts(layout, { containers, nodes, edges, direction: ir.direction }, { fanIn: ir.fanIn, merges }); round++) layout = await arrange();
   // A flow that enters a group from above runs across its header: the title steps aside, and
   // a group too narrow for that is widened, which moves the lines, so the titles are placed again.
   let unplaced = placeGroupTitles(layout, { containers, nodes, edges });
@@ -1070,7 +1084,7 @@ async function emitState(ir, cid, refs, warnings) {
   let layout = await arrange();
   // Room for the transitions that end on one side of a state, and one line for many (see sidePorts).
   const merges = [];
-  for (let round = 0; round < 3 && sidePorts(layout, { containers, nodes, edges }, { fanIn: ir.fanIn, merges }); round++) layout = await arrange();
+  for (let round = 0; round < 3 && sidePorts(layout, { containers, nodes, edges, direction: ir.direction }, { fanIn: ir.fanIn, merges }); round++) layout = await arrange();
   // A composite is as wide as its content, which only the layout knows; a title that wraps at
   // that width needs a taller header, and the layout runs once more with it.
   let taller = false;

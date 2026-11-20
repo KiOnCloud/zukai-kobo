@@ -268,8 +268,11 @@ at 40 characters; `drift` and `relabel` read them as they are.
   | 5 or more, fewer than 5 able to share a line | apart, as for up to 4 |
 
   A side that needs no change keeps each end at the share of its length the first layout
-  gave it, and the line that leads back to a loop head keeps the side across the flow. A
-  node whose ends already have their room gets no port and keeps its size and anchors.
+  gave it, the line that leads back to a loop head keeps the side across the flow, and a
+  self-loop over the top of the node keeps its two ends there. In a top-down or bottom-up
+  diagram a step with a self-loop beside it has a layout box wider than its shape; ends the
+  first layout put beside the shape are spread over the shape too. A node whose ends
+  already have their room, on its shape, gets no port and keeps its size and anchors.
 - ELK options: layered algorithm, direction from the IR, orthogonal edge routing,
   `hierarchyHandling=INCLUDE_CHILDREN` for edges that cross containers, root-relative
   edge coordinates. Node spacing 40, layer spacing 60 (60 and 80 for ER and class).
